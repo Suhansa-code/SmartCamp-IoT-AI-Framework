@@ -1,1 +1,1 @@
-# SmartCamp---IoT-AI
+# SmartCamp-IoT-AI
