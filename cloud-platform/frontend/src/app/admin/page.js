@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import CampOverview from '@/components/psychoedu/dashboard/CampOverview'
+import Campoverview from '@/components/psychoedu/dashboard/Campoverview'
 
 export default function AdminPage() {
   const router     = useRouter()
@@ -105,7 +105,7 @@ export default function AdminPage() {
             </div>
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:'1rem' }}>
-              {camps.map(camp => <CampOverview key={camp.id} camp={camp} darkMode />)}
+              {camps.map(camp => <Campoverview key={camp.id} camp={camp} darkMode />)}
             </div>
           )}
         </main>
