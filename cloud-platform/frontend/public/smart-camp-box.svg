@@ -1,0 +1,32 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1920" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E6FFFA"/>
+      <stop offset="1" stop-color="#EEF2FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect x="120" y="120" width="1680" height="840" rx="36" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="4"/>
+
+  <text x="960" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="#0F172A">
+    Smart Camp Box
+  </text>
+  <text x="960" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#334155">
+    Integrated Platform Overview
+  </text>
+
+  <rect x="220" y="420" width="460" height="340" rx="24" fill="#ECFEFF" stroke="#0F766E" stroke-width="3"/>
+  <text x="450" y="510" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#115E59">Hazard</text>
+  <text x="450" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#134E4A">Flood and risk prediction</text>
+
+  <rect x="730" y="420" width="460" height="340" rx="24" fill="#FFFBEB" stroke="#B45309" stroke-width="3"/>
+  <text x="960" y="510" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#92400E">Resources</text>
+  <text x="960" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#78350F">Intelligent resource management</text>
+
+  <rect x="1240" y="420" width="460" height="340" rx="24" fill="#EEF2FF" stroke="#3730A3" stroke-width="3"/>
+  <text x="1470" y="510" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#312E81">PsychoEdu</text>
+  <text x="1470" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#3730A3">Attentional educational support</text>
+
+  <line x1="680" y1="590" x2="730" y2="590" stroke="#64748B" stroke-width="6"/>
+  <line x1="1190" y1="590" x2="1240" y2="590" stroke="#64748B" stroke-width="6"/>
+</svg>
