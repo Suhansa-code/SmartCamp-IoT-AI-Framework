@@ -74,12 +74,10 @@ export default function BreathingCircle({ onComplete }) {
   const tickRef = useRef(null)
   const phase   = PHASES[phaseIdx]
 
-  // Auto-advance from instructions after 6 seconds
-  useEffect(() => {
-    if (!showInstructions) return
-    const timer = setTimeout(() => setShowInstructions(false), 6000)
-    return () => clearTimeout(timer)
-  }, [showInstructions])
+  // Start breathing handler
+  function startBreathing() {
+    setShowInstructions(false)
+  }
 
   // Animate circle size with a small delay so CSS transition fires
   useEffect(() => {
@@ -128,7 +126,7 @@ export default function BreathingCircle({ onComplete }) {
         <div style={{ position:'absolute', top:'-60px', right:'-60px', width:'min(240px,50vw)', height:'min(240px,50vw)', borderRadius:'50%', background:'#DDD6FE', opacity:0.5, pointerEvents:'none' }} />
         <div style={{ position:'absolute', bottom:'-80px', left:'-60px', width:'min(280px,55vw)', height:'min(280px,55vw)', borderRadius:'50%', background:'#C4B5FD', opacity:0.3, pointerEvents:'none' }} />
 
-        <div style={{ zIndex:1 }}>
+        <div style={{ zIndex:1, display:'flex', flexDirection:'column', alignItems:'center' }}>
           {/* Mascot */}
           <div style={{ marginBottom:'clamp(1.5rem,4vw,2rem)', animation:'fadeUpAnim 0.6s ease' }}>
             <div style={{
@@ -154,6 +152,50 @@ export default function BreathingCircle({ onComplete }) {
           <p style={{ fontSize:'clamp(1rem,3.5vw,1.3rem)', fontWeight:700, color:'#7C3AED', lineHeight:1.4, marginBottom:'clamp(1.25rem,3vw,1.75rem)', maxWidth:'420px' }}>
             {t('breathe.instruction_text', lang)}
           </p>
+
+          {/* Start Breathing Button - child friendly */}
+          <button
+            onClick={startBreathing}
+            style={{
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'clamp(1.25rem,4vw,2rem)',
+              padding: 'clamp(1rem,3vw,1.25rem) clamp(1.5rem,6vw,2.5rem)',
+              fontSize: 'clamp(1.1rem,4vw,1.6rem)',
+              fontWeight: 900,
+              fontFamily: "'Baloo 2', cursive",
+              cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(139, 92, 246, 0.3)',
+              transition: 'all 0.2s ease',
+              minWidth: '200px',
+              maxWidth: 'min(300px,85vw)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.75rem',
+              marginTop: 'clamp(1.5rem,4vw,2rem)',
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = 'scale(0.96)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.2)'
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.3)'
+            }}
+            onTouchStart={(e) => {
+              e.currentTarget.style.transform = 'scale(0.96)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.2)'
+            }}
+            onTouchEnd={(e) => {
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.3)'
+            }}
+          >
+            <span>🌬️</span>
+            <span>{t('breathe.start_btn', lang)}</span>
+          </button>
         </div>
       </div>
     )
