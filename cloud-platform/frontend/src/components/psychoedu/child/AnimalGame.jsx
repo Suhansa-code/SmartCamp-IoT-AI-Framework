@@ -15,26 +15,27 @@ import { t }        from '@/components/psychoedu/lib/translations'
 
 // ── Animals ───────────────────────────────────────────────────────────────────
 const TARGET_DEFS = [
-  { id: 'elephant',  emoji: '🐘', file: 'elephant.png'   },
-  { id: 'rabbit',    emoji: '🐰', file: 'rabbit.png'     },
-  { id: 'butterfly', emoji: '🦋', file: 'butterfly.png'  },
-  { id: 'bird',      emoji: '🐦', file: 'bird.png'       },
-  { id: 'fish',      emoji: '🐟', file: 'fish.png'       },
-  { id: 'cat',       emoji: '🐱', file: 'cat.png'        },
-  { id: 'duck',      emoji: '🦆', file: 'duck.png'       },
+  { id: 'elephant',  emoji: '🐘', file: 'elephant.svg'   },
+  { id: 'rabbit',    emoji: '🐰', file: 'rabbit.svg'     },
+  { id: 'butterfly', emoji: '🦋', file: 'butterfly.svg'  },
+  { id: 'bird',      emoji: '🐦', file: 'bird.svg'       },
+  { id: 'fish',      emoji: '🐟', file: 'fish.svg'       },
+  { id: 'cat',       emoji: '🐱', file: 'cat.svg'        },
+  { id: 'duck',      emoji: '🦆', file: 'duck.svg'       },
 ]
 const DISTRACTOR_DEFS = [
-  { id: 'snake',  emoji: '🐍', file: 'snake.png'  },
-  { id: 'spider', emoji: '🕷️', file: 'spider.png' },
-  { id: 'crab',   emoji: '🦀', file: 'crab.png'   },
+  { id: 'snake',  emoji: '🐍', file: 'snake.svg'  },
+  { id: 'spider', emoji: '🕷️', file: 'spider.svg' },
+  { id: 'crab',   emoji: '🦀', file: 'crab.svg'   },
 ]
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const TOTAL_TRIALS  = 45
 const TARGET_RATIO  = 0.70
-const SHOW_MS       = 1500
-const BLANK_MS      = 500
+const SHOW_MS       = 1500  
+const BLANK_MS      = 500   
 const TASK_DURATION = 90
+const COUNTDOWN_SECONDS = 10
 
 // ── Math helpers ──────────────────────────────────────────────────────────────
 const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
@@ -60,7 +61,7 @@ function buildTrials() {
 }
 
 // ── Countdown screen ──────────────────────────────────────────────────────────
-function CountdownScreen({ count, lang }) {
+function CountdownScreen({ count, lang, total }) {
   return (
     <div style={{
       minHeight:'100svh', background:'#F0F9FF',
@@ -91,7 +92,7 @@ function CountdownScreen({ count, lang }) {
         <svg width="100%" height="100%" viewBox="0 0 140 140" style={{ position:'absolute', transform:'rotate(-90deg)' }}>
           <circle cx="70" cy="70" r="60" fill="none" stroke="#E2E8F0" strokeWidth="8" />
           <circle cx="70" cy="70" r="60" fill="none" stroke="#0D9488" strokeWidth="8"
-            strokeDasharray={`${((3 - count) / 3) * 376.99} 376.99`}
+            strokeDasharray={`${((total - count) / total) * 376.99} 376.99`}
             strokeLinecap="round"
             style={{ transition:'stroke-dasharray 0.9s linear' }}
           />
@@ -133,7 +134,7 @@ export default function AnimalGame({ onComplete }) {
   const trials = trialsRef.current
 
   const [phase,    setPhase]    = useState('countdown')
-  const [cdCount,  setCdCount]  = useState(3)
+  const [cdCount,  setCdCount]  = useState(COUNTDOWN_SECONDS)
   const [trialIdx, setTrialIdx] = useState(0)
   const [timeLeft, setTimeLeft] = useState(TASK_DURATION)
   const [feedback, setFeedback] = useState(null)
@@ -146,7 +147,9 @@ export default function AnimalGame({ onComplete }) {
   const shownAt       = useRef(0)
   const tapped        = useRef(false)
   const timerRef      = useRef(null)
+  const timerEndRef   = useRef(null)
   const trialTimer    = useRef(null)
+  const missingImageFiles = useRef(new Set())
 
   const trial = trials[trialIdx]
 
@@ -158,10 +161,23 @@ export default function AnimalGame({ onComplete }) {
     return () => clearTimeout(t)
   }, [phase, cdCount])
 
-  // 90-s timer
+  // 90-s timer (wall-clock based to avoid interval drift)
   useEffect(() => {
     if (phase === 'countdown' || phase === 'done') return
-    timerRef.current = setInterval(() => setTimeLeft(tl => { if (tl <= 1) { clearInterval(timerRef.current); return 0 } return tl - 1 }), 1000)
+
+    if (!timerEndRef.current) {
+      timerEndRef.current = Date.now() + TASK_DURATION * 1000
+    }
+
+    const tick = () => {
+      const remainingMs = timerEndRef.current - Date.now()
+      const next = Math.max(0, Math.ceil(remainingMs / 1000))
+      setTimeLeft(prev => (prev === next ? prev : next))
+      if (next === 0) clearInterval(timerRef.current)
+    }
+
+    tick()
+    timerRef.current = setInterval(tick, 200)
     return () => clearInterval(timerRef.current)
   }, [phase])
 
@@ -170,7 +186,7 @@ export default function AnimalGame({ onComplete }) {
   // Show phase
   useEffect(() => {
     if (phase !== 'show') return
-    setImgError(false)
+    setImgError(trial ? missingImageFiles.current.has(trial.file) : false)
     tapped.current  = false
     shownAt.current = Date.now()
     trialTimer.current = setTimeout(() => {
@@ -235,7 +251,7 @@ export default function AnimalGame({ onComplete }) {
   }
   const fb = feedback ? FB[feedback] : null
 
-  if (phase === 'countdown') return <CountdownScreen count={cdCount} lang={lang} />
+  if (phase === 'countdown') return <CountdownScreen count={cdCount} lang={lang} total={COUNTDOWN_SECONDS} />
   if (phase === 'done')      return <DoneScreen lang={lang} />
 
   // Animal name in chosen language
@@ -310,7 +326,10 @@ export default function AnimalGame({ onComplete }) {
                     src={`/animals/${trial.file}`}
                     alt={animalName}
                     style={{ width:'min(260px,65vw)', height:'min(260px,65vw)', objectFit:'contain', display:'block', userSelect:'none', pointerEvents:'none' }}
-                    onError={() => setImgError(true)}
+                    onError={() => {
+                      missingImageFiles.current.add(trial.file)
+                      setImgError(true)
+                    }}
                     draggable={false}
                   />
                 )}
