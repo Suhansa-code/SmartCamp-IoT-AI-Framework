@@ -105,7 +105,7 @@ export default function LanguagePicker({ sessionId, onSelect }) {
                 }}>
                   <span style={{ fontSize:'clamp(2rem,7vw,2.8rem)', lineHeight:1, flexShrink:0 }}>{lang.flag}</span>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.3rem,4.5vw,1.9rem)', fontWeight:900, color: isSel ? 'white' : '#1E3A5F', lineHeight:1.15, transition:'color 0.15s', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    <p style={{ fontFamily:"'Noto Sans Sinhala','Noto Sans Tamil','Baloo 2',sans-serif", fontSize:'clamp(1.3rem,4.5vw,1.9rem)', fontWeight:900, color: isSel ? 'white' : '#1E3A5F', lineHeight:1.3, paddingTop:'2px', transition:'color 0.15s', whiteSpace:'normal', overflow:'visible' }}>
                       {lang.label}
                     </p>
                     <p style={{ fontSize:'clamp(0.75rem,2.5vw,0.95rem)', fontWeight:600, color: isSel ? 'rgba(255,255,255,0.85)' : '#64748B', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:'2px', transition:'color 0.15s' }}>

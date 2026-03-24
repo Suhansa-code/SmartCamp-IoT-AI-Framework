@@ -62,6 +62,8 @@ function buildTrials() {
 
 // ── Countdown screen ──────────────────────────────────────────────────────────
 function CountdownScreen({ count, lang, total }) {
+  const isEnglish = lang === 'en'
+
   return (
     <div style={{
       minHeight:'100svh', background:'#F0F9FF',
@@ -79,10 +81,10 @@ function CountdownScreen({ count, lang, total }) {
         <div style={{ display:'flex', justifyContent:'center', gap:'1rem', fontSize:'clamp(2.2rem,8vw,3rem)', marginBottom:'0.75rem' }}>
           <span>🐘</span><span>🐍</span>
         </div>
-        <p style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.1rem,4vw,1.5rem)', fontWeight:900, color:'#1E3A5F', lineHeight:1.25 }}>
+        <p style={{ fontFamily:"'Baloo 2',cursive", fontSize: isEnglish ? 'clamp(1.2rem,4.3vw,1.65rem)' : 'clamp(1.1rem,4vw,1.5rem)', fontWeight:900, color:'#1E3A5F', lineHeight:1.3 }}>
           {t('game.countdown_instruction', lang)}
         </p>
-        <p style={{ fontSize:'clamp(0.8rem,2.5vw,0.95rem)', fontWeight:600, color:'#64748B', marginTop:'6px' }}>
+        <p style={{ fontSize: isEnglish ? 'clamp(0.9rem,2.7vw,1.05rem)' : 'clamp(0.8rem,2.5vw,0.95rem)', fontWeight:600, color:'#64748B', marginTop:'6px', lineHeight:1.3 }}>
           {t('game.no_tap_instruction', lang)}
         </p>
       </div>
@@ -126,6 +128,7 @@ export default function AnimalGame({ onComplete }) {
   const searchParams = useSearchParams()
   const router       = useRouter()
   const { lang }     = useLang()
+  const isEnglish = lang === 'en'
 
   const sessionId = searchParams?.get('session') ?? 'offline'
 
@@ -292,10 +295,10 @@ export default function AnimalGame({ onComplete }) {
         {/* Instruction strip */}
         <div style={{ padding:'0 clamp(0.75rem,3vw,1rem) 0.5rem', width:'100%', maxWidth:'min(400px,94vw)', margin:'0 auto', flexShrink:0 }}>
           <div style={{ background:'white', borderRadius:'clamp(0.75rem,3vw,1.25rem)', padding:'clamp(0.5rem,2vw,0.6rem) clamp(0.75rem,3vw,1.25rem)', textAlign:'center', border:'2px solid #E2E8F0' }}>
-            <p style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(0.9rem,3vw,1.1rem)', fontWeight:800, color:'#1E3A5F' }}>
+            <p style={{ fontFamily:"'Baloo 2',cursive", fontSize: isEnglish ? 'clamp(1.2rem,4.2vw,1.55rem)' : 'clamp(0.9rem,3vw,1.1rem)', fontWeight:800, color:'#1E3A5F', lineHeight:1.3 }}>
               {t('game.instruction_main', lang)}
             </p>
-            <p style={{ fontSize:'clamp(0.72rem,2vw,0.82rem)', fontWeight:600, color:'#0D9488', marginTop:2 }}>
+            <p style={{ fontSize: isEnglish ? 'clamp(0.95rem,2.9vw,1.15rem)' : 'clamp(0.72rem,2vw,0.82rem)', fontWeight:600, color:'#0D9488', marginTop:2, lineHeight:1.3 }}>
               {t('game.instruction_sub', lang)}
             </p>
           </div>
@@ -369,7 +372,7 @@ export default function AnimalGame({ onComplete }) {
             opacity: phase === 'blank' ? 0.3 : 1,
             transition:'opacity 0.2s',
           }}>
-            <p style={{ fontWeight:800, fontSize:'clamp(1rem,3.5vw,1.2rem)', color:'white', fontFamily:"'Baloo 2',cursive" }}>
+            <p style={{ fontWeight:800, fontSize: isEnglish ? 'clamp(1.24rem,4.6vw,1.65rem)' : 'clamp(1rem,3.5vw,1.2rem)', color:'white', fontFamily:"'Baloo 2',cursive", lineHeight:1.25 }}>
               {phase === 'show' && trial?.type === 'target'
                 ? `👆 ${t('game.tap_now', lang)}`
                 : `⏸ ${t('game.wait', lang)}`}
