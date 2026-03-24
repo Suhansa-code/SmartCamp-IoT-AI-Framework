@@ -1,15 +1,5 @@
 'use client'
 
-// src/components/psychoedu/cognitive/CognitiveSession.jsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Main session runner. Receives a session object, steps through 10 tasks,
-// shows Eli between tasks, tracks score, calls onComplete when done.
-//
-// Props:
-//   session   — session object from sessions.js
-//   onComplete({ score, total, results }) — called after all 10 tasks
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState } from 'react'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import { SUBJECT_COLORS, TASK_TYPE_LABELS } from '@/components/psychoedu/lib/sessions'
@@ -18,7 +8,7 @@ import TaskRenderer from './TaskRenderer'
 // ── Eli mascot SVG (inline, no external dep) ──────────────────────────────────
 function EliSmall({ size = 56 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 160 160" fill="none" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 180 180" fill="none" aria-hidden="true">
       <ellipse cx="80" cy="149" rx="38" ry="6"  fill="#0D9488" opacity="0.12" />
       <ellipse cx="80" cy="108" rx="34" ry="27" fill="#0D9488" />
       <circle  cx="80" cy="74"  r="29"          fill="#0D9488" />
@@ -37,16 +27,16 @@ function EliSmall({ size = 56 }) {
 // ── Between-task encouragement messages (Eli speaks) ─────────────────────────
 const ELI_MESSAGES = [
   { si: 'ඉතා හොඳයි! 🌟 ඊළඟ ප්‍රශ්නයට ලෑස්තිද?', ta: 'மிகவும் நன்று! 🌟 அடுத்த கேள்விக்கு தயாரா?',         en: 'Great job! 🌟 Ready for the next one?' },
-  { si: 'ඔබ ශූරයෙකු! ⭐ ඉදිරියට යමු!',              ta: 'நீ ஒரு நட்சத்திரம்! ⭐ முன்னேறலாம்!',              en: "You're a star! ⭐ Let's keep going!" },
+  { si: 'ඔබ දක්ෂයි! ⭐ ඉදිරියට යමු!',              ta: 'நீ ஒரு நட்சத்திரம்! ⭐ முன்னேறலாம்!',              en: "You're a star! ⭐ Let's keep going!" },
   { si: 'බොහොම හොඳයි! 👏 ඊළඟ ප්‍රශ්නය!',           ta: 'மிகவும் நன்றாக! 👏 அடுத்த கேள்வி!',               en: 'Well done! 👏 Next question!' },
-  { si: 'ඔබ දිනෙනවා! 💪 ඉදිරිය දෙස බලන්න!',         ta: 'நீ வெல்கிறாய்! 💪 முன்னே பார்!',                  en: "You're winning! 💪 Look ahead!" },
-  { si: 'චතුරයි! 🎉 ඊළඟ ප්‍රශ්නය ලෙහෙසියි!',        ta: 'புத்திசாலி! 🎉 அடுத்தது எளிதானது!',              en: "Smart! 🎉 The next one is easy!" },
+  { si: 'ඔබ දිනනවා! 💪 ඉදිරිය බලන්න!',         ta: 'நீ வெல்கிறாய்! 💪 முன்னே பார்!',                  en: "You're winning! 💪 Look ahead!" },
+  { si: 'දක්ෂයි! 🎉 ඊළඟ ප්‍රශ්නය ලෙහෙසියි!',        ta: 'புத்திசாலி! 🎉 அடுத்தது எளிதானது!',              en: "Smart! 🎉 The next one is easy!" },
 ]
 
 const FINAL_MESSAGES = {
-  excellent: { si: '🏆 ඔබ අතිශය ශූරයෙකු!',          ta: '🏆 நீ மிகவும் சிறந்தவன்!',              en: '🏆 You are absolutely amazing!' },
-  good:      { si: '⭐ ඉතා හොඳ ලකුණු!',               ta: '⭐ மிகவும் நல்ல மதிப்பெண்கள்!',         en: '⭐ Really great score!' },
-  ok:        { si: '😊 ඔබ ගොඩාක් හොඳ ගත්තා!',         ta: '😊 நீ நன்றாக செய்தாய்!',                en: '😊 You did really well!' },
+  excellent: { si: '🏆 ඔබ දක්ෂයි!',          ta: '🏆 நீ மிகவும் சிறந்தவன்!',              en: '🏆 You are absolutely amazing!' },
+  good:      { si: '⭐ ඉතා හොඳ ලකුණක්!',               ta: '⭐ மிகவும் நல்ல மதிப்பெண்கள்!',         en: '⭐ Really great score!' },
+  ok:        { si: '😊 ඔබ ගොඩාක් හොඳට කළා!',         ta: '😊 நீ நன்றாக செய்தாய்!',                en: '😊 You did really well!' },
 }
 
 export default function CognitiveSession({ session, onComplete }) {
@@ -127,7 +117,7 @@ export default function CognitiveSession({ session, onComplete }) {
             onClick={handleDone}
             style={{ width:'100%', maxWidth:'min(380px,88vw)', minHeight:'clamp(60px,13vw,72px)', background:'#F97316', color:'white', borderRadius:'9999px', border:'none', fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.1rem,4vw,1.4rem)', fontWeight:900, cursor:'pointer', boxShadow:'0 6px 24px rgba(249,115,22,0.25)' }}
           >
-            {lang === 'si' ? '✅ ඉවරයි! ගෙදරට යමු' : lang === 'ta' ? '✅ முடிந்தது! வீட்டிற்கு செல்லலாம்' : '✅ All done! Let\'s go'}
+            {lang === 'si' ? 'අපි විවේකයක් ගනිමු... නැවත එන්න ... ' : lang === 'ta' ? 'சிறிது நேரம் ஓய்வெடுப்போம்... திரும்பி வருவோம்...' : 'Let\'s take a break... come back...'}
           </button>
         </div>
       </>
@@ -153,7 +143,7 @@ export default function CognitiveSession({ session, onComplete }) {
           <span style={{ fontSize:'clamp(0.85rem,2.5vw,1rem)', fontWeight:600, color: lastCorrect ? '#166534' : '#0D9488' }}>
             {lastCorrect
               ? (lang === 'si' ? 'නිවැරදියි!' : lang === 'ta' ? 'சரியானது!' : 'Correct!')
-              : (lang === 'si' ? 'ඊළඟ වාරේ!' : lang === 'ta' ? 'அடுத்த முறை!' : 'Next time!')}
+              : (lang === 'si' ? 'ඊළඟ!' : lang === 'ta' ? 'அடுத்த முறை!' : 'Next time!')}
           </span>
         </div>
         {/* Progress dots */}
@@ -199,7 +189,7 @@ export default function CognitiveSession({ session, onComplete }) {
 
       {/* Eli + task type strip */}
       <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', padding:'clamp(0.5rem,2vw,0.75rem) clamp(1rem,3vw,1.25rem)', flexShrink:0 }}>
-        <EliSmall size={36} />
+        <EliSmall size={96} />
         <span style={{ fontSize:'clamp(0.82rem,2.5vw,0.95rem)', fontWeight:700, color:'#1E3A5F', opacity:0.75 }}>
           {taskTypeLabel}
         </span>
