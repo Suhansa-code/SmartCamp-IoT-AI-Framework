@@ -3,6 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --teal:    #0D9488;
+  --teal-light: #CCFBF1;
+  --sky-bg:  #F0F9FF;
+  --coral:   #F97316;
+  --coral-light: #FED7AA;
+  --navy:    #1E3A5F;
+  --navy-light: #3B5F8A;
+  --white:   #FFFFFF;
+  --gray-soft: #E2E8F0;
+
 }
 
 @theme inline {
@@ -23,4 +33,103 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
+}
+
+@layer base {
+  body {
+    font-family: 'Nunito', sans-serif;
+    background-color: var(--sky-bg);
+    color: var(--navy);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Baloo 2', cursive;
+    color: var(--navy);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 text-xl
+           shadow-lg active:scale-95 transition-transform duration-150
+           min-h-[64px] flex items-center justify-center gap-2;
+    background-color: var(--coral);
+  }
+
+  .btn-teal {
+    @apply font-bold rounded-3xl py-4 px-8 text-xl
+           shadow-lg active:scale-95 transition-transform duration-150
+           min-h-[64px] flex items-center justify-center gap-2;
+    background-color: var(--teal);
+    color: var(--white);
+  }
+
+  .card-soft {
+    @apply bg-white rounded-3xl shadow-md p-6;
+  }
+
+  .label-bilingual {
+    @apply flex flex-col items-center gap-1;
+  }
+
+  .label-sinhala {
+    @apply text-2xl font-bold;
+    font-family: 'Baloo 2', cursive;
+    color: var(--navy);
+  }
+
+  .label-english {
+    @apply text-base font-semibold uppercase tracking-widest;
+    color: var(--teal);
+  }
+}
+
+/* Breathing animation */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50%       { transform: scale(1.35); opacity: 1; }
+}
+
+.breathe-circle {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* Bounce for mascot */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-12px); }
+}
+.mascot-bounce {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+/* Pulse for alert badge */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); }
+  70%  { box-shadow: 0 0 0 12px rgba(249,115,22,0); }
+  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+}
+.pulse-alert {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* Fade-in slide up */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.5s ease forwards;
+}
+
+/* Star pop */
+@keyframes star-pop {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  70%  { transform: scale(1.2) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.star-pop {
+  animation: star-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
