@@ -1,13 +1,5 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// components/child/AnimalGame.jsx — PAGES Go/No-Go Task
-// Language-aware: reads lang from LanguageContext
-// Fully responsive — clamp() fluid sizing, works on all phones + tablets
-// 90 s · 45 trials · 70% GO / 30% NO-GO · emoji fallback when images absent
-// onComplete({ accuracyRate, falseTapRate, avgReactionTime, reactionTimeVariance })
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLang }  from '@/components/psychoedu/context/LanguageContext'
@@ -269,7 +261,7 @@ export default function AnimalGame({ onComplete }) {
     if (onComplete) onComplete(metrics)
     else {
       const poor = metrics.accuracyRate < 0.5 || metrics.falseTapRate > 0.6
-      setTimeout(() => router.push(`${poor ? '/child/calming' : '/child/content'}?lang=${lang}`), 1600)
+      setTimeout(() => router.push(`${poor ? '/child/calming' : '/child/cognitive'}?lang=${lang}`), 1600)
     }
   }
 
