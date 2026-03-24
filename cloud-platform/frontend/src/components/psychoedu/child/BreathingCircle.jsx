@@ -22,10 +22,10 @@ const TOTAL_CYCLES = 3
 // ── Breathing elephant mascot ─────────────────────────────────────────────────
 function BreathingMascot({ scale = 1.0, lang }) {
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.5rem' }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
       <div style={{
-        width: 'clamp(90px,22vw,120px)',
-        height: 'clamp(90px,22vw,120px)',
+        width: 'clamp(120px,28vw,168px)',
+        height: 'clamp(120px,28vw,168px)',
         borderRadius: '50%',
         background: 'linear-gradient(135deg,#DDD6FE,#EDE9FE)',
         display: 'flex', alignItems:'center', justifyContent:'center',
@@ -33,30 +33,12 @@ function BreathingMascot({ scale = 1.0, lang }) {
         transition: 'transform 4s ease-in-out',
         transform: `scale(${scale})`,
       }}>
-        <svg width="80%" height="80%" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <ellipse cx="80" cy="149" rx="38" ry="6"  fill="#8B5CF6" opacity="0.12" />
-          <ellipse cx="80" cy="108" rx="34" ry="27" fill="#8B5CF6" />
-          <circle  cx="80" cy="74"  r="29"          fill="#8B5CF6" />
-          <ellipse cx="46"  cy="72" rx="13" ry="18" fill="#7C3AED" />
-          <ellipse cx="46"  cy="72" rx="8"  ry="12" fill="#EDE9FE" opacity="0.4" />
-          <ellipse cx="114" cy="72" rx="13" ry="18" fill="#7C3AED" />
-          <ellipse cx="114" cy="72" rx="8"  ry="12" fill="#EDE9FE" opacity="0.4" />
-          <circle cx="68" cy="68" r="6"    fill="white" />
-          <circle cx="92" cy="68" r="6"    fill="white" />
-          <circle cx="70" cy="69" r="3.5"  fill="#4C1D95" />
-          <circle cx="94" cy="69" r="3.5"  fill="#4C1D95" />
-          <circle cx="71" cy="68" r="1.2"  fill="white" />
-          <circle cx="95" cy="68" r="1.2"  fill="white" />
-          <path d="M68 84 Q80 93 92 84" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-          <path d="M80 98 Q73 114 78 124 Q82 132 78 138" stroke="#7C3AED" strokeWidth="8" strokeLinecap="round" fill="none" />
-          <path d="M78 138 Q68 146 70 136" stroke="#7C3AED" strokeWidth="6" strokeLinecap="round" fill="none" />
-          <rect x="52" y="128" width="18" height="16" rx="7" fill="#7C3AED" />
-          <rect x="90" y="128" width="18" height="16" rx="7" fill="#7C3AED" />
-        </svg>
+        <img
+          src="/psychoedu/mascots/elephant-breathe.svg"
+          alt="Elephant mascot"
+          style={{ width:'82%', height:'82%', objectFit:'contain' }}
+        />
       </div>
-      <p style={{ fontSize:'clamp(0.7rem,2vw,0.82rem)', fontWeight:700, color:'#5B21B6', opacity:0.7, textAlign:'center' }}>
-        {t('breathe.friend', lang)}
-      </p>
     </div>
   )
 }
@@ -87,9 +69,17 @@ export default function BreathingCircle({ onComplete }) {
   const [countdown,  setCountdown]  = useState(PHASES[0].dur)
   const [circleSize, setCircleSize] = useState(100)
   const [isDone,     setIsDone]     = useState(false)
+  const [showInstructions, setShowInstructions] = useState(true)
 
   const tickRef = useRef(null)
   const phase   = PHASES[phaseIdx]
+
+  // Auto-advance from instructions after 6 seconds
+  useEffect(() => {
+    if (!showInstructions) return
+    const timer = setTimeout(() => setShowInstructions(false), 6000)
+    return () => clearTimeout(timer)
+  }, [showInstructions])
 
   // Animate circle size with a small delay so CSS transition fires
   useEffect(() => {
@@ -126,6 +116,50 @@ export default function BreathingCircle({ onComplete }) {
   }
 
   // ── Done state ──────────────────────────────────────────────────────────────
+  if (showInstructions) {
+    return (
+      <div style={{
+        minHeight:'100svh', background:'#EDE9FE',
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+        gap:'clamp(1.5rem,4vw,2rem)', padding:'clamp(1.5rem,4vw,2rem)',
+        textAlign:'center', position:'relative', overflow:'hidden', boxSizing:'border-box',
+      }}>
+        {/* Blobs */}
+        <div style={{ position:'absolute', top:'-60px', right:'-60px', width:'min(240px,50vw)', height:'min(240px,50vw)', borderRadius:'50%', background:'#DDD6FE', opacity:0.5, pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom:'-80px', left:'-60px', width:'min(280px,55vw)', height:'min(280px,55vw)', borderRadius:'50%', background:'#C4B5FD', opacity:0.3, pointerEvents:'none' }} />
+
+        <div style={{ zIndex:1 }}>
+          {/* Mascot */}
+          <div style={{ marginBottom:'clamp(1.5rem,4vw,2rem)', animation:'fadeUpAnim 0.6s ease' }}>
+            <div style={{
+              width: 'clamp(130px,32vw,184px)',
+              height: 'clamp(130px,32vw,184px)',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg,#DDD6FE,#EDE9FE)',
+              display: 'flex', alignItems:'center', justifyContent:'center',
+              boxShadow: '0 4px 24px rgba(139,92,246,0.18)',
+            }}>
+              <img
+                src="/psychoedu/mascots/elephant-breathe.svg"
+                alt="Elephant mascot"
+                style={{ width:'82%', height:'82%', objectFit:'contain' }}
+              />
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <h1 style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.5rem,5.5vw,2.4rem)', fontWeight:900, color:'#5B21B6', lineHeight:1.25, marginBottom:'clamp(1rem,3vw,1.5rem)' }}>
+            {t('breathe.instruction_heading', lang)}
+          </h1>
+          <p style={{ fontSize:'clamp(1rem,3.5vw,1.3rem)', fontWeight:700, color:'#7C3AED', lineHeight:1.4, marginBottom:'clamp(1.25rem,3vw,1.75rem)', maxWidth:'420px' }}>
+            {t('breathe.instruction_text', lang)}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Done state ──────────────────────────────────────────────────────────────
   if (isDone) {
     return (
       <div style={{ minHeight:'100svh', background:'#EDE9FE', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'1.25rem', padding:'2rem', textAlign:'center' }}>
@@ -157,6 +191,10 @@ export default function BreathingCircle({ onComplete }) {
           100% { transform:scale(2.2); opacity:0; }
         }
         @keyframes fadeUp {
+          from { opacity:0; transform:translateY(12px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes fadeUpAnim {
           from { opacity:0; transform:translateY(12px); }
           to   { opacity:1; transform:translateY(0); }
         }

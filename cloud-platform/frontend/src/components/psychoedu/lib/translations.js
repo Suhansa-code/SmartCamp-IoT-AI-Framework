@@ -36,7 +36,7 @@ const STRINGS = {
   // ── Animal names ─────────────────────────────────────────────────────────────
   'animal.elephant':  { si: 'අලියා',      ta: 'யானை',              en: 'Elephant'   },
   'animal.rabbit':    { si: 'හාවා',       ta: 'முயல்',             en: 'Rabbit'     },
-  'animal.butterfly': { si: 'සමනලා',     ta: 'பட்டாம்பூச்சி',     en: 'Butterfly'  },
+  'animal.butterfly': { si: 'සමනලයා',     ta: 'பட்டாம்பூச்சி',     en: 'Butterfly'  },
   'animal.bird':      { si: 'කුරුල්ලා',  ta: 'பறவை',              en: 'Bird'       },
   'animal.fish':      { si: 'මාළුවා',    ta: 'மீன்',              en: 'Fish'       },
   'animal.cat':       { si: 'පූසා',       ta: 'பூனை',              en: 'Cat'        },
@@ -56,7 +56,9 @@ const STRINGS = {
   'breathe.done_heading':{ si: 'ගොඩක් හොඳයි!',            ta: 'மிகவும் நன்றாக செய்தீர்கள்!',   en: 'Great job!' },
   'breathe.done_sub':   { si: 'ඔයා ඉතා හොඳයි!',            ta: 'நீ அற்புதமாக செய்தாய்!',         en: 'You did wonderfully.' },
   'breathe.friend':     { si: 'ඔයාගේ යාළුවා',             ta: 'உங்கள் நண்பர்',                  en: 'Your friend' },
-
+  'breathe.instruction_heading': { si: 'හුස්ම ගැනීමේ පාඩම ',  ta: 'சுவாசிக்கும் பயிற்சி',            en: 'Breathing Exercise' },
+  'breathe.instruction_text':    { si: 'අපි එකට හුස්ම ගමු ',  ta: 'நீ பயப்படும் போது, உன் உடல் விரைவாக சுவாசிக்கிறது. நாம் ஆழ்ந்த சுவாசம் மூலம் உனை शांत செய்ய முடியும்.',  en: 'Let\'s breathe deeply together.' },
+            
   // ── Content cards ────────────────────────────────────────────────────────────
   'content.card_1.title': { si: 'ඔයාට දැනෙන දේ වටිනවා ',       ta: 'உங்கள் உணர்வுகள் முக்கியம்',     en: 'Your feelings matter' },
   'content.card_1.body':  { si: 'දුකක්, භයක් දැනෙනවා නම් ඔයා හොදට ම දන්න කෙනෙක් ට කතා කරන්න.', ta: 'சோகம், பயம் அல்லது கவலை உணர்ந்தால் சரிதான். நம்பகமான ஒருவரிடம் சொல்லுங்கள்.', en: "It's OK to feel sad, scared, or worried. Talk to someone you trust - it helps!" },
@@ -65,7 +67,7 @@ const STRINGS = {
   'content.card_3.title': { si: 'අපි ඔයත් එක්ක ඉන්නවා ',                   ta: 'நாம் ஒன்றாக இருக்கிறோம்',        en: 'We are together' },
   'content.card_3.body':  { si: 'ඔයා තනිවෙලා නෑ. ඔයා එක්ක ගොඩක් යාළුවෝ ඉන්නවා.', ta: 'நீ தனியாக இல்லை. உன்னோடு நிறைய நண்பர்களும் உதவியாளர்களும் இருக்கிறார்கள்.', en: 'You are not alone. Many friends and helpers are here for you.' },
   'content.card_4.title': { si: 'ඉස්සරහට ලස්සන දවස් එනවා ',             ta: 'நாளை சூரியன் மீண்டும் உதயமாகும்', en: 'Brighter days ahead' },
-  'content.card_4.body':  { si: 'අමාරු දවස් හැමදාම තියෙන්නේ නෑ . ඉස්සරහට හොඳ දවස් එනවා.', ta: 'கஷ்டமான காலம் என்றும் நீடிக்காது. நல்ல நாட்கள் வரும்.', en: 'Hard times do not last forever. Better days are coming your way.' },
+  'content.card_4.body':  { si: 'අමාරු දවස් හැමදාම නෑ . ඉස්සරහට හොඳ දවස් එනවා.', ta: 'கஷ்டமான காலம் என்றும் நீடிக்காது. நல்ல நாட்கள் வரும்.', en: 'Hard times do not last forever. Better days are coming your way.' },
   'content.next':             { si: '➡️ ඊළඟ',   ta: '➡️ அடுத்து', en: '➡️ Next' },
   'content.done':             { si: '✅ අවසන්', ta: '✅ முடிந்தது', en: '✅ Done' },
   'content.complete_heading': { si: 'ඔබ ඉතා හොඳයි!', ta: 'நீ மிகவும் நன்றாக செய்தாய்!', en: 'Amazing job!' },

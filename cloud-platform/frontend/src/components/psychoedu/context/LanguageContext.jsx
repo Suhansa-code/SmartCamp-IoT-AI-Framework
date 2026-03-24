@@ -17,15 +17,26 @@ export function LanguageProvider({ children }) {
 
   // Hydrate from localStorage + URL param (client only)
   useEffect(() => {
-    const urlParam = new URLSearchParams(window.location.search).get('lang')
-    const stored   = localStorage.getItem(STORAGE_KEY)
-    const resolved = VALID_LANGS.includes(urlParam)
-      ? urlParam
-      : VALID_LANGS.includes(stored)
-        ? stored
-        : DEFAULT_LANG
-    setLangState(resolved)
-    setReady(true)
+    try {
+      const urlParam = new URLSearchParams(window.location.search).get('lang')
+      let stored = null
+      try {
+        stored = localStorage.getItem(STORAGE_KEY)
+      } catch {
+        stored = null
+      }
+
+      const resolved = VALID_LANGS.includes(urlParam)
+        ? urlParam
+        : VALID_LANGS.includes(stored)
+          ? stored
+          : DEFAULT_LANG
+
+      setLangState(resolved)
+    } finally {
+      // Always allow rendering, even if browser storage is unavailable.
+      setReady(true)
+    }
   }, [])
 
   function setLang(code) {
@@ -33,9 +44,6 @@ export function LanguageProvider({ children }) {
     setLangState(code)
     try { localStorage.setItem(STORAGE_KEY, code) } catch { /* private mode */ }
   }
-
-  // Don't render until hydrated — avoids flash of wrong language
-  if (!ready) return null
 
   return (
     <LanguageContext.Provider value={{ lang, setLang }}>

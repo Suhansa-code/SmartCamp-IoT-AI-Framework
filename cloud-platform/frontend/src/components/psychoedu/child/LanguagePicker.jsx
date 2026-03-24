@@ -5,24 +5,11 @@ import { LANGUAGES } from '@/components/psychoedu/lib/translations'
 
 function WavingMascot() {
   return (
-    <svg width="72" height="72" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <ellipse cx="80" cy="149" rx="38" ry="6"  fill="#0D9488" opacity="0.1" />
-      <ellipse cx="80" cy="108" rx="34" ry="27" fill="#0D9488" />
-      <circle  cx="80" cy="74"  r="29"          fill="#0D9488" />
-      <ellipse cx="46"  cy="72" rx="13" ry="18" fill="#0A7670" />
-      <ellipse cx="114" cy="72" rx="13" ry="18" fill="#0A7670" />
-      <circle cx="68" cy="68" r="6"   fill="white" />
-      <circle cx="92" cy="68" r="6"   fill="white" />
-      <circle cx="70" cy="69" r="3.5" fill="#1E3A5F" />
-      <circle cx="94" cy="69" r="3.5" fill="#1E3A5F" />
-      <circle cx="71" cy="68" r="1.2" fill="white" />
-      <circle cx="95" cy="68" r="1.2" fill="white" />
-      <path d="M68 84 Q80 93 92 84" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-      <path d="M80 98 Q73 114 78 124 Q82 132 78 138" stroke="#0A7670" strokeWidth="8" strokeLinecap="round" fill="none" />
-      <path d="M78 138 Q68 146 70 136" stroke="#0A7670" strokeWidth="6" strokeLinecap="round" fill="none" />
-      <rect x="52" y="128" width="18" height="16" rx="7" fill="#0A7670" />
-      <rect x="90" y="128" width="18" height="16" rx="7" fill="#0A7670" />
-    </svg>
+    <img
+      src="/psychoedu/mascots/elephant-welcome.svg"
+      alt="Elephant mascot"
+      style={{ width:'72px', height:'72px', objectFit:'contain' }}
+    />
   )
 }
 
@@ -91,7 +78,7 @@ export default function LanguagePicker({ sessionId, onSelect }) {
                 onPointerLeave={() => setPressing(null)}
                 aria-label={`Select ${lang.labelEn}`}
               >
-                <div style={{
+                <span style={{
                   width:'100%', minHeight:'clamp(76px,14vw,96px)',
                   borderRadius:'clamp(1rem,3vw,1.5rem)',
                   background: isSel ? lang.color : isPress ? `${lang.color}22` : 'white',
@@ -102,20 +89,21 @@ export default function LanguagePicker({ sessionId, onSelect }) {
                   transform: isPress ? 'scale(0.97)' : isSel ? 'scale(1.02)' : 'scale(1)',
                   transition:'transform 0.12s, box-shadow 0.15s, background 0.15s, border-color 0.15s',
                   textAlign:'left', cursor:'pointer',
+                  boxSizing:'border-box',
                 }}>
                   <span style={{ fontSize:'clamp(2rem,7vw,2.8rem)', lineHeight:1, flexShrink:0 }}>{lang.flag}</span>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontFamily:"'Noto Sans Sinhala','Noto Sans Tamil','Baloo 2',sans-serif", fontSize:'clamp(1.3rem,4.5vw,1.9rem)', fontWeight:900, color: isSel ? 'white' : '#1E3A5F', lineHeight:1.3, paddingTop:'2px', transition:'color 0.15s', whiteSpace:'normal', overflow:'visible' }}>
+                  <span style={{ display:'block', flex:1, minWidth:0 }}>
+                    <span style={{ display:'block', fontFamily:"'Noto Sans Sinhala','Noto Sans Tamil','Baloo 2',sans-serif", fontSize:'clamp(1.3rem,4.5vw,1.9rem)', fontWeight:900, color: isSel ? 'white' : '#1E3A5F', lineHeight:1.3, paddingTop:'2px', transition:'color 0.15s', whiteSpace:'normal', overflow:'visible' }}>
                       {lang.label}
-                    </p>
-                    <p style={{ fontSize:'clamp(0.75rem,2.5vw,0.95rem)', fontWeight:600, color: isSel ? 'rgba(255,255,255,0.85)' : '#64748B', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:'2px', transition:'color 0.15s' }}>
+                    </span>
+                    <span style={{ display:'block', fontSize:'clamp(0.75rem,2.5vw,0.95rem)', fontWeight:600, color: isSel ? 'rgba(255,255,255,0.85)' : '#64748B', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:'2px', transition:'color 0.15s' }}>
                       {lang.labelEn}
-                    </p>
-                  </div>
-                  <div style={{ width:'clamp(28px,6vw,36px)', height:'clamp(28px,6vw,36px)', borderRadius:'50%', background: isSel ? 'rgba(255,255,255,0.3)' : '#F0F9FF', border:`2px solid ${isSel ? 'rgba(255,255,255,0.6)' : '#E2E8F0'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
+                    </span>
+                  </span>
+                  <span style={{ width:'clamp(28px,6vw,36px)', height:'clamp(28px,6vw,36px)', borderRadius:'50%', background: isSel ? 'rgba(255,255,255,0.3)' : '#F0F9FF', border:`2px solid ${isSel ? 'rgba(255,255,255,0.6)' : '#E2E8F0'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
                     {isSel && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8 L6.5 11.5 L13 4.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                  </div>
-                </div>
+                  </span>
+                </span>
               </button>
             )
           })}
