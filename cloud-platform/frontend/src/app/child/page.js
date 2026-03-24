@@ -31,34 +31,13 @@ const GREETING_KEYS = [
 // ── Elephant mascot SVG ───────────────────────────────────────────────────────
 function MascotElephant({ size = 120 }) {
   return (
-    <svg
-      width={size} height={size}
-      viewBox="0 0 160 160"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <ellipse cx="80" cy="149" rx="42" ry="7"  fill="#0D9488" opacity="0.12" />
-      <ellipse cx="80" cy="108" rx="38" ry="30" fill="#0D9488" />
-      <circle  cx="80" cy="72"  r="32"          fill="#0D9488" />
-      <ellipse cx="44"  cy="70" rx="15" ry="20" fill="#0A7670" />
-      <ellipse cx="44"  cy="70" rx="9"  ry="13" fill="#CCFBF1" opacity="0.5" />
-      <ellipse cx="116" cy="70" rx="15" ry="20" fill="#0A7670" />
-      <ellipse cx="116" cy="70" rx="9"  ry="13" fill="#CCFBF1" opacity="0.5" />
-      <circle cx="68" cy="66" r="7"    fill="white" />
-      <circle cx="92" cy="66" r="7"    fill="white" />
-      <circle cx="70" cy="67" r="4"    fill="#1E3A5F" />
-      <circle cx="94" cy="67" r="4"    fill="#1E3A5F" />
-      <circle cx="72" cy="65" r="1.5"  fill="white" />
-      <circle cx="96" cy="65" r="1.5"  fill="white" />
-      <path d="M68 82 Q80 92 92 82" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" />
-      <path d="M80 96 Q72 114 78 126 Q82 134 78 140" stroke="#0A7670" strokeWidth="9" strokeLinecap="round" fill="none" />
-      <path d="M78 140 Q70 144 72 136"               stroke="#0A7670" strokeWidth="7" strokeLinecap="round" fill="none" />
-      <rect x="50" y="128" width="20" height="18" rx="8" fill="#0A7670" />
-      <rect x="90" y="128" width="20" height="18" rx="8" fill="#0A7670" />
-      <text x="118" y="36" fontSize="18">⭐</text>
-      <text x="18"  y="44" fontSize="14">✨</text>
-    </svg>
+    <img
+      src="/psychoedu/mascots/elephant-welcome.svg"
+      alt="Elephant mascot"
+      width={size}
+      height={size}
+      style={{ objectFit:'contain' }}
+    />
   )
 }
 

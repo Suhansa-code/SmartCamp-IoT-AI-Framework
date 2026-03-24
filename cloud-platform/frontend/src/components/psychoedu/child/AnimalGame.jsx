@@ -1,13 +1,5 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// components/child/AnimalGame.jsx — PAGES Go/No-Go Task
-// Language-aware: reads lang from LanguageContext
-// Fully responsive — clamp() fluid sizing, works on all phones + tablets
-// 90 s · 45 trials · 70% GO / 30% NO-GO · emoji fallback when images absent
-// onComplete({ accuracyRate, falseTapRate, avgReactionTime, reactionTimeVariance })
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLang }  from '@/components/psychoedu/context/LanguageContext'
@@ -61,14 +53,14 @@ function buildTrials() {
 }
 
 // ── Countdown screen ──────────────────────────────────────────────────────────
-function CountdownScreen({ count, lang, total }) {
+function CountdownScreen({ count, lang, total, onStart }) {
   const isEnglish = lang === 'en'
 
   return (
     <div style={{
       minHeight:'100svh', background:'#F0F9FF',
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      gap:'clamp(1.25rem,4vw,2rem)', padding:'clamp(1rem,4vw,1.5rem)',
+      gap:'clamp(1.5rem,4vw,2.5rem)', padding:'clamp(1rem,4vw,1.5rem)',
       boxSizing:'border-box',
     }}>
       {/* Instruction card */}
@@ -89,20 +81,48 @@ function CountdownScreen({ count, lang, total }) {
         </p>
       </div>
 
-      {/* Ring countdown */}
-      <div style={{ position:'relative', width:'clamp(100px,25vw,140px)', height:'clamp(100px,25vw,140px)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <svg width="100%" height="100%" viewBox="0 0 140 140" style={{ position:'absolute', transform:'rotate(-90deg)' }}>
-          <circle cx="70" cy="70" r="60" fill="none" stroke="#E2E8F0" strokeWidth="8" />
-          <circle cx="70" cy="70" r="60" fill="none" stroke="#0D9488" strokeWidth="8"
-            strokeDasharray={`${((total - count) / total) * 376.99} 376.99`}
-            strokeLinecap="round"
-            style={{ transition:'stroke-dasharray 0.9s linear' }}
-          />
-        </svg>
-        <span style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(2.5rem,8vw,4.5rem)', fontWeight:900, color:'#1E3A5F', lineHeight:1 }}>
-          {count || '▶'}
-        </span>
-      </div>
+      {/* Start Game Button - child friendly */}
+      <button
+        onClick={onStart}
+        style={{
+          background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
+          color: 'white',
+          border: 'none',
+          borderRadius: 'clamp(1.25rem,4vw,2rem)',
+          padding: 'clamp(1rem,3vw,1.25rem) clamp(1.5rem,6vw,2.5rem)',
+          fontSize: 'clamp(1.1rem,4vw,1.6rem)',
+          fontWeight: 900,
+          fontFamily: "'Baloo 2', cursive",
+          cursor: 'pointer',
+          boxShadow: '0 8px 24px rgba(13, 148, 136, 0.3)',
+          transition: 'all 0.2s ease',
+          minWidth: '180px',
+          maxWidth: 'min(300px,85vw)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem',
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'scale(0.96)'
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(13, 148, 136, 0.2)'
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'scale(1)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(13, 148, 136, 0.3)'
+        }}
+        onTouchStart={(e) => {
+          e.currentTarget.style.transform = 'scale(0.96)'
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(13, 148, 136, 0.2)'
+        }}
+        onTouchEnd={(e) => {
+          e.currentTarget.style.transform = 'scale(1)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(13, 148, 136, 0.3)'
+        }}
+      >
+        <span>🎮</span>
+        <span>{t('game.start_btn', lang)}</span>
+      </button>
     </div>
   )
 }
@@ -156,13 +176,12 @@ export default function AnimalGame({ onComplete }) {
 
   const trial = trials[trialIdx]
 
-  // Countdown
-  useEffect(() => {
-    if (phase !== 'countdown') return
-    if (cdCount === 0) { setPhase('show'); shownAt.current = Date.now(); tapped.current = false; return }
-    const t = setTimeout(() => setCdCount(c => c - 1), 1000)
-    return () => clearTimeout(t)
-  }, [phase, cdCount])
+  // Start game handler
+  function startGame() {
+    setPhase('show')
+    shownAt.current = Date.now()
+    tapped.current = false
+  }
 
   // 90-s timer (wall-clock based to avoid interval drift)
   useEffect(() => {
@@ -242,7 +261,7 @@ export default function AnimalGame({ onComplete }) {
     if (onComplete) onComplete(metrics)
     else {
       const poor = metrics.accuracyRate < 0.5 || metrics.falseTapRate > 0.6
-      setTimeout(() => router.push(`${poor ? '/child/calming' : '/child/content'}?lang=${lang}`), 1600)
+      setTimeout(() => router.push(`${poor ? '/child/calming' : '/child/cognitive'}?lang=${lang}`), 1600)
     }
   }
 
@@ -254,7 +273,7 @@ export default function AnimalGame({ onComplete }) {
   }
   const fb = feedback ? FB[feedback] : null
 
-  if (phase === 'countdown') return <CountdownScreen count={cdCount} lang={lang} total={COUNTDOWN_SECONDS} />
+  if (phase === 'countdown') return <CountdownScreen count={cdCount} lang={lang} total={COUNTDOWN_SECONDS} onStart={startGame} />
   if (phase === 'done')      return <DoneScreen lang={lang} />
 
   // Animal name in chosen language
