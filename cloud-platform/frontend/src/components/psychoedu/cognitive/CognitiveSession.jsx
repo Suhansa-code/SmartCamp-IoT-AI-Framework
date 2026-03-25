@@ -30,7 +30,6 @@ const ELI_MESSAGES = [
   { si: 'ඔබ දක්ෂයි! ⭐ ඉදිරියට යමු!',              ta: 'நீ ஒரு நட்சத்திரம்! ⭐ முன்னேறலாம்!',              en: "You're a star! ⭐ Let's keep going!" },
   { si: 'බොහොම හොඳයි! 👏 ඊළඟ ප්‍රශ්නය!',           ta: 'மிகவும் நன்றாக! 👏 அடுத்த கேள்வி!',               en: 'Well done! 👏 Next question!' },
   { si: 'ඔබ දිනනවා! 💪 ඉදිරිය බලන්න!',         ta: 'நீ வெல்கிறாய்! 💪 முன்னே பார்!',                  en: "You're winning! 💪 Look ahead!" },
-  { si: 'දක්ෂයි! 🎉 ඊළඟ ප්‍රශ්නය ලෙහෙසියි!',        ta: 'புத்திசாலி! 🎉 அடுத்தது எளிதானது!',              en: "Smart! 🎉 The next one is easy!" },
 ]
 
 const FINAL_MESSAGES = {
@@ -117,7 +116,7 @@ export default function CognitiveSession({ session, onComplete }) {
             onClick={handleDone}
             style={{ width:'100%', maxWidth:'min(380px,88vw)', minHeight:'clamp(60px,13vw,72px)', background:'#F97316', color:'white', borderRadius:'9999px', border:'none', fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.1rem,4vw,1.4rem)', fontWeight:900, cursor:'pointer', boxShadow:'0 6px 24px rgba(249,115,22,0.25)' }}
           >
-            {lang === 'si' ? 'අපි විවේකයක් ගනිමු... නැවත එන්න ... ' : lang === 'ta' ? 'சிறிது நேரம் ஓய்வெடுப்போம்... திரும்பி வருவோம்...' : 'Let\'s take a break... come back...'}
+            {lang === 'si' ? 'අපි විවේකයක් ගනිමු. නැවත එන්න ... ' : lang === 'ta' ? 'சிறிது நேரம் ஓய்வெடுப்போம். திரும்பி வருவோம்...' : 'Let\'s take a break. Come back...'}
           </button>
         </div>
       </>
