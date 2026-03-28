@@ -13,6 +13,8 @@ import { useLang }          from '@/components/psychoedu/context/LanguageContext
 import { getRandomSession } from '@/components/psychoedu/lib/sessions'
 import CognitiveSession     from '@/components/psychoedu/cognitive/CognitiveSession'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+
 function CognitiveInner() {
   const searchParams  = useSearchParams()
   const router        = useRouter()
@@ -27,13 +29,26 @@ function CognitiveInner() {
     setSession(getRandomSession())
   }, [])
 
-  function handleComplete({ score, total }) {
+  function handleComplete({ score, total, results = [] }) {
     // Save result to backend
     const sessionId = searchParams.get('session') ?? 'offline'
-    fetch('/api/session/cognitive-complete', {
+    const childId = searchParams.get('child') ?? ''
+    const contentResponses = results.map((r) => ({
+      taskId: r.taskId,
+      answer: 'a',
+      isCorrect: !!r.correct,
+      timeTakenMs: 0,
+    }))
+
+    fetch(`${API_BASE}/api/session/complete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, score, total, lang }),
+      body: JSON.stringify({
+        session_id: sessionId,
+        child_id: childId,
+        cognitiveScore: score,
+        contentResponses,
+      }),
     }).catch(() => {})
 
     // Navigate back to welcome

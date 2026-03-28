@@ -151,6 +151,7 @@ export default function AnimalGame({ onComplete }) {
   const isEnglish = lang === 'en'
 
   const sessionId = searchParams?.get('session') ?? 'offline'
+  const childId = searchParams?.get('child') ?? ''
 
   const trialsRef = useRef(null)
   if (!trialsRef.current) trialsRef.current = buildTrials()
@@ -257,11 +258,28 @@ export default function AnimalGame({ onComplete }) {
       avgReactionTime:        Math.round(mean(rts)),
       reactionTimeVariance:   Math.round(variance(rts)),
     }
-    fetch('/api/session/score', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ sessionId, lang, ...metrics }) }).catch(() => {})
+    const payload = {
+      session_id: sessionId,
+      child_id: childId,
+      lang,
+      taskMetrics: {
+        accuracyRate: metrics.accuracyRate,
+        falseTapRate: metrics.falseTapRate,
+        avgReactionTime: metrics.avgReactionTime,
+        reactionVariance: metrics.reactionTimeVariance,
+      },
+      passiveSignals: {
+        idleTimeRatio: 0,
+        rapidClickCount: 0,
+        timeToFirstMs: rts[0] || 0,
+        completionRatio: metrics.accuracyRate,
+      }
+    }
+    fetch('http://localhost:3001/api/session/task-complete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).catch(() => {})
     if (onComplete) onComplete(metrics)
     else {
       const poor = metrics.accuracyRate < 0.5 || metrics.falseTapRate > 0.6
-      setTimeout(() => router.push(`${poor ? '/child/calming' : '/child/cognitive'}?lang=${lang}`), 1600)
+      setTimeout(() => router.push(`${poor ? '/child/calming' : '/child/cognitive'}?session=${encodeURIComponent(sessionId)}&child=${encodeURIComponent(childId)}&lang=${encodeURIComponent(lang)}`), 1600)
     }
   }
 

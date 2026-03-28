@@ -7,3 +7,6 @@ dist/
 pages.db
 pages.db-shm
 pages.db-wal
+database/pages.db
+database/pages.db-shm
+database/pages.db-wal
