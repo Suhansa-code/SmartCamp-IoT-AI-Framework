@@ -40,8 +40,8 @@ const OPTION_BASE = {
 }
 
 function feedbackStyle(state) {
-  if (state === 'correct') return { ...OPTION_BASE, background:'#DCFCE7', borderColor:'#22C55E', color:'#166534' }
-  if (state === 'wrong')   return { ...OPTION_BASE, background:'#FEE2E2', borderColor:'#EF4444', color:'#991B1B' }
+  if (state === 'correct') return { ...OPTION_BASE, background:'#DCFCE7', border:'2.5px solid #22C55E', color:'#166534' }
+  if (state === 'wrong')   return { ...OPTION_BASE, background:'#FEE2E2', border:'2.5px solid #EF4444', color:'#991B1B' }
   return OPTION_BASE
 }
 
@@ -146,11 +146,11 @@ function TrueFalseTask({ task, lang, onAnswer }) {
   }
 
   function btnStyle(val) {
-    if (selected === null) return { ...OPTION_BASE, flex:1, background: val ? '#F0FDF4' : '#FFF1F2', borderColor: val ? '#86EFAC' : '#FCA5A5', color: val ? '#166534' : '#9F1239', fontSize:'clamp(1rem,3.5vw,1.3rem)' }
+    if (selected === null) return { ...OPTION_BASE, flex:1, background: val ? '#F0FDF4' : '#FFF1F2', border: val ? '2.5px solid #86EFAC' : '2.5px solid #FCA5A5', color: val ? '#166534' : '#9F1239', fontSize:'clamp(1rem,3.5vw,1.3rem)' }
     const correct = val === task.answer
     const chosen  = selected === val
-    if (correct)       return { ...OPTION_BASE, flex:1, background:'#DCFCE7', borderColor:'#22C55E', color:'#166534', fontSize:'clamp(1rem,3.5vw,1.3rem)' }
-    if (chosen)        return { ...OPTION_BASE, flex:1, background:'#FEE2E2', borderColor:'#EF4444', color:'#991B1B', fontSize:'clamp(1rem,3.5vw,1.3rem)' }
+    if (correct)       return { ...OPTION_BASE, flex:1, background:'#DCFCE7', border:'2.5px solid #22C55E', color:'#166534', fontSize:'clamp(1rem,3.5vw,1.3rem)' }
+    if (chosen)        return { ...OPTION_BASE, flex:1, background:'#FEE2E2', border:'2.5px solid #EF4444', color:'#991B1B', fontSize:'clamp(1rem,3.5vw,1.3rem)' }
     return { ...OPTION_BASE, flex:1, opacity:0.4, fontSize:'clamp(1rem,3.5vw,1.3rem)' }
   }
 
