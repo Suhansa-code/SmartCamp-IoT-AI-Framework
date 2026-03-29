@@ -196,7 +196,7 @@ function DoneScreen({ score, total, results, lang, onDone }) {
         fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.1rem,4vw,1.4rem)', fontWeight:900,
         cursor:'pointer', boxShadow:'0 8px 32px rgba(255,107,53,0.3)',
       }}>
-        🐘 {lang==='si'?'ඉවරයි! ගෙදරට!':lang==='ta'?'முடிந்தது!':'All done! Let\'s go!'}
+        🐘 {lang==='si'?'ස්තුතියි නැවත එන්න!':lang==='ta'?'நன்றி, மீண்டும் வாருங்கள்.!':'Thank you, come back.!'}
       </button>
     </div>
   )
