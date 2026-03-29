@@ -1,144 +1,155 @@
 'use client'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// app/child/page.jsx — PAGES Child Welcome + QR Scan + Language Selection
-//
-// Flow:
-//   1. Welcome screen (mascot + rotating greeting)
-//   2. Tap CTA → camera opens → scan wristband QR
-//   3. POST /api/session/start { childId }
-//   4. Language picker (Sinhala / Tamil / English)
-//   5. setLang(code) → localStorage + context → router.push(/child/task)
-//
-// Fully responsive via clamp() + fluid maxWidth — works on all phones + tablets
-// No fixed px widths on containers, all touch targets ≥ 64px
+// src/app/child/page.js — PAGES Child Welcome Screen — Eli's World
+// Full animated scene: sky, clouds, butterflies, flowers, Eli floating
+// Flow: Idle → Scan QR → Session start → Language picker
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import { t }       from '@/components/psychoedu/lib/translations'
-import LanguagePicker from '@/components/psychoedu/child/LanguagePicker'
+import Eli          from '@/components/psychoedu/child/Eli'
+import SceneBackground from '@/components/psychoedu/child/SceneBackground'
+import LanguagePicker  from '@/components/psychoedu/child/LanguagePicker'
 
-// ── Greeting keys (rotated every 3 s) ────────────────────────────────────────
 const GREETING_KEYS = [
-  'welcome.greeting_1',
-  'welcome.greeting_2',
-  'welcome.greeting_3',
-  'welcome.greeting_4',
+  'welcome.greeting_1', 'welcome.greeting_2',
+  'welcome.greeting_3', 'welcome.greeting_4',
 ]
 
-// ── Elephant mascot SVG ───────────────────────────────────────────────────────
-function MascotElephant({ size = 120 }) {
+const SPEECH_LINES = [
+  "Hello! I am Eli, your friend.",
+  'ආයුබෝවන්! මම එලී, ඔයාගේ යාළුවා.',
+  'வணக்கம்! நான் Eli, உன் நண்பன்.',
+]
+
+// ── Sparkle particle ─────────────────────────────────────────────────────────
+function Sparkle({ x, y, color = '#FFD93D', delay = 0 }) {
   return (
-    <img
-      src="/psychoedu/mascots/elephant-welcome.svg"
-      alt="Elephant mascot"
-      width={size}
-      height={size}
-      style={{ objectFit:'contain' }}
-    />
+    <div style={{
+      position: 'absolute', left: x, top: y,
+      width: 12, height: 12,
+      fontSize: 16, lineHeight: '12px',
+      animation: `sparkle-float 1.2s ease-out ${delay}s forwards`,
+      pointerEvents: 'none', zIndex: 20,
+    }}>✨</div>
   )
 }
 
 // ── Camera scan overlay ───────────────────────────────────────────────────────
 function CameraView({ videoRef, onCancel, lang }) {
   return (
-    <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(0.75rem,2.5vw,1rem)' }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'1rem', width:'100%' }}>
       <div style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: 'min(320px, 80vw)',
-        aspectRatio: '1/1',
-        borderRadius: 'clamp(1.25rem,4vw,1.75rem)',
-        overflow: 'hidden',
-        border: '5px solid #F97316',
+        position: 'relative', width: '100%', maxWidth: 'min(300px,78vw)',
+        aspectRatio: '1/1', borderRadius: '2rem', overflow: 'hidden',
+        border: '5px solid #FF6B35',
+        boxShadow: '0 0 0 4px rgba(255,107,53,0.3), 0 8px 32px rgba(255,107,53,0.25)',
         background: '#000',
-        flexShrink: 0,
       }}>
-        <video
-          ref={videoRef}
-          style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
-          playsInline muted
-        />
+        <video ref={videoRef} style={{ width:'100%', height:'100%', objectFit:'cover' }} playsInline muted />
         {/* Corner markers */}
         {[
-          { top:12, left:12,   borderTop:'4px solid #fff', borderLeft:'4px solid #fff',   borderRadius:'6px 0 0 0' },
-          { top:12, right:12,  borderTop:'4px solid #fff', borderRight:'4px solid #fff',  borderRadius:'0 6px 0 0' },
-          { bottom:12, left:12,  borderBottom:'4px solid #fff', borderLeft:'4px solid #fff',  borderRadius:'0 0 0 6px' },
-          { bottom:12, right:12, borderBottom:'4px solid #fff', borderRight:'4px solid #fff', borderRadius:'0 0 6px 0' },
-        ].map((s, i) => <div key={i} style={{ position:'absolute', width:28, height:28, ...s }} />)}
-
+          { top:10, left:10,   borderTop:'4px solid #FFD93D', borderLeft:'4px solid #FFD93D',   borderRadius:'8px 0 0 0' },
+          { top:10, right:10,  borderTop:'4px solid #FFD93D', borderRight:'4px solid #FFD93D',  borderRadius:'0 8px 0 0' },
+          { bottom:10, left:10,  borderBottom:'4px solid #FFD93D', borderLeft:'4px solid #FFD93D',  borderRadius:'0 0 0 8px' },
+          { bottom:10, right:10, borderBottom:'4px solid #FFD93D', borderRight:'4px solid #FFD93D', borderRadius:'0 0 8px 0' },
+        ].map((s,i) => <div key={i} style={{ position:'absolute', width:28, height:28, ...s }} />)}
         {/* Scan line */}
         <div style={{
-          position:'absolute', left:16, right:16, height:3, borderRadius:'9999px',
-          background:'linear-gradient(90deg,transparent,#F97316,transparent)',
+          position:'absolute', left:16, right:16, height:3, borderRadius:'99px',
+          background:'linear-gradient(90deg,transparent,#FF6B35,transparent)',
           animation:'scanLine 1.8s ease-in-out infinite',
+          boxShadow:'0 0 8px rgba(255,107,53,0.8)',
         }} />
-
+        <style>{`@keyframes scanLine{0%,100%{top:18%}50%{top:80%}}`}</style>
+        {/* Caption */}
         <div style={{ position:'absolute', bottom:10, left:0, right:0, display:'flex', justifyContent:'center' }}>
-          <span style={{ background:'rgba(0,0,0,0.65)', color:'white', borderRadius:'9999px', padding:'3px 14px', fontSize:'clamp(11px,2.5vw,13px)', fontWeight:700 }}>
+          <span style={{ background:'rgba(0,0,0,0.7)', color:'white', borderRadius:'99px', padding:'4px 16px', fontSize:12, fontWeight:700, fontFamily:"'Nunito',sans-serif" }}>
             {t('welcome.scanning', lang)}
           </span>
         </div>
       </div>
-
-      <button
-        onClick={onCancel}
-        style={{
-          minHeight: 'clamp(52px,11vw,60px)',
-          padding: '0 clamp(1.5rem,5vw,2.5rem)',
-          borderRadius: '9999px',
-          border: '2px solid #E2E8F0',
-          background: 'white',
-          color: '#1E3A5F',
-          fontSize: 'clamp(0.9rem,2.5vw,1rem)',
-          fontWeight: 700,
-          cursor: 'pointer',
-          width: '100%',
-          maxWidth: 'min(320px,80vw)',
-        }}
-      >
-        {t('welcome.cancel', lang)}
+      {/* Cancel */}
+      <button onClick={onCancel} style={{
+        minHeight: 52, padding:'0 2rem', borderRadius:'99px',
+        border:'3px solid rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.2)',
+        backdropFilter:'blur(8px)',
+        color:'white', fontSize:'1rem', fontWeight:800,
+        fontFamily:"'Baloo 2',cursive", cursor:'pointer',
+      }}>
+        ✕ {t('welcome.cancel', lang)}
       </button>
     </div>
   )
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────────────────────────
 export default function ChildWelcomePage() {
-  const router       = useRouter()
+  const router            = useRouter()
   const { lang, setLang } = useLang()
 
-  // screen: 'welcome' | 'camera' | 'loading' | 'language'
-  const [screen,    setScreen]   = useState('welcome')
-  const [camState,  setCamState] = useState('idle')  // idle|requesting|active|error
+  const [screen,    setScreen]   = useState('welcome')  // welcome|camera|loading|language
+  const [camState,  setCamState] = useState('idle')
   const [errorMsg,  setErrorMsg] = useState('')
   const [greetIdx,  setGreetIdx] = useState(0)
   const [sessionId, setSessionId] = useState(null)
+  const [eliMood,   setEliMood]  = useState('wave')
+  const [sparkles,  setSparkles] = useState([])
+  const [tapCount,  setTapCount] = useState(0)
+  const [eliSize,   setEliSize]  = useState(160)
+  const [speechIdx, setSpeechIdx] = useState(0)
 
   const videoRef  = useRef(null)
   const streamRef = useRef(null)
   const scanRef   = useRef(null)
 
-  // Check for skip-welcome param (for testing language picker directly)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('skip-welcome') === 'true') {
-      setSessionId('test-session')
-      setScreen('language')
-    }
-  }, [])
-
-  // Rotating greetings
+  // Greeting rotation
   useEffect(() => {
     if (screen !== 'welcome') return
-    const id = setInterval(() => setGreetIdx(i => (i + 1) % GREETING_KEYS.length), 3000)
+    const id = setInterval(() => {
+      setGreetIdx(i => (i + 1) % GREETING_KEYS.length)
+      setEliMood(m => m === 'wave' ? 'happy' : 'wave')
+    }, 3200)
     return () => clearInterval(id)
   }, [screen])
 
-  // Cleanup camera on unmount
+  // Rotate Eli's spoken line through 3 languages.
+  useEffect(() => {
+    if (screen !== 'welcome') return
+    const id = setInterval(() => {
+      setSpeechIdx(i => (i + 1) % SPEECH_LINES.length)
+    }, 2600)
+    return () => clearInterval(id)
+  }, [screen])
+
+  // Keep first render SSR-safe; size updates after mount.
+  useEffect(() => {
+    function updateEliSize() {
+      setEliSize(Math.min(180, Math.round(window.innerWidth * 0.42)))
+    }
+    updateEliSize()
+    window.addEventListener('resize', updateEliSize)
+    return () => window.removeEventListener('resize', updateEliSize)
+  }, [])
+
+  // Camera cleanup
   useEffect(() => () => stopCamera(), [])
+
+  // Tap Eli for sparkles
+  function tapEli(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const id = Date.now()
+    setSparkles(s => [...s, { id, x, y }])
+    setEliMood('excited')
+    setTapCount(c => c + 1)
+    setTimeout(() => setSparkles(s => s.filter(sp => sp.id !== id)), 1500)
+    setTimeout(() => setEliMood('wave'), 1000)
+  }
 
   // ── Camera ────────────────────────────────────────────────────────────────
   async function startCamera() {
@@ -150,37 +161,25 @@ export default function ChildWelcomePage() {
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 640 } },
       })
       streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
+      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play() }
       setCamState('active')
       beginQRScan()
     } catch (err) {
-      const msg = err.name === 'NotAllowedError'
-        ? t('welcome.err_denied', lang)
-        : t('welcome.err_unavailable', lang)
-      setErrorMsg(msg)
+      setErrorMsg(err.name === 'NotAllowedError' ? t('welcome.err_denied', lang) : t('welcome.err_unavailable', lang))
       setCamState('error')
       setScreen('welcome')
     }
   }
 
   function stopCamera() {
-    clearInterval(scanRef.current)
-    clearTimeout(scanRef.current)
+    clearInterval(scanRef.current); clearTimeout(scanRef.current)
     streamRef.current?.getTracks().forEach(tr => tr.stop())
     streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
   }
 
-  function cancelCamera() {
-    stopCamera()
-    setCamState('idle')
-    setScreen('welcome')
-  }
+  function cancelCamera() { stopCamera(); setCamState('idle'); setScreen('welcome') }
 
-  // ── QR decode ─────────────────────────────────────────────────────────────
   function beginQRScan() {
     if (typeof window === 'undefined') return
     if ('BarcodeDetector' in window) {
@@ -189,218 +188,238 @@ export default function ChildWelcomePage() {
         if (!videoRef.current || videoRef.current.readyState < 2) return
         try {
           const codes = await detector.detect(videoRef.current)
-          if (codes.length > 0) { clearInterval(scanRef.current); handleQRResult(codes[0].rawValue) }
-        } catch { /* not ready */ }
+          if (codes.length > 0) { clearInterval(scanRef.current); handleQR(codes[0].rawValue) }
+        } catch {}
       }, 300)
     } else {
-      // Demo fallback (replace with jsQR in production)
-      scanRef.current = setTimeout(() => handleQRResult('CHILD-DEMO-001'), 2500)
+      scanRef.current = setTimeout(() => handleQR('CHILD-DEMO-001'), 2500)
     }
   }
 
-  // ── Session start → show language picker ──────────────────────────────────
-  const handleQRResult = useCallback(async (childId) => {
-    stopCamera()
-    setCamState('idle')
-    setScreen('loading')
-
+  const handleQR = useCallback(async (childId) => {
+    stopCamera(); setCamState('idle'); setScreen('loading')
     try {
       const res = await fetch('/api/session/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ childId }),
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) throw new Error()
       const { sessionId: sid } = await res.json()
       setSessionId(sid)
-    } catch {
-      setSessionId('offline')
-    }
-    // Always show language picker after scan
+    } catch { setSessionId('offline') }
     setScreen('language')
   }, [])
 
-  // ── Language selected ─────────────────────────────────────────────────────
   function handleLanguageSelect(code) {
     setLang(code)
-    const sid = sessionId ?? 'offline'
-    router.push(`/child/task?session=${sid}&lang=${code}`)
+    router.push(`/child/task?session=${sessionId ?? 'offline'}&lang=${code}`)
   }
 
-  // ── Render: language picker ───────────────────────────────────────────────
+  function goToLanguageSelection() {
+    setSessionId(prev => prev ?? 'offline')
+    setScreen('language')
+  }
+
+  // ── Language picker screen ────────────────────────────────────────────────
   if (screen === 'language') {
-    return (
-      <LanguagePicker
-        sessionId={sessionId}
-        onSelect={handleLanguageSelect}
-      />
-    )
+    return <LanguagePicker sessionId={sessionId} onSelect={handleLanguageSelect} />
   }
 
-  // ── Render: loading ───────────────────────────────────────────────────────
+  // ── Loading screen ────────────────────────────────────────────────────────
   if (screen === 'loading') {
     return (
-      <div style={{
-        minHeight:'100svh', background:'#F0F9FF',
-        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'clamp(1rem,3vw,1.5rem)',
-      }}>
-        <div style={{
-          width:'clamp(120px,30vw,160px)', height:'clamp(120px,30vw,160px)', borderRadius:'50%',
-          background:'linear-gradient(135deg,#CCFBF1,#BAE6FD)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          boxShadow:'0 8px 40px rgba(13,148,136,0.18)',
-        }}>
-          <div style={{ width:48, height:48, borderRadius:'50%', border:'5px solid #0D9488', borderTopColor:'transparent', animation:'spin 0.75s linear infinite' }} />
+      <SceneBackground>
+        <div style={{ minHeight:'100svh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'2rem' }}>
+          <div className="eli-float">
+            <Eli size={140} mood="happy" animated={false} />
+          </div>
+          <div style={{ background:'rgba(255,255,255,0.85)', backdropFilter:'blur(12px)', borderRadius:'2rem', padding:'1.25rem 2.5rem', textAlign:'center' }}>
+            <p style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.4rem,5vw,1.8rem)', fontWeight:900, color:'#0D9488' }}>
+              {t('welcome.loading', lang)}
+            </p>
+            <div style={{ display:'flex', justifyContent:'center', gap:8, marginTop:12 }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width:12, height:12, borderRadius:'50%', background:'#0D9488', animation:`bounce-dot 1s ease-in-out infinite ${i*0.2}s` }} />
+              ))}
+            </div>
+          </div>
+          <style>{`@keyframes bounce-dot{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
         </div>
-        <p style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.3rem,4vw,1.7rem)', fontWeight:800, color:'#1E3A5F' }}>
-          {t('welcome.loading', lang)}
-        </p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
+      </SceneBackground>
     )
   }
 
-  // ── Render: welcome + camera ──────────────────────────────────────────────
+  // ── Welcome / camera screen ───────────────────────────────────────────────
   const greeting = t(GREETING_KEYS[greetIdx], lang)
 
   return (
-    <>
+    <SceneBackground>
       <style>{`
-        @keyframes scanLine   { 0%,100% { top:18%; } 50% { top:80%; } }
-        @keyframes floatUp    { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
-        @keyframes fadeSlide  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes spin       { to { transform:rotate(360deg); } }
-        .mascot-float { animation: floatUp 3.2s ease-in-out infinite; }
-        .fade-in      { animation: fadeSlide 0.4s ease forwards; }
+        @keyframes greeting-pop{0%{opacity:0;transform:scale(0.8) translateY(8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+        .greeting-anim{animation:greeting-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both}
+        @keyframes btn-glow{0%,100%{box-shadow:0 8px 32px rgba(255,107,53,0.4),0 0 0 0 rgba(255,107,53,0.3)}50%{box-shadow:0 12px 40px rgba(255,107,53,0.5),0 0 0 10px rgba(255,107,53,0.08)}}
+        .scan-btn{animation:btn-glow 2.5s ease-in-out infinite}
       `}</style>
 
-      <main style={{
-        minHeight: '100svh',
-        background: '#F0F9FF',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 'clamp(1.25rem,4vw,2rem) clamp(1rem,4vw,1.5rem)',
-        position: 'relative',
-        overflow: 'hidden',
-        boxSizing: 'border-box',
+      <div style={{
+        minHeight: '100svh', display:'flex', flexDirection:'column',
+        alignItems:'center', justifyContent:'space-between',
+        padding:'clamp(1rem,4vw,1.75rem) clamp(1rem,4vw,1.5rem)',
+        boxSizing:'border-box',
       }}>
-        {/* Blobs */}
-        <div style={{ position:'absolute', top:0, right:0, width:'min(240px,50vw)', height:'min(240px,50vw)', borderRadius:'50%', background:'#0D9488', opacity:0.07, transform:'translate(35%,-35%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:0, left:0, width:'min(280px,55vw)', height:'min(280px,55vw)', borderRadius:'50%', background:'#F97316', opacity:0.06, transform:'translate(-35%,35%)', pointerEvents:'none' }} />
 
-        {/* PAGES badge */}
-        <div className="fade-in" style={{ display:'flex', justifyContent:'center', width:'100%' }}>
+        {/* ── Top badge ── */}
+        <div className="anim-fade-down delay-100" style={{ display:'flex', justifyContent:'center', width:'100%' }}>
           <div style={{
-            background:'#0D9488', color:'white', borderRadius:'9999px',
-            padding:'clamp(4px,1.5vw,6px) clamp(14px,4vw,20px)',
-            fontFamily:"'Baloo 2',cursive", fontWeight:700,
-            fontSize:'clamp(11px,2.5vw,13px)', letterSpacing:'0.12em', textTransform:'uppercase',
-            boxShadow:'0 2px 12px rgba(13,148,136,0.2)',
+            background:'rgba(255,255,255,0.9)', backdropFilter:'blur(10px)',
+            borderRadius:'99px', padding:'8px 24px',
+            fontFamily:"'Baloo 2',cursive", fontWeight:900, fontSize:'clamp(11px,2.5vw,14px)',
+            color:'#0D9488', letterSpacing:'0.12em', textTransform:'uppercase',
+            boxShadow:'0 4px 20px rgba(13,148,136,0.2)',
+            border:'2px solid rgba(13,148,136,0.2)',
           }}>
-            {t('welcome.badge', lang)}
+            
           </div>
         </div>
 
-        {/* Centre content */}
-        <div style={{
-          display:'flex', flexDirection:'column', alignItems:'center',
-          gap:'clamp(1.25rem,3.5vw,1.75rem)',
-          width:'100%', maxWidth:'min(400px, 92vw)',
-        }}>
-          {/* Camera view */}
-          {screen === 'camera' && (
-            <CameraView videoRef={videoRef} onCancel={cancelCamera} lang={lang} />
-          )}
+        {/* ── Centre ── */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(1rem,3vw,1.5rem)', width:'100%', maxWidth:'min(400px,92vw)' }}>
 
-          {/* Welcome: mascot + greeting + button */}
+          {/* Camera */}
+          {screen === 'camera' && <CameraView videoRef={videoRef} onCancel={cancelCamera} lang={lang} />}
+
+          {/* Welcome idle */}
           {screen === 'welcome' && (
-            <>
-              {/* Mascot */}
-              <div className="mascot-float">
+            <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', marginTop:'clamp(2.2rem,8vw,4.8rem)' }}>
+            {/* Eli speech bubble */}
+              <div className="anim-fade-scale delay-600" style={{ position:'relative', width:'100%', marginTop:'clamp(4rem,4vw,2rem)' }}>
                 <div style={{
-                  width: 'clamp(130px,32vw,172px)',
-                  height: 'clamp(130px,32vw,172px)',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg,#CCFBF1,#BAE6FD)',
-                  display: 'flex', alignItems:'center', justifyContent:'center',
-                  boxShadow: '0 12px 48px rgba(13,148,136,0.18)',
+                  background:'rgba(255,255,255,0.92)', backdropFilter:'blur(12px)',
+                  borderRadius:'1.5rem 1.5rem 1.5rem 0.3rem',
+                  padding:'clamp(0.95rem,3.2vw,1.3rem) clamp(1rem,4vw,1.5rem)',
+                  boxShadow:'0 8px 32px rgba(0,0,0,0.1)',
+                  border:'3px solid rgba(255,255,255,0.8)',
+                  textAlign:'center',
                 }}>
-                  <MascotElephant size={Math.round(0.78 * 150)} />
+                  <p key={speechIdx} className="greeting-anim" style={{ fontSize:'clamp(0.95rem,3vw,1.08rem)', fontWeight:700, color:'#0D9488', marginTop:2, letterSpacing:'0.01em', lineHeight:1.35 }}>
+                    {SPEECH_LINES[speechIdx]}
+                  </p>
                 </div>
+                {/* Bubble tail */}
+                <div style={{ position:'absolute', bottom:-12, left:32, width:0, height:0, borderLeft:'12px solid transparent', borderRight:'8px solid transparent', borderTop:'14px solid rgba(255,255,255,0.92)' }} />
               </div>
 
-              {/* Animated greeting */}
-              <div className="fade-in" key={greetIdx} style={{ textAlign:'center' }}>
-                <p style={{
-                  fontFamily:"'Baloo 2',cursive",
-                  fontSize:'clamp(1.7rem,7vw,2.6rem)',
-                  fontWeight:900, color:'#1E3A5F', lineHeight:1.15,
-                }}>
-                  {greeting}
-                </p>
+              {/* Eli — tappable */}
+              <div
+                onClick={tapEli}
+                style={{ position:'relative', cursor:'pointer', userSelect:'none' }}
+              >
+                <div className="anim-fade-scale delay-100">
+                  {/* Glow behind Eli */}
+                  <div style={{
+                    position:'absolute', inset:'-20px', borderRadius:'50%',
+                    background:'radial-gradient(circle, rgba(13,148,136,0.2) 0%, transparent 70%)',
+                    pointerEvents:'none',
+                  }} />
+                  <Eli size={eliSize} mood={eliMood} />
+                </div>
+                {/* Sparkles */}
+                {sparkles.map(sp => <Sparkle key={sp.id} x={sp.x} y={sp.y} />)}
+                {/* Tap hint (disappears after first tap) */}
+                {tapCount === 0 && (
+                  <div style={{
+                    position:'absolute', bottom:-10, left:'50%', transform:'translateX(-50%)',
+                    background:'rgba(255,255,255,0.9)', borderRadius:'99px', padding:'3px 12px',
+                    fontSize:11, fontWeight:700, color:'#FF6B35', whiteSpace:'nowrap',
+                    fontFamily:"'Nunito',sans-serif",
+                  }}>
+                  </div>
+                )}
               </div>
+
 
               {/* Error */}
-              {errorMsg && (
-                <div className="fade-in" style={{
-                  background:'#FED7AA', color:'#9A3412',
-                  borderRadius:'clamp(0.75rem,3vw,1rem)',
-                  padding:'clamp(0.65rem,2vw,0.85rem) clamp(1rem,3vw,1.25rem)',
-                  textAlign:'center',
-                  fontSize:'clamp(0.85rem,2.5vw,1rem)', fontWeight:600, width:'100%',
-                }}>
-                  {errorMsg}
-                </div>
-              )}
+              <div style={{ width:'100%', minHeight:72, display:'flex', alignItems:'center' }}>
+                {errorMsg && (
+                  <div style={{ background:'#FEE2E2', border:'2px solid #FCA5A5', borderRadius:'1rem', padding:'0.75rem 1.25rem', textAlign:'center', fontSize:'clamp(0.85rem,2.5vw,0.95rem)', fontWeight:700, color:'#991B1B', width:'100%' }}>
+                    ⚠️ {errorMsg}
+                  </div>
+                )}
+              </div>
 
-              {/* Scan CTA */}
+              {/* ── SCAN BUTTON ── */}
               <button
                 onClick={startCamera}
                 disabled={camState === 'requesting'}
+                className="scan-btn btn-press"
                 style={{
-                  width: '100%',
-                  minHeight: 'clamp(64px,14vw,76px)',
-                  background: camState === 'requesting' ? '#FDBA74' : '#F97316',
-                  color: 'white',
-                  borderRadius: '9999px',
-                  border: 'none',
+                  width:'100%',
+                  minHeight:'clamp(68px,15vw,80px)',
+                  background: camState === 'requesting'
+                    ? 'linear-gradient(135deg,#FDBA74,#FCD34D)'
+                    : 'linear-gradient(135deg,#FF6B35 0%,#FF8C42 50%,#FFB347 100%)',
+                  color:'white',
+                  borderRadius:'99px',
+                  border:'none',
                   fontFamily:"'Baloo 2',cursive",
-                  fontSize: 'clamp(1.1rem,4vw,1.4rem)',
-                  fontWeight: 900,
-                  display: 'flex', alignItems:'center', justifyContent:'center',
-                  gap: 'clamp(0.5rem,2vw,0.75rem)',
-                  boxShadow: '0 8px 32px rgba(249,115,22,0.3)',
+                  fontSize:'clamp(1.1rem,4.5vw,1.4rem)',
+                  fontWeight:900,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:'0.75rem',
                   cursor: camState === 'requesting' ? 'not-allowed' : 'pointer',
-                  transition: 'transform 0.1s, background 0.2s',
-                  WebkitTapHighlightColor: 'transparent',
+                  transition:'transform 0.1s',
+                  position:'relative', overflow:'hidden',
                 }}
-                onPointerDown={e => { if (camState !== 'requesting') e.currentTarget.style.transform = 'scale(0.96)' }}
-                onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
-                aria-label="Scan QR wristband"
               >
-                <span style={{ fontSize:'clamp(1.5rem,5vw,2rem)' }}>
+                {/* Shimmer */}
+                <div style={{ position:'absolute', inset:0, background:'linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.2) 50%,transparent 60%)', animation:'shimmer 2.5s linear infinite' }} />
+                <style>{`@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}`}</style>
+                <span style={{ fontSize:'clamp(1.6rem,6vw,2rem)', zIndex:1 }}>
                   {camState === 'requesting' ? '⏳' : '📷'}
                 </span>
-                <span style={{ display:'flex', flexDirection:'column', alignItems:'flex-start' }}>
-                  <span>{camState === 'requesting' ? t('welcome.requesting', lang) : t('welcome.scan_btn', lang)}</span>
-                  <span style={{ fontSize:'clamp(0.65rem,2vw,0.8rem)', fontWeight:600, opacity:0.85, letterSpacing:'0.08em' }}>
-                    {t('welcome.scan_sub', lang)}
+                <span style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', zIndex:1 }}>
+                  <span>
+                    {camState === 'requesting' ? t('welcome.requesting', lang) : t('welcome.scan_btn', lang)}
+                  </span>
+                  <span style={{ fontSize:'clamp(0.62rem,2vw,0.72rem)', fontWeight:800, opacity:0.95, letterSpacing:'0.1em' }}>
+                    SCAN WRISTBAND QR
                   </span>
                 </span>
               </button>
-            </>
+
+              <button
+                onClick={goToLanguageSelection}
+                style={{
+                  width:'100%',
+                  minHeight:54,
+                  marginTop:10,
+                  borderRadius:'99px',
+                  border:'3px solid rgba(13,148,136,0.4)',
+                  background:'rgba(255,255,255,0.9)',
+                  color:'#0D9488',
+                  fontFamily:"'Baloo 2',cursive",
+                  fontSize:'clamp(0.95rem,3.6vw,1.15rem)',
+                  fontWeight:900,
+                  cursor:'pointer',
+                }}
+              >
+                Next: Choose Language
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Language hint strip */}
-        <p style={{
-          fontSize:'clamp(0.75rem,2vw,0.85rem)', fontWeight:600, color:'#0D9488', opacity:0.7, textAlign:'center',
-        }}>
-          සිංහල · தமிழ் · English
-        </p>
-      </main>
-    </>
+        {/* ── Bottom: language strip ── */}
+        <div style={{ display:'flex', gap:'0.5rem', alignItems:'center', justifyContent:'center' }}>
+          {['සිංහල','தமிழ்','English'].map((l, i) => (
+            <span key={i} style={{
+              background:'rgba(255,255,255,0.75)', borderRadius:'99px', padding:'4px 12px',
+              fontSize:'clamp(0.7rem,2vw,0.8rem)', fontWeight:700, color:'#0D9488',
+              fontFamily:"'Nunito',sans-serif",
+            }}>{l}</span>
+          ))}
+        </div>
+
+      </div>
+    </SceneBackground>
   )
 }

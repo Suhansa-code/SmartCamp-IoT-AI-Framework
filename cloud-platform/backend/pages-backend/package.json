@@ -1,0 +1,34 @@
+{
+  "name": "pages-backend",
+  "version": "1.0.0",
+  "description": "PAGES backend — Psycho-Attentional Gated Educational System for disaster relief camps",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:init": "node -e \"require('./src/config/database.js')\"",
+    "lint": "eslint src/"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.12.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "keywords": ["pages", "raspberry-pi", "sqlite", "offline-first", "education", "sri-lanka"],
+  "author": "PAGES Team",
+  "license": "MIT"
+}
