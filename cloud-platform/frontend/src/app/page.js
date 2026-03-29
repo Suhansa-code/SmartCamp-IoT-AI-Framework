@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -14,7 +15,12 @@ export default function Home() {
             system.
           </p>
         </div>
-
+        <Link
+          href="/child"
+          className="mx-auto rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+        >
+          Child Mode
+        </Link>
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <Image
             src="/smart-camp-box.svg"
