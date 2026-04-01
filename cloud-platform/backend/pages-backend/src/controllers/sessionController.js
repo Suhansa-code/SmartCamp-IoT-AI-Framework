@@ -9,7 +9,7 @@ const scoringService        = require('../services/scoringService');
 const { applyFirstGate, applySecondGate, updateBaseline } = require('../services/gatingService');
 const { checkAndCreateAlert } = require('../services/alertService');
  
-// ── POST /api/session/start ───────────────────────────────────────────────────
+// POST /api/session/start 
  
 function startSession(req, res, next) {
   try {
@@ -69,7 +69,7 @@ function startSession(req, res, next) {
   }
 }
  
-// ── POST /api/session/task-complete ──────────────────────────────────────────
+// POST /api/session/task-complete
  
 async function taskComplete(req, res, next) {
   try {

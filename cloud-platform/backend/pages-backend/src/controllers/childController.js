@@ -6,12 +6,7 @@ const logger         = require('../utils/logger');
 const { newId, nextChildId, enqueue } = require('../utils/helpers');
 const { createError } = require('../middleware/errorHandler');
  
-/**
- * POST /api/child/enrol
- *
- * Creates a new child record, or returns existing if already enrolled.
- * Child ID format: camp prefix + sequential number (e.g. "B-001").
- */
+
 function enrolChild(req, res, next) {
   try {
     const {
@@ -69,11 +64,7 @@ function enrolChild(req, res, next) {
   }
 }
  
-/**
- * GET /api/child/:childId
- *
- * Returns child profile. Used by the frontend after QR scan.
- */
+// Returns child profile. Used by the frontend after QR scan.
 function getChild(req, res, next) {
   try {
     const { childId } = req.params;

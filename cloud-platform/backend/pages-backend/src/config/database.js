@@ -7,7 +7,7 @@ const { Pool }  = require('pg');
 const logger    = require('../utils/logger');
 const C         = require('./constants');
 
-// ── SQLite — initialise and apply schema ──────────────────────────────────────
+// SQLite — initialise and apply schema 
 
 // Ensure the database directory exists
 const dbDir = path.dirname(path.resolve(C.SQLITE_PATH));
@@ -49,7 +49,7 @@ try {
   process.exit(1);
 }
 
-// ── PostgreSQL — lazy pool ────────────────────────────────────────────────────
+// PostgreSQL — lazy pool 
 // The pool is created once but connections only attempted when actually used.
 // If RDS is unreachable, pg will log errors but not crash the process.
 
@@ -68,11 +68,10 @@ const pgPool = new Pool({
 });
 
 pgPool.on('error', (err) => {
-  // Do not crash — log and continue. SQLite keeps the app running.
   logger.warn(`[DB] PostgreSQL pool error (offline?): ${err.message}`);
 });
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers 
 
 /**
  * Test whether PostgreSQL is reachable.

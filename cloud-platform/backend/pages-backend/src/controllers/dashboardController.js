@@ -49,7 +49,7 @@ async function adminLogin(req, res, next) {
   }
 }
  
-// ── GET /api/dashboard/alerts ──────────────────────────────────────────────────
+// GET /api/dashboard/alerts
  
 function getAdminAlerts(req, res, next) {
   try {
@@ -78,7 +78,7 @@ function getAdminAlerts(req, res, next) {
   }
 }
  
-// ── POST /api/dashboard/alert/:alertId/resolve ────────────────────────────────
+// POST /api/dashboard/alert/:alertId/resolve 
  
 function resolveAdminAlert(req, res, next) {
   try {
