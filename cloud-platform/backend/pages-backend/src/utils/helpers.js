@@ -1,12 +1,29 @@
-// src/utils/helpers.js
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared utility functions for PAGES backend.
-// ─────────────────────────────────────────────────────────────────────────────
-
 'use strict';
 
 const { v4: uuidv4 } = require('uuid');
 const { db }         = require('../config/database');
+
+const APP_TIME_ZONE = 'Asia/Colombo';
+
+function getSltParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: APP_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+
+  const map = {};
+  for (const p of parts) {
+    if (p.type !== 'literal') map[p.type] = p.value;
+  }
+
+  return map;
+}
 
 /**
  * Generate a UUID v4.
@@ -19,21 +36,24 @@ function newId() {
  * Generate an ISO date string for today (YYYY-MM-DD).
  */
 function todayDate() {
-  return new Date().toISOString().slice(0, 10);
+  const p = getSltParts();
+  return `${p.year}-${p.month}-${p.day}`;
 }
 
 /**
  * Generate an HH:MM:SS time string for now.
  */
 function nowTime() {
-  return new Date().toISOString().slice(11, 19);
+  const p = getSltParts();
+  return `${p.hour}:${p.minute}:${p.second}`;
 }
 
 /**
  * Generate the ISO datetime string used in SQLite DEFAULT columns.
  */
 function nowISO() {
-  return new Date().toISOString();
+  const p = getSltParts();
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}+05:30`;
 }
 
 /**
