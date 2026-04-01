@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS pages_content_responses (
   session_id        TEXT NOT NULL REFERENCES pages_sessions(session_id),
   child_id          TEXT NOT NULL REFERENCES pages_children(child_id),
   task_id           TEXT NOT NULL,
-  selected_answer   TEXT NOT NULL CHECK (selected_answer IN ('a', 'b', 'c')),
+  selected_answer   TEXT NOT NULL,
   is_correct        INTEGER NOT NULL CHECK (is_correct IN (0, 1)),
   time_taken_ms     INTEGER NOT NULL,
   responded_at      TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes')),

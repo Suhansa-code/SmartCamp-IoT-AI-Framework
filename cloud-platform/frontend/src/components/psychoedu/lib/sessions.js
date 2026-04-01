@@ -424,7 +424,7 @@ export const SESSIONS = [
       {
         id: 'C2',
         type: 'mcq', subject: 'mathematics', skill: 'addition',
-        question: { si: '5 + 13 = ?', ta: '24 + 13 = ?', en: '24 + 13 = ?' },
+        question: { si: '5 + 13 = ?', ta: '5 + 13 = ?', en: '5 + 13 = ?' },
         options: { si: ['16', '17', '18', '19'], ta: ['16', '17', '18', '19'], en: ['16', '17', '18', '19'] },
         answer: 2, emoji: '➕',
       },
