@@ -26,7 +26,7 @@ const insertSession = db.prepare(`
     (@content_session_id, @session_label, @grade_level, 1, @approved_date)
 `);
 
-// ── Helper ────────────────────────────────────────────────────────────────────
+//  Helper
 let taskCounter = 1;
 function t(session, order, subject, type, question, a, b, c, correct, grade) {
   const id = `TASK-${String(taskCounter++).padStart(3,'0')}`;
@@ -45,12 +45,10 @@ function t(session, order, subject, type, question, a, b, c, correct, grade) {
   };
 }
 
-// ── All 110 tasks (from sessions.js) ──────────────────────────────────────────
+// All 110 tasks (from sessions.js) 
 const ALL_TASKS = [
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // SESSION A — Grade 3 focus
-  // ══════════════════════════════════════════════════════════════════════════
+  // SESSION A — Grade 2 focus
   t('A',1,'sinhala','mcq','Choose the correctly spelled word','ෂක්තිය','ශක්තිය','සක්තිය','b',3),
   t('A',2,'mathematics','mcq','3 + 4 = ?','6','7','8','b',3),
   t('A',3,'sinhala','fill_blank','___ grow on trees','Fruits','Stones','Water','a',3),
@@ -62,9 +60,8 @@ const ALL_TASKS = [
   t('A',9,'mathematics','pattern','What comes next? 🔴 🔵 🔴 🔵 🔴 ?','🔵','🔴','🟡','a',3),
   t('A',10,'sinhala','mcq','What color is the parrot?','Red','Blue','Green','c',3),
 
-  // ══════════════════════════════════════════════════════════════════════════
+ 
   // SESSION B — Grade 3 focus
-  // ══════════════════════════════════════════════════════════════════════════
   t('B',1,'mathematics','mcq','12 + 5 = ?','15','16','17','c',3),
   t('B',2,'sinhala','true_false','"Reading books completes a man" - True?','True','False','Uncertain','a',3),
   t('B',3,'english','sort_order','Arrange: goes / to school / The boy','The boy goes to school','goes to school The boy','to school goes The boy','a',3),
@@ -76,9 +73,8 @@ const ALL_TASKS = [
   t('B',9,'sinhala','mcq','Achini wore a red dress. What color was it?','Blue','Red','Yellow','b',3),
   t('B',10,'mathematics','pattern','What is the next number? 2, 4, 6, 8, ?','9','10','11','b',3),
 
-  // ══════════════════════════════════════════════════════════════════════════
+  
   // SESSION C — Grade 3/4 bridge
-  // ══════════════════════════════════════════════════════════════════════════
   t('C',1,'evs','mcq','Which part of a plant makes food?','Leaves','Flower','Root','a',3),
   t('C',2,'mathematics','mcq','5 + 13 = ?','18','19','20','b',3),
   t('C',3,'english','match','Match the body part: Eye','👁️ Eye','👃 Nose','👂 Ear','a',3),
@@ -90,9 +86,8 @@ const ALL_TASKS = [
   t('C',9,'mathematics','pattern','What comes next? 🔺 🔺 🔷 🔺 🔺 ?','🔺','🔷','🟡','b',3),
   t('C',10,'evs','mcq','Who do you visit when sick?','Doctor','Teacher','Driver','a',3),
 
-  // ══════════════════════════════════════════════════════════════════════════
+
   // SESSION D — Grade 4 focus
-  // ══════════════════════════════════════════════════════════════════════════
   t('D',1,'mathematics','mcq','3 × 4 = ?','10','11','12','c',4),
   t('D',2,'sinhala','mcq','Dinesh likes cricket. His favorite sport is?','Football','Cricket','Hockey','b',4),
   t('D',3,'sinhala','fill_blank','Answer needed for the question','Farmer','Person','Sisters','a',4),
@@ -104,9 +99,8 @@ const ALL_TASKS = [
   t('D',9,'mathematics','pattern','Next number? 5, 10, 15, 20, ?','22','24','25','c',4),
   t('D',10,'evs','mcq','Who drives a fire engine?','Doctor','Firefighter','Teacher','b',4),
 
-  // ══════════════════════════════════════════════════════════════════════════
+
   // SESSION E — Grade 4 focus
-  // ══════════════════════════════════════════════════════════════════════════
   t('E',1,'sinhala','mcq','Without water ___ cannot survive','Plants','Stones','Glass','a',4),
   t('E',2,'mathematics','mcq','5 × 3 = ?','13','14','15','c',4),
   t('E',3,'english','true_false','Can a cat fly? - True?','True','False','Maybe','b',4),
@@ -118,9 +112,8 @@ const ALL_TASKS = [
   t('E',9,'mathematics','pattern','Next shape? 🟠 🟠 🟠 🟠 ?','🟡','🟢','🟠','c',4),
   t('E',10,'sinhala','mcq','She exercises daily. She keeps healthy:','Healthy','Sick','Lazy','a',4),
 
-  // ══════════════════════════════════════════════════════════════════════════
+ 
   // SESSION F — Tamil language focus (Grade 3/4)
-  // ══════════════════════════════════════════════════════════════════════════
   t('F',1,'tamil','mcq','Choose the Tamil word for Cow','பசு','குதிரை','நாய்','a',3),
   t('F',2,'mathematics','mcq','6 + 7 = ?','12','13','14','b',3),
   t('F',3,'tamil','fill_blank','___ உள்ளது - is in the sky','சூரியன்','மரம்','நீர்','a',3),
@@ -132,9 +125,8 @@ const ALL_TASKS = [
   t('F',9,'mathematics','pattern','Next number? 3, 6, 9, 12, ?','13','14','15','c',3),
   t('F',10,'tamil','mcq','குழந்தை சாப்பிட்டது - Child ate?','Rice','Stone','Mud','a',3),
 
-  // ══════════════════════════════════════════════════════════════════════════
+  
   // SESSION G — Grade 4, harder mathematics + EVS
-  // ══════════════════════════════════════════════════════════════════════════
   t('G',1,'mathematics','mcq','3 × 5 = ?','20','31','15','c',4),
   t('G',2,'sinhala','mcq','Sister likes to go with mother to ___ ?','Travel','Shopping','Gathering','a',4),
   t('G',3,'english','fill_blank','She ___ to school every day','goes','go','went','a',4),
@@ -146,9 +138,8 @@ const ALL_TASKS = [
   t('G',9,'mathematics','pattern','Next number? 100, 90, 80, 70, ?','65','60','55','b',4),
   t('G',10,'evs','mcq','Keeping body clean is ___','Important','Unnecessary','Difficult','a',4),
 
-  // ══════════════════════════════════════════════════════════════════════════
+  
   // SESSION H — Mixed Grade 3/4, body + community + higher maths
-  // ══════════════════════════════════════════════════════════════════════════
   t('H',1,'evs','mcq','The heart ___ in the body','Pumps blood','Swallows water','Makes oxygen','a',4),
   t('H',2,'mathematics','mcq','8 × 2 = ?','30','21','16','c',4),
   t('H',3,'sinhala','sort_order','Put in order of day: Night / Noon / Morning','Morning, Noon, Night','Night, Noon, Morning','Noon, Morning, Night','a',4),
@@ -160,9 +151,8 @@ const ALL_TASKS = [
   t('H',9,'mathematics','pattern','Next number? 1, 4, 9, 16, ?','20','24','25','c',4),
   t('H',10,'sinhala','mcq','ශ්‍රී ලංකාව ___ දූපතකි - is a ___ island','Dry','Small','Cold','b',4),
 
-  // ══════════════════════════════════════════════════════════════════════════
+ 
   // SESSION I — Creative / higher-order thinking Grade 4
-  // ══════════════════════════════════════════════════════════════════════════
   t('I',1,'evs','mcq','Saving rainwater is ___','Good','Bad','Wasteful','a',4),
   t('I',2,'mathematics','mcq','Brother picked 7 mangoes, gave me 3. He has?','2','3','4','c',4),
   t('I',3,'evs','sort_order','Plant growth order: Fruit / Seed / Seedling / Tree','Seed, Seedling, Tree, Fruit','Fruit, Seed, Tree, Seedling','Tree, Seed, Fruit, Seedling','a',4),
@@ -174,9 +164,8 @@ const ALL_TASKS = [
   t('I',9,'mathematics','pattern','Next number? 2, 4, 8, 16, ?','20','24','32','c',4),
   t('I',10,'english','match','Animal and home: Lion lives in','Forest','Hole','Coop','a',4),
 
-  // ══════════════════════════════════════════════════════════════════════════
+ 
   // SESSION J — Grade 4, disaster awareness + advanced
-  // ══════════════════════════════════════════════════════════════════════════
   t('J',1,'mathematics','pattern','Next number? 3, 6, 9, 12, ?','20','14','15','c',4),
   t('J',2,'mathematics','mcq','7 × 8 = ?','54','55','56','c',4),
   t('J',3,'sinhala','fill_blank','Gift you can give to school:','Study well','Play with friends','Skip school','b',4),
@@ -188,9 +177,8 @@ const ALL_TASKS = [
   t('J',9,'mathematics','pattern','Next number? 1, 3, 7, 15, ?','20','28','31','c',4),
   t('J',10,'evs','mcq','When fire breaks out children should','Move away to safety','Run towards fire','Sleep','a',4),
 
-  // ══════════════════════════════════════════════════════════════════════════
+
   // SESSION K — Special: all-EVS + community + health
-  // ══════════════════════════════════════════════════════════════════════════
   t('K',1,'evs','mcq','Brush teeth ___ times a day','1','2','3','b',3),
   t('K',2,'mathematics','mcq','16 + 14 = ?','28','29','30','c',3),
   t('K',3,'english','match','Match food group: Banana','🍌 Banana','🥕 Carrot','🐟 Fish','a',3),
@@ -204,7 +192,7 @@ const ALL_TASKS = [
 
 ];
 
-// ── Run the seed ──────────────────────────────────────────────────────────────
+// Run the seed 
 const seedAll = db.transaction(() => {
   for (const s of ['A','B','C','D','E','F','G','H','I','J','K']) {
     const grade = ['A', 'B', 'C', 'F', 'K'].includes(s) ? 3 : 4;

@@ -1,11 +1,5 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// components/child/ContentCard.jsx — PAGES Psychoeducational Content
-// Language-aware via useLang() · All text from translations.js
-// 4 swipeable cards · responsive · works on all phones + tablets
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'

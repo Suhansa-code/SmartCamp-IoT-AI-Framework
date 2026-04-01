@@ -1,6 +1,3 @@
-// lib/scoring.js — Client-side signal collection and Go/No-Go scoring
-// Computes psychosocial welfare signals from raw trial results
-
 /**
  * Compute session score from trial results array.
  * @param {Array} results — array of { trialIdx, rt, outcome }

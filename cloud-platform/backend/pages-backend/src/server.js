@@ -26,7 +26,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   connectivityService.startConnectivityWatcher();
 });
 
-// ── Graceful shutdown ─────────────────────────────────────────────────────────
+//  Graceful shutdown
 
 function shutdown(signal) {
   logger.info(`[SERVER] Received ${signal} — shutting down gracefully`);

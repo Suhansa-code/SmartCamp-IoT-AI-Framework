@@ -5,7 +5,7 @@ import { LANGUAGES } from '@/components/psychoedu/lib/translations'
 import Eli from './Eli'
 import SceneBackground from './SceneBackground'
 
-// ── Confetti piece ────────────────────────────────────────────────────────────
+//Confetti piece 
 function ConfettiPiece({ x, color, delay, shape }) {
   const size = 8 + Math.random() * 8
   return (
@@ -21,7 +21,7 @@ function ConfettiPiece({ x, color, delay, shape }) {
   )
 }
 
-// ── Language card ─────────────────────────────────────────────────────────────
+// Language card 
 const LANG_DESIGNS = {
   si: {
     gradient: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 50%, #FFB347 100%)',
@@ -140,7 +140,7 @@ function LangCard({ lang, onSelect, delay, selected, disabled }) {
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// Main component
 export default function LanguagePicker({ sessionId, onSelect }) {
   const [selected,   setSelected]  = useState(null)
   const [confetti,   setConfetti]  = useState([])

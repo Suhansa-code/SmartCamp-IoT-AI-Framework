@@ -174,7 +174,7 @@ async function taskComplete(req, res, next) {
   }
 }
  
-// ── POST /api/session/second-gate ─────────────────────────────────────────────
+// POST /api/session/second-gate 
  
 async function secondGate(req, res, next) {
   try {
@@ -247,7 +247,7 @@ async function secondGate(req, res, next) {
   }
 }
  
-// ── POST /api/session/complete ────────────────────────────────────────────────
+// POST /api/session/complete 
  
 function completeSession(req, res, next) {
   try {
@@ -337,7 +337,7 @@ function completeSession(req, res, next) {
   }
 }
  
-// ── GET /api/session/content/:childId ────────────────────────────────────────
+// GET /api/session/content/:childId 
  
 function getContentSession(req, res, next) {
   try {

@@ -1,12 +1,5 @@
 'use client'
 
-// src/app/child/cognitive/page.js
-// ─────────────────────────────────────────────────────────────────────────────
-// Cognitive activity page — picks a random session and runs it.
-// Child arrives here from the high-score path after the Go/No-Go game.
-// On completion routes back to /child (welcome screen).
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLang }          from '@/components/psychoedu/context/LanguageContext'

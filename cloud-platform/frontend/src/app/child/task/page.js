@@ -1,7 +1,4 @@
 'use client'
-
-// app/child/task/page.jsx
-// Reads ?lang= from URL on mount and syncs it into LanguageContext.
 // This ensures that even if the user refreshes, the lang is preserved.
 
 import { Suspense, useEffect } from 'react'

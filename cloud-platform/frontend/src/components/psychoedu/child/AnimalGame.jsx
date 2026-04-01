@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useLang }  from '@/components/psychoedu/context/LanguageContext'
 import { t }        from '@/components/psychoedu/lib/translations'
 
-// ── Animals ───────────────────────────────────────────────────────────────────
+// Animals
 const TARGET_DEFS = [
   { id: 'elephant',  emoji: '🐘', file: 'elephant.svg'   },
   { id: 'rabbit',    emoji: '🐰', file: 'rabbit.svg'     },
@@ -21,7 +21,7 @@ const DISTRACTOR_DEFS = [
   { id: 'crab',   emoji: '🦀', file: 'crab.svg'   },
 ]
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// Config 
 const TOTAL_TRIALS  = 45
 const TARGET_RATIO  = 0.70
 const SHOW_MS       = 1500  
@@ -29,7 +29,7 @@ const BLANK_MS      = 500
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
 
-// ── Math helpers ──────────────────────────────────────────────────────────────
+// Math helpers
 const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
 const variance = arr => {
   if (arr.length < 2) return 0
@@ -52,7 +52,7 @@ function buildTrials() {
   return shuffle([...targets, ...distractors])
 }
 
-// ── Countdown screen ──────────────────────────────────────────────────────────
+// Countdown screen
 function CountdownScreen({ count, lang, total, onStart }) {
   const isEnglish = lang === 'en'
 
@@ -127,7 +127,7 @@ function CountdownScreen({ count, lang, total, onStart }) {
   )
 }
 
-// ── Done screen ───────────────────────────────────────────────────────────────
+// Done screen 
 function DoneScreen({ lang }) {
   return (
     <div style={{ minHeight:'100svh', background:'#F0F9FF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'1.25rem', padding:'2rem', textAlign:'center' }}>
@@ -143,7 +143,7 @@ function DoneScreen({ lang }) {
   )
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// Main component
 export default function AnimalGame({ onComplete }) {
   const searchParams = useSearchParams()
   const router       = useRouter()

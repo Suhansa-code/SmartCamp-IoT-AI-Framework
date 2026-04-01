@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-// ── Shared style helpers ──────────────────────────────────────────────────────
+// Shared style helpers 
 const Q_STYLE = {
   fontFamily: "'Baloo 2', cursive",
   fontSize:   'clamp(1.15rem, 4.5vw, 1.5rem)',
@@ -45,9 +45,8 @@ function feedbackStyle(state) {
   return OPTION_BASE
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // MCQ — 4 options, tap correct
-// ═══════════════════════════════════════════════════════════════════════════════
 function MCQTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -86,9 +85,7 @@ function MCQTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // FILL_BLANK — sentence with gap, 3 word choices
-// ═══════════════════════════════════════════════════════════════════════════════
 function FillBlankTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -127,9 +124,7 @@ function FillBlankTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TRUE_FALSE — tap True or False button
-// ═══════════════════════════════════════════════════════════════════════════════
 function TrueFalseTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -165,9 +160,7 @@ function TrueFalseTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // COUNT — show N emoji, pick the number
-// ═══════════════════════════════════════════════════════════════════════════════
 function CountTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -207,9 +200,7 @@ function CountTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // PATTERN — show sequence with ?, pick next item
-// ═══════════════════════════════════════════════════════════════════════════════
 function PatternTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -249,9 +240,7 @@ function PatternTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // SORT_ORDER — tap items in correct order
-// ═══════════════════════════════════════════════════════════════════════════════
 function SortOrderTask({ task, lang, onAnswer }) {
   const words          = task.words[lang] ?? task.words['en']
   const correctOrder   = task.correct_order[lang] ?? task.correct_order['en']
@@ -302,9 +291,7 @@ function SortOrderTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MATCH — tap a left item then tap its right pair
-// ═══════════════════════════════════════════════════════════════════════════════
 function MatchTask({ task, lang, onAnswer }) {
   const pairs = task.pairs
   const [shuffledEmoji] = useState(() => [...pairs].sort(() => Math.random() - 0.5))
@@ -381,9 +368,7 @@ function MatchTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Main dispatcher
-// ═══════════════════════════════════════════════════════════════════════════════
 export default function TaskRenderer({ task, lang, onAnswer }) {
   // Reset state when task changes
   const [key, setKey] = useState(task.id)

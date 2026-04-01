@@ -8,9 +8,6 @@ const C      = require('../config/constants');
 const { db, pgQuery, pgIsReachable } = require('../config/database');
 const { nowISO } = require('../utils/helpers');
 
-// ── Column definitions per table ──────────────────────────────────────────────
-// Defines which columns to read from SQLite and insert to PostgreSQL.
-// All column names are identical between SQLite and PostgreSQL by design.
 
 const TABLE_COLUMNS = {
   pages_children: [
@@ -256,7 +253,7 @@ async function runSync() {
   let hasError = false;
 
   try {
-    // ── Push records in FK-safe order ──────────────────────────────────────
+    //Push records in FK-safe order 
     for (const tableName of C.SYNC_TABLE_ORDER) {
       // Get pending queue items for this table in batches of 50
       let offset = 0;
@@ -318,7 +315,7 @@ async function runSync() {
       }
     }
 
-    // ── Pull model files ────────────────────────────────────────────────────
+    // Pull model files
     try {
       modelsPulled = await pullModelFiles();
     } catch (err) {
