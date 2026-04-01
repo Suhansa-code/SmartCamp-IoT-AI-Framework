@@ -655,7 +655,7 @@ export const SESSIONS = [
     id: 'I',
     grade: 4,
     tasks: [
-      { id:'I1',  type:'mcq',        subject:'evs',         skill:'environment',          question:{si:'වැසි ජලය රැකගැනීම ___ .',ta:'மழை நீரை சேமிப்பது ___.',en:'Saving rainwater is ___.'},                                           options:{si:['හොඳයි','නරකයි','කාල නාස්තිකරනවා','ව්‍යාකූලයි'],ta:['நல்லது','கெட்டது','நேரத்தை வீணடிப்பது','குழப்பமானது'],en:['Good','Bad','Wasteful','Confusing']},                                                          answer:0, emoji:'🌧️' },
+      { id:'I1',  type:'mcq',        subject:'evs',         skill:'environment',          question:{si:'වැසි ජලය රැකගැනීම ___ .',ta:'மழை நீரை சேமிப்பது ___.',en:'Saving rainwater is ___.'},                                           options:{si:['හොඳයි','නරකයි','කාල නාස්තිකරනවා'],ta:['நல்லது','கெட்டது','நேரத்தை வீணடிப்பது'],en:['Good','Bad','Wasteful']},                                                          answer:0, emoji:'🌧️' },
       { id:'I2',  type:'mcq',        subject:'mathematics', skill:'fractions',            question:{si:'අයියා අඹ ගෙඩි 7ක් කැඩුවේ ය. ඉන් 3 ක් මට දුන්නේනම් අයියාට අඹ ගෙඩි කීයද? ',ta:'என் சகோதரன் 7 மாம்பழங்களைப் பறித்தான். அவற்றில் 3-ஐ அவன் எனக்குக் கொடுத்தால், அவனிடம் எத்தனை மாம்பழங்கள் இருக்கும்?',en:'My brother picked 7 mangoes. If he gave me 3 of them, how many mangoes would my brother have?'},options:{si:['2','3','4','5'],ta:['2','3','4','5'],en:['2','3','4','5']},     answer:2, emoji:'🥭' },
       { id:'I3',  type:'sort_order', subject:'evs',         skill:'sequence',             question:{si:'ශාකයේ වර්ධනය නිවැරදි ක්‍රමයට සකසන්න',ta:'தாவரத்தின் வளர்ச்சியை சரியான வரிசையில் வையுங்கள்',en:'Put plant growth in correct order'},words:{si:['ගෙඩිය','බීජය','පැළය','ගස'],ta:['பழம்','விதை','நாற்று','மரம்'],en:['Fruit','Seed','Seedling','Tree']},                                                               correct_order:{si:['බීජය','පැළය','ගස','ගෙඩිය'],ta:['விதை','நாற்று','மரம்','பழம்'],en:['Seed','Seedling','Tree','Fruit']}, emoji:'🌱' },
       { id:'I4',  type:'true_false', subject:'english',     skill:'comprehension',        question:{si:'"Birds can fly:"',ta:'"Birds can fly:"',en:'"Birds can fly:"'},answer:true, emoji:'🐦' },
@@ -663,7 +663,7 @@ export const SESSIONS = [
       { id:'I6',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'9 × 3 = ?',ta:'9 × 3 = ?',en:'9 × 3 = ?'},                                                                                        options:{si:['25','26','27','28'],ta:['25','26','27','28'],en:['25','26','27','28']},                                                                                                                                             answer:2, emoji:'✖️' },
       { id:'I7',  type:'fill_blank', subject:'sinhala',     skill:'vocabulary',           question:{si:'ශ්‍රී ලංකාවේ ජාතික ක්‍රීඩාව ___ ය.', ta:'இலங்கையின் தேசிய விளையாட்டு ___.',en:'The national sport of Sri Lanka is ___.'},           blank_choices:{si:['වොලිබෝල්','ක්‍රිකට්','හොකී'],ta:['கைப்பந்து','கிரிக்கெட்','ஹாக்கி'],en:['Volleyball','Cricket','Hockey']},                                                                                               answer:0, emoji:'🏐' },
       { id:'I8',  type:'true_false', subject:'evs',         skill:'science',              question:{si:'ශාක වැඩෙන්න හිරු එළිය අවශ්‍ය වේ.',ta:'தாவரங்கள் வளர்வதற்கு சூரிய ஒளி தேவைப்படுகிறது.',en:'Plants need sunlight to grow.'}, answer:true, emoji:'🌿' },
-      { id:'I9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['2','4','8','16','?'],                                                                                                                                                                                              options:{si:['20','24','32','36'],ta:['20','24','32','36'],en:['20','24','32','36']}, answer:2, emoji:'🔢' },
+      { id:'I9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['2','4','8','16','?'],                                                                                                                                                 options:{si:['20','24','32','36'],ta:['20','24','32','36'],en:['20','24','32','36']}, answer:2, emoji:'🔢' },
       { id:'I10', type:'match',      subject:'english',     skill:'vocabulary',           question:{si:'සත්තු හා ඔවුන්ගේ වාසස්ථාන ගලපන්න',ta:'விலங்குகள் மற்றும் அவற்றின் வாழிடங்களை பொருத்துங்கள்',en:'Match animals with their homes'},                                        pairs:[{word:{si:'වනය',ta:'காடு',en:'Forest'},emoji:'🦁'},{word:{si:'ගුල',ta:'துளை',en:'Hole'},emoji:'🐭'},{word:{si:'කූඩුව',ta:'கூண்டு',en:'Coop'},emoji:'🐔'},{word:{si:'ජලය',ta:'நீர்',en:'Water'},emoji:'🐟'}] },
     ],
   },
@@ -725,6 +725,28 @@ export function getRandomSession(grade = null) {
   const pool = grade
     ? SESSIONS.filter(s => s.grade === grade || s.grade === null)
     : SESSIONS
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
+/**
+ * Get a random session avoiding recently used ones
+ * @param {string[]} recentLabels - array of recently used session IDs (e.g., ['A', 'B', 'C'])
+ * @param {3|4|null} grade - optional grade filter
+ * @returns {Object} session
+ */
+export function getRandomSessionExcluding(recentLabels, grade = null) {
+  const basePool = grade
+    ? SESSIONS.filter(s => s.grade === grade || s.grade === null)
+    : SESSIONS
+  
+  // Filter out recently used sessions
+  const available = recentLabels && recentLabels.length > 0
+    ? basePool.filter(s => !recentLabels.includes(s.id))
+    : basePool
+  
+  // If all have been used recently, fall back to full pool
+  const pool = available.length > 0 ? available : basePool
+  
   return pool[Math.floor(Math.random() * pool.length)]
 }
 

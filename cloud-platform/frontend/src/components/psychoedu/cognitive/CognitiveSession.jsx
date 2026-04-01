@@ -217,11 +217,18 @@ export default function CognitiveSession({ session, onComplete }) {
   const task  = tasks[taskIdx]
   const total = tasks.length
 
-  function handleAnswer(isCorrect) {
+  function handleAnswer(answerPayload) {
+    const isCorrect = typeof answerPayload === 'object'
+      ? !!answerPayload.isCorrect
+      : !!answerPayload
+    const selectedAnswer = typeof answerPayload === 'object'
+      ? answerPayload.selectedAnswer ?? null
+      : null
+
     const newScore = isCorrect ? score + 1 : score
     setScore(newScore)
     setLastCorrect(isCorrect)
-    setResults(r => [...r, { taskId: task.id, subject: task.subject, correct: isCorrect }])
+    setResults(r => [...r, { taskId: task.id, subject: task.subject, correct: isCorrect, selectedAnswer }])
 
     if (isCorrect) {
       setConfetti(true)

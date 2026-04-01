@@ -56,7 +56,7 @@ function MCQTask({ task, lang, onAnswer }) {
     setLocked(true)
     setSelected(idx)
     const correct = idx === task.answer
-    setTimeout(() => onAnswer(correct), 900)
+    setTimeout(() => onAnswer({ isCorrect: correct, selectedAnswer: String(idx) }), 900)
   }
 
   const options = task.options[lang] ?? task.options['en']
@@ -97,7 +97,7 @@ function FillBlankTask({ task, lang, onAnswer }) {
     if (locked) return
     setLocked(true)
     setSelected(idx)
-    setTimeout(() => onAnswer(idx === task.answer), 900)
+    setTimeout(() => onAnswer({ isCorrect: idx === task.answer, selectedAnswer: String(idx) }), 900)
   }
 
   // Replace ___ with selected word or highlighted blank
@@ -137,7 +137,7 @@ function TrueFalseTask({ task, lang, onAnswer }) {
     if (locked) return
     setLocked(true)
     setSelected(val)
-    setTimeout(() => onAnswer(val === task.answer), 900)
+    setTimeout(() => onAnswer({ isCorrect: val === task.answer, selectedAnswer: String(val) }), 900)
   }
 
   function btnStyle(val) {
@@ -169,7 +169,7 @@ function CountTask({ task, lang, onAnswer }) {
     if (locked) return
     setLocked(true)
     setSelected(idx)
-    setTimeout(() => onAnswer(idx === task.answer), 900)
+    setTimeout(() => onAnswer({ isCorrect: idx === task.answer, selectedAnswer: String(idx) }), 900)
   }
 
   const options = task.options[lang] ?? task.options['en']
@@ -209,7 +209,7 @@ function PatternTask({ task, lang, onAnswer }) {
     if (locked) return
     setLocked(true)
     setSelected(idx)
-    setTimeout(() => onAnswer(idx === task.answer), 900)
+    setTimeout(() => onAnswer({ isCorrect: idx === task.answer, selectedAnswer: String(idx) }), 900)
   }
 
   const options = task.options[lang] ?? task.options['en']
@@ -257,7 +257,7 @@ function SortOrderTask({ task, lang, onAnswer }) {
       setLocked(true)
       const correct = newTapped.every((w, i) => w === correctOrder[i])
       setShowResult(correct)
-      setTimeout(() => onAnswer(correct), 1000)
+      setTimeout(() => onAnswer({ isCorrect: correct, selectedAnswer: newTapped.join(' ') }), 1000)
     }
   }
 
@@ -317,7 +317,7 @@ function MatchTask({ task, lang, onAnswer }) {
       setSelectedWord(null)
       if (newMatched.length === pairs.length) {
         setLocked(true)
-        setTimeout(() => onAnswer(true), 800)
+        setTimeout(() => onAnswer({ isCorrect: true, selectedAnswer: 'matched_all' }), 800)
       }
     } else {
       setWrongPair({ word: selectedWord, emoji: shuffledIdx })

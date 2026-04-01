@@ -28,6 +28,7 @@ const SHOW_MS       = 1500
 const BLANK_MS      = 500   
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 // Math helpers
 const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
@@ -243,7 +244,7 @@ export default function AnimalGame({ onComplete }) {
 
   function flash(type) { setFeedback(type); setTimeout(() => setFeedback(null), 380) }
 
-  function endGame() {
+  async function endGame() {
     clearInterval(timerRef.current); clearTimeout(trialTimer.current)
     setPhase('done')
     const totalTargets     = trials.filter(tr => tr.type === 'target').length
@@ -276,23 +277,52 @@ export default function AnimalGame({ onComplete }) {
         completionRatio: metrics.accuracyRate,
       }
     }
-    fetch('http://localhost:3001/api/session/task-complete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).catch(() => {})
+    const gatePath = attempt >= 2 ? '/api/session/second-gate' : '/api/session/task-complete'
+    let gateDecision = null
+
+    try {
+      const res = await fetch(`${API_BASE}${gatePath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json().catch(() => null)
+      if (res.ok && data?.gate_decision) gateDecision = data.gate_decision
+    } catch (_) {}
+
     if (onComplete) {
       onComplete(metrics)
     } else {
       const langParam = `lang=${encodeURIComponent(lang)}`
       const baseParams = `session=${encodeURIComponent(sessionId)}&child=${encodeURIComponent(childId)}&attempt=${attempt}&${langParam}`
-      const isGate1Pass = metrics.accuracyRate >= 0.5 && metrics.falseTapRate <= 0.6
 
-      if (isGate1Pass) {
+      if (gateDecision === 'PASS' || gateDecision === 'PASS_RECOVERED') {
         setTimeout(() =>
           router.push(`/child/cognitive?${baseParams}`),
         1600)
-      } else if (attempt >= 2) {
+      } else if (gateDecision === 'FAIL_CONFIRMED') {
         setTimeout(() =>
           router.push(`/child/play?${baseParams}`),
         1600)
+      } else if (gateDecision === 'FAIL_FIRST') {
+        setTimeout(() =>
+          router.push(`/child/calming?${baseParams}`),
+        1600)
       } else {
+        // Fallback if backend is unavailable: preserve previous UX behavior.
+        const isGate1Pass = metrics.accuracyRate >= 0.5 && metrics.falseTapRate <= 0.6
+        if (isGate1Pass) {
+          setTimeout(() =>
+            router.push(`/child/cognitive?${baseParams}`),
+          1600)
+          return
+        }
+        if (attempt >= 2) {
+          setTimeout(() =>
+            router.push(`/child/play?${baseParams}`),
+          1600)
+          return
+        }
         setTimeout(() =>
           router.push(`/child/calming?${baseParams}`),
         1600)
