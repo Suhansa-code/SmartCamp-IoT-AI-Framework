@@ -19,7 +19,7 @@ function Cloud({ style, animClass = 'cloud-1', opacity = 1 }) {
 // Butterfly SVG 
 function Butterfly({ style, animClass = 'butterfly', color1 = '#FF6B9D', color2 = '#FFD93D' }) {
   return (
-    <svg viewBox="0 0 40 30" style={{ position: 'absolute', width: 46, height: 38, ...style }} className={animClass} aria-hidden="true">
+    <svg viewBox="0 0 40 30" style={{ position: 'absolute', bottom: '40px', width: 46, height: 38, ...style }} className={animClass} aria-hidden="true">
       <ellipse cx="10" cy="12" rx="10" ry="12" fill={color1} opacity="0.8" transform="rotate(-20 10 12)" />
       <ellipse cx="30" cy="12" rx="10" ry="12" fill={color2} opacity="0.8" transform="rotate(20 30 12)" />
       <ellipse cx="10" cy="22" rx="7" ry="8" fill={color1} opacity="0.6" transform="rotate(15 10 22)" />
@@ -126,16 +126,26 @@ function LargeGroundFlower({ style, color = '#FF6B9D', size = 84 }) {
 function Rainbow({ style }) {
   const colors = ['#FF6B6B','#FF6B35','#FFD93D','#4ADE80','#60A5FA','#A855F7']
   return (
-    <svg viewBox="0 0 200 200" style={{ position: 'absolute', opacity: 0.55, ...style }} aria-hidden="true">
+    <svg
+      viewBox="0 0 2000 1000"
+      style={{ position: 'absolute', bottom: 0, width: '100%', height: '100%', opacity: 0.55, ...style }}
+      aria-hidden="true"
+    >
       {colors.map((c, i) => (
-        <path key={i}
-          d={`M ${5 + i*4} 95 Q 100 ${-30 + i*6} ${195 - i*4} 95`}
-          fill="none" stroke={c} strokeWidth="10"
+        <path
+          key={i}
+          // Start way off left (-300,1000), curve up, end way off right (2300,1000)
+          d={`M -390 860 Q 1000 ${-300 - i * 40} 2480 900`}
+          fill="none"
+          stroke={c}
+          strokeWidth="35"
         />
       ))}
+
     </svg>
   )
 }
+
 
 // Main scene 
 export default function SceneBackground({ children, variant = 'day', largeGroundFlowers = false }) {
@@ -147,7 +157,7 @@ export default function SceneBackground({ children, variant = 'day', largeGround
       background: 'linear-gradient(180deg, #87CEEB 0%, #B8E4F7 45%, #D4F1FF 70%, #A8E6A3 85%, #6DBE47 100%)',
     }}>
       {/* ── Rainbow ── */}
-      <Rainbow style={{ top: '-3%', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 620 }} />
+      <Rainbow style={{ top: '-2%', left: 0, width: '100%', height: '78%' }} />
 
       {/* ── Clouds ── */}
       <Cloud style={{ top: '8%',  left: '2%',  width: '40%', maxWidth: 180 }} animClass="cloud-1" opacity={0.95} />
@@ -166,8 +176,8 @@ export default function SceneBackground({ children, variant = 'day', largeGround
       }} aria-hidden="true" />
 
       {/* ── Butterflies ── */}
-      <Butterfly style={{ top: '30%', left: '6%' }}  animClass="butterfly"   color1="#FF6B9D" color2="#FFD93D" />
-      <Butterfly style={{ top: '40%', right: '8%' }} animClass="butterfly-2" color1="#A855F7" color2="#60A5FA" />
+      <Butterfly style={{ bottom: '35%', left: '8%' }}  animClass="butterfly"   color1="#FF6B9D" color2="#FFD93D" />
+      <Butterfly style={{ bottom: '35%', right: '10%' }} animClass="butterfly-2" color1="#A855F7" color2="#60A5FA" />
 
       {/* ── Grass hills (bottom) ── */}
       <svg viewBox="0 0 400 80" preserveAspectRatio="none"
