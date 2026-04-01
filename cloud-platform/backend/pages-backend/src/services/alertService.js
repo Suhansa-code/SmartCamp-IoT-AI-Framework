@@ -87,9 +87,9 @@ function checkAndCreateAlert(childId, sessionId) {
   const createAlert = db.transaction(() => {
     db.prepare(`
       INSERT INTO pages_alerts
-        (alert_id, child_id, camp_id, res_id, alert_type, trigger_detail)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(alertId, childId, child.camp_id, child.res_id, alertType, triggerDetail);
+        (alert_id, child_id, camp_id, res_id, alert_type, trigger_detail, triggered_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(alertId, childId, child.camp_id, child.res_id, alertType, triggerDetail, nowISO());
 
     db.prepare(`
       UPDATE pages_children SET alert_status = 'active' WHERE child_id = ?

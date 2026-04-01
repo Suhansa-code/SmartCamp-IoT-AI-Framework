@@ -34,8 +34,8 @@ function startSession(req, res, next) {
       db.prepare(`
         INSERT INTO pages_sessions
           (session_id, child_id, session_date, session_time,
-           condition_label, baseline_score_used)
-        VALUES (?, ?, ?, ?, ?, ?)
+           condition_label, baseline_score_used, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(
         sessionId,
         child_id,
@@ -43,6 +43,7 @@ function startSession(req, res, next) {
         nowTime(),
         condition_label.toUpperCase(),
         child.baseline_score,
+        nowISO(),
       );
       // Session not enqueued for sync yet — will be added when complete
     });
@@ -140,9 +141,9 @@ async function taskComplete(req, res, next) {
       // Write gate decision record (attempt 1)
       db.prepare(`
         INSERT INTO pages_gate_decisions
-          (decision_id, session_id, child_id, attempt_number, composite_score, decision)
-        VALUES (?, ?, ?, 1, ?, ?)
-      `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+          (decision_id, session_id, child_id, attempt_number, composite_score, decision, decided_at)
+        VALUES (?, ?, ?, 1, ?, ?, ?)
+      `).run(decisionId, session_id, child_id, compositeScore, gateDecision, nowISO());
  
       // Enqueue signals for sync
       enqueue('pages_behavioral_signals', signalId, 'INSERT');
@@ -212,9 +213,9 @@ async function secondGate(req, res, next) {
       // Write gate decision (attempt 2)
       db.prepare(`
         INSERT INTO pages_gate_decisions
-          (decision_id, session_id, child_id, attempt_number, composite_score, decision)
-        VALUES (?, ?, ?, 2, ?, ?)
-      `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+          (decision_id, session_id, child_id, attempt_number, composite_score, decision, decided_at)
+        VALUES (?, ?, ?, 2, ?, ?, ?)
+      `).run(decisionId, session_id, child_id, compositeScore, gateDecision, nowISO());
  
       // If FAIL_CONFIRMED — increment consecutive_low
       if (gateDecision === C.GATE.FAIL_CONFIRMED) {
@@ -272,8 +273,8 @@ function completeSession(req, res, next) {
       // 1. Save content responses
       const insertResponse = db.prepare(`
         INSERT INTO pages_content_responses
-          (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+          (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms, responded_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
  
       for (const r of contentResponses) {
@@ -286,6 +287,7 @@ function completeSession(req, res, next) {
           r.answer,
           r.isCorrect ? 1 : 0,
           r.timeTakenMs || 0,
+          nowISO(),
         );
         enqueue('pages_content_responses', responseId, 'INSERT');
       }

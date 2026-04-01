@@ -123,9 +123,9 @@ function clamp(value, min, max) {
  */
 function enqueue(tableName, recordId, operation = 'INSERT') {
   db.prepare(`
-    INSERT INTO pages_sync_queue (table_name, record_id, operation)
-    VALUES (?, ?, ?)
-  `).run(tableName, recordId, operation);
+    INSERT INTO pages_sync_queue (table_name, record_id, operation, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(tableName, recordId, operation, nowISO());
 }
 
 module.exports = {

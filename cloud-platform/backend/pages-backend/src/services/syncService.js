@@ -237,9 +237,9 @@ function s3Download(url, dest) {
  */
 function writeSyncLog(recordsPushed, modelsPulled, syncStatus, errorMessage = null) {
   db.prepare(`
-    INSERT INTO pages_sync_log (records_pushed, model_files_pulled, sync_status, error_message)
-    VALUES (?, ?, ?, ?)
-  `).run(recordsPushed, modelsPulled, syncStatus, errorMessage);
+    INSERT INTO pages_sync_log (records_pushed, model_files_pulled, sync_status, error_message, synced_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(recordsPushed, modelsPulled, syncStatus, errorMessage, nowISO());
 }
 
 /**

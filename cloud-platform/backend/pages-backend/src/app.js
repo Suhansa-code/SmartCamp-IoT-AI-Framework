@@ -8,6 +8,7 @@ const helmet     = require('helmet');
 const cors       = require('cors');
 const logger     = require('./utils/logger');
 const C          = require('./config/constants');
+const { nowISO } = require('./utils/helpers');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 // ── Route modules ─────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     device: C.DEVICE_ID,
     camp:   C.CAMP_ID,
-    time:   new Date().toISOString(),
+    time:   nowISO(),
   });
 });
 

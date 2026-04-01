@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS pages_admins (
   admin_id    TEXT PRIMARY KEY,
   username    TEXT NOT NULL UNIQUE,
   password    TEXT NOT NULL,          -- bcrypt hash
-  created_at  TEXT DEFAULT (datetime('now'))
+  created_at  TEXT DEFAULT (datetime('now', '+5 hours', '+30 minutes'))
 );
 
 -- ── Children ──────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS pages_children (
   camp_id           TEXT NOT NULL,
   zone_id           TEXT,
   language          TEXT NOT NULL DEFAULT 'si' CHECK (language IN ('si', 'ta', 'en')),
-  enrolled_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  enrolled_at       TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes')),
   total_sessions    INTEGER NOT NULL DEFAULT 0,
   baseline_score    REAL NOT NULL DEFAULT 60.0,
   consecutive_low   INTEGER NOT NULL DEFAULT 0,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS pages_sessions (
   if_score              REAL,
   alert_triggered       INTEGER NOT NULL DEFAULT 0,
   synced                INTEGER NOT NULL DEFAULT 0,
-  created_at            TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at            TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_child   ON pages_sessions(child_id);
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS pages_gate_decisions (
   attempt_number    INTEGER NOT NULL CHECK (attempt_number IN (1, 2)),
   composite_score   REAL NOT NULL,
   decision          TEXT NOT NULL,
-  decided_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_at        TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes')),
   synced            INTEGER NOT NULL DEFAULT 0
 );
 
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS pages_alerts (
   res_id            TEXT NOT NULL,
   alert_type        TEXT NOT NULL CHECK (alert_type IN ('3_consecutive_flagged', '3_of_5_flagged')),
   trigger_detail    TEXT NOT NULL,
-  triggered_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  triggered_at      TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes')),
   status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'resolved')),
   resolved_at       TEXT,
   resolved_notes    TEXT,
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS content_sessions (
   grade_level           INTEGER NOT NULL CHECK (grade_level IN (3, 4)),
   zeo_approved          INTEGER NOT NULL DEFAULT 0,
   approved_date         TEXT,
-  created_at            TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at            TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes'))
 );
 
 -- ── Content tasks ─────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS pages_content_responses (
   selected_answer   TEXT NOT NULL CHECK (selected_answer IN ('a', 'b', 'c')),
   is_correct        INTEGER NOT NULL CHECK (is_correct IN (0, 1)),
   time_taken_ms     INTEGER NOT NULL,
-  responded_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  responded_at      TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes')),
   synced            INTEGER NOT NULL DEFAULT 0
 );
 
@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS pages_sync_queue (
   operation     TEXT NOT NULL DEFAULT 'INSERT',
   sync_status   TEXT NOT NULL DEFAULT 'pending' CHECK (sync_status IN ('pending', 'synced', 'failed')),
   retry_count   INTEGER NOT NULL DEFAULT 0,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes')),
   synced_at     TEXT
 );
 
@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS pages_sync_log (
   model_files_pulled INTEGER NOT NULL DEFAULT 0,
   sync_status       TEXT NOT NULL,
   error_message     TEXT,
-  synced_at         TEXT NOT NULL DEFAULT (datetime('now'))
+  synced_at         TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes'))
 );
 
 -- ── Seed: default admin account ───────────────────────────────────────────────

@@ -3,7 +3,7 @@
 const { db }         = require('../config/database');
 const C              = require('../config/constants');
 const logger         = require('../utils/logger');
-const { newId, nextChildId, enqueue } = require('../utils/helpers');
+const { nextChildId, nowISO, enqueue } = require('../utils/helpers');
 const { createError } = require('../middleware/errorHandler');
  
 
@@ -41,9 +41,9 @@ function enrolChild(req, res, next) {
     const insertChild = db.transaction(() => {
       db.prepare(`
         INSERT INTO pages_children
-          (child_id, res_id, grade, camp_id, zone_id, language)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(childId, res_id.trim(), Number(grade), campId, zone_id, language);
+          (child_id, res_id, grade, camp_id, zone_id, language, enrolled_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(childId, res_id.trim(), Number(grade), campId, zone_id, language, nowISO());
  
       enqueue('pages_children', childId, 'INSERT');
     });
