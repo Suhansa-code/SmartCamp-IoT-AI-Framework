@@ -146,6 +146,17 @@ export default function LanguagePicker({ sessionId, onSelect }) {
   const [confetti,   setConfetti]  = useState([])
   const [eliMood,    setEliMood]   = useState('wave')
   const [confirmed,  setConfirmed] = useState(false)
+  const [eliSize,    setEliSize]   = useState(110)
+
+  useEffect(() => {
+    function updateEliSize() {
+      setEliSize(Math.min(130, Math.round(window.innerWidth * 0.3)))
+    }
+
+    updateEliSize()
+    window.addEventListener('resize', updateEliSize)
+    return () => window.removeEventListener('resize', updateEliSize)
+  }, [])
 
   function handlePick(code) {
     if (confirmed) return
@@ -178,7 +189,7 @@ export default function LanguagePicker({ sessionId, onSelect }) {
   }, [confetti])
 
   return (
-    <SceneBackground>
+    <SceneBackground largeGroundFlowers>
       <style>{`
         @keyframes heading-bounce{0%{opacity:0;transform:translateY(-20px) scale(0.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
       `}</style>
@@ -197,7 +208,7 @@ export default function LanguagePicker({ sessionId, onSelect }) {
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(0.5rem,2vw,0.75rem)', width:'100%' }}>
           <div style={{ animation:'heading-bounce 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s both', opacity:0 }}>
             <Eli
-              size={Math.min(130, typeof window !== 'undefined' ? Math.round(window.innerWidth * 0.3) : 110)}
+              size={eliSize}
               mood={eliMood}
             />
           </div>
@@ -236,11 +247,6 @@ export default function LanguagePicker({ sessionId, onSelect }) {
             />
           ))}
         </div>
-
-        {/* Session ID footer */}
-        <p style={{ fontSize:'clamp(0.65rem,2vw,0.75rem)', fontWeight:700, color:'rgba(255,255,255,0.75)', textAlign:'center' }}>
-          PAGES · 🐘 Eli's World · Session {sessionId?.slice(0,8) ?? '—'}
-        </p>
 
       </div>
     </SceneBackground>
