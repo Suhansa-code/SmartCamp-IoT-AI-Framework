@@ -15,6 +15,7 @@ const childRoutes     = require('./routes/child');
 const sessionRoutes   = require('./routes/session');
 const dashboardRoutes = require('./routes/dashboard');
 const syncRoutes      = require('./routes/sync');
+const tursoConfig      = require('./config/tursoConfig');
 
 const app = express();
 
@@ -49,6 +50,13 @@ app.use((req, _res, next) => {
   logger.debug(`→ ${req.method} ${req.originalUrl}`);
   next();
 });
+
+// Call tursoconfig to check it works using tursoConfig
+tursoConfig.testConnection()
+  .then(() => logger.info('[TURSO] Initial connection test successful'))
+  .catch((err) => logger.error(`[TURSO] Initial connection test failed: ${err.message}`));
+
+
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {

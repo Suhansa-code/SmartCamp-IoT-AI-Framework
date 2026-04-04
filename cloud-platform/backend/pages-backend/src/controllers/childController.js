@@ -5,6 +5,7 @@ const C              = require('../config/constants');
 const logger         = require('../utils/logger');
 const { newId, nextChildId, enqueue } = require('../utils/helpers');
 const { createError } = require('../middleware/errorHandler');
+const tursoConfig      = require('../config/tursoConfig');
  
 /**
  * POST /api/child/enrol
@@ -29,6 +30,27 @@ function enrolChild(req, res, next) {
       WHERE  res_id = ? AND camp_id = ?
       LIMIT  1
     `).get(res_id.trim(), campId);
+
+    //Check data is in turso
+    tursoConfig.checkResId(res_id.trim())
+      .then((exists) => {
+        if (!exists) {
+          logger.warn(`[TURSO] res_id not found: ${res_id.trim()}`);
+          // Optionally, you could return an error here instead of enrolling
+          // return res.status(400).json({ success: false, message: 'res_id not found in Turso' });
+        } else {
+          logger.info(`[TURSO] res_id exists: ${res_id.trim()}`);
+        }
+      })
+      .catch((err) => {
+        logger.error(`[TURSO] Error checking res_id: ${err.message}`);
+        // Proceed with enrolment even if Turso check fails
+      });
+      
+
+
+
+
  
     if (existing) {
       logger.info(`[ENROL] Already enrolled: res_id=${res_id} → child_id=${existing.child_id}`);

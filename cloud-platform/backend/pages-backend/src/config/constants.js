@@ -1,12 +1,11 @@
 
 'use strict';
-
 require('dotenv').config();
 
 module.exports = {
 
   // ── Server ──────────────────────────────────────────────────────────────────
-  PORT:         parseInt(process.env.PORT, 10)     || 3000,
+  PORT:         parseInt(process.env.PORT, 10)     || 3001,
   NODE_ENV:     process.env.NODE_ENV               || 'development',
   DEVICE_ID:    process.env.DEVICE_ID              || 'SCB-UNIT-01',
   CAMP_ID:      process.env.CAMP_ID                || 'CAMP-B',
@@ -66,7 +65,7 @@ module.exports = {
   // ── CORS allowed origins ────────────────────────────────────────────────────
   CORS_ORIGINS: [
     'http://192.168.4.1:3000',  // RPi production hotspot
-    'http://localhost:3000',     // Development
+    'http://localhost:3001',     // Development
     'http://127.0.0.1:3000',
   ],
 
