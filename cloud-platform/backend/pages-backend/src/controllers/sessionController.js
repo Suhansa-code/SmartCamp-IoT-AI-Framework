@@ -1,13 +1,11 @@
-'use strict';
- 
-const { db }                = require('../config/database');
-const C                     = require('../config/constants');
-const logger                = require('../utils/logger');
-const { newId, todayDate, nowTime, nowISO, enqueue } = require('../utils/helpers');
-const { createError }       = require('../middleware/errorHandler');
-const scoringService        = require('../services/scoringService');
-const { applyFirstGate, applySecondGate, updateBaseline } = require('../services/gatingService');
-const { checkAndCreateAlert } = require('../services/alertService');
+import { db } from '../config/database.js';
+import C from '../config/constants.js';
+import logger from '../utils/logger.js';
+import { newId, todayDate, nowTime, nowISO, enqueue } from '../utils/helpers.js';
+import { createError } from '../middleware/errorHandler.js';
+import * as scoringService from '../services/scoringService.js';
+import { applyFirstGate, applySecondGate, updateBaseline } from '../services/gatingService.js';
+import { checkAndCreateAlert } from '../services/alertService.js';
  
 // ── POST /api/session/start ───────────────────────────────────────────────────
  
@@ -362,7 +360,7 @@ function getContentSession(req, res, next) {
       FROM   content_sessions
       WHERE  grade_level = ?
         AND  zeo_approved = 1
-        AND  content_session_id NOT IN (${recentlyUsed.map(() => '?').join(',') || "'__NONE__'"})
+        AND  content_session_id NOT IN (${recentlyUsed.map(() => '?').join(',') || '\'__NONE__\''})
     `).all(child.grade, ...recentlyUsed);
  
     // If all sessions have been used recently, fall back to all approved
@@ -414,7 +412,7 @@ function getContentSession(req, res, next) {
   }
 }
  
-module.exports = {
+export {
   startSession,
   taskComplete,
   secondGate,

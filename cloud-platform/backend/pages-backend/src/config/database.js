@@ -1,11 +1,11 @@
 'use strict';
 
-const path      = require('path');
-const fs        = require('fs');
-const Database  = require('better-sqlite3');
-const { createClient } = require('@libsql/client');
-const logger    = require('../utils/logger');
-const C         = require('./constants');
+import path from 'path';
+import fs from 'fs';
+import Database from 'better-sqlite3';
+import { createClient } from '@libsql/client';
+import logger from '../utils/logger.js';
+import C from './constants.js';
 
 // ── SQLite — initialise and apply schema ──────────────────────────────────────
 
@@ -53,9 +53,9 @@ try {
 
 const tursoClient = C.TURSO_URL
   ? createClient({
-      url: C.TURSO_URL,
-      authToken: C.TURSO_AUTH_TOKEN,
-    })
+    url: C.TURSO_URL,
+    authToken: C.TURSO_AUTH_TOKEN,
+  })
   : null;
 
 if (tursoClient) {
@@ -116,4 +116,4 @@ async function pgQuery(text, params = []) {
   return result;
 }
 
-module.exports = { db, pgPool: null, pgIsReachable, pgQuery, tursoClient };
+export { db, pgIsReachable, pgQuery, tursoClient };

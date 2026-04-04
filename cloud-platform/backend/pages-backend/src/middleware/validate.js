@@ -1,6 +1,4 @@
-'use strict';
-
-const { createError } = require('./errorHandler');
+import { createError } from './errorHandler.js';
 
 /**
  * Validate POST /api/child/enrol
@@ -107,7 +105,7 @@ function validateAdminLogin(req, res, next) {
   next();
 }
 
-module.exports = {
+export {
   validateEnrol,
   validateSessionStart,
   validateTaskPayload,

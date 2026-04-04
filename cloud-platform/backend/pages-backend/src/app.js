@@ -1,21 +1,18 @@
 
 'use strict';
 
-require('dotenv').config();
-
-const express    = require('express');
-const helmet     = require('helmet');
-const cors       = require('cors');
-const logger     = require('./utils/logger');
-const C          = require('./config/constants');
-const { notFound, errorHandler } = require('./middleware/errorHandler');
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import logger from './utils/logger.js';
+import C from './config/constants.js';
+import { notFound, errorHandler } from './middleware/errorHandler.js';
 
 // ── Route modules ─────────────────────────────────────────────────────────────
-const childRoutes     = require('./routes/child');
-const sessionRoutes   = require('./routes/session');
-const dashboardRoutes = require('./routes/dashboard');
-const syncRoutes      = require('./routes/sync');
-const tursoConfig      = require('./config/tursoConfig');
+import childRoutes from './routes/child.js';
+import sessionRoutes from './routes/session.js';
+import dashboardRoutes from './routes/dashboard.js';
+import syncRoutes from './routes/sync.js';
 
 const app = express();
 
@@ -52,7 +49,9 @@ app.use((req, _res, next) => {
 });
 
 // Call tursoconfig to check it works using tursoConfig
-tursoConfig.testConnection()
+import { pgIsReachable } from './config/database.js';
+
+pgIsReachable()
   .then(() => logger.info('[TURSO] Initial connection test successful'))
   .catch((err) => logger.error(`[TURSO] Initial connection test failed: ${err.message}`));
 
@@ -84,4 +83,4 @@ app.use('/api/sync',    syncRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

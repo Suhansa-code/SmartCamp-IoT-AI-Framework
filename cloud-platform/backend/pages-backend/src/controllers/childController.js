@@ -1,11 +1,9 @@
-'use strict';
- 
-const { db }         = require('../config/database');
-const C              = require('../config/constants');
-const logger         = require('../utils/logger');
-const { newId, nextChildId, enqueue } = require('../utils/helpers');
-const { createError } = require('../middleware/errorHandler');
-const tursoConfig      = require('../config/tursoConfig');
+import { db } from '../config/database.js';
+import C from '../config/constants.js';
+import logger from '../utils/logger.js';
+import { newId, nextChildId, enqueue } from '../utils/helpers.js';
+import { createError } from '../middleware/errorHandler.js';
+import { checkResId } from '../config/tursoConfig.js';
  
 /**
  * POST /api/child/enrol
@@ -32,7 +30,7 @@ function enrolChild(req, res, next) {
     `).get(res_id.trim(), campId);
 
     //Check data is in turso
-    tursoConfig.checkResId(res_id.trim())
+    checkResId(res_id.trim())
       .then((exists) => {
         if (!exists) {
           logger.warn(`[TURSO] res_id not found: ${res_id.trim()}`);
@@ -46,7 +44,7 @@ function enrolChild(req, res, next) {
         logger.error(`[TURSO] Error checking res_id: ${err.message}`);
         // Proceed with enrolment even if Turso check fails
       });
-      
+
 
 
 
@@ -120,4 +118,4 @@ function getChild(req, res, next) {
   }
 }
  
-module.exports = { enrolChild, getChild };
+export { enrolChild, getChild };

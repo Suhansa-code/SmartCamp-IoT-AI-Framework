@@ -1,8 +1,8 @@
 
 'use strict';
-require('dotenv').config();
+import 'dotenv/config';
 
-module.exports = {
+export default {
 
   // ── Server ──────────────────────────────────────────────────────────────────
   PORT:         parseInt(process.env.PORT, 10)     || 3001,

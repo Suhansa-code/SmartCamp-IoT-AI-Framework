@@ -1,14 +1,14 @@
 'use strict';
 
-require('dotenv').config();
+import 'dotenv/config';
 
 // Initialise DB first — ensures SQLite schema is applied before any request
-require('./config/database');
+import './config/database.js';
 
-const app    = require('./app');
-const C      = require('./config/constants');
-const logger = require('./utils/logger');
-const connectivityService = require('./services/connectivityService');
+import app from './app.js';
+import C from './config/constants.js';
+import logger from './utils/logger.js';
+import { startConnectivityWatcher } from './services/connectivityService.js';
 
 const PORT = C.PORT;
 
@@ -23,7 +23,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info('════════════════════════════════════════════');
 
   // Start the connectivity watcher after server is listening
-  connectivityService.startConnectivityWatcher();
+  startConnectivityWatcher();
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
@@ -57,4 +57,4 @@ process.on('unhandledRejection', (reason) => {
   logger.error(`[SERVER] Unhandled rejection: ${reason}`);
 });
 
-module.exports = server;
+export default server;

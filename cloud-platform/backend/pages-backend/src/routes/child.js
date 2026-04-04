@@ -1,9 +1,8 @@
-'use strict';
+import express from 'express';
+import * as ctrl from '../controllers/childController.js';
+import { validateEnrol } from '../middleware/validate.js';
 
-const express  = require('express');
-const router   = express.Router();
-const ctrl     = require('../controllers/childController');
-const { validateEnrol } = require('../middleware/validate');
+const router = express.Router();
 
 // POST /api/child/enrol
 router.post('/enrol', validateEnrol, ctrl.enrolChild);
@@ -11,4 +10,4 @@ router.post('/enrol', validateEnrol, ctrl.enrolChild);
 // GET /api/child/:childId
 router.get('/:childId', ctrl.getChild);
 
-module.exports = router;
+export default router;

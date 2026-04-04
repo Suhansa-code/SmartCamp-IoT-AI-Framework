@@ -1,13 +1,12 @@
-'use strict';
-
-const express = require('express');
-const router  = express.Router();
-const ctrl    = require('../controllers/sessionController');
-const {
+import express from 'express';
+import * as ctrl from '../controllers/sessionController.js';
+import {
   validateSessionStart,
   validateTaskPayload,
   validateSessionComplete,
-} = require('../middleware/validate');
+} from '../middleware/validate.js';
+
+const router = express.Router();
 
 // POST /api/session/start
 router.post('/start', validateSessionStart, ctrl.startSession);
@@ -24,4 +23,4 @@ router.post('/complete', validateSessionComplete, ctrl.completeSession);
 // GET /api/session/content/:childId
 router.get('/content/:childId', ctrl.getContentSession);
 
-module.exports = router;
+export default router;

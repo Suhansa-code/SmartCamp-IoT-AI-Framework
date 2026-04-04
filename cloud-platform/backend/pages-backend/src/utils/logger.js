@@ -1,6 +1,6 @@
 'use strict';
 
-const C = require('../config/constants');
+import C from '../config/constants.js';
 
 const LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
 const currentLevel = C.NODE_ENV === 'development' ? LEVELS.DEBUG : LEVELS.INFO;
@@ -40,4 +40,4 @@ const logger = {
   },
 };
 
-module.exports = logger;
+export default logger;

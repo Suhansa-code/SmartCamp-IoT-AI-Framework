@@ -1,12 +1,10 @@
-'use strict';
-
-const path   = require('path');
-const fs     = require('fs');
-const https  = require('https');
-const logger = require('../utils/logger');
-const C      = require('../config/constants');
-const { db, pgQuery, pgIsReachable } = require('../config/database');
-const { nowISO } = require('../utils/helpers');
+import path from 'path';
+import fs from 'fs';
+import https from 'https';
+import logger from '../utils/logger.js';
+import C from '../config/constants.js';
+import { db, pgQuery, pgIsReachable } from '../config/database.js';
+import { nowISO } from '../utils/helpers.js';
 
 // ── Column definitions per table ──────────────────────────────────────────────
 // Defines which columns to read from SQLite and insert to PostgreSQL.
@@ -361,4 +359,4 @@ function getSyncStatus() {
   };
 }
 
-module.exports = { runSync, getSyncStatus };
+export { runSync, getSyncStatus };
