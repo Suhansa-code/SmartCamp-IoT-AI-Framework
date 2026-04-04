@@ -144,7 +144,7 @@ async function pullModelFiles() {
   const bucket  = C.AWS_S3_BUCKET;
   const region  = C.AWS_REGION;
 
-  if (!bucket || !C.AWS_RDS_HOST) {
+  if (!bucket || !C.TURSO_URL) {
     logger.debug('[SYNC] S3 bucket not configured — skipping model pull');
     return 0;
   }

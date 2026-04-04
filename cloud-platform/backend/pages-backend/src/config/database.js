@@ -3,7 +3,7 @@
 const path      = require('path');
 const fs        = require('fs');
 const Database  = require('better-sqlite3');
-const { Pool }  = require('pg');
+const { createClient } = require('@libsql/client');
 const logger    = require('../utils/logger');
 const C         = require('./constants');
 
@@ -49,42 +49,51 @@ try {
   process.exit(1);
 }
 
-// ── PostgreSQL — lazy pool ────────────────────────────────────────────────────
-// The pool is created once but connections only attempted when actually used.
-// If RDS is unreachable, pg will log errors but not crash the process.
+// ── Turso/libSQL — cloud sync client ─────────────────────────────────────────
 
-const pgPool = new Pool({
-  host:               C.AWS_RDS_HOST,
-  port:               C.AWS_RDS_PORT,
-  database:           C.AWS_RDS_DB,
-  user:               C.AWS_RDS_USER,
-  password:           C.AWS_RDS_PASSWORD,
-  max:                5,             // small pool — RPi has limited connections
-  idleTimeoutMillis:  30000,
-  connectionTimeoutMillis: 5000,
-  ssl: C.NODE_ENV === 'production'
-    ? { rejectUnauthorized: false }
-    : false,
-});
+const tursoClient = C.TURSO_URL
+  ? createClient({
+      url: C.TURSO_URL,
+      authToken: C.TURSO_AUTH_TOKEN,
+    })
+  : null;
 
-pgPool.on('error', (err) => {
-  // Do not crash — log and continue. SQLite keeps the app running.
-  logger.warn(`[DB] PostgreSQL pool error (offline?): ${err.message}`);
-});
+if (tursoClient) {
+  logger.info(`[DB] Turso configured: ${C.TURSO_URL}`);
+} else {
+  logger.warn('[DB] TURSO_URL not set — cloud sync disabled');
+}
+
+/**
+ * Convert PostgreSQL-style placeholders ($1, $2, ...) to libSQL placeholders (?).
+ * Keeps existing pgQuery callers compatible without changing their SQL.
+ *
+ * @param {string} text
+ * @param {Array} params
+ * @returns {{ sql: string, args: Array }}
+ */
+function toLibsqlQuery(text, params = []) {
+  const args = [];
+  const sql = text.replace(/\$(\d+)/g, (_, index) => {
+    const i = Number(index) - 1;
+    args.push(params[i]);
+    return '?';
+  });
+
+  return { sql, args };
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Test whether PostgreSQL is reachable.
+ * Test whether Turso is reachable.
  * Used by connectivity service.
  * @returns {Promise<boolean>}
  */
 async function pgIsReachable() {
-  if (!C.AWS_RDS_HOST) return false;
+  if (!tursoClient) return false;
   try {
-    const client = await pgPool.connect();
-    await client.query('SELECT 1');
-    client.release();
+    await tursoClient.execute('SELECT 1');
     return true;
   } catch {
     return false;
@@ -92,19 +101,19 @@ async function pgIsReachable() {
 }
 
 /**
- * Execute a query on PostgreSQL.
+ * Execute a query on Turso/libSQL.
  * Throws if unavailable — caller must catch.
  * @param {string} text
  * @param {Array}  params
  */
 async function pgQuery(text, params = []) {
-  const client = await pgPool.connect();
-  try {
-    const result = await client.query(text, params);
-    return result;
-  } finally {
-    client.release();
+  if (!tursoClient) {
+    throw new Error('Turso client is not configured. Set TURSO_URL and TURSO_AUTH_TOKEN.');
   }
+
+  const { sql, args } = toLibsqlQuery(text, params);
+  const result = await tursoClient.execute({ sql, args });
+  return result;
 }
 
-module.exports = { db, pgPool, pgIsReachable, pgQuery };
+module.exports = { db, pgPool: null, pgIsReachable, pgQuery, tursoClient };
