@@ -3,7 +3,8 @@ import fs from 'fs';
 import https from 'https';
 import logger from '../utils/logger.js';
 import C from '../config/constants.js';
-import { db, pgQuery, pgIsReachable } from '../config/database.js';
+import { db} from '../config/database.js';
+import { pgQuery, pgIsReachable } from '../config/tursoConfig.js';
 import { nowISO } from '../utils/helpers.js';
 
 // ── Column definitions per table ──────────────────────────────────────────────

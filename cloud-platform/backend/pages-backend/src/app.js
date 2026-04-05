@@ -16,15 +16,12 @@ import syncRoutes from './routes/sync.js';
 
 const app = express();
 
-// ── Security headers ──────────────────────────────────────────────────────────
+//Security headers
 app.use(helmet({
-  // Content-Security-Policy is relaxed for the local RPi environment
   contentSecurityPolicy: false,
 }));
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
-// Only allow requests from the Next.js frontend (same LAN).
-// Flask is on localhost — it does not hit these routes.
+//CORS
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (server-to-server, curl, Postman in dev)
@@ -38,18 +35,18 @@ app.use(cors({
   credentials: true,
 }));
 
-// ── Body parsers ──────────────────────────────────────────────────────────────
+//Body parsers
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// ── Request logger ────────────────────────────────────────────────────────────
+//Request logger
 app.use((req, _res, next) => {
   logger.debug(`→ ${req.method} ${req.originalUrl}`);
   next();
 });
 
 // Call tursoconfig to check it works using tursoConfig
-import { pgIsReachable } from './config/database.js';
+import { pgIsReachable } from './config/tursoConfig.js';
 
 pgIsReachable()
   .then(() => logger.info('[TURSO] Initial connection test successful'))

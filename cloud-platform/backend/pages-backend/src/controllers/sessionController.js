@@ -1,4 +1,5 @@
 import { db } from '../config/database.js';
+import { tursoInsert, tursoUpdate } from '../config/tursoConfig.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { newId, todayDate, nowTime, nowISO, enqueue } from '../utils/helpers.js';
@@ -6,6 +7,11 @@ import { createError } from '../middleware/errorHandler.js';
 import * as scoringService from '../services/scoringService.js';
 import { applyFirstGate, applySecondGate, updateBaseline } from '../services/gatingService.js';
 import { checkAndCreateAlert } from '../services/alertService.js';
+
+function randomId() {
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `${C.CAMP_ID}-${suffix}`;
+}
  
 // ── POST /api/session/start ───────────────────────────────────────────────────
  
@@ -22,6 +28,21 @@ function startSession(req, res, next) {
       FROM   pages_children
       WHERE  child_id = ?
     `).get(child_id);
+
+    //Turso DB Checking - #Delete when implementing
+    checkChildId(child_id.trim())
+      .then((exists) => {
+        if (!exists) {
+          logger.warn(`[TURSO] child_id not found: ${child_id.trim()}`);
+          // Optionally, you could return an error here instead of starting session
+          // return res.status(400).json({ success: false, message: 'child_id not found in Turso' });
+        }
+      })
+      .catch((err) => {
+        logger.error(`[TURSO] Error checking child_id: ${err.message}`);
+        // Proceed with session start even if Turso check fails
+      });
+
  
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
  
@@ -42,7 +63,18 @@ function startSession(req, res, next) {
         condition_label.toUpperCase(),
         child.baseline_score,
       );
-      // Session not enqueued for sync yet — will be added when complete
+
+      // tursoDB - Insert session record - #delete when implementing
+      tursoInsert("pages_sessions", {
+        session_id: sessionId,
+        child_id,
+        session_date: todayDate(),
+        session_time: nowTime(),
+        condition_label: condition_label.toUpperCase(),
+        baseline_score_used: child.baseline_score,
+      });
+
+
     });
  
     insertSession();
@@ -71,15 +103,28 @@ function startSession(req, res, next) {
  
 async function taskComplete(req, res, next) {
   try {
-    const { session_id, child_id, taskMetrics, passiveSignals } = req.body;
- 
+    const { session_id, taskMetrics, passiveSignals } = req.body;
+    let { child_id } = req.body;
+
+  
+// Need to Implement DB Checking for child_id in Turso - #Delete when implementing
+if (!child_id) {
+  child_id = randomId(); // Generate a random child_id if not provided
+  logger.warn(`[SESSION] child_id not provided in taskComplete. Generated random child_id: ${child_id}`);
+}
+
+
+console.log('Received taskComplete for session_id:', session_id, 'child_id:', child_id);
+
     // Verify session exists
+    /*
     const session = db.prepare(`
       SELECT session_id, child_id, baseline_score_used
       FROM   pages_sessions
       WHERE  session_id = ?
     `).get(session_id);
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
+    */
  
     // 1. Get score from Flask (or fallback)
     const scoring = await scoringService.getScore(
@@ -114,6 +159,23 @@ async function taskComplete(req, res, next) {
         passiveSignals.timeToFirstMs,
         passiveSignals.completionRatio,
       );
+
+            // tursoDB - Insert session record - #delete when implementing
+      tursoInsert("pages_behavioral_signals", {
+        signal_id: signalId,
+        session_id: session_id,
+        child_id: child_id,
+        accuracy_rate: taskMetrics.accuracyRate,
+        false_tap_rate: taskMetrics.falseTapRate,
+        avg_reaction_time: taskMetrics.avgReactionTime,
+        reaction_variance: taskMetrics.reactionVariance,
+        idle_time_ratio: passiveSignals.idleTimeRatio,
+        rapid_click_count: passiveSignals.rapidClickCount,
+        time_to_first_ms: passiveSignals.timeToFirstMs,
+        completion_ratio: passiveSignals.completionRatio,
+      }); 
+
+
  
       // Update session with scores + gate decision
       db.prepare(`
@@ -134,7 +196,19 @@ async function taskComplete(req, res, next) {
         ifScore || null,
         session_id,
       );
- 
+
+      // tursoDB - Update session record with scores + gate decision - #delete when implementing
+      tursoUpdate("pages_sessions", {
+        session_id: session_id,
+        composite_score: compositeScore,
+        task_score: taskScore,
+        passive_score: passiveScore,
+        gate_decision: gateDecision,
+        anomaly_flagged: anomalyFlagged ? 1 : 0,
+        z_score: zScore || null,
+        if_score: ifScore || null
+      });
+
       // Write gate decision record (attempt 1)
       db.prepare(`
         INSERT INTO pages_gate_decisions
@@ -142,6 +216,18 @@ async function taskComplete(req, res, next) {
         VALUES (?, ?, ?, 1, ?, ?)
       `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
  
+      //TursoDB - Insert gate decision record - #delete when implementing
+      tursoInsert("pages_gate_decisions", {
+        decision_id: decisionId,
+        session_id: session_id,
+        child_id: child_id,
+        attempt_number: 1,
+        composite_score: compositeScore,
+        decision: gateDecision
+      });
+
+
+
       // Enqueue signals for sync
       enqueue('pages_behavioral_signals', signalId, 'INSERT');
       enqueue('pages_gate_decisions', decisionId, 'INSERT');
@@ -171,6 +257,7 @@ async function taskComplete(req, res, next) {
   }
 }
  
+
 // ── POST /api/session/second-gate ─────────────────────────────────────────────
  
 async function secondGate(req, res, next) {
@@ -412,10 +499,29 @@ function getContentSession(req, res, next) {
   }
 }
  
+async function tursoDBupdatesample(){
+  try {
+      const child_id = 'TEST-CHILD-123';
+      tursoInsert("pages_children", {
+        child_id: 123,
+        res_id: 'TEST-RES-001',
+        grade: 3,
+        camp_id: 'CAMP-TEST',
+        zone_id: 'ZONE-TEST',
+      }).then(() => {
+        logger.info(`[TURSO] Inserted child_id: ${child_id}`);
+      }).catch((err) => {
+        logger.error(`[TURSO] Error inserting child_id: ${err.message}`);
+      });
+    } catch (err) {      logger.error(`[TURSO] Unexpected error: ${err.message}`);
+
+}}
+
 export {
   startSession,
   taskComplete,
   secondGate,
   completeSession,
   getContentSession,
+  tursoDBupdatesample
 };

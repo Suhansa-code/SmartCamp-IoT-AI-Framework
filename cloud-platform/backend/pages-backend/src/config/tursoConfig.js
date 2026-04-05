@@ -48,11 +48,44 @@ const checkResId = async (resId) => {
   }
 };
 
+async function tursoInsert(table, data) {
+  const columns = Object.keys(data);
+  const values = Object.values(data);
+  const placeholders = columns.map(() => '?').join(', ');
+  
+  const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`;
+  
+  try {
+    const result = await pgQuery(sql, values);
+    logger.info(`[TURSO] Inserted into ${table}: ${JSON.stringify(data)}`);
+    return result;
+  } catch (err) {
+    logger.error(`[TURSO] Insert into ${table} failed: ${err.message}`);
+    throw err;
+  }
+}
+
+async function tursoUpdate(table, data, whereClause, whereParams) {
+  const setClause = Object.keys(data).map(col => `${col} = ?`).join(', ');
+  const values = Object.values(data);
+  const sql = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
+  try {
+    const result = await pgQuery(sql, [...values, ...whereParams]);
+    logger.info(`[TURSO] Updated ${table}: ${JSON.stringify(data)} where ${whereClause}`);
+    return result;
+  } catch (err) {
+    logger.error(`[TURSO] Update ${table} failed: ${err.message}`);
+    throw err;
+  }
+}
+
 export {
   tursoClient,
   pgIsReachable,
   pgQuery,
   testConnection,
   checkResId,
+  tursoInsert,
+  tursoUpdate
 };
 

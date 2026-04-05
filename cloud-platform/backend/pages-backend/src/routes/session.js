@@ -12,7 +12,10 @@ const router = express.Router();
 router.post('/start', validateSessionStart, ctrl.startSession);
 
 // POST /api/session/task-complete
-router.post('/task-complete', validateTaskPayload, ctrl.taskComplete);
+router.post('/task-complete', ctrl.taskComplete);
+
+//Test tursoDB updates
+router.post('/turso-test', ctrl.tursoDBupdatesample);
 
 // POST /api/session/second-gate
 router.post('/second-gate', validateTaskPayload, ctrl.secondGate);

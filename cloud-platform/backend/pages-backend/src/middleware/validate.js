@@ -44,7 +44,7 @@ function validateTaskPayload(req, res, next) {
   const { session_id, child_id, taskMetrics, passiveSignals } = req.body;
 
   if (!session_id) return next(createError(400, 'session_id is required'));
-  if (!child_id)   return next(createError(400, 'child_id is required'));
+  //if (!child_id)   return next(createError(400, 'child_id is required'));
 
   if (!taskMetrics || typeof taskMetrics !== 'object') {
     return next(createError(400, 'taskMetrics is required'));

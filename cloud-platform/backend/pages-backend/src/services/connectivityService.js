@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import logger from '../utils/logger.js';
 import C from '../config/constants.js';
-import { pgIsReachable } from '../config/database.js';
+import { pgIsReachable } from '../config/tursoConfig.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let _isOnline      = false;

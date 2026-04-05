@@ -5,9 +5,7 @@ import C from '../config/constants.js';
 
 const { NODE_ENV } = C;
 
-/**
- * 404 — route not found.
- */
+//404 — route not found.
 function notFound(req, res, next) {
   const err = new Error(`Route not found: ${req.method} ${req.originalUrl}`);
   err.statusCode = 404;

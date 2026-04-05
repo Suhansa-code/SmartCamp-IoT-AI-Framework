@@ -1,4 +1,5 @@
 import { db } from '../config/database.js';
+import { tursoInsert } from '../config/tursoConfig.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { newId, nextChildId, enqueue } from '../utils/helpers.js';
@@ -29,7 +30,7 @@ function enrolChild(req, res, next) {
       LIMIT  1
     `).get(res_id.trim(), campId);
 
-    //Check data is in turso
+    //Check data is in turso - #Delete when implementing
     checkResId(res_id.trim())
       .then((exists) => {
         if (!exists) {
@@ -45,11 +46,6 @@ function enrolChild(req, res, next) {
         // Proceed with enrolment even if Turso check fails
       });
 
-
-
-
-
- 
     if (existing) {
       logger.info(`[ENROL] Already enrolled: res_id=${res_id} → child_id=${existing.child_id}`);
       return res.status(200).json({
@@ -69,21 +65,27 @@ function enrolChild(req, res, next) {
           (child_id, res_id, grade, camp_id, zone_id, language)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(childId, res_id.trim(), Number(grade), campId, zone_id, language);
- 
+
       enqueue('pages_children', childId, 'INSERT');
     });
  
     insertChild();
- 
-    logger.info(`[ENROL] Enrolled child_id=${childId}, res_id=${res_id}, grade=${grade}, camp=${campId}`);
- 
-    return res.status(201).json({
-      success:          true,
-      child_id:         childId,
-      message:          'Child enrolled successfully',
-      already_enrolled: false,
+
+    // Insert into Turso asynchronously - #delete when implementing
+    tursoInsert("pages_children", {
+      child_id: childId,
+      res_id: res_id.trim(),
+      grade: Number(grade),
+      camp_id: campId,
+      zone_id: zone_id,
+      language: language
+    })
+    .catch((err) => {
+      logger.warn(`[TURSO] Failed to insert child into cloud (async): ${err.message}`);
+      // Non-critical error — local sync will handle it
     });
- 
+
+
   } catch (err) {
     next(err);
   }

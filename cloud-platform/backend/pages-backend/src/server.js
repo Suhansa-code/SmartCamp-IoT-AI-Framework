@@ -1,10 +1,7 @@
 'use strict';
 
 import 'dotenv/config';
-
-// Initialise DB first — ensures SQLite schema is applied before any request
 import './config/database.js';
-
 import app from './app.js';
 import C from './config/constants.js';
 import logger from './utils/logger.js';
@@ -12,19 +9,43 @@ import { startConnectivityWatcher } from './services/connectivityService.js';
 
 const PORT = C.PORT;
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  logger.info('════════════════════════════════════════════');
-  logger.info('  PAGES Backend — Eli\'s World');
-  logger.info(`  Device:  ${C.DEVICE_ID}`);
-  logger.info(`  Camp:    ${C.CAMP_ID}`);
-  logger.info(`  Port:    ${PORT}`);
-  logger.info(`  Env:     ${C.NODE_ENV}`);
-  logger.info(`  Gate:    composite >= ${C.GATE_THRESHOLD} → PASS`);
-  logger.info('════════════════════════════════════════════');
+// ── Retry logic for TIME_WAIT port conflicts ──────────────────────────────────
+let startAttempt = 0;
+const MAX_RETRIES = 5;
 
-  // Start the connectivity watcher after server is listening
-  startConnectivityWatcher();
-});
+function startServer() {
+  logger.info(`[SERVER] Starting server on port ${PORT}... (attempt ${startAttempt + 1}/${MAX_RETRIES})`);
+  
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    logger.info('════════════════════════════════════════════');
+    logger.info('  PAGES Backend — Eli\'s World');
+    logger.info(`  Device:  ${C.DEVICE_ID}`);
+    logger.info(`  Camp:    ${C.CAMP_ID}`);
+    logger.info(`  Port:    ${PORT}`);
+    logger.info(`  Env:     ${C.NODE_ENV}`);
+    logger.info(`  Gate:    composite >= ${C.GATE_THRESHOLD} → PASS`);
+    logger.info('════════════════════════════════════════════');
+
+    // Start the connectivity watcher after server is listening
+    startConnectivityWatcher();
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && startAttempt < MAX_RETRIES) {
+      startAttempt++;
+      const delay = Math.pow(2, startAttempt) * 1000; // Exponential backoff: 2s, 4s, 8s, 16s, 32s
+      logger.warn(`[SERVER] Port ${PORT} in use (TIME_WAIT). Retrying in ${delay}ms...`);
+      setTimeout(startServer, delay);
+    } else {
+      logger.error(`[SERVER] Failed to start server: ${err.message}`);
+      throw err;
+    }
+  });
+
+  return server;
+}
+
+const server = startServer();
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
 
