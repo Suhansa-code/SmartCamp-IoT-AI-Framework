@@ -328,8 +328,8 @@ export default function CognitiveSession({ session, onComplete }) {
 
       {/* Eli mini + task type label */}
       <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0 clamp(0.85rem,3vw,1.25rem) 0.25rem', flexShrink:0 }}>
-        <Eli size={32} mood="happy" animated={false} />
-        <span style={{ fontSize:'clamp(0.78rem,2.5vw,0.9rem)', fontWeight:700, color:'#1E3A5F', opacity:0.7, fontFamily:"'Nunito',sans-serif" }}>
+        <Eli size={44} mood="happy" animated={false} />
+        <span style={{ fontSize:'clamp(1.3rem,3.8vw,1.15rem)', fontWeight:900, color:'#1E3A5F', opacity:0.82, fontFamily:"'Nunito',sans-serif" }}>
           {typeLabel}
         </span>
         {eliCheer && <span style={{ fontSize:18, animation:'star-pop 0.3s ease both' }}>✨</span>}
