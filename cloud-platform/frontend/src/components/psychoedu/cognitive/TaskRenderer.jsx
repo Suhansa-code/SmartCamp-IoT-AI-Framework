@@ -90,8 +90,10 @@ function FillBlankTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
 
-  const choices = task.blank_choices[lang] ?? task.blank_choices['en']
-  const question = task.question[lang] ?? task.question['en']
+  const choiceSource = task.blank_choices ?? task.options ?? {}
+  const choices = choiceSource[lang] ?? choiceSource['en'] ?? []
+  const questionSource = task.question ?? {}
+  const question = questionSource[lang] ?? questionSource['en'] ?? ''
 
   function pick(idx) {
     if (locked) return
@@ -101,7 +103,7 @@ function FillBlankTask({ task, lang, onAnswer }) {
   }
 
   // Replace ___ with selected word or highlighted blank
-  const displayQ = question.replace('___',
+  const displayQ = String(question).replace('___',
     selected !== null
       ? `[${choices[selected]}]`
       : '[ _____ ]'
