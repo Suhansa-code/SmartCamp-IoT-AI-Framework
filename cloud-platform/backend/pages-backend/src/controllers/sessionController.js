@@ -1,5 +1,5 @@
 import { db } from '../config/database.js';
-import { tursoInsert, tursoUpdate } from '../config/tursoConfig.js';
+import { tursoInsert, tursoUpdate, tursoRetrieve, tursoGetLastChildId } from '../config/tursoConfig.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { newId, todayDate, nowTime, nowISO, enqueue } from '../utils/helpers.js';
@@ -13,15 +13,16 @@ function randomId() {
   return `${C.CAMP_ID}-${suffix}`;
 }
  
-// ── POST /api/session/start ───────────────────────────────────────────────────
- 
-function startSession(req, res, next) {
+//POST /api/session/start
+async function startSession(req, res, next) {
   try {
     const {
       child_id,
       condition_label = 'A',
     } = req.body;
  
+    logger.info(`[SESSION] Starting session for child_id: ${child_id} with condition: ${condition_label}`);
+
     // Fetch child to get baseline + grade
     const child = db.prepare(`
       SELECT child_id, grade, language, total_sessions, baseline_score
@@ -29,28 +30,15 @@ function startSession(req, res, next) {
       WHERE  child_id = ?
     `).get(child_id);
 
-    //Turso DB Checking - #Delete when implementing
-    checkChildId(child_id.trim())
-      .then((exists) => {
-        if (!exists) {
-          logger.warn(`[TURSO] child_id not found: ${child_id.trim()}`);
-          // Optionally, you could return an error here instead of starting session
-          // return res.status(400).json({ success: false, message: 'child_id not found in Turso' });
-        }
-      })
-      .catch((err) => {
-        logger.error(`[TURSO] Error checking child_id: ${err.message}`);
-        // Proceed with session start even if Turso check fails
-      });
-
- 
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
  
     const sessionId     = newId();
     const sessionNumber = child.total_sessions + 1;
+    const sessionDate   = todayDate();
+    const sessionTime   = nowTime();
+    const condition     = condition_label.toUpperCase();
  
-    const insertSession = db.transaction(() => {
-      db.prepare(`
+    db.prepare(`
         INSERT INTO pages_sessions
           (session_id, child_id, session_date, session_time,
            condition_label, baseline_score_used)
@@ -58,26 +46,21 @@ function startSession(req, res, next) {
       `).run(
         sessionId,
         child_id,
-        todayDate(),
-        nowTime(),
-        condition_label.toUpperCase(),
+        sessionDate,
+        sessionTime,
+        condition,
         child.baseline_score,
       );
 
-      // tursoDB - Insert session record - #delete when implementing
-      tursoInsert("pages_sessions", {
-        session_id: sessionId,
-        child_id,
-        session_date: todayDate(),
-        session_time: nowTime(),
-        condition_label: condition_label.toUpperCase(),
-        baseline_score_used: child.baseline_score,
-      });
 
-
+    await tursoInsert("pages_sessions", {
+      session_id: sessionId,
+      child_id,
+      session_date: sessionDate,
+      session_time: sessionTime,
+      condition_label: condition,
+      baseline_score_used: child.baseline_score,
     });
- 
-    insertSession();
  
     logger.info(
       `[SESSION] Started session ${sessionId} for child ${child_id}, ` +
@@ -99,167 +82,186 @@ function startSession(req, res, next) {
   }
 }
  
-// ── POST /api/session/task-complete ──────────────────────────────────────────
- 
+// POST /api/session/task-complete
 async function taskComplete(req, res, next) {
   try {
     const { session_id, taskMetrics, passiveSignals } = req.body;
     let { child_id } = req.body;
-
   
-// Need to Implement DB Checking for child_id in Turso - #Delete when implementing
-if (!child_id) {
-  child_id = randomId(); // Generate a random child_id if not provided
-  logger.warn(`[SESSION] child_id not provided in taskComplete. Generated random child_id: ${child_id}`);
-}
+    // Get Child ID from TursoDB and increase child ID by one after get latest child ID - #Delete when implementing
+    child_id=await tursoGetLastChildId();
+    //Get last Digit after "-" and increase by one
+    const newLastDigit = (parseInt(child_id.split('-').pop())) + 1;
+    child_id = `TEST-CHILD-${newLastDigit.toString().padStart(6, '0')}`;
 
+    console.log('Received taskComplete for session_id:', session_id, 'child_id:', child_id);
 
-console.log('Received taskComplete for session_id:', session_id, 'child_id:', child_id);
+        // Verify session exists
+        /*
+        const session = db.prepare(`
+          SELECT session_id, child_id, baseline_score_used
+          FROM   pages_sessions
+          WHERE  session_id = ?
+        `).get(session_id);
+        if (!session) return next(createError(404, `Session not found: ${session_id}`));
+        */
+    
+        //Create Sample taskmetrics and passiveSignals - #Delete when implementing
+        // const taskMetricsSample = {
+        //   accuracyRate: 0.8,
+        //   falseTapRate: 0.1,
+        //   avgReactionTime: 500,
+        //   reactionVariance: 100,
+        // };
+        // const passiveSignalsSample = {
+        //   idleTimeRatio: 0.2,
+        //   rapidClickCount: 2,
+        //   timeToFirstMs: 300,
+        //   completionRatio: 0.9,
+        // };
 
-    // Verify session exists
-    /*
-    const session = db.prepare(`
-      SELECT session_id, child_id, baseline_score_used
-      FROM   pages_sessions
-      WHERE  session_id = ?
-    `).get(session_id);
-    if (!session) return next(createError(404, `Session not found: ${session_id}`));
-    */
- 
-    // 1. Get score from Flask (or fallback)
-    const scoring = await scoringService.getScore(
-      child_id, session_id, taskMetrics, passiveSignals
-    );
- 
-    const { compositeScore, taskScore, passiveScore, zScore, ifScore, anomalyFlagged } = scoring;
- 
-    // 2. Apply first gate
-    const gateDecision = applyFirstGate(compositeScore);
- 
-    // 3. Write signals + update session + gate decision — all in one transaction
-    const signalId   = newId();
-    const decisionId = newId();
- 
-    const saveAll = db.transaction(() => {
-      // Save behavioral signals
-      db.prepare(`
-        INSERT INTO pages_behavioral_signals
-          (signal_id, session_id, child_id,
-           accuracy_rate, false_tap_rate, avg_reaction_time, reaction_variance,
-           idle_time_ratio, rapid_click_count, time_to_first_ms, completion_ratio)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        signalId, session_id, child_id,
-        taskMetrics.accuracyRate,
-        taskMetrics.falseTapRate,
-        taskMetrics.avgReactionTime,
-        taskMetrics.reactionVariance,
-        passiveSignals.idleTimeRatio,
-        passiveSignals.rapidClickCount,
-        passiveSignals.timeToFirstMs,
-        passiveSignals.completionRatio,
-      );
+        // taskMetrics = taskMetricsSample;
+        // passiveSignals = passiveSignalsSample;
 
-            // tursoDB - Insert session record - #delete when implementing
-      tursoInsert("pages_behavioral_signals", {
-        signal_id: signalId,
-        session_id: session_id,
-        child_id: child_id,
-        accuracy_rate: taskMetrics.accuracyRate,
-        false_tap_rate: taskMetrics.falseTapRate,
-        avg_reaction_time: taskMetrics.avgReactionTime,
-        reaction_variance: taskMetrics.reactionVariance,
-        idle_time_ratio: passiveSignals.idleTimeRatio,
-        rapid_click_count: passiveSignals.rapidClickCount,
-        time_to_first_ms: passiveSignals.timeToFirstMs,
-        completion_ratio: passiveSignals.completionRatio,
-      }); 
+        // 1. Get score from Flask (or fallback)
+        const scoring = await scoringService.getScore(
+          child_id, session_id, taskMetrics, passiveSignals
+        );
+    
+        logger.info(`[SCORING] Received scores for session ${session_id}:`, scoring);
+        const { compositeScore, taskScore, passiveScore, zScore, ifScore, anomalyFlagged } = scoring;
+    
 
+        // 2. Apply first gate
+        const gateDecision = applyFirstGate(compositeScore);
+        logger.info(`[GATING] First gate decision for session ${session_id}: ${gateDecision}`);
+    
+        // 3. Write signals + update session + gate decision — all in one transaction
+        const signalId   = newId();
+        const decisionId = newId();
+    
 
- 
-      // Update session with scores + gate decision
-      db.prepare(`
-        UPDATE pages_sessions
-        SET composite_score  = ?,
-            task_score       = ?,
-            passive_score    = ?,
-            gate_decision    = ?,
-            anomaly_flagged  = ?,
-            z_score          = ?,
-            if_score         = ?
-        WHERE session_id = ?
-      `).run(
-        compositeScore, taskScore, passiveScore,
-        gateDecision,
-        anomalyFlagged ? 1 : 0,
-        zScore  || null,
-        ifScore || null,
-        session_id,
-      );
+          // Save behavioral signals
+          logger.info(`[DB] Inserting behavioral signals for session ${session_id} with signal_id ${signalId}`);
+          // db.prepare(`
+          //   INSERT INTO pages_behavioral_signals
+          //     (signal_id, session_id, child_id,
+          //     accuracy_rate, false_tap_rate, avg_reaction_time, reaction_variance,
+          //     idle_time_ratio, rapid_click_count, time_to_first_ms, completion_ratio)
+          //   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          // `).run(
+          //   signalId, session_id, child_id,
+          //   taskMetrics.accuracyRate,
+          //   taskMetrics.falseTapRate,
+          //   taskMetrics.avgReactionTime,
+          //   taskMetrics.reactionVariance,
+          //   passiveSignals.idleTimeRatio,
+          //   passiveSignals.rapidClickCount,
+          //   passiveSignals.timeToFirstMs,
+          //   passiveSignals.completionRatio,
+          // );
 
-      // tursoDB - Update session record with scores + gate decision - #delete when implementing
-      tursoUpdate("pages_sessions", {
-        session_id: session_id,
-        composite_score: compositeScore,
-        task_score: taskScore,
-        passive_score: passiveScore,
-        gate_decision: gateDecision,
-        anomaly_flagged: anomalyFlagged ? 1 : 0,
-        z_score: zScore || null,
-        if_score: ifScore || null
-      });
+                // tursoDB - Insert session record - #delete when implementing
+          await tursoInsert("pages_behavioral_signals", {
+            signal_id: signalId,
+            session_id: session_id,
+            child_id: child_id,
+            accuracy_rate: taskMetrics.accuracyRate,
+            false_tap_rate: taskMetrics.falseTapRate,
+            avg_reaction_time: taskMetrics.avgReactionTime,
+            reaction_variance: taskMetrics.reactionVariance,
+            idle_time_ratio: passiveSignals.idleTimeRatio,
+            rapid_click_count: passiveSignals.rapidClickCount,
+            time_to_first_ms: passiveSignals.timeToFirstMs,
+            completion_ratio: passiveSignals.completionRatio,
+          }); 
 
-      // Write gate decision record (attempt 1)
-      db.prepare(`
-        INSERT INTO pages_gate_decisions
-          (decision_id, session_id, child_id, attempt_number, composite_score, decision)
-        VALUES (?, ?, ?, 1, ?, ?)
-      `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
- 
-      //TursoDB - Insert gate decision record - #delete when implementing
-      tursoInsert("pages_gate_decisions", {
-        decision_id: decisionId,
-        session_id: session_id,
-        child_id: child_id,
-        attempt_number: 1,
-        composite_score: compositeScore,
-        decision: gateDecision
-      });
+          logger.info(`[TURSO] Inserted behavioral signals for session ${session_id} with signal_id ${signalId} into TursoDB`);
+          // Update session with scores + gate decision
+          db.prepare(`
+            UPDATE pages_sessions
+            SET composite_score  = ?,
+                task_score       = ?,
+                passive_score    = ?,
+                gate_decision    = ?,
+                anomaly_flagged  = ?,
+                z_score          = ?,
+                if_score         = ?
+            WHERE session_id = ?
+          `).run(
+            compositeScore, taskScore, passiveScore,
+            gateDecision,
+            anomalyFlagged ? 1 : 0,
+            zScore  || null,
+            ifScore || null,
+            session_id,
+          );
 
+          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${anomalyFlagged}`);
 
+          // tursoDB - Update session record with scores + gate decision - #delete when implementing
+          await tursoUpdate("pages_sessions", {
+            session_id: session_id,
+            composite_score: compositeScore,
+            task_score: taskScore,
+            passive_score: passiveScore,
+            gate_decision: gateDecision,
+            anomaly_flagged: anomalyFlagged ? 1 : 0,
+            z_score: zScore || null,
+            if_score: ifScore || null
+          }, 'session_id = ?', [session_id]);
 
-      // Enqueue signals for sync
-      enqueue('pages_behavioral_signals', signalId, 'INSERT');
-      enqueue('pages_gate_decisions', decisionId, 'INSERT');
-    });
- 
-    saveAll();
- 
-    // 4. If anomaly flagged — run alert check (outside transaction, reads DB)
-    if (anomalyFlagged) {
-      checkAndCreateAlert(child_id, session_id);
-    }
- 
-    logger.info(
-      `[SESSION] Task complete: session=${session_id}, composite=${compositeScore}, ` +
-      `gate=${gateDecision}, anomaly=${anomalyFlagged}`
-    );
- 
-    // 5. Return only gate decision — never send internal ML scores
-    return res.json({
-      success:         true,
-      gate_decision:   gateDecision,
-      composite_score: compositeScore,
-    });
+          // Write gate decision record (attempt 1)
+          // db.prepare(`
+          //   INSERT INTO pages_gate_decisions
+          //     (decision_id, session_id, child_id, attempt_number, composite_score, decision)
+          //   VALUES (?, ?, ?, 1, ?, ?)
+          // `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+    
+          logger.info(`[DB] Inserted gate decision for session ${session_id} with decision_id ${decisionId}`);
+          //TursoDB - Insert gate decision record - #delete when implementing
+          await tursoInsert("pages_gate_decisions", {
+            decision_id: decisionId,
+            session_id: session_id,
+            child_id: child_id,
+            attempt_number: 1,
+            composite_score: compositeScore,
+            decision: gateDecision
+          });
+
+logger.info(`[TURSO] Inserted gate decision for session ${session_id} with decision_id ${decisionId} into TursoDB`);
+
+          // Enqueue signals for sync
+          enqueue('pages_behavioral_signals', signalId, 'INSERT');
+          enqueue('pages_gate_decisions', decisionId, 'INSERT');
+
+          logger.info(`[ENQUEUE] Enqueued behavioral_signals (${signalId}) and gate_decisions (${decisionId}) for session ${session_id}`);
+
+    
+        // 4. If anomaly flagged — run alert check (outside transaction, reads DB)
+        if (anomalyFlagged) {
+          checkAndCreateAlert(child_id, session_id);
+        }
+    
+        
+        logger.info(
+          `[SESSION] Task complete: session=${session_id}, composite=${compositeScore}, ` +
+          `gate=${gateDecision}, anomaly=${anomalyFlagged}`
+        );
+    
+        // 5. Return only gate decision — never send internal ML scores
+        return res.json({
+          success:         true,
+          gate_decision:   gateDecision,
+          composite_score: compositeScore,
+        });
  
   } catch (err) {
     next(err);
   }
 }
  
-
-// ── POST /api/session/second-gate ─────────────────────────────────────────────
- 
+//POST /api/session/second-gate 
 async function secondGate(req, res, next) {
   try {
     const { session_id, child_id, taskMetrics, passiveSignals } = req.body;
@@ -314,6 +316,39 @@ async function secondGate(req, res, next) {
     });
  
     saveSecondGate();
+
+    await tursoUpdate(
+      'pages_sessions',
+      {
+        second_gate_score: compositeScore,
+        gate_decision: gateDecision,
+      },
+      'session_id = ?',
+      [session_id]
+    );
+
+    await tursoInsert('pages_gate_decisions', {
+      decision_id: decisionId,
+      session_id,
+      child_id,
+      attempt_number: 2,
+      composite_score: compositeScore,
+      decision: gateDecision,
+    });
+
+    if (gateDecision === C.GATE.FAIL_CONFIRMED) {
+      const childState = db.prepare(`
+        SELECT consecutive_low FROM pages_children WHERE child_id = ?
+      `).get(child_id);
+      if (childState) {
+        await tursoUpdate(
+          'pages_children',
+          { consecutive_low: childState.consecutive_low },
+          'child_id = ?',
+          [child_id]
+        );
+      }
+    }
  
     logger.info(
       `[SESSION] Second gate: session=${session_id}, composite=${compositeScore}, ` +
@@ -331,9 +366,8 @@ async function secondGate(req, res, next) {
   }
 }
  
-// ── POST /api/session/complete ────────────────────────────────────────────────
- 
-function completeSession(req, res, next) {
+//POST /api/session/complete 
+async function completeSession(req, res, next) {
   try {
     const { session_id, child_id, cognitiveScore, contentResponses } = req.body;
  
@@ -352,6 +386,7 @@ function completeSession(req, res, next) {
     // Compute new baseline
     const compositeScore = session.composite_score || child.baseline_score;
     const newBaseline    = updateBaseline(child.baseline_score, compositeScore);
+    const contentRowsToSync = [];
  
     const finalise = db.transaction(() => {
       // 1. Save content responses
@@ -363,15 +398,25 @@ function completeSession(req, res, next) {
  
       for (const r of contentResponses) {
         const responseId = newId();
-        insertResponse.run(
-          responseId,
+        const row = {
+          response_id: responseId,
           session_id,
           child_id,
-          r.taskId,
-          r.answer,
-          r.isCorrect ? 1 : 0,
-          r.timeTakenMs || 0,
+          task_id: r.taskId,
+          selected_answer: r.answer,
+          is_correct: r.isCorrect ? 1 : 0,
+          time_taken_ms: r.timeTakenMs || 0,
+        };
+        insertResponse.run(
+          row.response_id,
+          row.session_id,
+          row.child_id,
+          row.task_id,
+          row.selected_answer,
+          row.is_correct,
+          row.time_taken_ms,
         );
+        contentRowsToSync.push(row);
         enqueue('pages_content_responses', responseId, 'INSERT');
       }
  
@@ -403,6 +448,39 @@ function completeSession(req, res, next) {
     });
  
     finalise();
+
+    for (const row of contentRowsToSync) {
+      await tursoInsert('pages_content_responses', row);
+    }
+
+    await tursoUpdate(
+      'pages_sessions',
+      {
+        cognitive_score: Number(cognitiveScore),
+        session_complete: 1,
+      },
+      'session_id = ?',
+      [session_id]
+    );
+
+    const latestChild = db.prepare(`
+      SELECT baseline_score, total_sessions, consecutive_low
+      FROM pages_children
+      WHERE child_id = ?
+    `).get(child_id);
+
+    if (latestChild) {
+      await tursoUpdate(
+        'pages_children',
+        {
+          baseline_score: latestChild.baseline_score,
+          total_sessions: latestChild.total_sessions,
+          consecutive_low: latestChild.consecutive_low,
+        },
+        'child_id = ?',
+        [child_id]
+      );
+    }
  
     logger.info(
       `[SESSION] Complete: session=${session_id}, cognitive=${cognitiveScore}, ` +
@@ -420,8 +498,7 @@ function completeSession(req, res, next) {
   }
 }
  
-// ── GET /api/session/content/:childId ────────────────────────────────────────
- 
+//GET /api/session/content/:childId 
 function getContentSession(req, res, next) {
   try {
     const { childId } = req.params;
@@ -501,21 +578,74 @@ function getContentSession(req, res, next) {
  
 async function tursoDBupdatesample(){
   try {
-      const child_id = 'TEST-CHILD-123';
-      tursoInsert("pages_children", {
-        child_id: 123,
+
+    // Get Child ID from TursoDB and increase child ID by one after get latest child ID - #Delete when implementing
+    logger.info(`[TURSO] Fetching latest child_id from Turso...`);
+    const child_id=await tursoGetLastChildId();
+
+    const new_child_id = `TEST-CHILD-${(parseInt(child_id.split('-').pop())+1).toString().padStart(6, '0')}`;
+    const sample_session_id = newId();
+    const sample_session_date = todayDate();
+    const sample_session_time = nowTime();
+
+      await tursoInsert("pages_children", {
+        child_id: new_child_id,
         res_id: 'TEST-RES-001',
         grade: 3,
         camp_id: 'CAMP-TEST',
         zone_id: 'ZONE-TEST',
-      }).then(() => {
-        logger.info(`[TURSO] Inserted child_id: ${child_id}`);
-      }).catch((err) => {
-        logger.error(`[TURSO] Error inserting child_id: ${err.message}`);
       });
-    } catch (err) {      logger.error(`[TURSO] Unexpected error: ${err.message}`);
+      logger.info(`[TURSO] Inserted child_id: ${new_child_id}`);
 
-}}
+      // Insert Same in Local DB
+      db.prepare(`
+        INSERT INTO pages_children
+          (child_id, res_id, grade, camp_id, zone_id)
+          VALUES (?, ?, ?, ?, ?)
+      `).run(new_child_id, 'TEST-RES-001', 3, 'CAMP-TEST', 'ZONE-TEST');
+      logger.info(`[DB] Inserted child_id: ${new_child_id} into local DB`);
+
+      // Create a sample session so behavioral_signals FK(session_id) is valid
+      await tursoInsert("pages_sessions", {
+        session_id: sample_session_id,
+        child_id: new_child_id,
+        session_date: sample_session_date,
+        session_time: sample_session_time,
+        condition_label: 'A',
+        baseline_score_used: 60,
+      });
+      logger.info(`[TURSO] Inserted sample session_id: ${sample_session_id} for child_id: ${new_child_id}`);
+
+      db.prepare(`
+        INSERT INTO pages_sessions
+          (session_id, child_id, session_date, session_time, condition_label, baseline_score_used)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(sample_session_id, new_child_id, sample_session_date, sample_session_time, 'A', 60);
+      logger.info(`[DB] Inserted sample session_id: ${sample_session_id} into local DB`);
+
+      //Sample data for behavioral signals - #Delete when implementing
+      await tursoInsert("pages_behavioral_signals", {
+        signal_id: newId(),
+        session_id: sample_session_id,
+        child_id: new_child_id,
+        accuracy_rate: 0.85,
+        false_tap_rate: 0.15,
+        avg_reaction_time: 2000,
+        reaction_variance: 500,
+        idle_time_ratio: 0.2,
+        rapid_click_count: 5,
+        time_to_first_ms: 300,
+        completion_ratio: 0.9,
+      });
+      logger.info(`[TURSO] Inserted behavioral signals for child_id: ${new_child_id}`);
+
+      return { success: true,
+        message: 'Turso DB update sample completed',
+      };
+    } catch (err) {      logger.error(`[TURSO] Unexpected error: ${err.message}`);
+      return { success: false, message: 'Failed to update Turso DB' };
+    }
+  }
 
 export {
   startSession,

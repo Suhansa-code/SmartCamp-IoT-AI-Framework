@@ -71,6 +71,7 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
     );
 
     const data = response.data;
+    logger.info(`[SCORE] Received response from Flask for session ${sessionId}: ${JSON.stringify(data)}`);
 
     // Validate Flask response has the required fields
     if (

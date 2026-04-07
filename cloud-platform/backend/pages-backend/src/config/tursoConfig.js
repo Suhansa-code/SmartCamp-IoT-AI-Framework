@@ -2,6 +2,19 @@
 
 import { createClient } from '@libsql/client';
 import C from './constants.js';
+import logger from '../utils/logger.js';
+import { response } from 'express';
+
+const toLibsqlQuery = (text, params) => {
+  let sql = text;
+  const args = [];
+  for (const key in params) {
+    const placeholder = new RegExp(`:${key}\\b`, 'g');
+    sql = sql.replace(placeholder, '?');
+    args.push(params[key]);
+  }
+  return { sql, args };
+}
 
 const tursoClient = createClient({
   url: C.TURSO_URL,
@@ -54,15 +67,20 @@ async function tursoInsert(table, data) {
   const placeholders = columns.map(() => '?').join(', ');
   
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`;
+
+  logger.info(`[TURSO] Inserting into ${table}: ${JSON.stringify(data)}`);
   
   try {
     const result = await pgQuery(sql, values);
     logger.info(`[TURSO] Inserted into ${table}: ${JSON.stringify(data)}`);
+    response.success = true;
     return result;
   } catch (err) {
     logger.error(`[TURSO] Insert into ${table} failed: ${err.message}`);
+    response.success = false;
     throw err;
   }
+
 }
 
 async function tursoUpdate(table, data, whereClause, whereParams) {
@@ -79,6 +97,25 @@ async function tursoUpdate(table, data, whereClause, whereParams) {
   }
 }
 
+async function tursoRetrieve(table, columns, whereClause, whereParams) {
+  const sql = `SELECT ${columns.join(', ')} FROM ${table} WHERE ${whereClause}`;
+  try {
+    const result = await pgQuery(sql, whereParams);
+    logger.info(`[TURSO] Retrieved from ${table}: columns=${columns.join(', ')} where ${whereClause}`);
+    return result;
+  } catch (err) {
+    logger.error(`[TURSO] Retrieve from ${table} failed: ${err.message}`);
+    throw err;
+  }
+}
+
+async function tursoGetLastChildId() {
+  const result = await pgQuery(`
+    SELECT child_id FROM pages_children ORDER BY child_id DESC LIMIT 1
+  `);
+  return result.length > 0 ? result[0].child_id : null;
+}
+
 export {
   tursoClient,
   pgIsReachable,
@@ -86,6 +123,8 @@ export {
   testConnection,
   checkResId,
   tursoInsert,
-  tursoUpdate
+  tursoUpdate,
+  tursoRetrieve,
+  tursoGetLastChildId
 };
 
