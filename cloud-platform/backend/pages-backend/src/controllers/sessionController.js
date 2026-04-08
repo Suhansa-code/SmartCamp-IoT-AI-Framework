@@ -24,11 +24,19 @@ async function startSession(req, res, next) {
     logger.info(`[SESSION] Starting session for child_id: ${child_id} with condition: ${condition_label}`);
 
     // Fetch child to get baseline + grade
-    const child = db.prepare(`
-      SELECT child_id, grade, language, total_sessions, baseline_score
-      FROM   pages_children
-      WHERE  child_id = ?
-    `).get(child_id);
+    // const child = db.prepare(`
+    //   SELECT child_id, grade, language, total_sessions, baseline_score
+    //   FROM   pages_children
+    //   WHERE  child_id = ?
+    // `).get(child_id);
+
+    // Get Turso child record
+    const childRows = await tursoRetrieve(
+      'pages_children',undefined,
+      'child_id = ?',
+      [child_id]
+    )
+    const child = childRows[0]
 
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
  
@@ -38,19 +46,20 @@ async function startSession(req, res, next) {
     const sessionTime   = nowTime();
     const condition     = condition_label.toUpperCase();
  
-    db.prepare(`
-        INSERT INTO pages_sessions
-          (session_id, child_id, session_date, session_time,
-           condition_label, baseline_score_used)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(
-        sessionId,
-        child_id,
-        sessionDate,
-        sessionTime,
-        condition,
-        child.baseline_score,
-      );
+    console.log('Creating new session with ID:', sessionId, 'for child_id:', child_id);
+    // db.prepare(`
+    //     INSERT INTO pages_sessions
+    //       (session_id, child_id, session_date, session_time,
+    //        condition_label, baseline_score_used)
+    //     VALUES (?, ?, ?, ?, ?, ?)
+    //   `).run(
+    //     sessionId,
+    //     child_id,
+    //     sessionDate,
+    //     sessionTime,
+    //     condition,
+    //     child.baseline_score,
+    //   );
 
 
     await tursoInsert("pages_sessions", {
@@ -85,17 +94,8 @@ async function startSession(req, res, next) {
 // POST /api/session/task-complete
 async function taskComplete(req, res, next) {
   try {
-    const { session_id, taskMetrics, passiveSignals } = req.body;
-    let { child_id } = req.body;
+    const { child_id, session_id, taskMetrics, passiveSignals } = req.body;
   
-    // Get Child ID from TursoDB and increase child ID by one after get latest child ID - #Delete when implementing
-    child_id=await tursoGetLastChildId();
-    //Get last Digit after "-" and increase by one
-    const newLastDigit = (parseInt(child_id.split('-').pop())) + 1;
-    child_id = `TEST-CHILD-${newLastDigit.toString().padStart(6, '0')}`;
-
-    console.log('Received taskComplete for session_id:', session_id, 'child_id:', child_id);
-
         // Verify session exists
         /*
         const session = db.prepare(`
@@ -142,7 +142,6 @@ async function taskComplete(req, res, next) {
     
 
           // Save behavioral signals
-          logger.info(`[DB] Inserting behavioral signals for session ${session_id} with signal_id ${signalId}`);
           // db.prepare(`
           //   INSERT INTO pages_behavioral_signals
           //     (signal_id, session_id, child_id,
@@ -161,6 +160,7 @@ async function taskComplete(req, res, next) {
           //   passiveSignals.completionRatio,
           // );
 
+          console.log('Inserting behavioral signals for session_id:', session_id, 'child_id:', child_id, 'signal_id:', signalId);
                 // tursoDB - Insert session record - #delete when implementing
           await tursoInsert("pages_behavioral_signals", {
             signal_id: signalId,

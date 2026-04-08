@@ -1,5 +1,5 @@
 import { db } from '../config/database.js';
-import { tursoInsert } from '../config/tursoConfig.js';
+import { tursoInsert, tursoUpdate, tursoRetrieve, tursoGetLastChildId } from '../config/tursoConfig.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { newId, nextChildId, enqueue } from '../utils/helpers.js';
@@ -85,12 +85,46 @@ function enrolChild(req, res, next) {
       // Non-critical error — local sync will handle it
     });
 
+    logger.info(`[ENROL] New child enrolled: res_id=${res_id} → child_id=${childId}`);
+    return res.status(201).json({
+      success: true,
+      child_id: childId,
+      message: 'Child enrolled successfully',
+      already_enrolled: false,
+    });
+
 
   } catch (err) {
     next(err);
   }
 }
  
+
+async function tursoChildIdTest(req, res, next) {
+  try {
+    // Get Child ID from TursoDB and increase child ID by one after get latest child ID - #Delete when implementing
+    let child_id = await tursoGetLastChildId();
+    const newLastDigit = (parseInt(child_id.split('-').pop(), 10)) + 1;
+    child_id = `TEST-CHILD-${newLastDigit.toString().padStart(6, '0')}`;
+
+    console.log('Generated new child_id for test:', child_id);
+
+    // Insert Child ID into TursoDB - #Delete when implementing
+    await tursoInsert("pages_children", {
+      child_id: child_id,
+      res_id: 'TEST-RES-001',
+      grade: 3,
+      camp_id: 'CAMP-TEST',
+      zone_id: 'ZONE-TEST',
+      language: 'si',
+    });
+
+    return res.json({ success: true, child_id });
+  } catch (err) {
+    logger.error(`[TURSO] Failed to insert child into cloud: ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to insert child into Turso' });
+  }
+}
 /**
  * GET /api/child/:childId
  *
@@ -120,4 +154,4 @@ function getChild(req, res, next) {
   }
 }
  
-export { enrolChild, getChild };
+export { enrolChild, getChild, tursoChildIdTest };

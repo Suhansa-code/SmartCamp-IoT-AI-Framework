@@ -1,14 +1,11 @@
 
 'use strict';
-
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import logger from './utils/logger.js';
 import C from './config/constants.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
-
-// ── Route modules ─────────────────────────────────────────────────────────────
 import childRoutes from './routes/child.js';
 import sessionRoutes from './routes/session.js';
 import dashboardRoutes from './routes/dashboard.js';
@@ -66,15 +63,15 @@ app.get('/api/health', (_req, res) => {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 // Child-facing (no auth)
-app.use('/api/child',   childRoutes);
+app.use('/api/child',childRoutes);
 app.use('/api/session', sessionRoutes);
 
 // Auth + admin dashboard (JWT required on protected routes)
 // Note: /api/auth/admin/login lives inside dashboardRoutes but is public
-app.use('/api',         dashboardRoutes);
+app.use('/api',dashboardRoutes);
 
 // Sync (internal, no external auth)
-app.use('/api/sync',    syncRoutes);
+app.use('/api/sync',syncRoutes);
 
 // ── 404 + error handler ───────────────────────────────────────────────────────
 app.use(notFound);

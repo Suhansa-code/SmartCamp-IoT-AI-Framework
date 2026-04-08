@@ -98,10 +98,17 @@ async function tursoUpdate(table, data, whereClause, whereParams) {
 }
 
 async function tursoRetrieve(table, columns, whereClause, whereParams) {
-  const sql = `SELECT ${columns.join(', ')} FROM ${table} WHERE ${whereClause}`;
+  const columnSql =
+    columns === undefined || columns === null || columns === ''
+      ? '*'
+      : Array.isArray(columns)
+        ? (columns.length ? columns.join(', ') : '*')
+        : (typeof columns === 'string' && columns.trim().length ? columns : '*');
+  const sql = `SELECT ${columnSql} FROM ${table} WHERE ${whereClause}`;
+  
   try {
     const result = await pgQuery(sql, whereParams);
-    logger.info(`[TURSO] Retrieved from ${table}: columns=${columns.join(', ')} where ${whereClause}`);
+    logger.info(`[TURSO] Retrieved from ${table}: columns=${columnSql} where ${whereClause}`);
     return result;
   } catch (err) {
     logger.error(`[TURSO] Retrieve from ${table} failed: ${err.message}`);

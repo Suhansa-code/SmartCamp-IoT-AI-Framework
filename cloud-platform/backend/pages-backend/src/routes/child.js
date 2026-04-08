@@ -7,6 +7,9 @@ const router = express.Router();
 // POST /api/child/enrol
 router.post('/enrol', validateEnrol, ctrl.enrolChild);
 
+// POST - Turso Child ID Create and Retrieve Test - #Delete when implementing
+router.post('/turso-child-test', ctrl.tursoChildIdTest);
+
 // GET /api/child/:childId
 router.get('/:childId', ctrl.getChild);
 
