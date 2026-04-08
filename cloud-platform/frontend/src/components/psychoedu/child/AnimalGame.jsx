@@ -320,7 +320,7 @@ export default function AnimalGame({ onComplete }) {
         completionRatio: metrics.accuracyRate,
       }
     }
-    fetch('http://localhost:3001/api/session/task-complete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).catch(() => {})
+    fetch(`${API_BASE}/api/session/task-complete`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).catch(() => {})
     if (onComplete) onComplete(metrics)
     else {
       const poor = metrics.accuracyRate < 0.5 || metrics.falseTapRate > 0.6
