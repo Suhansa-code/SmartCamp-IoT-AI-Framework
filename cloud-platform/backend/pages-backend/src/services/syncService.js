@@ -1,12 +1,11 @@
-'use strict';
-
-const path   = require('path');
-const fs     = require('fs');
-const https  = require('https');
-const logger = require('../utils/logger');
-const C      = require('../config/constants');
-const { db, pgQuery, pgIsReachable } = require('../config/database');
-const { nowISO } = require('../utils/helpers');
+import path from 'path';
+import fs from 'fs';
+import https from 'https';
+import logger from '../utils/logger.js';
+import C from '../config/constants.js';
+import { db} from '../config/database.js';
+import { pgQuery, pgIsReachable } from '../config/tursoConfig.js';
+import { nowISO } from '../utils/helpers.js';
 
 // ── Column definitions per table ──────────────────────────────────────────────
 // Defines which columns to read from SQLite and insert to PostgreSQL.
@@ -144,7 +143,7 @@ async function pullModelFiles() {
   const bucket  = C.AWS_S3_BUCKET;
   const region  = C.AWS_REGION;
 
-  if (!bucket || !C.AWS_RDS_HOST) {
+  if (!bucket || !C.TURSO_URL) {
     logger.debug('[SYNC] S3 bucket not configured — skipping model pull');
     return 0;
   }
@@ -361,4 +360,4 @@ function getSyncStatus() {
   };
 }
 
-module.exports = { runSync, getSyncStatus };
+export { runSync, getSyncStatus };

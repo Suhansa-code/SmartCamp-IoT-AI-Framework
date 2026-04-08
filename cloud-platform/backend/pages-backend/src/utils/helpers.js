@@ -3,10 +3,8 @@
 // Shared utility functions for PAGES backend.
 // ─────────────────────────────────────────────────────────────────────────────
 
-'use strict';
-
-const { v4: uuidv4 } = require('uuid');
-const { db }         = require('../config/database');
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../config/database.js';
 
 /**
  * Generate a UUID v4.
@@ -108,7 +106,7 @@ function enqueue(tableName, recordId, operation = 'INSERT') {
   `).run(tableName, recordId, operation);
 }
 
-module.exports = {
+export {
   newId,
   todayDate,
   nowTime,

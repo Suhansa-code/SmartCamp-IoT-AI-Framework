@@ -1,32 +1,24 @@
 
 'use strict';
-
-require('dotenv').config();
-
-const express    = require('express');
-const helmet     = require('helmet');
-const cors       = require('cors');
-const logger     = require('./utils/logger');
-const C          = require('./config/constants');
-const { notFound, errorHandler } = require('./middleware/errorHandler');
-
-// ── Route modules ─────────────────────────────────────────────────────────────
-const childRoutes     = require('./routes/child');
-const sessionRoutes   = require('./routes/session');
-const dashboardRoutes = require('./routes/dashboard');
-const syncRoutes      = require('./routes/sync');
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import logger from './utils/logger.js';
+import C from './config/constants.js';
+import { notFound, errorHandler } from './middleware/errorHandler.js';
+import childRoutes from './routes/child.js';
+import sessionRoutes from './routes/session.js';
+import dashboardRoutes from './routes/dashboard.js';
+import syncRoutes from './routes/sync.js';
 
 const app = express();
 
-// ── Security headers ──────────────────────────────────────────────────────────
+//Security headers
 app.use(helmet({
-  // Content-Security-Policy is relaxed for the local RPi environment
   contentSecurityPolicy: false,
 }));
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
-// Only allow requests from the Next.js frontend (same LAN).
-// Flask is on localhost — it does not hit these routes.
+//CORS
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (server-to-server, curl, Postman in dev)
@@ -40,15 +32,24 @@ app.use(cors({
   credentials: true,
 }));
 
-// ── Body parsers ──────────────────────────────────────────────────────────────
+//Body parsers
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// ── Request logger ────────────────────────────────────────────────────────────
+//Request logger
 app.use((req, _res, next) => {
   logger.debug(`→ ${req.method} ${req.originalUrl}`);
   next();
 });
+
+// Call tursoconfig to check it works using tursoConfig
+import { pgIsReachable } from './config/tursoConfig.js';
+
+pgIsReachable()
+  .then(() => logger.info('[TURSO] Initial connection test successful'))
+  .catch((err) => logger.error(`[TURSO] Initial connection test failed: ${err.message}`));
+
+
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
@@ -62,18 +63,18 @@ app.get('/api/health', (_req, res) => {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 // Child-facing (no auth)
-app.use('/api/child',   childRoutes);
+app.use('/api/child',childRoutes);
 app.use('/api/session', sessionRoutes);
 
 // Auth + admin dashboard (JWT required on protected routes)
 // Note: /api/auth/admin/login lives inside dashboardRoutes but is public
-app.use('/api',         dashboardRoutes);
+app.use('/api',dashboardRoutes);
 
 // Sync (internal, no external auth)
-app.use('/api/sync',    syncRoutes);
+app.use('/api/sync',syncRoutes);
 
 // ── 404 + error handler ───────────────────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

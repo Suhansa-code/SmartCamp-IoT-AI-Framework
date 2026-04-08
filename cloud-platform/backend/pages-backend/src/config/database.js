@@ -1,11 +1,11 @@
 'use strict';
 
-const path      = require('path');
-const fs        = require('fs');
-const Database  = require('better-sqlite3');
-const { Pool }  = require('pg');
-const logger    = require('../utils/logger');
-const C         = require('./constants');
+import path from 'path';
+import fs from 'fs';
+import Database from 'better-sqlite3';
+import { createClient } from '@libsql/client';
+import logger from '../utils/logger.js';
+import C from './constants.js';
 
 // ── SQLite — initialise and apply schema ──────────────────────────────────────
 
@@ -49,62 +49,4 @@ try {
   process.exit(1);
 }
 
-// ── PostgreSQL — lazy pool ────────────────────────────────────────────────────
-// The pool is created once but connections only attempted when actually used.
-// If RDS is unreachable, pg will log errors but not crash the process.
-
-const pgPool = new Pool({
-  host:               C.AWS_RDS_HOST,
-  port:               C.AWS_RDS_PORT,
-  database:           C.AWS_RDS_DB,
-  user:               C.AWS_RDS_USER,
-  password:           C.AWS_RDS_PASSWORD,
-  max:                5,             // small pool — RPi has limited connections
-  idleTimeoutMillis:  30000,
-  connectionTimeoutMillis: 5000,
-  ssl: C.NODE_ENV === 'production'
-    ? { rejectUnauthorized: false }
-    : false,
-});
-
-pgPool.on('error', (err) => {
-  // Do not crash — log and continue. SQLite keeps the app running.
-  logger.warn(`[DB] PostgreSQL pool error (offline?): ${err.message}`);
-});
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Test whether PostgreSQL is reachable.
- * Used by connectivity service.
- * @returns {Promise<boolean>}
- */
-async function pgIsReachable() {
-  if (!C.AWS_RDS_HOST) return false;
-  try {
-    const client = await pgPool.connect();
-    await client.query('SELECT 1');
-    client.release();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Execute a query on PostgreSQL.
- * Throws if unavailable — caller must catch.
- * @param {string} text
- * @param {Array}  params
- */
-async function pgQuery(text, params = []) {
-  const client = await pgPool.connect();
-  try {
-    const result = await client.query(text, params);
-    return result;
-  } finally {
-    client.release();
-  }
-}
-
-module.exports = { db, pgPool, pgIsReachable, pgQuery };
+export { db };

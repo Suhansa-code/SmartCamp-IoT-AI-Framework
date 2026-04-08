@@ -1,11 +1,11 @@
 'use strict';
 
-const logger  = require('../utils/logger');
-const { NODE_ENV } = require('../config/constants');
+import logger from '../utils/logger.js';
+import C from '../config/constants.js';
 
-/**
- * 404 — route not found.
- */
+const { NODE_ENV } = C;
+
+//404 — route not found.
 function notFound(req, res, next) {
   const err = new Error(`Route not found: ${req.method} ${req.originalUrl}`);
   err.statusCode = 404;
@@ -52,4 +52,4 @@ function createError(statusCode, message) {
   return err;
 }
 
-module.exports = { notFound, errorHandler, createError };
+export { notFound, errorHandler, createError };

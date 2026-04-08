@@ -1,12 +1,11 @@
 
 'use strict';
+import 'dotenv/config';
 
-require('dotenv').config();
-
-module.exports = {
+export default {
 
   // ── Server ──────────────────────────────────────────────────────────────────
-  PORT:         parseInt(process.env.PORT, 10)     || 3001,
+  PORT:         parseInt(process.env.PORT, 10)     || 3002,
   NODE_ENV:     process.env.NODE_ENV               || 'development',
   DEVICE_ID:    process.env.DEVICE_ID              || 'SCB-UNIT-01',
   CAMP_ID:      process.env.CAMP_ID                || 'CAMP-B',
@@ -39,7 +38,7 @@ module.exports = {
   ALERT_OF_FIVE:     parseInt(process.env.ALERT_OF_FIVE, 10)     || 3,
 
   // ── Flask ML service ────────────────────────────────────────────────────────
-  FLASK_URL:    process.env.FLASK_URL || 'http://localhost:5001',
+  FLASK_URL:    process.env.FLASK_URL || 'http://localhost:5000',
   FLASK_TIMEOUT_MS: 8000,   // 8 second timeout — fall back to local scoring
 
   // ── JWT ─────────────────────────────────────────────────────────────────────
@@ -47,6 +46,10 @@ module.exports = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
 
   // ── AWS ─────────────────────────────────────────────────────────────────────
+  TURSO_URL:        process.env.TURSO_URL,
+  TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+
+  // Legacy RDS settings kept for backward compatibility (unused by default)
   AWS_RDS_HOST:     process.env.AWS_RDS_HOST,
   AWS_RDS_PORT:     parseInt(process.env.AWS_RDS_PORT, 10) || 5432,
   AWS_RDS_DB:       process.env.AWS_RDS_DB       || 'pages_db',

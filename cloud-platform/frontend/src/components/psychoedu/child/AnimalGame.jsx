@@ -28,6 +28,7 @@ const SHOW_MS       = 1500
 const BLANK_MS      = 500   
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
 
 // ── Math helpers ──────────────────────────────────────────────────────────────
 const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
@@ -150,8 +151,51 @@ export default function AnimalGame({ onComplete }) {
   const { lang }     = useLang()
   const isEnglish = lang === 'en'
 
-  const sessionId = searchParams?.get('session') ?? 'offline'
-  const childId = searchParams?.get('child') ?? ''
+  const [sessionId, setSessionId] = useState(searchParams?.get('session') ?? 'offline')
+  const [childId, setChildId] = useState('')
+  const [isStarting, setIsStarting] = useState(false)
+
+  useEffect(() => {
+    const urlChildId = searchParams?.get('child') ?? ''
+    const storedChildId = typeof window !== 'undefined'
+      ? (sessionStorage.getItem('selectedChildId') ?? '')
+      : ''
+    setChildId(urlChildId || storedChildId)
+  }, [searchParams])
+
+  async function handleStartSession() {
+    if (isStarting) return
+    setIsStarting(true)
+
+    try {
+      const storedChildId = childId || (typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : '')
+      if (!storedChildId) {
+        throw new Error('No child ID selected')
+      }
+
+      const response = await fetch(`${API_BASE}/api/session/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ child_id: storedChildId }),
+      })
+
+      console.log('Start session response:', response)
+
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || !payload.session_id) {
+        throw new Error(payload.message || 'Failed to start session')
+      }
+
+      setSessionId(payload.session_id)
+      setPhase('show')
+      shownAt.current = Date.now()
+      tapped.current = false
+    } catch (err) {
+      console.error('Failed to start session:', err)
+    } finally {
+      setIsStarting(false)
+    }
+  }
 
   const trialsRef = useRef(null)
   if (!trialsRef.current) trialsRef.current = buildTrials()
@@ -248,6 +292,7 @@ export default function AnimalGame({ onComplete }) {
     const totalTargets     = trials.filter(tr => tr.type === 'target').length
     const totalDistractors = trials.filter(tr => tr.type === 'distractor').length
     const rts              = reactionTimes.current
+    const storedChildId = typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : ''
     const metrics = {
       correctTaps: correctTaps.current,
       falseTaps: falseTaps.current,
@@ -260,7 +305,7 @@ export default function AnimalGame({ onComplete }) {
     }
     const payload = {
       session_id: sessionId,
-      child_id: childId,
+      child_id: storedChildId,
       lang,
       taskMetrics: {
         accuracyRate: metrics.accuracyRate,
@@ -291,7 +336,7 @@ export default function AnimalGame({ onComplete }) {
   }
   const fb = feedback ? FB[feedback] : null
 
-  if (phase === 'countdown') return <CountdownScreen count={cdCount} lang={lang} total={COUNTDOWN_SECONDS} onStart={startGame} />
+  if (phase === 'countdown') return <CountdownScreen count={cdCount} lang={lang} total={COUNTDOWN_SECONDS} onStart={handleStartSession} />
   if (phase === 'done')      return <DoneScreen lang={lang} />
 
   // Animal name in chosen language

@@ -1,21 +1,13 @@
-'use strict';
-
-const cron   = require('node-cron');
-const logger = require('../utils/logger');
-const C      = require('../config/constants');
-const { pgIsReachable } = require('../config/database');
+import cron from 'node-cron';
+import logger from '../utils/logger.js';
+import C from '../config/constants.js';
+import { pgIsReachable } from '../config/tursoConfig.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let _isOnline      = false;
 let _syncRunning   = false;
 let _lastSyncTime  = null;
 let _lastCheckTime = null;
-
-// Lazy-load syncService to break circular dependency
-// (syncService uses db, connectivityService is used by syncService)
-function getSyncService() {
-  return require('./syncService');
-}
 
 /**
  * Check connectivity and trigger sync if appropriate.
@@ -40,8 +32,10 @@ async function checkAndSync() {
 
   _syncRunning = true;
   try {
-    const syncService = getSyncService();
-    const result = await syncService.runSync();
+    // Lazy-load syncService to break circular dependency
+    // (syncService uses db, connectivityService is used by syncService)
+    const { runSync } = await import('./syncService.js');
+    const result = await runSync();
     _lastSyncTime = new Date().toISOString();
     logger.info(
       `[CONNECTIVITY] Sync complete: ${result.recordsPushed} records pushed, ` +
@@ -85,7 +79,7 @@ function isOnline()      { return _isOnline; }
 function isSyncRunning() { return _syncRunning; }
 function getLastSyncTime() { return _lastSyncTime; }
 
-module.exports = {
+export {
   startConnectivityWatcher,
   checkAndSync,
   isOnline,

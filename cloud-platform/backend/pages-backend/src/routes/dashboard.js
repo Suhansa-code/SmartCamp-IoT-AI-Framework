@@ -1,10 +1,9 @@
-'use strict';
+import express from 'express';
+import * as ctrl from '../controllers/dashboardController.js';
+import { requireAdmin } from '../middleware/auth.js';
+import { validateAdminLogin } from '../middleware/validate.js';
 
-const express  = require('express');
-const router   = express.Router();
-const ctrl     = require('../controllers/dashboardController');
-const { requireAdmin }     = require('../middleware/auth');
-const { validateAdminLogin } = require('../middleware/validate');
+const router = express.Router();
 
 // POST /api/auth/admin/login  — public (issues the JWT)
 router.post('/auth/admin/login', validateAdminLogin, ctrl.adminLogin);
@@ -15,4 +14,4 @@ router.get('/alerts', requireAdmin, ctrl.getAdminAlerts);
 // POST /api/dashboard/alert/:alertId/resolve  — admin only
 router.post('/alert/:alertId/resolve', requireAdmin, ctrl.resolveAdminAlert);
 
-module.exports = router;
+export default router;
