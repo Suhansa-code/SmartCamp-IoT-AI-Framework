@@ -178,24 +178,24 @@ async function taskComplete(req, res, next) {
 
           logger.info(`[TURSO] Inserted behavioral signals for session ${session_id} with signal_id ${signalId} into TursoDB`);
           // Update session with scores + gate decision
-          db.prepare(`
-            UPDATE pages_sessions
-            SET composite_score  = ?,
-                task_score       = ?,
-                passive_score    = ?,
-                gate_decision    = ?,
-                anomaly_flagged  = ?,
-                z_score          = ?,
-                if_score         = ?
-            WHERE session_id = ?
-          `).run(
-            compositeScore, taskScore, passiveScore,
-            gateDecision,
-            anomalyFlagged ? 1 : 0,
-            zScore  || null,
-            ifScore || null,
-            session_id,
-          );
+          // db.prepare(`
+          //   UPDATE pages_sessions
+          //   SET composite_score  = ?,
+          //       task_score       = ?,
+          //       passive_score    = ?,
+          //       gate_decision    = ?,
+          //       anomaly_flagged  = ?,
+          //       z_score          = ?,
+          //       if_score         = ?
+          //   WHERE session_id = ?
+          // `).run(
+          //   compositeScore, taskScore, passiveScore,
+          //   gateDecision,
+          //   anomalyFlagged ? 1 : 0,
+          //   zScore  || null,
+          //   ifScore || null,
+          //   session_id,
+          // );
 
           logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${anomalyFlagged}`);
 
@@ -229,7 +229,7 @@ async function taskComplete(req, res, next) {
             decision: gateDecision
           });
 
-logger.info(`[TURSO] Inserted gate decision for session ${session_id} with decision_id ${decisionId} into TursoDB`);
+          logger.info(`[TURSO] Inserted gate decision for session ${session_id} with decision_id ${decisionId} into TursoDB`);
 
           // Enqueue signals for sync
           enqueue('pages_behavioral_signals', signalId, 'INSERT');
@@ -267,9 +267,19 @@ async function secondGate(req, res, next) {
     const { session_id, child_id, taskMetrics, passiveSignals } = req.body;
  
     // Verify session is in FAIL_FIRST state
-    const session = db.prepare(`
-      SELECT session_id, gate_decision FROM pages_sessions WHERE session_id = ?
-    `).get(session_id);
+    // const session = db.prepare(`
+    //   SELECT session_id, gate_decision FROM pages_sessions WHERE session_id = ?
+    // `).get(session_id);
+
+    // tursoDB - Verify session is in FAIL_FIRST state - #delete when implementing
+    const sessionRows = await tursoRetrieve(
+      'pages_sessions','session_id, gate_decision',
+      'session_id = ?',
+      [session_id]
+    );
+    const session = sessionRows[0]
+
+
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
     if (session.gate_decision !== C.GATE.FAIL_FIRST) {
       return next(createError(400, 'Second gate only valid after FAIL_FIRST decision'));
@@ -287,68 +297,62 @@ async function secondGate(req, res, next) {
  
     const decisionId = newId();
  
-    const saveSecondGate = db.transaction(() => {
       // Update session
-      db.prepare(`
-        UPDATE pages_sessions
-        SET second_gate_score = ?,
-            gate_decision     = ?
-        WHERE session_id = ?
-      `).run(compositeScore, gateDecision, session_id);
- 
+      // db.prepare(`
+      //   UPDATE pages_sessions
+      //   SET second_gate_score = ?,
+      //       gate_decision     = ?
+      //   WHERE session_id = ?
+      // `).run(compositeScore, gateDecision, session_id);
+
+      // Turso - Update session record with second gate score and decision - #delete when implementing
+      await tursoUpdate(
+        'pages_sessions',
+        {
+          second_gate_score: compositeScore,
+          gate_decision: gateDecision,
+        },
+        'session_id = ?',
+        [session_id]
+      );
+
+
       // Write gate decision (attempt 2)
-      db.prepare(`
-        INSERT INTO pages_gate_decisions
-          (decision_id, session_id, child_id, attempt_number, composite_score, decision)
-        VALUES (?, ?, ?, 2, ?, ?)
-      `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+      // db.prepare(`
+      //   INSERT INTO pages_gate_decisions
+      //     (decision_id, session_id, child_id, attempt_number, composite_score, decision)
+      //   VALUES (?, ?, ?, 2, ?, ?)
+      // `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+
+      // TursoDB - Insert second gate decision record - #delete when implementing
+      await tursoInsert('pages_gate_decisions', {
+        decision_id: decisionId,
+        session_id,
+        child_id,
+        attempt_number: 2,
+        composite_score: compositeScore,
+        decision: gateDecision,
+      });
  
       // If FAIL_CONFIRMED — increment consecutive_low
       if (gateDecision === C.GATE.FAIL_CONFIRMED) {
-        db.prepare(`
-          UPDATE pages_children
-          SET consecutive_low = consecutive_low + 1
-          WHERE child_id = ?
-        `).run(child_id);
-      }
- 
-      enqueue('pages_gate_decisions', decisionId, 'INSERT');
-    });
- 
-    saveSecondGate();
+        // db.prepare(`
+        //   UPDATE pages_children
+        //   SET consecutive_low = consecutive_low + 1
+        //   WHERE child_id = ?
+        // `).run(child_id);
 
-    await tursoUpdate(
-      'pages_sessions',
-      {
-        second_gate_score: compositeScore,
-        gate_decision: gateDecision,
-      },
-      'session_id = ?',
-      [session_id]
-    );
-
-    await tursoInsert('pages_gate_decisions', {
-      decision_id: decisionId,
-      session_id,
-      child_id,
-      attempt_number: 2,
-      composite_score: compositeScore,
-      decision: gateDecision,
-    });
-
-    if (gateDecision === C.GATE.FAIL_CONFIRMED) {
-      const childState = db.prepare(`
-        SELECT consecutive_low FROM pages_children WHERE child_id = ?
-      `).get(child_id);
-      if (childState) {
+        // tursoDB update pages children record to increment consecutive_low - #delete when implementing
         await tursoUpdate(
           'pages_children',
-          { consecutive_low: childState.consecutive_low },
+          { consecutive_low: child.consecutive_low + 1 },
           'child_id = ?',
           [child_id]
         );
       }
-    }
+ 
+      enqueue('pages_gate_decisions', decisionId, 'INSERT');
+
  
     logger.info(
       `[SESSION] Second gate: session=${session_id}, composite=${compositeScore}, ` +
@@ -372,29 +376,57 @@ async function completeSession(req, res, next) {
     const { session_id, child_id, cognitiveScore, contentResponses } = req.body;
  
     // Fetch session for its composite_score (needed for baseline update)
-    const session = db.prepare(`
-      SELECT session_id, composite_score FROM pages_sessions WHERE session_id = ?
-    `).get(session_id);
-    if (!session) return next(createError(404, `Session not found: ${session_id}`));
+    // const session = db.prepare(`
+    //   SELECT session_id, composite_score FROM pages_sessions WHERE session_id = ?
+    // `).get(session_id);
+    // if (!session) return next(createError(404, `Session not found: ${session_id}`));
+
+
+    //Turso get session record - #delete when implementing
+    const sessionRows = await tursoRetrieve(
+      'pages_sessions',undefined,
+      'session_id = ?',
+      [session_id]
+    )
+    const session = sessionRows[0]
  
     // Fetch current baseline
-    const child = db.prepare(`
-      SELECT child_id, baseline_score FROM pages_children WHERE child_id = ?
-    `).get(child_id);
-    if (!child) return next(createError(404, `Child not found: ${child_id}`));
+    // const child = db.prepare(`
+    //   SELECT child_id, baseline_score FROM pages_children WHERE child_id = ?
+    // `).get(child_id);
+    // if (!child) return next(createError(404, `Child not found: ${child_id}`));
+
+    // Get Turso child record    
+    const childRows = await tursoRetrieve(
+      'pages_children',undefined,
+      'child_id = ?',
+      [child_id]
+    )
+    const child = childRows[0]
  
     // Compute new baseline
     const compositeScore = session.composite_score || child.baseline_score;
     const newBaseline    = updateBaseline(child.baseline_score, compositeScore);
     const contentRowsToSync = [];
  
-    const finalise = db.transaction(() => {
       // 1. Save content responses
-      const insertResponse = db.prepare(`
-        INSERT INTO pages_content_responses
-          (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `);
+      // const insertResponse = db.prepare(`
+      //   INSERT INTO pages_content_responses
+      //     (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms)
+      //   VALUES (?, ?, ?, ?, ?, ?, ?)
+      // `);
+
+      // TursoDB - Insert content responses - #delete when implementing
+      await tursoInsert("pages_content_responses", {
+        response_id: newId(),
+        session_id,
+        child_id,        
+        task_id: 'SAMPLE-TASK-ID',
+        selected_answer: 'A',
+        is_correct: 1,
+        time_taken_ms: 1500,
+      });
+
  
       for (const r of contentResponses) {
         const responseId = newId();
@@ -421,66 +453,54 @@ async function completeSession(req, res, next) {
       }
  
       // 2. Mark session complete
-      db.prepare(`
-        UPDATE pages_sessions
-        SET cognitive_score    = ?,
-            session_complete   = 1
-        WHERE session_id = ?
-      `).run(Number(cognitiveScore), session_id);
- 
-      // 3. Update child baseline + total sessions
-      db.prepare(`
-        UPDATE pages_children
-        SET baseline_score   = ?,
-            total_sessions   = total_sessions + 1,
-            consecutive_low  = CASE WHEN ? >= ? THEN 0 ELSE consecutive_low END
-        WHERE child_id = ?
-      `).run(
-        newBaseline,
-        compositeScore,
-        C.GATE_THRESHOLD,
-        child_id,
+      // db.prepare(`
+      //   UPDATE pages_sessions
+      //   SET cognitive_score    = ?,
+      //       session_complete   = 1
+      //   WHERE session_id = ?
+      // `).run(Number(cognitiveScore), session_id);
+
+      // Mark Turso session complete - #delete when implementing
+      await tursoUpdate(
+        'pages_sessions',
+        {
+          cognitive_score: Number(cognitiveScore),
+          session_complete: 1,
+        },
+        'session_id = ?',
+        [session_id]
       );
- 
-      // 4. Enqueue session + children for sync
-      enqueue('pages_sessions',  session_id, 'INSERT');
-      enqueue('pages_children',  child_id,   'UPDATE');
-    });
- 
-    finalise();
 
-    for (const row of contentRowsToSync) {
-      await tursoInsert('pages_content_responses', row);
-    }
+      // 3. Update child baseline + total sessions
+      // db.prepare(`
+      //   UPDATE pages_children
+      //   SET baseline_score   = ?,
+      //       total_sessions   = total_sessions + 1,
+      //       consecutive_low  = CASE WHEN ? >= ? THEN 0 ELSE consecutive_low END
+      //   WHERE child_id = ?
+      // `).run(
+      //   newBaseline,
+      //   compositeScore,
+      //   C.GATE_THRESHOLD,
+      //   child_id,
+      // );
 
-    await tursoUpdate(
-      'pages_sessions',
-      {
-        cognitive_score: Number(cognitiveScore),
-        session_complete: 1,
-      },
-      'session_id = ?',
-      [session_id]
-    );
-
-    const latestChild = db.prepare(`
-      SELECT baseline_score, total_sessions, consecutive_low
-      FROM pages_children
-      WHERE child_id = ?
-    `).get(child_id);
-
-    if (latestChild) {
+      // Update Turso child record - #delete when implementing
       await tursoUpdate(
         'pages_children',
         {
-          baseline_score: latestChild.baseline_score,
-          total_sessions: latestChild.total_sessions,
-          consecutive_low: latestChild.consecutive_low,
+          baseline_score: newBaseline,
+          total_sessions: child.total_sessions + 1,
+          consecutive_low: compositeScore >= C.GATE_THRESHOLD ? 0 : child.consecutive_low,
         },
         'child_id = ?',
         [child_id]
       );
-    }
+
+ 
+      // 4. Enqueue session + children for sync
+      enqueue('pages_sessions',  session_id, 'INSERT');
+      enqueue('pages_children',  child_id,   'UPDATE');
  
     logger.info(
       `[SESSION] Complete: session=${session_id}, cognitive=${cognitiveScore}, ` +
@@ -499,42 +519,79 @@ async function completeSession(req, res, next) {
 }
  
 //GET /api/session/content/:childId 
-function getContentSession(req, res, next) {
+async function getContentSession(req, res, next) {
   try {
     const { childId } = req.params;
  
     // Get child grade
-    const child = db.prepare(`
-      SELECT child_id, grade FROM pages_children WHERE child_id = ?
-    `).get(childId);
+    // const child = db.prepare(`
+    //   SELECT child_id, grade FROM pages_children WHERE child_id = ?
+    // `).get(childId);
+    // if (!child) return next(createError(404, `Child not found: ${childId}`));
+
+    // Get Turso child record - #delete when implementing
+    const childRows = await tursoRetrieve(
+      'pages_children',undefined,
+      'child_id = ?',
+      [childId]    )
+    const child = childRows[0]
     if (!child) return next(createError(404, `Child not found: ${childId}`));
+
+
  
     // Get last 3 content_session_ids used by this child (to avoid repetition)
-    const recentlyUsed = db.prepare(`
-      SELECT DISTINCT content_session_id
-      FROM   pages_sessions
-      WHERE  child_id = ? AND content_session_id IS NOT NULL
-      ORDER  BY created_at DESC
-      LIMIT  3
-    `).all(childId).map(r => r.content_session_id);
+    // const recentlyUsed = db.prepare(`
+    //   SELECT DISTINCT content_session_id
+    //   FROM   pages_sessions
+    //   WHERE  child_id = ? AND content_session_id IS NOT NULL
+    //   ORDER  BY created_at DESC
+    //   LIMIT  3
+    // `).all(childId).map(r => r.content_session_id);
+
+    //tursoDB - recemtly used content sessions - #delete when implementing
+    const recentlyUsedRows = await tursoRetrieve(
+      'pages_sessions','DISTINCT content_session_id',
+      'child_id = ? AND content_session_id IS NOT NULL',
+      [childId]
+    );
+    const recentlyUsed = recentlyUsedRows.map(r => r.content_session_id);
+    
  
     // Get all approved sessions for this grade, excluding recently used
-    const available = db.prepare(`
-      SELECT content_session_id
-      FROM   content_sessions
-      WHERE  grade_level = ?
-        AND  zeo_approved = 1
-        AND  content_session_id NOT IN (${recentlyUsed.map(() => '?').join(',') || '\'__NONE__\''})
-    `).all(child.grade, ...recentlyUsed);
+    // const available = db.prepare(`
+    //   SELECT content_session_id
+    //   FROM   content_sessions
+    //   WHERE  grade_level = ?
+    //     AND  zeo_approved = 1
+    //     AND  content_session_id NOT IN (${recentlyUsed.map(() => '?').join(',') || '\'__NONE__\''})
+    // `).all(child.grade, ...recentlyUsed);
+
+    //turso - Get all approved sessions for this grade, excluding recently used - #delete when implementing
+    const placeholders = recentlyUsed.map(() => '?').join(',') || '\'__NONE__\'';
+    const available = await tursoRetrieve(
+      'content_sessions','content_session_id',
+      `grade_level = ? AND zeo_approved = 1 AND content_session_id NOT IN (${placeholders})`,
+      [child.grade, ...recentlyUsed]
+    );
  
     // If all sessions have been used recently, fall back to all approved
+    // const pool = available.length > 0
+    //   ? available
+    //   : db.prepare(`
+    //       SELECT content_session_id
+    //       FROM   content_sessions
+    //       WHERE  grade_level = ? AND zeo_approved = 1
+    //     `).all(child.grade);
+
+    //turso - if all sessions have been used recently, fall back to all approved - #delete when implementing
     const pool = available.length > 0
       ? available
-      : db.prepare(`
-          SELECT content_session_id
-          FROM   content_sessions
-          WHERE  grade_level = ? AND zeo_approved = 1
-        `).all(child.grade);
+      : await tursoRetrieve(
+          'content_sessions','content_session_id',
+          'grade_level = ? AND zeo_approved = 1',
+          [child.grade]
+        );
+      
  
     if (pool.length === 0) {
       return next(createError(404, `No approved content sessions for grade ${child.grade}`));
@@ -545,16 +602,24 @@ function getContentSession(req, res, next) {
     const contentSessionId = chosen.content_session_id;
  
     // Get tasks — NOTE: correct_answer is excluded from response
-    const tasks = db.prepare(`
-      SELECT
-        task_id, task_order, subject, task_type,
-        question_text, question_image,
-        option_a, option_b, option_c,
-        grade_level
-      FROM   content_tasks
-      WHERE  content_session_id = ?
-      ORDER  BY task_order ASC
-    `).all(contentSessionId);
+    // const tasks = db.prepare(`
+    //   SELECT
+    //     task_id, task_order, subject, task_type,
+    //     question_text, question_image,
+    //     option_a, option_b, option_c,
+    //     grade_level
+    //   FROM   content_tasks
+    //   WHERE  content_session_id = ?
+    //   ORDER  BY task_order ASC
+    // `).all(contentSessionId);
+
+    //turso - Get tasks for content session - #delete when implementing
+    const tasks = await tursoRetrieve(
+      'content_tasks',
+      'task_id, task_order, subject, task_type, question_text, question_image, option_a, option_b, option_c, grade_level',
+      'content_session_id = ? ORDER BY task_order ASC',
+      [contentSessionId]
+    );  
  
     if (tasks.length === 0) {
       return next(createError(404, `No tasks found for session ${contentSessionId}`));
