@@ -70,7 +70,6 @@ pgIsReachable()
   .catch((err) => logger.error(`[TURSO] Initial connection test failed: ${err.message}`));
 
 
-
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({
