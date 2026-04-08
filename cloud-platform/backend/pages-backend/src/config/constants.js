@@ -11,6 +11,17 @@ const firstDefined = (...values) => {
   return undefined;
 };
 
+const parseOrigins = (value) => {
+  if (typeof value !== 'string' || !value.trim()) {
+    return [];
+  }
+
+  return value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+};
+
 export default {
 
   // ── Server ──────────────────────────────────────────────────────────────────
@@ -83,10 +94,12 @@ export default {
 
   // ── CORS allowed origins ────────────────────────────────────────────────────
   CORS_ORIGINS: [
+    ...parseOrigins(process.env.CORS_ORIGINS),
+    ...parseOrigins(process.env.FRONTEND_URL),
     'http://192.168.4.1:3000',  // RPi production hotspot
     'http://localhost:3000',     // Development
     'http://127.0.0.1:3000',
-  ],
+  ].filter((origin, index, origins) => origins.indexOf(origin) === index),
 
   // ── Gate decision labels ────────────────────────────────────────────────────
   GATE: {
