@@ -16,14 +16,32 @@ const toLibsqlQuery = (text, params) => {
   return { sql, args };
 }
 
-const tursoClient = createClient({
-  url: C.TURSO_URL,
-  authToken: C.TURSO_AUTH_TOKEN
-});
+let tursoClient;
+
+const getTursoClient = () => {
+  if (tursoClient) return tursoClient;
+
+  if (!C.TURSO_URL) {
+    throw new Error(
+      'Turso URL is missing. Set one of TURSO_URL, TURSO_DATABASE_URL, LIBSQL_URL, or DATABASE_URL in the environment.',
+    );
+  }
+
+  if (!C.TURSO_AUTH_TOKEN) {
+    logger.warn('[TURSO] Auth token is missing. Ensure TURSO_AUTH_TOKEN (or equivalent) is set if your database requires auth.');
+  }
+
+  tursoClient = createClient({
+    url: C.TURSO_URL,
+    authToken: C.TURSO_AUTH_TOKEN,
+  });
+
+  return tursoClient;
+};
 
 const testConnection = async () => {
   try {
-    await tursoClient.execute('SELECT 1');
+    await getTursoClient().execute('SELECT 1');
     console.log('[TURSO] Connection test successful');
   } catch (err) {
     console.error(`[TURSO] Connection test failed: ${err.message}`);
@@ -34,7 +52,7 @@ const testConnection = async () => {
 const pgQuery = async (text, params) => {
   const { sql, args } = toLibsqlQuery(text, params);
   try {
-    const result = await tursoClient.execute(sql, args);
+    const result = await getTursoClient().execute(sql, args);
     return result.rows;
   } catch (err) {
     console.error(`[TURSO] Query failed: ${err.message}`);
@@ -44,16 +62,17 @@ const pgQuery = async (text, params) => {
 
 const pgIsReachable = async () => {
   try {
-    await tursoClient.execute('SELECT 1');
+    await getTursoClient().execute('SELECT 1');
     return true;
-  } catch {
+  } catch (err) {
+    logger.error(`[TURSO] Reachability check failed: ${err.message}`);
     return false;
   }
 };
 
 const checkResId = async (resId) => {
   try {
-    const result = await tursoClient.execute('SELECT 1 WHERE ? LIKE ?', [resId, '%']);
+    const result = await getTursoClient().execute('SELECT 1 WHERE ? LIKE ?', [resId, '%']);
     return result.rows.length > 0;
   } catch (err) {
     console.error(`[TURSO] checkResId failed: ${err.message}`);
@@ -124,7 +143,7 @@ async function tursoGetLastChildId() {
 }
 
 export {
-  tursoClient,
+  getTursoClient,
   pgIsReachable,
   pgQuery,
   testConnection,

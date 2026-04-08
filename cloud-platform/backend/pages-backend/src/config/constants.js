@@ -2,6 +2,15 @@
 'use strict';
 import 'dotenv/config';
 
+const firstDefined = (...values) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+};
+
 export default {
 
   // ── Server ──────────────────────────────────────────────────────────────────
@@ -46,8 +55,18 @@ export default {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
 
   // ── AWS ─────────────────────────────────────────────────────────────────────
-  TURSO_URL:        process.env.TURSO_URL,
-  TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+  TURSO_URL: firstDefined(
+    process.env.TURSO_URL,
+    process.env.TURSO_DATABASE_URL,
+    process.env.LIBSQL_URL,
+    process.env.DATABASE_URL,
+  ),
+  TURSO_AUTH_TOKEN: firstDefined(
+    process.env.TURSO_AUTH_TOKEN,
+    process.env.TURSO_TOKEN,
+    process.env.LIBSQL_AUTH_TOKEN,
+    process.env.DATABASE_AUTH_TOKEN,
+  ),
 
   // Legacy RDS settings kept for backward compatibility (unused by default)
   AWS_RDS_HOST:     process.env.AWS_RDS_HOST,
