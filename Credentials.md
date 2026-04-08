@@ -6,7 +6,8 @@ Turso Token Link :
 
 libsql://pages-pasinduhansana.aws-ap-northeast-1.turso.io
 
-
+Turso Login Username : gallagepasinduhansana@gmail.com
+Turso Password : Pasi@1225
 
 AWS username : 
 
