@@ -20,11 +20,16 @@ function CognitiveInner() {
   const router        = useRouter()
   const { lang, setLang } = useLang()
   const [session, setSession] = useState(null)
+  const [childId, setChildId] = useState('')
 
   useEffect(() => {
     // Sync ?lang= param
     const urlLang = searchParams.get('lang')
     if (urlLang && ['si','ta','en'].includes(urlLang)) setLang(urlLang)
+    const storedChildId = typeof window !== 'undefined'
+      ? (sessionStorage.getItem('selectedChildId') ?? '')
+      : ''
+    setChildId(storedChildId)
     // Pick a random session
     setSession(getRandomSession())
   }, [])
@@ -32,7 +37,6 @@ function CognitiveInner() {
   function handleComplete({ score, total, results = [] }) {
     // Save result to backend
     const sessionId = searchParams.get('session') ?? 'offline'
-    const childId = searchParams.get('child') ?? ''
     const contentResponses = results.map((r) => ({
       taskId: r.taskId,
       answer: 'a',

@@ -26,7 +26,7 @@ async function apiFetch(path, options = {}) {
 export async function startSession(childId) {
   return apiFetch('/api/session/start', {
     method: 'POST',
-    body: JSON.stringify({ childId }),
+    body: JSON.stringify({ child_id: childId }),
   })
 }
 
