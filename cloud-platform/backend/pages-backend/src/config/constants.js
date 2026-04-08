@@ -22,6 +22,14 @@ const parseOrigins = (value) => {
     .filter(Boolean);
 };
 
+const parseBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === '') {
+    return defaultValue;
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+};
+
 export default {
 
   // ── Server ──────────────────────────────────────────────────────────────────
@@ -100,6 +108,7 @@ export default {
     'http://localhost:3000',     // Development
     'http://127.0.0.1:3000',
   ].filter((origin, index, origins) => origins.indexOf(origin) === index),
+  ALLOW_VERCEL_PREVIEWS: parseBoolean(process.env.ALLOW_VERCEL_PREVIEWS, true),
 
   // ── Gate decision labels ────────────────────────────────────────────────────
   GATE: {

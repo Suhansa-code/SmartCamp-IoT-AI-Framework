@@ -13,6 +13,26 @@ import syncRoutes from './routes/sync.js';
 
 const app = express();
 
+const isAllowedOrigin = (origin) => {
+  if (C.CORS_ORIGINS.includes(origin)) {
+    return true;
+  }
+
+  if (!C.ALLOW_VERCEL_PREVIEWS) {
+    return false;
+  }
+
+  try {
+    const parsedOrigin = new URL(origin);
+    return (
+      parsedOrigin.protocol === 'https:'
+      && /(^|\.)vercel\.app$/i.test(parsedOrigin.hostname)
+    );
+  } catch {
+    return false;
+  }
+};
+
 //Security headers
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -23,7 +43,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (server-to-server, curl, Postman in dev)
     if (!origin) return callback(null, true);
-    if (C.CORS_ORIGINS.includes(origin)) return callback(null, true);
+    if (isAllowedOrigin(origin)) return callback(null, true);
     logger.warn(`[CORS] Blocked origin: ${origin}`);
     callback(new Error(`CORS blocked: ${origin}`));
   },
