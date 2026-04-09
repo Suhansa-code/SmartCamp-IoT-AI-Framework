@@ -3,11 +3,73 @@
 import path from 'path';
 import fs from 'fs';
 import Database from 'better-sqlite3';
-import { createClient } from '@libsql/client';
+import { Pool } from 'pg';
 import logger from '../utils/logger.js';
 import C from './constants.js';
 
-// ── SQLite — initialise and apply schema ──────────────────────────────────────
+function migrateSelectedAnswerConstraint(db) {
+  const row = db.prepare(`
+    SELECT sql
+    FROM sqlite_master
+    WHERE type = 'table' AND name = 'pages_content_responses'
+  `).get();
+
+  if (!row?.sql) return;
+
+  const hasLegacyConstraint = row.sql.includes("selected_answer IN ('a', 'b', 'c')");
+  if (!hasLegacyConstraint) return;
+
+  const migrate = db.transaction(() => {
+    db.exec(`
+      ALTER TABLE pages_content_responses RENAME TO pages_content_responses_legacy;
+
+      CREATE TABLE pages_content_responses (
+        response_id       TEXT PRIMARY KEY,
+        session_id        TEXT NOT NULL REFERENCES pages_sessions(session_id),
+        child_id          TEXT NOT NULL REFERENCES pages_children(child_id),
+        task_id           TEXT NOT NULL,
+        selected_answer   TEXT NOT NULL,
+        is_correct        INTEGER NOT NULL CHECK (is_correct IN (0, 1)),
+        time_taken_ms     INTEGER NOT NULL,
+        responded_at      TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes')),
+        synced            INTEGER NOT NULL DEFAULT 0
+      );
+
+      INSERT INTO pages_content_responses (
+        response_id,
+        session_id,
+        child_id,
+        task_id,
+        selected_answer,
+        is_correct,
+        time_taken_ms,
+        responded_at,
+        synced
+      )
+      SELECT
+        response_id,
+        session_id,
+        child_id,
+        task_id,
+        selected_answer,
+        is_correct,
+        time_taken_ms,
+        responded_at,
+        synced
+      FROM pages_content_responses_legacy;
+
+      DROP TABLE pages_content_responses_legacy;
+
+      CREATE INDEX IF NOT EXISTS idx_responses_session ON pages_content_responses(session_id);
+      CREATE INDEX IF NOT EXISTS idx_responses_synced  ON pages_content_responses(synced);
+    `);
+  });
+
+  migrate();
+  logger.info('[DB] Migrated pages_content_responses selected_answer constraint');
+}
+
+// SQLite — initialise and apply schema 
 
 // Ensure the database directory exists
 const dbDir = path.dirname(path.resolve(C.SQLITE_PATH));
@@ -38,6 +100,7 @@ try {
   if (fs.existsSync(schemaPath)) {
     const schema = fs.readFileSync(schemaPath, 'utf8');
     db.exec(schema);
+    migrateSelectedAnswerConstraint(db);
     logger.info('[DB] SQLite schema applied successfully');
   } else {
     logger.warn('[DB] schema.sql not found — tables may not exist');
@@ -49,4 +112,61 @@ try {
   process.exit(1);
 }
 
-export { db };
+// PostgreSQL — lazy pool 
+// The pool is created once but connections only attempted when actually used.
+// If RDS is unreachable, pg will log errors but not crash the process.
+
+const pgPool = new Pool({
+  host:               C.AWS_RDS_HOST,
+  port:               C.AWS_RDS_PORT,
+  database:           C.AWS_RDS_DB,
+  user:               C.AWS_RDS_USER,
+  password:           C.AWS_RDS_PASSWORD,
+  max:                5,             // small pool — RPi has limited connections
+  idleTimeoutMillis:  30000,
+  connectionTimeoutMillis: 5000,
+  ssl: C.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : false,
+});
+
+pgPool.on('error', (err) => {
+  logger.warn(`[DB] PostgreSQL pool error (offline?): ${err.message}`);
+});
+
+// Helpers 
+
+/**
+ * Test whether PostgreSQL is reachable.
+ * Used by connectivity service.
+ * @returns {Promise<boolean>}
+ */
+async function pgIsReachable() {
+  if (!C.AWS_RDS_HOST) return false;
+  try {
+    const client = await pgPool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Execute a query on PostgreSQL.
+ * Throws if unavailable — caller must catch.
+ * @param {string} text
+ * @param {Array}  params
+ */
+async function pgQuery(text, params = []) {
+  const client = await pgPool.connect();
+  try {
+    const result = await client.query(text, params);
+    return result;
+  } finally {
+    client.release();
+  }
+}
+
+export { db, pgPool, pgIsReachable, pgQuery };

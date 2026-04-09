@@ -3,7 +3,7 @@ import { createError } from '../middleware/errorHandler.js';
 import * as syncService from '../services/syncService.js';
 import * as connectivityService from '../services/connectivityService.js';
  
-// ── POST /api/sync/trigger ────────────────────────────────────────────────────
+// POST /api/sync/trigger 
  
 async function triggerSync(req, res, next) {
   try {
@@ -38,7 +38,7 @@ async function triggerSync(req, res, next) {
   }
 }
  
-// ── GET /api/sync/status ──────────────────────────────────────────────────────
+//  GET /api/sync/status 
  
 function getSyncStatus(req, res, next) {
   try {

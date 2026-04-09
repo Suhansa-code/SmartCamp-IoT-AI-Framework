@@ -26,4 +26,7 @@ router.post('/complete', validateSessionComplete, ctrl.completeSession);
 // GET /api/session/content/:childId
 router.get('/content/:childId', ctrl.getContentSession);
 
+// GET /api/session/recent/:childId
+router.get('/recent/:childId', ctrl.getRecentSessions);
+
 export default router;

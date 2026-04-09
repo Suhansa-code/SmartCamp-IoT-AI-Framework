@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-// ── Shared style helpers ──────────────────────────────────────────────────────
+// Shared style helpers 
 const Q_STYLE = {
   fontFamily: "'Baloo 2', cursive",
   fontSize:   'clamp(1.15rem, 4.5vw, 1.5rem)',
@@ -45,9 +45,8 @@ function feedbackStyle(state) {
   return OPTION_BASE
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // MCQ — 4 options, tap correct
-// ═══════════════════════════════════════════════════════════════════════════════
 function MCQTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -57,7 +56,7 @@ function MCQTask({ task, lang, onAnswer }) {
     setLocked(true)
     setSelected(idx)
     const correct = idx === task.answer
-    setTimeout(() => onAnswer(correct), 900)
+    setTimeout(() => onAnswer({ isCorrect: correct, selectedAnswer: String(idx) }), 900)
   }
 
   const options = task.options[lang] ?? task.options['en']
@@ -86,25 +85,25 @@ function MCQTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // FILL_BLANK — sentence with gap, 3 word choices
-// ═══════════════════════════════════════════════════════════════════════════════
 function FillBlankTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
 
-  const choices = task.blank_choices[lang] ?? task.blank_choices['en']
-  const question = task.question[lang] ?? task.question['en']
+  const choiceSource = task.blank_choices ?? task.options ?? {}
+  const choices = choiceSource[lang] ?? choiceSource['en'] ?? []
+  const questionSource = task.question ?? {}
+  const question = questionSource[lang] ?? questionSource['en'] ?? ''
 
   function pick(idx) {
     if (locked) return
     setLocked(true)
     setSelected(idx)
-    setTimeout(() => onAnswer(idx === task.answer), 900)
+    setTimeout(() => onAnswer({ isCorrect: idx === task.answer, selectedAnswer: String(idx) }), 900)
   }
 
   // Replace ___ with selected word or highlighted blank
-  const displayQ = question.replace('___',
+  const displayQ = String(question).replace('___',
     selected !== null
       ? `[${choices[selected]}]`
       : '[ _____ ]'
@@ -127,9 +126,7 @@ function FillBlankTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TRUE_FALSE — tap True or False button
-// ═══════════════════════════════════════════════════════════════════════════════
 function TrueFalseTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -142,7 +139,7 @@ function TrueFalseTask({ task, lang, onAnswer }) {
     if (locked) return
     setLocked(true)
     setSelected(val)
-    setTimeout(() => onAnswer(val === task.answer), 900)
+    setTimeout(() => onAnswer({ isCorrect: val === task.answer, selectedAnswer: String(val) }), 900)
   }
 
   function btnStyle(val) {
@@ -165,9 +162,7 @@ function TrueFalseTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // COUNT — show N emoji, pick the number
-// ═══════════════════════════════════════════════════════════════════════════════
 function CountTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -176,7 +171,7 @@ function CountTask({ task, lang, onAnswer }) {
     if (locked) return
     setLocked(true)
     setSelected(idx)
-    setTimeout(() => onAnswer(idx === task.answer), 900)
+    setTimeout(() => onAnswer({ isCorrect: idx === task.answer, selectedAnswer: String(idx) }), 900)
   }
 
   const options = task.options[lang] ?? task.options['en']
@@ -207,9 +202,7 @@ function CountTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // PATTERN — show sequence with ?, pick next item
-// ═══════════════════════════════════════════════════════════════════════════════
 function PatternTask({ task, lang, onAnswer }) {
   const [selected, setSelected] = useState(null)
   const [locked,   setLocked]   = useState(false)
@@ -218,7 +211,7 @@ function PatternTask({ task, lang, onAnswer }) {
     if (locked) return
     setLocked(true)
     setSelected(idx)
-    setTimeout(() => onAnswer(idx === task.answer), 900)
+    setTimeout(() => onAnswer({ isCorrect: idx === task.answer, selectedAnswer: String(idx) }), 900)
   }
 
   const options = task.options[lang] ?? task.options['en']
@@ -249,9 +242,7 @@ function PatternTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // SORT_ORDER — tap items in correct order
-// ═══════════════════════════════════════════════════════════════════════════════
 function SortOrderTask({ task, lang, onAnswer }) {
   const words          = task.words[lang] ?? task.words['en']
   const correctOrder   = task.correct_order[lang] ?? task.correct_order['en']
@@ -268,7 +259,7 @@ function SortOrderTask({ task, lang, onAnswer }) {
       setLocked(true)
       const correct = newTapped.every((w, i) => w === correctOrder[i])
       setShowResult(correct)
-      setTimeout(() => onAnswer(correct), 1000)
+      setTimeout(() => onAnswer({ isCorrect: correct, selectedAnswer: newTapped.join(' ') }), 1000)
     }
   }
 
@@ -302,9 +293,7 @@ function SortOrderTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MATCH — tap a left item then tap its right pair
-// ═══════════════════════════════════════════════════════════════════════════════
 function MatchTask({ task, lang, onAnswer }) {
   const pairs = task.pairs
   const [shuffledEmoji] = useState(() => [...pairs].sort(() => Math.random() - 0.5))
@@ -330,7 +319,7 @@ function MatchTask({ task, lang, onAnswer }) {
       setSelectedWord(null)
       if (newMatched.length === pairs.length) {
         setLocked(true)
-        setTimeout(() => onAnswer(true), 800)
+        setTimeout(() => onAnswer({ isCorrect: true, selectedAnswer: 'matched_all' }), 800)
       }
     } else {
       setWrongPair({ word: selectedWord, emoji: shuffledIdx })
@@ -381,9 +370,7 @@ function MatchTask({ task, lang, onAnswer }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Main dispatcher
-// ═══════════════════════════════════════════════════════════════════════════════
 export default function TaskRenderer({ task, lang, onAnswer }) {
   // Reset state when task changes
   const [key, setKey] = useState(task.id)

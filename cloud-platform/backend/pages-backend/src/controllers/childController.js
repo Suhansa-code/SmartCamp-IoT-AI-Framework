@@ -1,17 +1,13 @@
+'use strict';
+
 import { db } from '../config/database.js';
 import { tursoInsert, tursoUpdate, tursoRetrieve, tursoGetLastChildId } from '../config/tursoConfig.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
-import { newId, nextChildId, enqueue } from '../utils/helpers.js';
+import { nextChildId, enqueue , nowISO } from '../utils/helpers.js';
 import { createError } from '../middleware/errorHandler.js';
 import { checkResId } from '../config/tursoConfig.js';
- 
-/**
- * POST /api/child/enrol
- *
- * Creates a new child record, or returns existing if already enrolled.
- * Child ID format: camp prefix + sequential number (e.g. "B-001").
- */
+
 function enrolChild(req, res, next) {
   try {
     const {
@@ -62,10 +58,10 @@ function enrolChild(req, res, next) {
     const insertChild = db.transaction(() => {
       db.prepare(`
         INSERT INTO pages_children
-          (child_id, res_id, grade, camp_id, zone_id, language)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(childId, res_id.trim(), Number(grade), campId, zone_id, language);
-
+          (child_id, res_id, grade, camp_id, zone_id, language, enrolled_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(childId, res_id.trim(), Number(grade), campId, zone_id, language, nowISO());
+ 
       enqueue('pages_children', childId, 'INSERT');
     });
  

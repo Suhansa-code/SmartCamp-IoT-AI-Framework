@@ -50,8 +50,8 @@ async function startSession(req, res, next) {
     // db.prepare(`
     //     INSERT INTO pages_sessions
     //       (session_id, child_id, session_date, session_time,
-    //        condition_label, baseline_score_used)
-    //     VALUES (?, ?, ?, ?, ?, ?)
+    //        condition_label, baseline_score_used, created_at)
+    //     VALUES (?, ?, ?, ?, ?, ?, ?)
     //   `).run(
     //     sessionId,
     //     child_id,
@@ -59,6 +59,7 @@ async function startSession(req, res, next) {
     //     sessionTime,
     //     condition,
     //     child.baseline_score,
+    //     nowISO()
     //   );
 
 
@@ -69,6 +70,7 @@ async function startSession(req, res, next) {
       session_time: sessionTime,
       condition_label: condition,
       baseline_score_used: child.baseline_score,
+      created_at: nowISO()
     });
  
     logger.info(
@@ -105,6 +107,15 @@ async function taskComplete(req, res, next) {
         `).get(session_id);
         if (!session) return next(createError(404, `Session not found: ${session_id}`));
         */
+
+        // TursoDB - Verify session exists - #delete when implementing
+        const sessionRows = await tursoRetrieve(
+          'pages_sessions','session_id, child_id, baseline_score_used',
+          'session_id = ?',
+          [session_id]
+        );
+        const session = sessionRows[0]
+        if (!session) return next(createError(404, `Session not found: ${session_id}`));
     
         //Create Sample taskmetrics and passiveSignals - #Delete when implementing
         // const taskMetricsSample = {
@@ -320,9 +331,9 @@ async function secondGate(req, res, next) {
       // Write gate decision (attempt 2)
       // db.prepare(`
       //   INSERT INTO pages_gate_decisions
-      //     (decision_id, session_id, child_id, attempt_number, composite_score, decision)
-      //   VALUES (?, ?, ?, 2, ?, ?)
-      // `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+      //     (decision_id, session_id, child_id, attempt_number, composite_score, decision, decided_at)
+      //   VALUES (?, ?, ?, 2, ?, ?, ?)
+      // `).run(decisionId, session_id, child_id, compositeScore, gateDecision, nowISO());
 
       // TursoDB - Insert second gate decision record - #delete when implementing
       await tursoInsert('pages_gate_decisions', {
@@ -332,6 +343,7 @@ async function secondGate(req, res, next) {
         attempt_number: 2,
         composite_score: compositeScore,
         decision: gateDecision,
+        decided_at: nowISO(),
       });
  
       // If FAIL_CONFIRMED — increment consecutive_low
@@ -412,8 +424,8 @@ async function completeSession(req, res, next) {
       // 1. Save content responses
       // const insertResponse = db.prepare(`
       //   INSERT INTO pages_content_responses
-      //     (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms)
-      //   VALUES (?, ?, ?, ?, ?, ?, ?)
+      //     (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms,responded_at)
+      //   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       // `);
 
       // TursoDB - Insert content responses - #delete when implementing
@@ -425,6 +437,7 @@ async function completeSession(req, res, next) {
         selected_answer: 'A',
         is_correct: 1,
         time_taken_ms: 1500,
+        responded_at: nowISO(),
       });
 
  
@@ -438,6 +451,7 @@ async function completeSession(req, res, next) {
           selected_answer: r.answer,
           is_correct: r.isCorrect ? 1 : 0,
           time_taken_ms: r.timeTakenMs || 0,
+          responded_at: nowISO(),
         };
         insertResponse.run(
           row.response_id,
@@ -447,6 +461,7 @@ async function completeSession(req, res, next) {
           row.selected_answer,
           row.is_correct,
           row.time_taken_ms,
+          row.responded_at
         );
         contentRowsToSync.push(row);
         enqueue('pages_content_responses', responseId, 'INSERT');
@@ -518,7 +533,47 @@ async function completeSession(req, res, next) {
   }
 }
  
-//GET /api/session/content/:childId 
+// GET /api/session/recent/:childId
+// Returns last 3 sessions with their condition_label to avoid repetition
+
+async function getRecentSessions(req, res, next) {
+  try {
+    const { childId } = req.params;
+
+    // const recent = db.prepare(`
+    //   SELECT session_id, condition_label, session_date, created_at
+    //   FROM   pages_sessions
+    //   WHERE  child_id = ?
+    //   ORDER  BY created_at DESC
+    //   LIMIT  3
+    // `).all(childId);
+
+    // TursoDB - Get recent sessions for child - #delete when implementing
+    const recent = await tursoRetrieve(
+      'pages_sessions',
+      'session_id, condition_label, session_date, created_at',
+      'child_id = ? ORDER BY created_at DESC LIMIT 3',
+      [childId]
+    );
+
+    logger.info(
+      `[SESSION] Recent sessions retrieved for child ${childId}: ` +
+      `${recent.map(r => r.condition_label).join(',')}`
+    );
+
+    return res.json({
+      success:          true,
+      recent_sessions:  recent,
+      recent_labels:    recent.map(r => r.condition_label),
+    });
+
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/session/content/:childId 
+
 async function getContentSession(req, res, next) {
   try {
     const { childId } = req.params;
@@ -718,5 +773,6 @@ export {
   secondGate,
   completeSession,
   getContentSession,
-  tursoDBupdatesample
+  tursoDBupdatesample,
+  getRecentSessions
 };

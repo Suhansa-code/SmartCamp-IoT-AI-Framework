@@ -1,7 +1,11 @@
+'use strict';
 import cron from 'node-cron';
 import logger from '../utils/logger.js';
 import C from '../config/constants.js';
 import { pgIsReachable } from '../config/tursoConfig.js';
+import { runSync } from './syncService.js';
+import { nowISO } from '../utils/helpers.js';
+
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let _isOnline      = false;
@@ -13,7 +17,7 @@ let _lastCheckTime = null;
  * Check connectivity and trigger sync if appropriate.
  */
 async function checkAndSync() {
-  _lastCheckTime = new Date().toISOString();
+  _lastCheckTime = nowISO();
 
   const online = await pgIsReachable();
   _isOnline = online;
@@ -32,11 +36,8 @@ async function checkAndSync() {
 
   _syncRunning = true;
   try {
-    // Lazy-load syncService to break circular dependency
-    // (syncService uses db, connectivityService is used by syncService)
-    const { runSync } = await import('./syncService.js');
     const result = await runSync();
-    _lastSyncTime = new Date().toISOString();
+    _lastSyncTime = nowISO();
     logger.info(
       `[CONNECTIVITY] Sync complete: ${result.recordsPushed} records pushed, ` +
       `${result.modelsPulled} models pulled`

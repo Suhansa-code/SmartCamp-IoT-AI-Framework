@@ -10,6 +10,7 @@ import childRoutes from './routes/child.js';
 import sessionRoutes from './routes/session.js';
 import dashboardRoutes from './routes/dashboard.js';
 import syncRoutes from './routes/sync.js';
+import { nowISO } from './utils/helpers.js';
 
 const app = express();
 
@@ -33,12 +34,12 @@ const isAllowedOrigin = (origin) => {
   }
 };
 
-//Security headers
+// Security headers 
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-//CORS
+// Flask is on localhost — it does not hit these routes.
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (server-to-server, curl, Postman in dev)
@@ -52,11 +53,11 @@ app.use(cors({
   credentials: true,
 }));
 
-//Body parsers
+// Body parsers 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-//Request logger
+// Request logger 
 app.use((req, _res, next) => {
   logger.debug(`→ ${req.method} ${req.originalUrl}`);
   next();
@@ -76,11 +77,11 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     device: C.DEVICE_ID,
     camp:   C.CAMP_ID,
-    time:   new Date().toISOString(),
+    time:   nowISO(),
   });
 });
 
-// ── Routes ────────────────────────────────────────────────────────────────────
+// Routes 
 // Child-facing (no auth)
 app.use('/api/child',childRoutes);
 app.use('/api/session', sessionRoutes);
@@ -92,7 +93,7 @@ app.use('/api',dashboardRoutes);
 // Sync (internal, no external auth)
 app.use('/api/sync',syncRoutes);
 
-// ── 404 + error handler ───────────────────────────────────────────────────────
+// 404 + error handler 
 app.use(notFound);
 app.use(errorHandler);
 
