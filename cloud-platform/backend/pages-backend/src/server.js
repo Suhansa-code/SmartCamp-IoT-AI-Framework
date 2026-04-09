@@ -6,8 +6,7 @@ import app from './app.js';
 import C from './config/constants.js';
 import logger from './utils/logger.js';
 import { startConnectivityWatcher } from './services/connectivityService.js';
-import connectivityService from './services/connectivityService.js';
-import scoringService from './services/scoringService.js';
+import { checkFlaskHealth } from './services/scoringService.js';
 
 const PORT = C.PORT;
 
@@ -29,7 +28,7 @@ function startServer() {
     logger.info('════════════════════════════════════════════');
 
      // Check Flask health at startup
-    const flaskHealthy = await scoringService.checkFlaskHealth();
+    const flaskHealthy = await checkFlaskHealth();
     if (flaskHealthy) {
       logger.info(`[FLASK] Connected to ${C.FLASK_URL}`);
     } else {
