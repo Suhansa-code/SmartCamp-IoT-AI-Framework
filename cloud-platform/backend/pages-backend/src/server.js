@@ -6,6 +6,8 @@ import app from './app.js';
 import C from './config/constants.js';
 import logger from './utils/logger.js';
 import { startConnectivityWatcher } from './services/connectivityService.js';
+import connectivityService from './services/connectivityService.js';
+import scoringService from './services/scoringService.js';
 
 const PORT = C.PORT;
 
@@ -16,7 +18,7 @@ const MAX_RETRIES = 5;
 function startServer() {
   logger.info(`[SERVER] Starting server on port ${PORT}... (attempt ${startAttempt + 1}/${MAX_RETRIES})`);
   
-  const server = app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', async() => {
     logger.info('════════════════════════════════════════════');
     logger.info('  PAGES Backend — Eli\'s World');
     logger.info(`  Device:  ${C.DEVICE_ID}`);
@@ -25,6 +27,14 @@ function startServer() {
     logger.info(`  Env:     ${C.NODE_ENV}`);
     logger.info(`  Gate:    composite >= ${C.GATE_THRESHOLD} → PASS`);
     logger.info('════════════════════════════════════════════');
+
+     // Check Flask health at startup
+    const flaskHealthy = await scoringService.checkFlaskHealth();
+    if (flaskHealthy) {
+      logger.info(`[FLASK] Connected to ${C.FLASK_URL}`);
+    } else {
+      logger.warn(`[FLASK] Warning: ${C.FLASK_URL} is unreachable — fallback scoring will be used`);
+    }
 
     // Start the connectivity watcher after server is listening
     startConnectivityWatcher();
@@ -44,11 +54,9 @@ function startServer() {
 
   return server;
 }
-
 const server = startServer();
 
 //  Graceful shutdown
-
 function shutdown(signal) {
   logger.info(`[SERVER] Received ${signal} — shutting down gracefully`);
   server.close(() => {

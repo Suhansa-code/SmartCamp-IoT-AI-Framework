@@ -21,8 +21,12 @@ async function startSession(req, res, next) {
       condition_label = 'A',
     } = req.body;
  
-    logger.info(`[SESSION] Starting session for child_id: ${child_id} with condition: ${condition_label}`);
-
+    // Verify Flask is healthy before allowing session start
+    const flaskHealthy = await scoringService.checkFlaskHealth();
+    if (!flaskHealthy) {
+      return next(createError(503, 'Flask ML service is unavailable — cannot start session'));
+    }
+ 
     // Fetch child to get baseline + grade
     // const child = db.prepare(`
     //   SELECT child_id, grade, language, total_sessions, baseline_score

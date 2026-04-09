@@ -1,0 +1,212 @@
+{
+  "sessions": {
+    "B-005": [
+      {
+        "composite": 84.55,
+        "task": 74.25,
+        "passive": 100.0,
+        "ts": "2026-04-09T12:55:23.580201"
+      },
+      {
+        "composite": 85.22,
+        "task": 75.36,
+        "passive": 100.0,
+        "ts": "2026-04-09T12:58:23.544462"
+      },
+      {
+        "composite": 84.05,
+        "task": 73.41,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:01:27.146860"
+      }
+    ],
+    "B-002": [
+      {
+        "composite": 84.47,
+        "task": 74.12,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:25:22.012544"
+      },
+      {
+        "composite": 85.0,
+        "task": 75.0,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:34:59.740039"
+      },
+      {
+        "composite": 83.94,
+        "task": 73.23,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:38:01.298080"
+      },
+      {
+        "composite": 85.0,
+        "task": 75.0,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:41:09.327873"
+      }
+    ],
+    "B-006": [
+      {
+        "composite": 86.67,
+        "task": 77.78,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:44:07.613954"
+      },
+      {
+        "composite": 85.31,
+        "task": 75.51,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:46:30.606542"
+      },
+      {
+        "composite": 84.33,
+        "task": 73.89,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:49:03.126791"
+      },
+      {
+        "composite": 83.78,
+        "task": 73.82,
+        "passive": 98.71,
+        "ts": "2026-04-09T13:51:41.960591"
+      },
+      {
+        "composite": 86.27,
+        "task": 77.12,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:54:19.690290"
+      },
+      {
+        "composite": 80.61,
+        "task": 67.69,
+        "passive": 100.0,
+        "ts": "2026-04-09T13:56:53.970581"
+      },
+      {
+        "composite": 80.08,
+        "task": 77.01,
+        "passive": 98.57,
+        "raw_signals": {
+          "task_metrics": {
+            "accuracyRate": 1,
+            "falseTapRate": 0,
+            "avgReactionTime": 426,
+            "reactionVariance": 13076
+          },
+          "passive_signals": {
+            "idleTimeRatio": 0,
+            "rapidClickCount": 0,
+            "timeToFirstMs": 716,
+            "completionRatio": 1
+          }
+        },
+        "ts": "2026-04-09T14:33:25.232745"
+      }
+    ],
+    "B-007": [
+      {
+        "composite": 78.36,
+        "task": 73.33,
+        "passive": 98.97,
+        "raw_signals": {
+          "task_metrics": {
+            "accuracyRate": 1,
+            "falseTapRate": 0.14285714285714285,
+            "avgReactionTime": 394,
+            "reactionVariance": 5176
+          },
+          "passive_signals": {
+            "idleTimeRatio": 0,
+            "rapidClickCount": 0,
+            "timeToFirstMs": 516,
+            "completionRatio": 1
+          }
+        },
+        "ts": "2026-04-09T14:37:43.527578"
+      },
+      {
+        "composite": 78.28,
+        "task": 72.97,
+        "passive": 99.3,
+        "raw_signals": {
+          "task_metrics": {
+            "accuracyRate": 1,
+            "falseTapRate": 0.14285714285714285,
+            "avgReactionTime": 413,
+            "reactionVariance": 10819
+          },
+          "passive_signals": {
+            "idleTimeRatio": 0,
+            "rapidClickCount": 0,
+            "timeToFirstMs": 348,
+            "completionRatio": 1
+          }
+        },
+        "ts": "2026-04-09T14:40:26.614087"
+      },
+      {
+        "composite": 80.11,
+        "task": 76.73,
+        "passive": 99.15,
+        "raw_signals": {
+          "task_metrics": {
+            "accuracyRate": 1,
+            "falseTapRate": 0,
+            "avgReactionTime": 441,
+            "reactionVariance": 6415
+          },
+          "passive_signals": {
+            "idleTimeRatio": 0,
+            "rapidClickCount": 0,
+            "timeToFirstMs": 424,
+            "completionRatio": 1
+          }
+        },
+        "ts": "2026-04-09T14:43:07.659855"
+      }
+    ],
+    "B-008": [
+      {
+        "composite": 83.11,
+        "task": 71.85,
+        "passive": 100.0,
+        "ts": "2026-04-09T14:50:36.475666"
+      },
+      {
+        "composite": 83.66,
+        "task": 72.76,
+        "passive": 100.0,
+        "ts": "2026-04-09T14:53:06.179473"
+      },
+      {
+        "composite": 84.71,
+        "task": 74.51,
+        "passive": 100.0,
+        "ts": "2026-04-09T14:55:29.214940"
+      },
+      {
+        "composite": 35.93,
+        "task": 13.87,
+        "passive": 69.03,
+        "ts": "2026-04-09T15:01:21.567891"
+      },
+      {
+        "composite": 41.93,
+        "task": 20.42,
+        "passive": 74.19,
+        "ts": "2026-04-09T15:03:12.889113"
+      },
+      {
+        "composite": 84.93,
+        "task": 74.89,
+        "passive": 100.0,
+        "ts": "2026-04-09T15:18:48.433732"
+      }
+    ]
+  },
+  "baselines": {
+    "B-008": 65.0
+  },
+  "saved_at": "2026-04-09T15:18:48.433732"
+}
