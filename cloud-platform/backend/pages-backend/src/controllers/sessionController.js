@@ -536,7 +536,7 @@ async function completeSession(req, res, next) {
 // GET /api/session/recent/:childId
 // Returns last 3 sessions with their condition_label to avoid repetition
 
-function getRecentSessions(req, res, next) {
+async function getRecentSessions(req, res, next) {
   try {
     const { childId } = req.params;
 
@@ -574,7 +574,7 @@ function getRecentSessions(req, res, next) {
 
 // GET /api/session/content/:childId 
 
-function getContentSession(req, res, next) {
+async function getContentSession(req, res, next) {
   try {
     const { childId } = req.params;
  

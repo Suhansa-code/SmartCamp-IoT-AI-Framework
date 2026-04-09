@@ -3,7 +3,8 @@ import cron from 'node-cron';
 import logger from '../utils/logger.js';
 import C from '../config/constants.js';
 import { pgIsReachable } from '../config/tursoConfig.js';
-import { nowISO } from '../utils/helpers';
+import { runSync } from './syncService.js';
+import { nowISO } from '../utils/helpers.js';
 
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -35,8 +36,7 @@ async function checkAndSync() {
 
   _syncRunning = true;
   try {
-    const syncService = getSyncService();
-    const result = await syncService.runSync();
+    const result = await runSync();
     _lastSyncTime = nowISO();
     logger.info(
       `[CONNECTIVITY] Sync complete: ${result.recordsPushed} records pushed, ` +

@@ -10,7 +10,7 @@ import childRoutes from './routes/child.js';
 import sessionRoutes from './routes/session.js';
 import dashboardRoutes from './routes/dashboard.js';
 import syncRoutes from './routes/sync.js';
-import { nowISO } from './utils/helpers';
+import { nowISO } from './utils/helpers.js';
 
 const app = express();
 

@@ -3,7 +3,7 @@
 import path from 'path';
 import fs from 'fs';
 import Database from 'better-sqlite3';
-import { createClient } from '@libsql/client';
+import { Pool } from 'pg';
 import logger from '../utils/logger.js';
 import C from './constants.js';
 
@@ -169,4 +169,4 @@ async function pgQuery(text, params = []) {
   }
 }
 
-module.exports = { db, pgPool, pgIsReachable, pgQuery };
+export { db, pgPool, pgIsReachable, pgQuery };
