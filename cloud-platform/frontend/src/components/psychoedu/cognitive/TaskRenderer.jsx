@@ -59,7 +59,8 @@ function MCQTask({ task, lang, onAnswer }) {
     setTimeout(() => onAnswer({ isCorrect: correct, selectedAnswer: String(idx) }), 900)
   }
 
-  const options = task.options[lang] ?? task.options['en']
+  const optionsSource = task.options ?? {}
+  const options = optionsSource[lang] ?? optionsSource['en'] ?? []
   return (
     <div style={CARD}>
       <p style={Q_STYLE}>{task.question[lang] ?? task.question['en']}</p>
@@ -174,7 +175,8 @@ function CountTask({ task, lang, onAnswer }) {
     setTimeout(() => onAnswer({ isCorrect: idx === task.answer, selectedAnswer: String(idx) }), 900)
   }
 
-  const options = task.options[lang] ?? task.options['en']
+  const optionsSource = task.options ?? {}
+  const options = optionsSource[lang] ?? optionsSource['en'] ?? []
 
   return (
     <div style={CARD}>
@@ -214,7 +216,8 @@ function PatternTask({ task, lang, onAnswer }) {
     setTimeout(() => onAnswer({ isCorrect: idx === task.answer, selectedAnswer: String(idx) }), 900)
   }
 
-  const options = task.options[lang] ?? task.options['en']
+  const optionsSource = task.options ?? {}
+  const options = optionsSource[lang] ?? optionsSource['en'] ?? []
 
   return (
     <div style={CARD}>
