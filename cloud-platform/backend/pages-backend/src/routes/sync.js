@@ -1,8 +1,7 @@
-'use strict';
+import express from 'express';
+import * as ctrl from '../controllers/syncController.js';
 
-const express = require('express');
-const router  = express.Router();
-const ctrl    = require('../controllers/syncController');
+const router = express.Router();
 
 // POST /api/sync/trigger
 router.post('/trigger', ctrl.triggerSync);
@@ -10,4 +9,4 @@ router.post('/trigger', ctrl.triggerSync);
 // GET /api/sync/status
 router.get('/status', ctrl.getSyncStatus);
 
-module.exports = router;
+export default router;

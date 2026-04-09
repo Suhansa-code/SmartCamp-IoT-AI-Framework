@@ -1,11 +1,12 @@
 'use strict';
- 
-const { db }         = require('../config/database');
-const C              = require('../config/constants');
-const logger         = require('../utils/logger');
-const { nextChildId, nowISO, enqueue } = require('../utils/helpers');
-const { createError } = require('../middleware/errorHandler');
- 
+
+import { db } from '../config/database.js';
+import { tursoInsert, tursoUpdate, tursoRetrieve, tursoGetLastChildId } from '../config/tursoConfig.js';
+import C from '../config/constants.js';
+import logger from '../utils/logger.js';
+import { nextChildId, enqueue , nowISO } from '../utils/helpers.js';
+import { createError } from '../middleware/errorHandler.js';
+import { checkResId } from '../config/tursoConfig.js';
 
 function enrolChild(req, res, next) {
   try {
@@ -24,7 +25,23 @@ function enrolChild(req, res, next) {
       WHERE  res_id = ? AND camp_id = ?
       LIMIT  1
     `).get(res_id.trim(), campId);
- 
+
+    //Check data is in turso - #Delete when implementing
+    checkResId(res_id.trim())
+      .then((exists) => {
+        if (!exists) {
+          logger.warn(`[TURSO] res_id not found: ${res_id.trim()}`);
+          // Optionally, you could return an error here instead of enrolling
+          // return res.status(400).json({ success: false, message: 'res_id not found in Turso' });
+        } else {
+          logger.info(`[TURSO] res_id exists: ${res_id.trim()}`);
+        }
+      })
+      .catch((err) => {
+        logger.error(`[TURSO] Error checking res_id: ${err.message}`);
+        // Proceed with enrolment even if Turso check fails
+      });
+
     if (existing) {
       logger.info(`[ENROL] Already enrolled: res_id=${res_id} → child_id=${existing.child_id}`);
       return res.status(200).json({
@@ -49,22 +66,66 @@ function enrolChild(req, res, next) {
     });
  
     insertChild();
- 
-    logger.info(`[ENROL] Enrolled child_id=${childId}, res_id=${res_id}, grade=${grade}, camp=${campId}`);
- 
+
+    // Insert into Turso asynchronously - #delete when implementing
+    tursoInsert("pages_children", {
+      child_id: childId,
+      res_id: res_id.trim(),
+      grade: Number(grade),
+      camp_id: campId,
+      zone_id: zone_id,
+      language: language
+    })
+    .catch((err) => {
+      logger.warn(`[TURSO] Failed to insert child into cloud (async): ${err.message}`);
+      // Non-critical error — local sync will handle it
+    });
+
+    logger.info(`[ENROL] New child enrolled: res_id=${res_id} → child_id=${childId}`);
     return res.status(201).json({
-      success:          true,
-      child_id:         childId,
-      message:          'Child enrolled successfully',
+      success: true,
+      child_id: childId,
+      message: 'Child enrolled successfully',
       already_enrolled: false,
     });
- 
+
+
   } catch (err) {
     next(err);
   }
 }
  
-// Returns child profile. Used by the frontend after QR scan.
+
+async function tursoChildIdTest(req, res, next) {
+  try {
+    // Get Child ID from TursoDB and increase child ID by one after get latest child ID - #Delete when implementing
+    let child_id = await tursoGetLastChildId();
+    const newLastDigit = (parseInt(child_id.split('-').pop(), 10)) + 1;
+    child_id = `TEST-CHILD-${newLastDigit.toString().padStart(6, '0')}`;
+
+    console.log('Generated new child_id for test:', child_id);
+
+    // Insert Child ID into TursoDB - #Delete when implementing
+    await tursoInsert("pages_children", {
+      child_id: child_id,
+      res_id: 'TEST-RES-001',
+      grade: 3,
+      camp_id: 'CAMP-TEST',
+      zone_id: 'ZONE-TEST',
+      language: 'si',
+    });
+
+    return res.json({ success: true, child_id });
+  } catch (err) {
+    logger.error(`[TURSO] Failed to insert child into cloud: ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to insert child into Turso' });
+  }
+}
+/**
+ * GET /api/child/:childId
+ *
+ * Returns child profile. Used by the frontend after QR scan.
+ */
 function getChild(req, res, next) {
   try {
     const { childId } = req.params;
@@ -89,4 +150,4 @@ function getChild(req, res, next) {
   }
 }
  
-module.exports = { enrolChild, getChild };
+export { enrolChild, getChild, tursoChildIdTest };

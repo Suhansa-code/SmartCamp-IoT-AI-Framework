@@ -1,5 +1,24 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+## Environment Setup
+
+1. Copy `.env.example` to `.env.local`.
+2. Set the required value below:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+Optional legacy fallback:
+
+```env
+REACT_APP_API_BASE_URL=http://localhost:3001
+```
+
+Notes:
+- `NEXT_PUBLIC_API_URL` is required for frontend-to-backend API calls.
+- In Next.js, only variables prefixed with `NEXT_PUBLIC_` are exposed to browser code.
+
 ## Getting Started
 
 First, run the development server:

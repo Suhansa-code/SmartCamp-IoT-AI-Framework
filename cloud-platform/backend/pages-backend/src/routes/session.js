@@ -1,19 +1,21 @@
-'use strict';
-
-const express = require('express');
-const router  = express.Router();
-const ctrl    = require('../controllers/sessionController');
-const {
+import express from 'express';
+import * as ctrl from '../controllers/sessionController.js';
+import {
   validateSessionStart,
   validateTaskPayload,
   validateSessionComplete,
-} = require('../middleware/validate');
+} from '../middleware/validate.js';
+
+const router = express.Router();
 
 // POST /api/session/start
 router.post('/start', validateSessionStart, ctrl.startSession);
 
 // POST /api/session/task-complete
-router.post('/task-complete', validateTaskPayload, ctrl.taskComplete);
+router.post('/task-complete', ctrl.taskComplete);
+
+//Test tursoDB updates
+router.post('/turso-test', ctrl.tursoDBupdatesample);
 
 // POST /api/session/second-gate
 router.post('/second-gate', validateTaskPayload, ctrl.secondGate);
@@ -27,4 +29,4 @@ router.get('/content/:childId', ctrl.getContentSession);
 // GET /api/session/recent/:childId
 router.get('/recent/:childId', ctrl.getRecentSessions);
 
-module.exports = router;
+export default router;

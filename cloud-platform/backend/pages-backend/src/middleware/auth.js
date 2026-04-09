@@ -1,8 +1,6 @@
-'use strict';
-
-const jwt    = require('jsonwebtoken');
-const logger = require('../utils/logger');
-const C      = require('../config/constants');
+import jwt from 'jsonwebtoken';
+import logger from '../utils/logger.js';
+import C from '../config/constants.js';
 
 function requireAdmin(req, res, next) {
   const authHeader = req.headers['authorization'] || '';
@@ -32,4 +30,4 @@ function requireAdmin(req, res, next) {
   }
 }
 
-module.exports = { requireAdmin };
+export { requireAdmin };

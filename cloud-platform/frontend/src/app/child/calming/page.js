@@ -4,11 +4,12 @@
 // Mounts BreathingCircle and routes to content when done.
 // Language carried via context — no extra props needed.
 
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLang }   from '@/components/psychoedu/context/LanguageContext'
 import BreathingCircle from '@/components/psychoedu/child/BreathingCircle'
 
-export default function CalmingPage() {
+function CalmingInner() {
   const router   = useRouter()
   const searchParams = useSearchParams()
   const { lang } = useLang()
@@ -21,4 +22,17 @@ export default function CalmingPage() {
   }
 
   return <BreathingCircle onComplete={handleComplete} />
+}
+
+export default function CalmingPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight:'100svh', background:'#F0F9FF', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ width:44, height:44, borderRadius:'50%', border:'5px solid #0D9488', borderTopColor:'transparent', animation:'spin 0.75s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform:rotate(360deg); } }`}</style>
+      </div>
+    }>
+      <CalmingInner />
+    </Suspense>
+  )
 }

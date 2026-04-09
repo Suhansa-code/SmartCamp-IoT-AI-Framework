@@ -1,13 +1,11 @@
-'use strict';
- 
-const jwt     = require('jsonwebtoken');
-const bcrypt  = require('bcryptjs');
-const { db }  = require('../config/database');
-const C       = require('../config/constants');
-const logger  = require('../utils/logger');
-const { newId } = require('../utils/helpers');
-const { createError } = require('../middleware/errorHandler');
-const { getAlerts, resolveAlert } = require('../services/alertService');
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { db } from '../config/database.js';
+import C from '../config/constants.js';
+import logger from '../utils/logger.js';
+import { newId } from '../utils/helpers.js';
+import { createError } from '../middleware/errorHandler.js';
+import { getAlerts, resolveAlert } from '../services/alertService.js';
  
 // ── POST /api/auth/admin/login ─────────────────────────────────────────────────
  
@@ -105,5 +103,5 @@ function resolveAdminAlert(req, res, next) {
   }
 }
  
-module.exports = { adminLogin, getAdminAlerts, resolveAdminAlert };
+export { adminLogin, getAdminAlerts, resolveAdminAlert };
  

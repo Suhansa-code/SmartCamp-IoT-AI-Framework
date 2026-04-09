@@ -1,12 +1,39 @@
 
 'use strict';
+import 'dotenv/config';
 
-require('dotenv').config();
+const firstDefined = (...values) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+};
 
-module.exports = {
+const parseOrigins = (value) => {
+  if (typeof value !== 'string' || !value.trim()) {
+    return [];
+  }
 
-  // ── Server
-  PORT:         parseInt(process.env.PORT, 10)     || 3001,
+  return value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+};
+
+const parseBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === '') {
+    return defaultValue;
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+};
+
+export default {
+
+  // ── Server ──────────────────────────────────────────────────────────────────
+  PORT:         parseInt(process.env.PORT, 10)     || 3002,
   NODE_ENV:     process.env.NODE_ENV               || 'development',
   DEVICE_ID:    process.env.DEVICE_ID              || 'SCB-UNIT-01',
   CAMP_ID:      process.env.CAMP_ID                || 'CAMP-B',
@@ -46,7 +73,21 @@ module.exports = {
   JWT_SECRET:     process.env.JWT_SECRET     || 'CHANGE_THIS_SECRET',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
 
-  // AWS 
+  // ── AWS ─────────────────────────────────────────────────────────────────────
+  TURSO_URL: firstDefined(
+    process.env.TURSO_URL,
+    process.env.TURSO_DATABASE_URL,
+    process.env.LIBSQL_URL,
+    process.env.DATABASE_URL,
+  ),
+  TURSO_AUTH_TOKEN: firstDefined(
+    process.env.TURSO_AUTH_TOKEN,
+    process.env.TURSO_TOKEN,
+    process.env.LIBSQL_AUTH_TOKEN,
+    process.env.DATABASE_AUTH_TOKEN,
+  ),
+
+  // Legacy RDS settings kept for backward compatibility (unused by default)
   AWS_RDS_HOST:     process.env.AWS_RDS_HOST,
   AWS_RDS_PORT:     parseInt(process.env.AWS_RDS_PORT, 10) || 5432,
   AWS_RDS_DB:       process.env.AWS_RDS_DB       || 'pages_db',
@@ -61,10 +102,13 @@ module.exports = {
 
   // CORS allowed origins 
   CORS_ORIGINS: [
+    ...parseOrigins(process.env.CORS_ORIGINS),
+    ...parseOrigins(process.env.FRONTEND_URL),
     'http://192.168.4.1:3000',  // RPi production hotspot
     'http://localhost:3000',     // Development
     'http://127.0.0.1:3000',
-  ],
+  ].filter((origin, index, origins) => origins.indexOf(origin) === index),
+  ALLOW_VERCEL_PREVIEWS: parseBoolean(process.env.ALLOW_VERCEL_PREVIEWS, true),
 
   // Gate decision labels 
   GATE: {

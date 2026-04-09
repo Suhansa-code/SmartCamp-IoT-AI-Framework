@@ -1,7 +1,5 @@
-'use strict';
-
-const logger = require('../utils/logger');
-const C      = require('../config/constants');
+import logger from '../utils/logger.js';
+import C from '../config/constants.js';
 
 /**
  * Apply the first gate (initial task-complete).
@@ -54,4 +52,4 @@ function updateBaseline(oldBaseline, compositeScore) {
   return Math.round(newBaseline * 100) / 100;
 }
 
-module.exports = { applyFirstGate, applySecondGate, updateBaseline };
+export { applyFirstGate, applySecondGate, updateBaseline };
