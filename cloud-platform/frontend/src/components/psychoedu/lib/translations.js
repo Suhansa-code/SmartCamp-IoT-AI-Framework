@@ -1,13 +1,13 @@
 const STRINGS = {
 
-  // ── Language picker ──────────────────────────────────────────────────────────
+  // ── Language picker 
   'lang.heading':    { si: 'ඔබේ භාෂාව තෝරන්න',       ta: 'உங்கள் மொழியை தேர்ந்தெடுக்கவும்', en: 'Choose Your Language' },
   'lang.subheading': { si: 'ඔබට ලේසිම භාෂාව!',         ta: 'உங்களுக்கு எளிதான மொழி!',           en: 'Pick what feels easy!' },
   'lang.sinhala':    { si: 'සිංහල',                      ta: 'சிங்களம்',                            en: 'Sinhala' },
   'lang.tamil':      { si: 'දෙමළ',                       ta: 'தமிழ்',                              en: 'Tamil' },
   'lang.english':    { si: 'ඉංග්‍රීසි',                  ta: 'ஆங்கிலம்',                           en: 'English' },
 
-  // ── Welcome / scan screen ────────────────────────────────────────────────────
+  // ── Welcome / scan screen
   'welcome.badge':          { si: 'PAGES ',                          ta: 'PAGES · நிவாரண முகாம்',                    en: 'PAGES · Relief Camp' },
   'welcome.greeting_1':     { si: 'ආයුබෝවන්! 👋',                   ta: 'வணக்கம்! 👋',                             en: 'Hello! 👋' },
   'welcome.greeting_2':     { si: 'ඔබට සුභ දවසක්! ☀️',             ta: 'நல்ல நாளாக இருக்கட்டும்! ☀️',            en: 'Have a great day! ☀️' },
@@ -22,7 +22,7 @@ const STRINGS = {
   'welcome.err_denied':     { si: 'කැමරා අවසරය ප්‍රතික්ෂේප විය. Settings වලින් අවසර දෙන්න.', ta: 'கேமரா அனுமதி மறுக்கப்பட்டது. அமைப்புகளில் அனுமதி கொடுங்கள்.', en: 'Camera access denied. Please allow camera in Settings.' },
   'welcome.err_unavailable':{ si: 'කැමරාව ලබා ගත නොහැක.',           ta: 'கேமரா கிடைக்கவில்லை.',                    en: 'Camera not available.' },
 
-  // ── Game (Go/No-Go) ──────────────────────────────────────────────────────────
+  // ── Game (Go/No-Go)
   'game.instruction_main':    { si: 'සත්තු බලන්න - සත්තු අල්ලන්න!',                          ta: 'பார்த்தால் — தட்டவும்!',             en: 'See it — Tap it!' },
   'game.instruction_sub':     { si: 'නපුරු සතුන් අල්ලන්න එපා - අහිංසක සත්තු අල්ලන්න', ta: 'நட்பான விலங்குகளை தட்டவும் · மற்றவற்றை தட்டாதீர்கள்', en: 'Tap friendly animals · Ignore others' },
   'game.stop_label':          { si: 'ඉන්න…!',                                             ta: 'நிறுத்து!',                           en: 'STOP!' },
@@ -34,7 +34,7 @@ const STRINGS = {
   'game.no_tap_instruction':  { si: 'නපුරු සත්තු අල්ලන්න එපා!',                  ta: 'பாம்பு / சிலந்தி? தட்டாதீர்கள்!',   en: "Don't tap unfriendly animals!" },
   'game.start_btn':           { si: 'පටන් ගමු !',                          ta: 'விளையாட்டைத் தொடங்க!',              en: 'Start Game!' },
 
-  // ── Animal names ─────────────────────────────────────────────────────────────
+  // ── Animal names 
   'animal.elephant':  { si: 'අලියා',      ta: 'யானை',              en: 'Elephant'   },
   'animal.rabbit':    { si: 'හාවා',       ta: 'முயல்',             en: 'Rabbit'     },
   'animal.butterfly': { si: 'සමනලයා',     ta: 'பட்டாம்பூச்சி',     en: 'Butterfly'  },
@@ -46,7 +46,7 @@ const STRINGS = {
   'animal.spider':    { si: 'මකුළුවා',   ta: 'சிலந்தி',           en: 'Spider'     },
   'animal.crab':      { si: 'කකුළුවා',   ta: 'நண்டு',             en: 'Crab'       },
 
-  // ── Breathing / calming ──────────────────────────────────────────────────────
+  // ── Breathing / calming 
   'breathe.heading':    { si: '🌿 අපි එකට හුස්ම ගමු',  ta: '🌿 சுவாசிப்போம்',              en: "🌿 Let's Breathe Together" },
   'breathe.subheading': { si: 'දිගටම හුස්ම ගන්න',       ta: 'ஆழமாக சுவாசியுங்கள்',           en: 'Take a deep breath' },
   'breathe.in':         { si: 'හුස්ම ගන්න...',            ta: 'உள்ளே சுவாசிக்கவும்…',          en: 'Breathe in...' },
@@ -61,7 +61,7 @@ const STRINGS = {
   'breathe.instruction_text':    { si: 'අපි එකට හුස්ම ගමු ',  ta: 'நீ பயப்படும் போது, உன் உடல் விரைவாக சுவாசிக்கிறது. நாம் ஆழ்ந்த சுவாசம் மூலம் உனை शांत चेय्य முடியும்.',  en: 'Let\'s breathe deeply together.' },
   'breathe.start_btn':           { si: 'හුස්ම ගමු!',                                ta: 'சுவாசிப்போம்!',                      en: 'Start Breathing!' },
             
-  // ── Content cards ────────────────────────────────────────────────────────────
+  // ── Content cards 
   'content.card_1.title': { si: 'ඔයාට දැනෙන දේ වටිනවා ',       ta: 'உங்கள் உணர்வுகள் முக்கியம்',     en: 'Your feelings matter' },
   'content.card_1.body':  { si: 'දුකක්, භයක් දැනෙනවා නම් ඔයා හොදට ම දන්න කෙනෙක් ට කතා කරන්න.', ta: 'சோகம், பயம் அல்லது கவலை உணர்ந்தால் சரிதான். நம்பகமான ஒருவரிடம் சொல்லுங்கள்.', en: "It's OK to feel sad, scared, or worried. Talk to someone you trust - it helps!" },
   'content.card_2.title': { si: 'ඔයා දක්ෂයි!',              ta: 'நீ ஒரு வீரன்!',                   en: 'You are a star!' },

@@ -12,7 +12,7 @@ const PHASES = [
 ]
 const TOTAL_CYCLES = 3
 
-// ── Floating bubble ───────────────────────────────────────────────────────────
+// Floating bubble 
 function Bubble({ style, size = 20, color = 'rgba(167,139,250,0.3)' }) {
   return (
     <div style={{
@@ -27,7 +27,7 @@ function Bubble({ style, size = 20, color = 'rgba(167,139,250,0.3)' }) {
   )
 }
 
-// ── Firefly dot ───────────────────────────────────────────────────────────────
+// Firefly dot 
 function Firefly({ style }) {
   return (
     <div style={{
@@ -42,7 +42,7 @@ function Firefly({ style }) {
   )
 }
 
-// ── Cycle dots ────────────────────────────────────────────────────────────────
+// Cycle dots 
 function CycleDots({ completed, total }) {
   return (
     <div style={{ display:'flex', gap:'0.6rem', justifyContent:'center' }}>
@@ -61,7 +61,7 @@ function CycleDots({ completed, total }) {
   )
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// Main
 export default function BreathingCircle({ onComplete }) {
   const { lang }    = useLang()
   const [phaseIdx,  setPhaseIdx]  = useState(0)
@@ -105,7 +105,7 @@ export default function BreathingCircle({ onComplete }) {
     setCountdown(PHASES[next].dur)
   }
 
-  // ── Done ──────────────────────────────────────────────────────────────────
+  //  Done 
   if (isDone) {
     return (
       <div style={{

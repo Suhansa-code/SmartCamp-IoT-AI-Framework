@@ -5,7 +5,7 @@ const { createError } = require('../middleware/errorHandler');
 const syncService = require('../services/syncService');
 const connectivityService = require('../services/connectivityService');
  
-// ── POST /api/sync/trigger ────────────────────────────────────────────────────
+// POST /api/sync/trigger 
  
 async function triggerSync(req, res, next) {
   try {
@@ -40,7 +40,7 @@ async function triggerSync(req, res, next) {
   }
 }
  
-// ── GET /api/sync/status ──────────────────────────────────────────────────────
+//  GET /api/sync/status 
  
 function getSyncStatus(req, res, next) {
   try {

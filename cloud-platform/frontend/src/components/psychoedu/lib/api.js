@@ -1,7 +1,3 @@
-// lib/api.js — API call functions to Node.js backend
-// All calls go to /api/* (Next.js route handlers proxy to Node.js)
-// Includes offline-safe wrappers with fallback behaviour
-
 const BASE = process.env.REACT_APP_API_BASE_URL ?? 'http://localhost:3001'
 
 async function apiFetch(path, options = {}) {
@@ -19,7 +15,7 @@ async function apiFetch(path, options = {}) {
   return res.json()
 }
 
-// ── Session ───────────────────────────────────────────────
+//Session 
 export async function startSession(childId) {
   return apiFetch('/api/session/start', {
     method: 'POST',
@@ -35,7 +31,7 @@ export async function submitScore(payload) {
   })
 }
 
-// ── Volunteer ─────────────────────────────────────────────
+// Volunteer 
 export async function volunteerLogin(pin) {
   return apiFetch('/api/volunteer/login', {
     method: 'POST',
@@ -51,7 +47,7 @@ export async function fetchVolunteerAlerts() {
   return apiFetch('/api/volunteer/alerts')
 }
 
-// ── Admin ─────────────────────────────────────────────────
+// Admin 
 export async function fetchAllCamps() {
   return apiFetch('/api/admin/camps')
 }

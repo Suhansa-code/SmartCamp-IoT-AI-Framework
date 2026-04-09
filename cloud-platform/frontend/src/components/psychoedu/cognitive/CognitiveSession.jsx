@@ -6,7 +6,7 @@ import { SUBJECT_COLORS, TASK_TYPE_LABELS } from '@/components/psychoedu/lib/ses
 import TaskRenderer  from './TaskRenderer'
 import Eli           from '@/components/psychoedu/child/Eli'
 
-// ── Confetti burst ────────────────────────────────────────────────────────────
+//  Confetti burst 
 const CONFETTI_COLORS = ['#FF6B35','#FFD93D','#FF6B9D','#A855F7','#0D9488','#4ADE80','#60A5FA']
 function ConfettiSystem({ active }) {
   if (!active) return null
@@ -29,7 +29,7 @@ function ConfettiSystem({ active }) {
   )
 }
 
-// ── Star earned animation ─────────────────────────────────────────────────────
+// Star earned animation 
 function StarEarned({ count }) {
   return (
     <div style={{ display:'flex', gap:4, alignItems:'center' }}>
@@ -44,7 +44,7 @@ function StarEarned({ count }) {
   )
 }
 
-// ── Progress trail (adventure map dots) ──────────────────────────────────────
+// Progress trail (adventure map dots) 
 function ProgressTrail({ current, total, results }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:4, justifyContent:'center', flexWrap:'nowrap', overflow:'hidden' }}>
@@ -87,7 +87,7 @@ function ProgressTrail({ current, total, results }) {
   )
 }
 
-// ── Eli cheer bubble ──────────────────────────────────────────────────────────
+// Eli cheer bubble
 const CHEER_MSGS = [
   { si:'ඉතා හොඳයි! 🎉',     ta:'மிகவும் நன்று! 🎉',       en:'Amazing! 🎉' },
   { si:'ඔයා ගොඩක් දක්ෂයි! ⭐',         ta:'நட்சத்திரம்! ⭐',          en:"You're a star! ⭐" },
@@ -127,7 +127,7 @@ function EliCheerBubble({ correct, lang }) {
   )
 }
 
-// ── Subject header colours ────────────────────────────────────────────────────
+// Subject header colours 
 const SUBJECT_GRADIENTS = {
   mathematics: 'linear-gradient(135deg,#0D9488,#14B8A6)',
   sinhala:     'linear-gradient(135deg,#FF6B35,#FFB347)',
@@ -136,7 +136,7 @@ const SUBJECT_GRADIENTS = {
   evs:         'linear-gradient(135deg,#22C55E,#4ADE80)',
 }
 
-// ── Done screen ───────────────────────────────────────────────────────────────
+//Done screen 
 function DoneScreen({ score, total, results, lang, onDone }) {
   const pct = score / total
   const grade = pct >= 0.8 ? { label:{ si:'🏆 ඔයා අද ගොඩක් හොඳයි!', ta:'🏆 சிறந்த வெற்றியாளர்!', en:'🏆 Outstanding champion!' }, color:'#FFD93D' }
@@ -202,7 +202,7 @@ function DoneScreen({ score, total, results, lang, onDone }) {
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// Main component
 export default function CognitiveSession({ session, onComplete }) {
   const { lang } = useLang()
   const [taskIdx,     setTaskIdx]     = useState(0)
@@ -217,11 +217,18 @@ export default function CognitiveSession({ session, onComplete }) {
   const task  = tasks[taskIdx]
   const total = tasks.length
 
-  function handleAnswer(isCorrect) {
+  function handleAnswer(answerPayload) {
+    const isCorrect = typeof answerPayload === 'object'
+      ? !!answerPayload.isCorrect
+      : !!answerPayload
+    const selectedAnswer = typeof answerPayload === 'object'
+      ? answerPayload.selectedAnswer ?? null
+      : null
+
     const newScore = isCorrect ? score + 1 : score
     setScore(newScore)
     setLastCorrect(isCorrect)
-    setResults(r => [...r, { taskId: task.id, subject: task.subject, correct: isCorrect }])
+    setResults(r => [...r, { taskId: task.id, subject: task.subject, correct: isCorrect, selectedAnswer }])
 
     if (isCorrect) {
       setConfetti(true)
@@ -249,7 +256,7 @@ export default function CognitiveSession({ session, onComplete }) {
   const subjGrad   = SUBJECT_GRADIENTS[task?.subject] ?? SUBJECT_GRADIENTS.mathematics
   const typeLabel  = task ? (TASK_TYPE_LABELS[task.type]?.[lang] ?? TASK_TYPE_LABELS[task.type]?.en) : ''
 
-  // ── Cheer screen ──────────────────────────────────────────────────────────
+  // Cheer screen
   if (phase === 'cheer') {
     return (
       <div style={{
@@ -280,7 +287,7 @@ export default function CognitiveSession({ session, onComplete }) {
     )
   }
 
-  // ── Task screen ───────────────────────────────────────────────────────────
+  // Task screen 
   return (
     <div style={{
       minHeight:'100svh', background:'linear-gradient(160deg,#F0F9FF 0%,#E0F7FF 100%)',
@@ -321,8 +328,8 @@ export default function CognitiveSession({ session, onComplete }) {
 
       {/* Eli mini + task type label */}
       <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0 clamp(0.85rem,3vw,1.25rem) 0.25rem', flexShrink:0 }}>
-        <Eli size={32} mood="happy" animated={false} />
-        <span style={{ fontSize:'clamp(0.78rem,2.5vw,0.9rem)', fontWeight:700, color:'#1E3A5F', opacity:0.7, fontFamily:"'Nunito',sans-serif" }}>
+        <Eli size={44} mood="happy" animated={false} />
+        <span style={{ fontSize:'clamp(1.3rem,3.8vw,1.15rem)', fontWeight:900, color:'#1E3A5F', opacity:0.82, fontFamily:"'Nunito',sans-serif" }}>
           {typeLabel}
         </span>
         {eliCheer && <span style={{ fontSize:18, animation:'star-pop 0.3s ease both' }}>✨</span>}

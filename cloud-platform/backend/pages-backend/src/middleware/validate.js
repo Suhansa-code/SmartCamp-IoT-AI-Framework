@@ -88,7 +88,8 @@ function validateSessionComplete(req, res, next) {
 
   for (const r of contentResponses) {
     if (!r.taskId)  return next(createError(400, 'Each response requires taskId'));
-    if (!['a','b','c'].includes(r.answer)) {
+    // Accept any non-empty string as answer (index '0', '1', 'a', 'b', 'c', 'true', 'false', etc.)
+    if (r.answer === null || r.answer === undefined || String(r.answer).trim() === '') {
       return next(createError(400, `Invalid answer value: ${r.answer}`));
     }
     if (typeof r.isCorrect !== 'boolean' && r.isCorrect !== 0 && r.isCorrect !== 1) {

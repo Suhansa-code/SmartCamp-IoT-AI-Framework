@@ -1,7 +1,3 @@
-// CampOverview — summary card for a single camp
-// Used in Admin dashboard grid view
-// Shows: camp name, active children, alert count, status badge
-
 'use client'
 
 import { useRouter } from 'next/navigation'

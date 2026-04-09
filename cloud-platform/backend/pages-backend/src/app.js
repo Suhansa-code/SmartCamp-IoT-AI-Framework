@@ -8,9 +8,10 @@ const helmet     = require('helmet');
 const cors       = require('cors');
 const logger     = require('./utils/logger');
 const C          = require('./config/constants');
+const { nowISO } = require('./utils/helpers');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
-// ── Route modules ─────────────────────────────────────────────────────────────
+// Route modules 
 const childRoutes     = require('./routes/child');
 const sessionRoutes   = require('./routes/session');
 const dashboardRoutes = require('./routes/dashboard');
@@ -18,14 +19,12 @@ const syncRoutes      = require('./routes/sync');
 
 const app = express();
 
-// ── Security headers ──────────────────────────────────────────────────────────
+// Security headers 
 app.use(helmet({
   // Content-Security-Policy is relaxed for the local RPi environment
   contentSecurityPolicy: false,
 }));
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
-// Only allow requests from the Next.js frontend (same LAN).
 // Flask is on localhost — it does not hit these routes.
 app.use(cors({
   origin: (origin, callback) => {
@@ -40,27 +39,27 @@ app.use(cors({
   credentials: true,
 }));
 
-// ── Body parsers ──────────────────────────────────────────────────────────────
+// Body parsers 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// ── Request logger ────────────────────────────────────────────────────────────
+// Request logger 
 app.use((req, _res, next) => {
   logger.debug(`→ ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// ── Health check ──────────────────────────────────────────────────────────────
+// Health check 
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
     device: C.DEVICE_ID,
     camp:   C.CAMP_ID,
-    time:   new Date().toISOString(),
+    time:   nowISO(),
   });
 });
 
-// ── Routes ────────────────────────────────────────────────────────────────────
+// Routes 
 // Child-facing (no auth)
 app.use('/api/child',   childRoutes);
 app.use('/api/session', sessionRoutes);
@@ -72,7 +71,7 @@ app.use('/api',         dashboardRoutes);
 // Sync (internal, no external auth)
 app.use('/api/sync',    syncRoutes);
 
-// ── 404 + error handler ───────────────────────────────────────────────────────
+// 404 + error handler 
 app.use(notFound);
 app.use(errorHandler);
 

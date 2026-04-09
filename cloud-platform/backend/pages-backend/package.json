@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "db:init": "node -e \"require('./src/config/database.js')\"",
+    "db:seed": "node database/seed-tasks.js",
     "lint": "eslint src/"
   },
   "engines": {

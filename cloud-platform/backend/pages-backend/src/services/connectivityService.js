@@ -3,6 +3,7 @@
 const cron   = require('node-cron');
 const logger = require('../utils/logger');
 const C      = require('../config/constants');
+const { nowISO } = require('../utils/helpers');
 const { pgIsReachable } = require('../config/database');
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -21,7 +22,7 @@ function getSyncService() {
  * Check connectivity and trigger sync if appropriate.
  */
 async function checkAndSync() {
-  _lastCheckTime = new Date().toISOString();
+  _lastCheckTime = nowISO();
 
   const online = await pgIsReachable();
   _isOnline = online;
@@ -42,7 +43,7 @@ async function checkAndSync() {
   try {
     const syncService = getSyncService();
     const result = await syncService.runSync();
-    _lastSyncTime = new Date().toISOString();
+    _lastSyncTime = nowISO();
     logger.info(
       `[CONNECTIVITY] Sync complete: ${result.recordsPushed} records pushed, ` +
       `${result.modelsPulled} models pulled`

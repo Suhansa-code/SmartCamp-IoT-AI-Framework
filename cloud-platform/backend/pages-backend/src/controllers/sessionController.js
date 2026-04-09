@@ -9,7 +9,7 @@ const scoringService        = require('../services/scoringService');
 const { applyFirstGate, applySecondGate, updateBaseline } = require('../services/gatingService');
 const { checkAndCreateAlert } = require('../services/alertService');
  
-// ── POST /api/session/start ───────────────────────────────────────────────────
+// POST /api/session/start 
  
 function startSession(req, res, next) {
   try {
@@ -34,8 +34,8 @@ function startSession(req, res, next) {
       db.prepare(`
         INSERT INTO pages_sessions
           (session_id, child_id, session_date, session_time,
-           condition_label, baseline_score_used)
-        VALUES (?, ?, ?, ?, ?, ?)
+           condition_label, baseline_score_used, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(
         sessionId,
         child_id,
@@ -43,6 +43,7 @@ function startSession(req, res, next) {
         nowTime(),
         condition_label.toUpperCase(),
         child.baseline_score,
+        nowISO(),
       );
       // Session not enqueued for sync yet — will be added when complete
     });
@@ -69,7 +70,7 @@ function startSession(req, res, next) {
   }
 }
  
-// ── POST /api/session/task-complete ──────────────────────────────────────────
+// POST /api/session/task-complete
  
 async function taskComplete(req, res, next) {
   try {
@@ -140,9 +141,9 @@ async function taskComplete(req, res, next) {
       // Write gate decision record (attempt 1)
       db.prepare(`
         INSERT INTO pages_gate_decisions
-          (decision_id, session_id, child_id, attempt_number, composite_score, decision)
-        VALUES (?, ?, ?, 1, ?, ?)
-      `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+          (decision_id, session_id, child_id, attempt_number, composite_score, decision, decided_at)
+        VALUES (?, ?, ?, 1, ?, ?, ?)
+      `).run(decisionId, session_id, child_id, compositeScore, gateDecision, nowISO());
  
       // Enqueue signals for sync
       enqueue('pages_behavioral_signals', signalId, 'INSERT');
@@ -173,7 +174,7 @@ async function taskComplete(req, res, next) {
   }
 }
  
-// ── POST /api/session/second-gate ─────────────────────────────────────────────
+// POST /api/session/second-gate 
  
 async function secondGate(req, res, next) {
   try {
@@ -212,9 +213,9 @@ async function secondGate(req, res, next) {
       // Write gate decision (attempt 2)
       db.prepare(`
         INSERT INTO pages_gate_decisions
-          (decision_id, session_id, child_id, attempt_number, composite_score, decision)
-        VALUES (?, ?, ?, 2, ?, ?)
-      `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+          (decision_id, session_id, child_id, attempt_number, composite_score, decision, decided_at)
+        VALUES (?, ?, ?, 2, ?, ?, ?)
+      `).run(decisionId, session_id, child_id, compositeScore, gateDecision, nowISO());
  
       // If FAIL_CONFIRMED — increment consecutive_low
       if (gateDecision === C.GATE.FAIL_CONFIRMED) {
@@ -246,7 +247,7 @@ async function secondGate(req, res, next) {
   }
 }
  
-// ── POST /api/session/complete ────────────────────────────────────────────────
+// POST /api/session/complete 
  
 function completeSession(req, res, next) {
   try {
@@ -272,8 +273,8 @@ function completeSession(req, res, next) {
       // 1. Save content responses
       const insertResponse = db.prepare(`
         INSERT INTO pages_content_responses
-          (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+          (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms, responded_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
  
       for (const r of contentResponses) {
@@ -286,6 +287,7 @@ function completeSession(req, res, next) {
           r.answer,
           r.isCorrect ? 1 : 0,
           r.timeTakenMs || 0,
+          nowISO(),
         );
         enqueue('pages_content_responses', responseId, 'INSERT');
       }
@@ -335,8 +337,39 @@ function completeSession(req, res, next) {
   }
 }
  
-// ── GET /api/session/content/:childId ────────────────────────────────────────
- 
+// GET /api/session/recent/:childId
+// Returns last 3 sessions with their condition_label to avoid repetition
+
+function getRecentSessions(req, res, next) {
+  try {
+    const { childId } = req.params;
+
+    const recent = db.prepare(`
+      SELECT session_id, condition_label, session_date, created_at
+      FROM   pages_sessions
+      WHERE  child_id = ?
+      ORDER  BY created_at DESC
+      LIMIT  3
+    `).all(childId);
+
+    logger.info(
+      `[SESSION] Recent sessions retrieved for child ${childId}: ` +
+      `${recent.map(r => r.condition_label).join(',')}`
+    );
+
+    return res.json({
+      success:          true,
+      recent_sessions:  recent,
+      recent_labels:    recent.map(r => r.condition_label),
+    });
+
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/session/content/:childId 
+
 function getContentSession(req, res, next) {
   try {
     const { childId } = req.params;
@@ -420,4 +453,5 @@ module.exports = {
   secondGate,
   completeSession,
   getContentSession,
+  getRecentSessions,
 };

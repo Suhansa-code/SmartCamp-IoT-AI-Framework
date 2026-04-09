@@ -1,13 +1,3 @@
-// src/components/psychoedu/child/Eli.jsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Eli the elephant — inline SVG mascot with multiple moods and sizes.
-// No external image dependency — renders at any resolution perfectly.
-//
-// Props:
-//   size     — number (default 160)
-//   mood     — 'happy' | 'excited' | 'calm' | 'breathe' | 'wave' | 'star'
-//   animated — boolean (default true) — adds CSS float animation
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Eli({ size = 160, mood = 'happy', animated = true, className = '', style = {} }) {
 
