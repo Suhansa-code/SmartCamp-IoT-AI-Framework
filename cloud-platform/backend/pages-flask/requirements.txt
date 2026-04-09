@@ -1,0 +1,20 @@
+# pages-flask/requirements.txt
+# ─────────────────────────────────────────────────────────────────────────────
+# Core (required — install these always)
+# ─────────────────────────────────────────────────────────────────────────────
+flask==3.0.3
+python-dotenv==1.0.1
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ML packages (required for z-score + Isolation Forest)
+# Install with: pip install -r requirements.txt
+# On Raspberry Pi this may take 5-10 minutes on first install
+# ─────────────────────────────────────────────────────────────────────────────
+numpy==1.26.4
+scikit-learn==1.4.2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Note: Flask works WITHOUT numpy/sklearn installed.
+# If they are missing, z-score and IF scoring are disabled automatically.
+# The system falls back to composite score only. Gate decisions still work.
+# ─────────────────────────────────────────────────────────────────────────────

@@ -55,6 +55,29 @@ function computeLocalScore(taskMetrics, passiveSignals) {
 }
 
 /**
+ * Check if Flask is healthy and reachable.
+ * @returns {Promise<boolean>} true if Flask is ready, false otherwise
+ */
+async function checkFlaskHealth() {
+  try {
+    const response = await axios.get(
+      `${C.FLASK_URL}/health`,
+      { timeout: C.FLASK_TIMEOUT_MS }
+    );
+    const isHealthy = response.status === 200 && response.data.status === 'ok';
+    if (isHealthy) {
+      logger.info('[FLASK] Health check passed');
+    } else {
+      logger.warn('[FLASK] Health check: status not ok');
+    }
+    return isHealthy;
+  } catch (err) {
+    logger.warn(`[FLASK] Health check failed: ${err.message}`);
+    return false;
+  }
+}
+
+/**
  * Get score from Flask ML service.
  * Falls back to local computation if Flask is unreachable or returns an error.
  *
@@ -66,6 +89,7 @@ function computeLocalScore(taskMetrics, passiveSignals) {
  */
 async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
   try {
+    logger.info(`[SCORE] Attempting to call Flask at ${C.FLASK_URL}/score for session ${sessionId}`);
     const response = await axios.post(
       `${C.FLASK_URL}/score`,
       { child_id: childId, session_id: sessionId, taskMetrics, passiveSignals },
@@ -83,7 +107,10 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
       throw new Error('Flask returned incomplete scoring response');
     }
 
-    logger.info(`[SCORE] Flask scored session ${sessionId}: composite=${data.compositeScore}`);
+    logger.info(
+      `[SCORE] ✅ Flask scored session ${sessionId}: composite=${data.compositeScore}, ` +
+      `zScore=${data.zScore}, ifScore=${data.ifScore}`
+    );
 
     return {
       compositeScore: round(data.compositeScore, 2),
@@ -97,14 +124,14 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
     };
   } catch (err) {
     logger.warn(
-      `[SCORE] Flask unavailable (${err.message}) — using fallback for session ${sessionId}`
+      `[SCORE] ❌ Flask unavailable at ${C.FLASK_URL} (${err.code || err.message}) — using fallback for session ${sessionId}`
     );
     const fallback = computeLocalScore(taskMetrics, passiveSignals);
     logger.info(
-      `[SCORE] Fallback scored session ${sessionId}: composite=${fallback.compositeScore}`
+      `[SCORE] FALLBACK scored session ${sessionId}: composite=${fallback.compositeScore}`
     );
     return fallback;
   }
 }
 
-module.exports = { getScore, computeLocalScore };
+module.exports = { getScore, computeLocalScore, checkFlaskHealth };
