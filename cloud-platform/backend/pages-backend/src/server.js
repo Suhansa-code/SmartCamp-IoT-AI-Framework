@@ -9,10 +9,11 @@ const app    = require('./app');
 const C      = require('./config/constants');
 const logger = require('./utils/logger');
 const connectivityService = require('./services/connectivityService');
+const scoringService = require('./services/scoringService');
 
 const PORT = C.PORT;
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info('════════════════════════════════════════════');
   logger.info('  PAGES Backend — Eli\'s World');
   logger.info(`  Device:  ${C.DEVICE_ID}`);
@@ -21,6 +22,14 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`  Env:     ${C.NODE_ENV}`);
   logger.info(`  Gate:    composite >= ${C.GATE_THRESHOLD} → PASS`);
   logger.info('════════════════════════════════════════════');
+
+  // Check Flask health at startup
+  const flaskHealthy = await scoringService.checkFlaskHealth();
+  if (flaskHealthy) {
+    logger.info(`[FLASK] Connected to ${C.FLASK_URL}`);
+  } else {
+    logger.warn(`[FLASK] Warning: ${C.FLASK_URL} is unreachable — fallback scoring will be used`);
+  }
 
   // Start the connectivity watcher after server is listening
   connectivityService.startConnectivityWatcher();

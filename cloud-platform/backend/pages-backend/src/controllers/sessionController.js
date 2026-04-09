@@ -11,12 +11,18 @@ const { checkAndCreateAlert } = require('../services/alertService');
  
 // POST /api/session/start 
  
-function startSession(req, res, next) {
+async function startSession(req, res, next) {
   try {
     const {
       child_id,
       condition_label = 'A',
     } = req.body;
+ 
+    // Verify Flask is healthy before allowing session start
+    const flaskHealthy = await scoringService.checkFlaskHealth();
+    if (!flaskHealthy) {
+      return next(createError(503, 'Flask ML service is unavailable — cannot start session'));
+    }
  
     // Fetch child to get baseline + grade
     const child = db.prepare(`
