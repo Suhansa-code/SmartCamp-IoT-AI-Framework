@@ -1,6 +1,3 @@
-// lib/types.js — JSDoc type definitions for PAGES frontend
-// Replaces TypeScript interfaces; use @typedef for IDE support
-
 /**
  * @typedef {Object} Child
  * @property {string} id

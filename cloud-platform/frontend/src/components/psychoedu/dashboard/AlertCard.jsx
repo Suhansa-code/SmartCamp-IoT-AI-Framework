@@ -1,8 +1,3 @@
-// components/dashboard/AlertCard.jsx
-// Welfare alert card — used in volunteer dashboard (light) 
-// The admin alerts dashboard has its own inline card with recharts
-// This card is used in the volunteer context
-
 'use client'
 
 import { useState } from 'react'

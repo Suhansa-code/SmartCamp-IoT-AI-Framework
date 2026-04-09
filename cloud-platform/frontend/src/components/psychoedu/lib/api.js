@@ -22,7 +22,7 @@ async function apiFetch(path, options = {}) {
   return res.json()
 }
 
-// ── Session ───────────────────────────────────────────────
+//Session 
 export async function startSession(childId) {
   return apiFetch('/api/session/start', {
     method: 'POST',
@@ -38,7 +38,7 @@ export async function submitScore(payload) {
   })
 }
 
-// ── Volunteer ─────────────────────────────────────────────
+// Volunteer 
 export async function volunteerLogin(pin) {
   return apiFetch('/api/volunteer/login', {
     method: 'POST',
@@ -54,7 +54,7 @@ export async function fetchVolunteerAlerts() {
   return apiFetch('/api/volunteer/alerts')
 }
 
-// ── Admin ─────────────────────────────────────────────────
+// Admin 
 export async function fetchAllCamps() {
   return apiFetch('/api/admin/camps')
 }

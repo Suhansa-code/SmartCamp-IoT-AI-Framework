@@ -47,7 +47,7 @@ function startServer() {
 
 const server = startServer();
 
-// ── Graceful shutdown ─────────────────────────────────────────────────────────
+//  Graceful shutdown
 
 function shutdown(signal) {
   logger.info(`[SERVER] Received ${signal} — shutting down gracefully`);

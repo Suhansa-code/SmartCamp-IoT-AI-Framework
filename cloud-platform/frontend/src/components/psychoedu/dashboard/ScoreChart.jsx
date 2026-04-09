@@ -1,8 +1,3 @@
-// components/dashboard/ScoreChart.jsx
-// Score trend chart — pure SVG sparkline for light mode
-// Used in admin analytics page
-// For the alerts dashboard, AlertCard has its own recharts sparkline inline
-
 'use client'
 
 import { useMemo } from 'react'

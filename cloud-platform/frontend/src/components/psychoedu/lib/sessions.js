@@ -1,8 +1,7 @@
 export const SESSIONS = [
 
-  // ══════════════════════════════════════════════════════════════════════════
+ 
   // SESSION A — Grade 3 focus
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'A',
     grade: 3,
@@ -15,16 +14,16 @@ export const SESSIONS = [
         subject: 'sinhala',
         skill: 'reading_comprehension',
         question: {
-          si: 'මල්ලී පාසලට යයි. ඔහු ගියේ කොහේද?',
-          ta: 'மல்லி பாடசாலைக்கு செல்கிறான். அவன் எங்கே சென்றான்?',
-          en: 'Malli goes to school. Where did he go?',
+          si: 'නිවැරදිව ලියා ඇති වචනය තෝරන්න ',
+          ta: 'නිවැරදිව ලියා ඇති වචනය තෝරන්න',
+          en: 'නිවැරදිව ලියා ඇති වචනය තෝරන්න',
         },
         options: {
-          si: ['පාසලට', 'ගෙදරට', 'වෙළඳසැලට', 'උද්‍යානයට'],
-          ta: ['பாடசாலைக்கு', 'வீட்டிற்கு', 'கடைக்கு', 'பூங்காவிற்கு'],
-          en: ['To school', 'To home', 'To the shop', 'To the park'],
+          si: ['ෂක්තිය', 'ශක්තිය', 'සක්තිය'],
+          ta: ['ෂක්තිය', 'ශක්තිය', 'සක්තිය'],
+          en: ['ෂක්තිය', 'ශක්තිය', 'සක්තිය'],
         },
-        answer: 0,
+        answer: 1,
         emoji: '📚',
       },
 
@@ -40,9 +39,9 @@ export const SESSIONS = [
           en: '3 + 4 = ?',
         },
         options: {
-          si: ['6', '7', '8', '9'],
-          ta: ['6', '7', '8', '9'],
-          en: ['6', '7', '8', '9'],
+          si: ['6', '7', '8'],
+          ta: ['6', '7', '8'],
+          en: ['6', '7', '8'],
         },
         answer: 1,
         emoji: '➕',
@@ -82,9 +81,9 @@ export const SESSIONS = [
         display_emoji: '🍎',
         count: 7,
         options: {
-          si: ['5', '6', '7', '8'],
-          ta: ['5', '6', '7', '8'],
-          en: ['5', '6', '7', '8'],
+          si: ['5', '6', '7'],
+          ta: ['5', '6', '7'],
+          en: ['5', '6', '7'],
         },
         answer: 2,
         emoji: '🍎',
@@ -122,9 +121,9 @@ export const SESSIONS = [
           en: '9 - 4 = ?',
         },
         options: {
-          si: ['3', '4', '5', '6'],
-          ta: ['3', '4', '5', '6'],
-          en: ['3', '4', '5', '6'],
+          si: ['3', '4', '5'],
+          ta: ['3', '4', '5'],
+          en: ['3', '4', '5'],
         },
         answer: 2,
         emoji: '➖',
@@ -142,9 +141,9 @@ export const SESSIONS = [
           en: 'Who gives plants the energy to produce food?',
         },
         options: {
-          si: ['හිරු', 'සඳ', 'තාරකාව', 'වළාකුළ'],
-          ta: ['சூரியன்', 'நிலா', 'நட்சத்திரம்', 'மேகம்'],
-          en: ['Sun', 'Moon', 'Star', 'Cloud'],
+          si: ['හිරු', 'සඳ', 'තාරකාව'],
+          ta: ['சூரியன்', 'நிலா', 'நட்சத்திரம்'],
+          en: ['Sun', 'Moon', 'Star'],
         },
         answer: 0,
         emoji: '🌞',
@@ -162,9 +161,9 @@ export const SESSIONS = [
           en: 'This creature lives in water. What is it?',
         },
         options: {
-          si: ['මාළුවා', 'හාවා', 'ඇතා', 'කුකුළා '],
-          ta: ['மீன்', 'முயல்', 'யானை', 'சேவல்'],
-          en: ['Fish', 'Rabbit', 'Elephant', 'Rooster'],
+          si: ['මාළුවා', 'හාවා', 'ඇතා'],
+          ta: ['மீன்', 'முயல்', 'யானை'],
+          en: ['Fish', 'Rabbit', 'Elephant'],
         },
         answer: 0,
         emoji: '🐟',
@@ -177,15 +176,15 @@ export const SESSIONS = [
         subject: 'mathematics',
         skill: 'patterns',
         question: {
-          si: 'ඊළඟට කුමක් එයිද?',
+          si: 'ඊළඟට කුමක් ද?',
           ta: 'அடுத்து என்ன வரும்?',
           en: 'What comes next?',
         },
         sequence: ['🔴', '🔵', '🔴', '🔵', '🔴', '?'],
         options: {
-          si: ['🔵', '🔴', '🟡', '🟢'],
-          ta: ['🔵', '🔴', '🟡', '🟢'],
-          en: ['🔵', '🔴', '🟡', '🟢'],
+          si: ['🔵', '🔴', '🟡'],
+          ta: ['🔵', '🔴', '🟡'],
+          en: ['🔵', '🔴', '🟡'],
         },
         answer: 0,
         emoji: '🔮',
@@ -203,9 +202,9 @@ export const SESSIONS = [
           en: "What color is the parrot??",
         },
         options: {
-          si: ['රතු', 'නිල්', 'කොළ', 'කහ'],
-          ta: ['சிவப்பு', 'நீலம்', 'பச்சை', 'மஞ்சள்'],
-          en: ['Red', 'Blue', 'Green', 'Yellow'],
+          si: ['රතු', 'නිල්', 'කොළ'],
+          ta: ['சிவப்பு', 'நீலம்', 'பச்சை'],
+          en: ['Red', 'Blue', 'Green'],
         },
         answer: 2,
         emoji: '📖',
@@ -213,9 +212,7 @@ export const SESSIONS = [
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION B — Grade 3 focus
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'B',
     grade: 3,
@@ -228,12 +225,12 @@ export const SESSIONS = [
         subject: 'mathematics',
         skill: 'addition',
         question: {
-          si: '12 + 5 = ?',
-          ta: '12 + 5 = ?',
-          en: '12 + 5 = ?',
+          si: '3 + 5 = ?',
+          ta: '3 + 5 = ?',
+          en: '3 + 5 = ?',
         },
-        options: { si: ['15', '16', '17', '18'], ta: ['15', '16', '17', '18'], en: ['15', '16', '17', '18'] },
-        answer: 2,
+        options: { si: ['8', '9', '10'], ta: ['8', '9', '10'], en: ['8', '9', '10'] },
+        answer: 0,
         emoji: '➕',
       },
 
@@ -259,7 +256,7 @@ export const SESSIONS = [
         subject: 'english',
         skill: 'sentence_building',
         question: {
-          si: 'නිවැරදි ක්‍රමයට වචන සකසන්න',
+          si: 'නිවැරදි පිළිවෙලට වචන සකසන්න',
           ta: 'வார்த்தைகளை சரியான வரிசையில் வையுங்கள்',
           en: 'Arrange the words in the correct order',
         },
@@ -288,9 +285,9 @@ export const SESSIONS = [
           en: 'What is the national bird of Sri Lanka?.',
         },
         options: {
-          si: ['මොණරා  ', 'ඇතා', 'වළි කුකුළා', 'හාවා'],
-          ta: ['மயில்', 'யானை', 'காட்டு சேவல்', 'முயல்'],
-          en: ['Peacock', 'Elephant', 'Junglefowl', 'Rabbit'],
+          si: ['මොණරා  ', 'සැළලිහිණියා ', 'වළි කුකුළා'],
+          ta: ['மயில்', 'விழுங்கு', 'காட்டு சேவல்'],
+          en: ['Peacock', 'Swallow', 'Junglefowl'],
         },
         answer: 2,
       },
@@ -302,12 +299,12 @@ export const SESSIONS = [
         subject: 'mathematics',
         skill: 'subtraction',
         question: {
-          si: '15 - 6 = ?',
-          ta: '15 - 6 = ?',
-          en: '15 - 6 = ?',
+          si: '9 - 6 = ?',
+          ta: '9 - 6 = ?',
+          en: '9 - 6 = ?',
         },
-        options: { si: ['7', '8', '9', '10'], ta: ['7', '8', '9', '10'], en: ['7', '8', '9', '10'] },
-        answer: 2,
+        options: { si: ['3', '4', '5'], ta: ['3', '4', '5'], en: ['3', '4', '5'] },
+        answer: 0,
         emoji: '➖',
       },
 
@@ -345,9 +342,9 @@ export const SESSIONS = [
         display_emoji: '⭐',
         count: 5,
         options: {
-          si: ['4', '5', '6', '7'],
-          ta: ['4', '5', '6', '7'],
-          en: ['4', '5', '6', '7'],
+          si: ['4', '5', '6'],
+          ta: ['4', '5', '6'],
+          en: ['4', '5', '6'],
         },
         answer: 1,
         emoji: '⭐',
@@ -366,7 +363,7 @@ export const SESSIONS = [
         },
         pairs: [
           { word: { si: 'හිරු', ta: 'சூரியன்', en: 'Sun' },   emoji: '☀️' },
-          { word: { si: 'වළාකුළ', ta: 'மேகம்', en: 'Cloud' }, emoji: '☁️' },
+          { word: { si: 'වළාකුළු', ta: 'மேகம்', en: 'Cloud' }, emoji: '☁️' },
           { word: { si: 'වැස්ස', ta: 'மழை', en: 'Rain' },     emoji: '🌧️' },
           { word: { si: 'ගස', ta: 'மரம்', en: 'Tree' },       emoji: '🌳' },
         ],
@@ -381,13 +378,13 @@ export const SESSIONS = [
         skill: 'reading_comprehension',
         question: {
           si: 'අචිනි රතු පාට ඇඳුම් ඇඳ ගත්තාය. ඇය ඇන්ද ඇඳුමේ වර්ණය?',
-          ta: 'அச்சினி சிவப்பு நிற ஆடை அணிந்தாள். அவள் அணிந்த ஆடையின் நிறம்?',
-          en: 'Achini wore a red dress. What colour was the dress she wore?',
+          ta: 'අචිනි රතු පාට ඇඳුම් ඇඳ ගත්තාය. ඇය ඇන්ද ඇඳුමේ වර්ණය?',
+          en: 'අචිනි රතු පාට ඇඳුම් ඇඳ ගත්තාය. ඇය ඇන්ද ඇඳුමේ වර්ණය??',
         },
         options: {
-          si: ['නිල්', 'රතු', 'කහ', 'කොළ'],
-          ta: ['நீலம்', 'சிவப்பு', 'மஞ்சள்', 'பச்சை'],
-          en: ['Blue', 'Red', 'Yellow', 'Green'],
+          si: ['නිල්', 'රතු', 'කහ'],
+          ta: ['නිල්', 'රතු', 'කහ'],
+          en: ['නිල්', 'රතු', 'කහ'],
         },
         answer: 1,
         emoji: '📖',
@@ -405,16 +402,14 @@ export const SESSIONS = [
           en: 'What is the next number?',
         },
         sequence: ['2', '4', '6', '8', '?'],
-        options: { si: ['9', '10', '11', '12'], ta: ['9', '10', '11', '12'], en: ['9', '10', '11', '12'] },
+        options: { si: ['9', '10', '12'], ta: ['9', '10','12'], en: ['9', '10', '12'] },
         answer: 1,
         emoji: '🔢',
       },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION C — Grade 3/4 bridge
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'C',
     grade: 3,
@@ -422,16 +417,16 @@ export const SESSIONS = [
       {
         id: 'C1',
         type: 'mcq', subject: 'evs', skill: 'plants',
-        question: { si: 'ශාක කොටස් අතර ___ ආහාරය සාදා ගනී.', ta: 'தாவரத்தின் ___ உணவை தயாரிக்கும்.', en: 'The ___ of a plant makes food.' },
-        options: { si: ['කොළ', 'මල', 'මුල', 'ගෙඩිය'], ta: ['இலைகள்', 'மலர்', 'வேர்', 'பழம்'], en: ['Leaves', 'Flower', 'Root', 'Fruit'] },
+        question: { si: 'ශාක වල ආහාරය සාදා ගන්නේ.', ta: 'தாவரத்தின் ___ உணவை தயாரிக்கும்.', en: 'The ___ of a plant makes food.' },
+        options: { si: ['කොළ', 'මල', 'ගෙඩිය'], ta: ['இலைகள்', 'மலர்','பழம்'], en: ['Leaves', 'Flower','Fruit'] },
         answer: 0, emoji: '🌿',
       },
       {
         id: 'C2',
         type: 'mcq', subject: 'mathematics', skill: 'addition',
-        question: { si: '24 + 13 = ?', ta: '24 + 13 = ?', en: '24 + 13 = ?' },
-        options: { si: ['35', '36', '37', '38'], ta: ['35', '36', '37', '38'], en: ['35', '36', '37', '38'] },
-        answer: 2, emoji: '➕',
+        question: { si: '5 + 4 = ?', ta: '5 + 4 = ?', en: '5 + 4 = ?' },
+        options: { si: ['9', '10', '11'], ta: ['9', '10', '11'], en: ['9', '10', '11'] },
+        answer: 0, emoji: '➕',
       },
       {
         id: 'C3',
@@ -448,7 +443,7 @@ export const SESSIONS = [
       {
         id: 'C4',
         type: 'true_false', subject: 'sinhala', skill: 'comprehension',
-        question: { si: 'හිරු නැගෙනහිරින් උදා වේ. ?', ta: 'சூரியன் கிழக்கில் உதிக்கும். — இது சரியா?', en: 'The sun rises in the east. — Is this true?' },
+        question: { si: 'හිරු නැගෙනහිරින් උදා වේ.', ta: 'சூரியன் கிழக்கில் உதிக்கும். — இது சரியா?', en: 'The sun rises in the east. — Is this true?' },
         answer: true, emoji: '🌅',
       },
       {
@@ -456,22 +451,22 @@ export const SESSIONS = [
         type: 'count', subject: 'mathematics', skill: 'counting',
         question: { si: 'කෙසෙල් ගෙඩි කීයක් තිබේද ?', ta: 'எத்தனை வாழைப்பழங்கள் உள்ளன?', en: 'How many bananas are there?' },
         display_emoji: '🍌', count: 9,
-        options: { si: ['7', '8', '9', '10'], ta: ['7', '8', '9', '10'], en: ['7', '8', '9', '10'] },
+        options: { si: ['7', '8', '9'], ta: ['7', '8', '9'], en: ['7', '8', '9'] },
         answer: 2, emoji: '🍌',
       },
       {
         id: 'C6',
         type: 'mcq', subject: 'sinhala', skill: 'word_recognition',
-        question: { si: 'රූපය දෙස බලන්න. නිවැරදි වචනය කුමක්ද? 🏠', ta: 'படத்தை பாருங்கள். சரியான சொல்? 🏠', en: 'Look at the picture. Correct word? 🏠' },
-        options: { si: ['ගෙදර', 'ගස', 'ගඟ', 'ගල'], ta: ['வீடு', 'மரம்', 'ஆறு', 'கல்'], en: ['House', 'Tree', 'River', 'Stone'] },
-        answer: 0, emoji: '🏠',
+        question: { si: 'නිවැරදිව ලියා ඇති වචනය තෝරන්න ', ta: 'නිවැරදිව ලියා ඇති වචනය තෝරන්න.', en: 'නිවැරදිව ලියා ඇති වචනය තෝරන්න.' },
+        options: { si: ['ශිෂ්‍යයා ', 'ෂිෂ්‍යයා', 'ෂිශ්‍යයා'], ta: ['ශිෂ්‍යයා ', 'ෂිෂ්‍යයා', 'ෂිශ්‍යයා'], en: ['ශිෂ්‍යයා ', 'ෂිෂ්‍යයා', 'ෂිශ්‍යයා'] },
+        answer: 0, 
       },
       {
         id: 'C7',
         type: 'mcq', subject: 'mathematics', skill: 'subtraction',
-        question: { si: '20 - 8 = ?', ta: '20 - 8 = ?', en: '20 - 8 = ?' },
-        options: { si: ['10', '11', '12', '13'], ta: ['10', '11', '12', '13'], en: ['10', '11', '12', '13'] },
-        answer: 2, emoji: '➖',
+        question: { si: '10 - 7 = ?', ta: '10 - 7 = ?', en: '10 - 7 = ?' },
+        options: { si: ['3', '4', '5'], ta: ['3', '4', '5'], en: ['3', '4', '5'] },
+        answer: 0, emoji: '➖',
       },
       {
         id: 'C8',
@@ -492,15 +487,13 @@ export const SESSIONS = [
         id: 'C10',
         type: 'mcq', subject: 'evs', skill: 'community',
         question: { si: 'අසනීප වූ විට යන්නේ කවුරුන් ළගට ද?', ta: 'நோய்வாய்ப்பட்டால் யாரிடம் செல்வீர்கள்?', en: 'Who do you visit when you are sick?' },
-        options: { si: ['වෛද්‍යවරයා', 'ගුරුවරයා', 'රියදුරා', 'ධීවරයා'], ta: ['மருத்துவர்', 'ஆசிரியர்', 'சாரதி', 'மீனவர்'], en: ['Doctor', 'Teacher', 'Driver', 'Fisherman'] },
+        options: { si: ['වෛද්‍යවරයා', 'ගුරුවරයා', 'ධීවරයා'], ta: ['மருத்துவர்', 'ஆசிரியர்', 'மீனவர்'], en: ['Doctor', 'Teacher','Fisherman'] },
         answer: 0, emoji: '🏥',
       },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION D — Grade 4 focus
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'D',
     grade: 4,
@@ -509,21 +502,21 @@ export const SESSIONS = [
         id: 'D1',
         type: 'mcq', subject: 'mathematics', skill: 'multiplication',
         question: { si: '3 × 4 = ?', ta: '3 × 4 = ?', en: '3 × 4 = ?' },
-        options: { si: ['10', '11', '12', '13'], ta: ['10', '11', '12', '13'], en: ['10', '11', '12', '13'] },
+        options: { si: ['10', '11', '12'], ta: ['10', '11', '12'], en: ['10', '11', '12'] },
         answer: 2, emoji: '✖️',
       },
       {
         id: 'D2',
         type: 'mcq', subject: 'sinhala', skill: 'reading_comprehension',
-        question: { si: 'දිනේෂ් ක්‍රිකට් ක්‍රීඩා කිරීමට ප්‍රිය කරයි. ඔහු ප්‍රිය ක්‍රීඩාව?', ta: 'தினேஷ் கிரிக்கெட் விளையாட விரும்புகிறான். அவனுக்கு பிடித்த விளையாட்டு?', en: 'Dinesh likes to play cricket. What is his favourite sport?' },
-        options: { si: ['පාපන්දු', 'ක්‍රිකට්', 'හොකී', 'ජලතරංග'], ta: ['கால்பந்து', 'கிரிக்கெட்', 'ஹாக்கி', 'நீச்சல்'], en: ['Football', 'Cricket', 'Hockey', 'Swimming'] },
+        question: { si: 'දිනේෂ් ක්‍රිකට් ක්‍රීඩා කිරීමට ප්‍රිය කරයි. ඔහු ප්‍රිය ක්‍රීඩාව කුමක්ද?', ta: 'දිනේෂ් ක්‍රිකට් ක්‍රීඩා කිරීමට ප්‍රිය කරයි. ඔහු ප්‍රිය ක්‍රීඩාව කුමක්ද?', en: 'දිනේෂ් ක්‍රිකට් ක්‍රීඩා කිරීමට ප්‍රිය කරයි. ඔහු ප්‍රිය ක්‍රීඩාව කුමක්ද?' },
+        options: { si: ['පාපන්දු', 'ක්‍රිකට්', 'හොකී'], ta: ['පාපන්දු', 'ක්‍රිකට්', 'හොකී'], en: ['පාපන්දු', 'ක්‍රිකට්', 'හොකී'] },
         answer: 1, emoji: '🏏',
       },
       {
         id: 'D3',
-        type: 'fill_blank', subject: 'sinhala', skill: 'grammar',
-        question: { si: 'එය ___ ලස්සන ගෙයකි.', ta: 'அது ___ அழகான வீடு.', en: 'That is a ___ house.' },
-        blank_choices: { si: ['ඉතා', 'ගොඩ', 'කුඩා'], ta: ['மிகவும்', 'நிறைய', 'கொஞ்சம்'], en: ['very', 'many', 'little'] },
+        type: 'mcq', subject: 'sinhala', skill: 'grammar',
+        question: { si: 'පුරුෂ ලිංග ඒක වචන නාම පදයකි.', ta: 'පුරුෂ ලිංග ඒක වචන නාම පදයකි.', en: 'පුරුෂ ලිංග ඒක වචන නාම පදයකි.' },
+        blank_choices: { si: ['ගොවියා', 'මිනිසා', 'අයියලා'], ta: ['ගොවියා', 'මිනිසා', 'අයියලා'], en: ['ගොවියා', 'මිනිසා', 'අයියලා'] },
         answer: 0, emoji: '🏡',
       },
       {
@@ -531,7 +524,7 @@ export const SESSIONS = [
         type: 'count', subject: 'mathematics', skill: 'counting',
         question: { si: 'ත්‍රිකෝණ කීයක් තිබේද?', ta: 'எத்தனை முக்கோணங்கள் உள்ளன?', en: 'How many triangles are there?' },
         display_emoji: '🔺', count: 6,
-        options: { si: ['4', '5', '6', '7'], ta: ['4', '5', '6', '7'], en: ['4', '5', '6', '7'] },
+        options: { si: ['4', '5', '6'], ta: ['4', '5', '6'], en: ['4', '5', '6'] },
         answer: 2, emoji: '🔺',
       },
       {
@@ -548,10 +541,10 @@ export const SESSIONS = [
       },
       {
         id: 'D6',
-        type: 'mcq', subject: 'mathematics', skill: 'addition',
-        question: { si: '47 + 36 = ?', ta: '47 + 36 = ?', en: '47 + 36 = ?' },
-        options: { si: ['81', '82', '83', '84'], ta: ['81', '82', '83', '84'], en: ['81', '82', '83', '84'] },
-        answer: 2, emoji: '➕',
+        type: 'mcq', subject: 'mathematics', skill: 'subtraction',
+        question: { si: '9 - 3 = ?', ta: '9 - 3 = ?', en: '9 - 3 = ?' },
+        options: { si: ['6', '7', '8'], ta: ['6', '7', '8'], en: ['6', '7', '8'] },
+        answer: 0, emoji: '➖',
       },
       {
         id: 'D7',
@@ -572,129 +565,117 @@ export const SESSIONS = [
         type: 'pattern', subject: 'mathematics', skill: 'patterns',
         question: { si: 'ඊළඟ සංඛ්‍යාව කුමක්ද?', ta: 'அடுத்த எண்?', en: 'Next number?' },
         sequence: ['5', '10', '15', '20', '?'],
-        options: { si: ['22', '24', '25', '30'], ta: ['22', '24', '25', '30'], en: ['22', '24', '25', '30'] },
-        answer: 2, emoji: '🔢',
+        options: { si: ['22', '25', '30'], ta: ['22', '25', '30'], en: ['22', '25', '30'] },
+        answer: 1, emoji: '🔢',
       },
       {
         id: 'D10',
         type: 'mcq', subject: 'evs', skill: 'community',
         question: { si: 'ගිනි නිවීමේ රථය ගෙන යන්නේ?', ta: 'தீயை அணைப்பவர் யார்?', en: 'Who drives a fire engine?' },
-        options: { si: ['වෛද්‍යවරයා', 'ගිනි නිවන භටයා', 'ගුරුවරයා', 'පොලිස් නිලධාරියා'], ta: ['மருத்துவர்', 'தீயணைப்பாளர்', 'ஆசிரியர்', 'போலீசார்'], en: ['Doctor', 'Firefighter', 'Teacher', 'Police officer'] },
+        options: { si: ['වෛද්‍යවරයා', 'ගිනි නිවන භටයා', 'ගුරුවරයා'], ta: ['மருத்துவர்', 'தீயணைப்பாளர்', 'ஆசிரியர்'], en: ['Doctor', 'Firefighter', 'Teacher'] },
         answer: 1, emoji: '🚒',
       },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION E — Grade 4 focus
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'E',
     grade: 4,
     tasks: [
-      { id:'E1',  type:'mcq',        subject:'sinhala',     skill:'vocabulary',          question:{si:'ජලය නොමැතිව ___ ජීවත් නොවේ.',ta:'நீர் இல்லாமல் ___ வாழ முடியாது.',en:'Without water ___ cannot survive.'},                   options:{si:['ශාකයන්','ගල්','වීදුරු','යකඩ'],ta:['தாவரங்கள்','கற்கள்','கண்ணாடி','இரும்பு'],en:['Plants','Stones','Glass','Iron']},                                answer:0, emoji:'💧' },
-      { id:'E2',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'5 × 3 = ?',ta:'5 × 3 = ?',en:'5 × 3 = ?'},                                                                                        options:{si:['13','14','15','16'],ta:['13','14','15','16'],en:['13','14','15','16']},                                                                                                                                             answer:2, emoji:'✖️' },
-      { id:'E3',  type:'true_false', subject:'english',     skill:'comprehension',        question:{si:'A cat can fly. — Is this true?',ta:'பூனையால் பறக்க முடியும். — இது சரியா?',en:'A cat can fly. — Is this true?'},                answer:false, emoji:'🐱' },
-      { id:'E4',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'බිත්තර කීයක් තිබේ ද?',ta:'எத்தனை முட்டைகள் உள்ளன?',en:'How many eggs are there?'},                                              display_emoji:'🥚', count:8, options:{si:['6','7','8','9'],ta:['6','7','8','9'],en:['6','7','8','9']},                                                                                                                                             answer:2, emoji:'🥚' },
-      { id:'E5',  type:'match',      subject:'english',     skill:'vocabulary',           question:{si:'ආහාර ගලපන්න',ta:'உணவுகளை பொருத்துங்கள்',en:'Match the foods'},                                                                 pairs:[{word:{si:'හාල්',ta:'அரிசி',en:'Rice'},emoji:'🍚'},{word:{si:'ගෙඩිය',ta:'பழம்',en:'Fruit'},emoji:'🍎'},{word:{si:'පිටි',ta:'மாவு',en:'Bread'},emoji:'🍞'},{word:{si:'කිරි',ta:'பால்',en:'Milk'},emoji:'🥛'}], emoji:'🍱' },
-      { id:'E6',  type:'mcq',        subject:'mathematics', skill:'subtraction',          question:{si:'53 - 28 = ?',ta:'53 - 28 = ?',en:'53 - 28 = ?'},                                                                                  options:{si:['23','24','25','26'],ta:['23','24','25','26'],en:['23','24','25','26']},                                                                                                                                             answer:2, emoji:'➖' },
-      { id:'E7',  type:'fill_blank', subject:'sinhala',     skill:'vocabulary',           question:{si:'ඉස්කෝලේ ___ නාදය කරයි.',ta:'பள்ளி ___ ஒலிக்கும்.',en:'The school ___ rings.'},                                                  blank_choices:{si:['සීනුව','දොරෙ','ජනේලේ'],ta:['மணி','கதவு','சன்னல்'],en:['Bell','Door','Window']},                                                                                                                           answer:0, emoji:'🔔' },
-      { id:'E8',  type:'mcq',        subject:'evs',         skill:'environment',          question:{si:'ගස් කපා දැමීමෙන් ___ විනාශ වේ.',ta:'மரங்களை வெட்டுவதால் ___ அழியும்.',en:'Cutting trees destroys ___.'},                       options:{si:['වනාන්තර','ගල්','ජලය','ගෙවල්'],ta:['காடுகள்','கற்கள்','நீர்','வீடுகள்'],en:['Forests','Stones','Water','Houses']},                                                                                                  answer:0, emoji:'🌲' },
+      { id:'E1',  type:'fill_blank',        subject:'sinhala',     skill:'vocabulary',          question:{si:'ජලය නොමැතිව ___ ජීවත් නොවේ.',ta:'நீர் இல்லாமல் ___ வாழ முடியாது.',en:'Without water ___ cannot survive.'},                   options:{si:['ශාකයන්','වීදුරු','යකඩ'],ta:['தாவரங்கள்','கண்ணாடி','இரும்பு'],en:['Plants','Glass','Iron']},                                answer:0, emoji:'💧' },
+      { id:'E2',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'5 × 3 = ?',ta:'5 × 3 = ?',en:'5 × 3 = ?'},                                                                                        options:{si:['13','14','15'],ta:['13','14','15'],en:['13','14','15']},                                                                                                                                             answer:2, emoji:'✖️' },
+      { id:'E3',  type:'true_false', subject:'english',     skill:'comprehension',        question:{si:'A cat can fly. — Is this true?',ta:'A cat can fly. — Is this true?',en:'A cat can fly. — Is this true?'},                answer:false, emoji:'🐱' },
+      { id:'E4',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'බිත්තර කීයක් තිබේ ද?',ta:'எத்தனை முட்டைகள் உள்ளன?',en:'How many eggs are there?'},                                              display_emoji:'🥚', count:8, options:{si:['6','7','8'],ta:['6','7','8'],en:['6','7','8']},                                                                                                                                             answer:2, emoji:'🥚' },
+      { id:'E5',  type:'match',      subject:'english',     skill:'vocabulary',           question:{si:'ආහාර ගලපන්න',ta:'உணவுகளை பொருத்துங்கள்',en:'Match the foods'},                                                                 pairs:[{word:{si:'බත්',ta:'அரிசி',en:'Rice'},emoji:'🍚'},{word:{si:'ඇපල්',ta:'ஆப்பிள்',en:'Apple'},emoji:'🍎'},{word:{si:'පිටි',ta:'மாவு',en:'Bread'},emoji:'🍞'},{word:{si:'කිරි',ta:'பால்',en:'Milk'},emoji:'🥛'}], emoji:'🍱' },
+      { id:'E6',  type:'mcq',        subject:'mathematics', skill:'subtraction',          question:{si:'13 - 8 = ?',ta:'13 - 8 = ?',en:'13 - 8 = ?'},                                                                                  options:{si:['3','4','5'],ta:['3','4','5'],en:['3','4','5']},                                                                                                                                             answer:2, emoji:'➖' },
+      { id:'E7',  type:'fill_blank', subject:'sinhala',     skill:'vocabulary',           question:{si:'පාසලේ  ___ නාදය කරයි.',ta:'பள்ளி ___ ஒலிக்கும்.',en:'The school ___ rings.'},                                                  blank_choices:{si:['සීනුව','දොර','ජනේලය'],ta:['மணி','கதவு','சன்னல்'],en:['Bell','Door','Window']},                                                                                                                           answer:0, emoji:'🔔' },
+      { id:'E8',  type:'fill_blank',        subject:'evs',         skill:'environment',          question:{si:'ගස් කපා දැමීමෙන් ___ විනාශ වේ.',ta:'மரங்களை வெட்டுவதால் ___ அழியும்.',en:'Cutting trees destroys ___.'},                       options:{si:['වනාන්තර','ගල්','අහස '],ta:['காடுகள்','கற்கள்','வானம்'],en:['Forests','Stones','Sky']},                                                                                                  answer:0, emoji:'🌲' },
       { id:'E9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ හැඩය කුමක්ද?',ta:'அடுத்த வடிவம்?',en:'Next shape?'},                                                                                sequence:['🟠','🟠','🟠','🟠','?'],                                                                                                                                                                                          options:{si:['🟡','🟢','🟠','🔴'],ta:['🟡','🟢','🟠','🔴'],en:['🟡','🟢','🟠','🔴']}, answer:2, emoji:'🔮' },
-      { id:'E10', type:'mcq',        subject:'sinhala',     skill:'reading_comprehension',question:{si:'ඈ දිනපතා ව්‍යායාම කරයි. ඈ ශරීරය ___ තබා ගනී.',ta:'அவள் தினமும் உடற்பயிற்சி செய்கிறாள். அவள் உடலை ___ வைக்கிறாள்.',en:'She exercises every day. She keeps her body ___.'},options:{si:['සෞඛ්‍යසම්පන්නව','රෝගාතුරව','කම්මැලිව','ශෝකෙන්'],ta:['ஆரோக்கியமாக','நோய்வாய்ப்பட்டு','சோம்பலாக','சோகமாக'],en:['Healthy','Sick','Lazy','Sad']},                                                  answer:0, emoji:'🏃' },
+      { id:'E10', type:'fill_blank',        subject:'sinhala',     skill:'reading_comprehension',question:{si:'ඈ දිනපතා ව්‍යායාම කරයි. ඈ ශරීරය ___ තබා ගනී.',ta:'அவள் தினமும் உடற்பயிற்சி செய்கிறாள். அவள் உடலை ___ வைக்கிறாள்.',en:'She exercises every day. She keeps her body ___.'},options:{si:['සෞඛ්‍යසම්පන්නව','රෝගාතුරව','කම්මැලිව'],ta:['ஆரோக்கியமாக','நோய்வாய்ப்பட்டு','சோம்பலாக'],en:['Healthy','Sick','Lazy']},                                                  answer:0, emoji:'🏃' },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION F — Tamil language focus (Grade 3/4)
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'F',
     grade: 3,
     tasks: [
-      { id:'F1',  type:'mcq',        subject:'tamil',       skill:'reading',              question:{si:'රූපය 🐄 දෙස බලා නිවැරදි දෙමළ වචනය තෝරන්න?',ta:'படம் 🐄 பார்த்து சரியான தமிழ் சொல்?',en:'Look at 🐄 — correct Tamil word?'},            options:{si:['பசு','குதிரை','நாய்','பூனை'],ta:['பசு','குதிரை','நாய்','பூனை'],en:['பசு','குதிரை','நாய்','பூனை']},                                                                                     answer:0, emoji:'🐄' },
-      { id:'F2',  type:'mcq',        subject:'mathematics', skill:'addition',             question:{si:'6 + 7 = ?',ta:'6 + 7 = ?',en:'6 + 7 = ?'},                                                                                        options:{si:['12','13','14','15'],ta:['12','13','14','15'],en:['12','13','14','15']},                                                                                                                                             answer:1, emoji:'➕' },
+      { id:'F1',  type:'mcq',        subject:'tamil',       skill:'reading',              question:{si:'හරකාට දෙමළ වචනය තෝරන්න?',ta:'"ஹரகா" என்பதற்கான தமிழ் சொல்லைத் தேர்ந்தெடுக்கவும்.',en:'Choose the Tamil word for Cow'},            options:{si:['பசு','குதிரை','நாய்'],ta:['பசு','குதிரை','நாய்'],en:['பசு','குதிரை','நாய்']},                                                                                     answer:0, emoji:'🐄' },
+      { id:'F2',  type:'mcq',        subject:'mathematics', skill:'addition',             question:{si:'6 + 7 = ?',ta:'6 + 7 = ?',en:'6 + 7 = ?'},                                                                                        options:{si:['12','13','14'],ta:['12','13','14'],en:['12','13','14']},                                                                                                                                             answer:1, emoji:'➕' },
       { id:'F3',  type:'fill_blank', subject:'tamil',       skill:'vocabulary',           question:{si:'___ අහසේ ඇත.',ta:'வானத்தில் ___ உள்ளது.',en:'The ___ is in the sky.'},                                                   blank_choices:{si:['හිරු', 'ගස', 'ජලය'],ta:['சூரியன்','மரம்','நீர்'],en:['Sun','Tree','Water']},                                                                                                                              answer:0, emoji:'☀️' },
       { id:'F4',  type:'true_false', subject:'evs',         skill:'living_things',        question:{si:'මාළුවා ගොඩ ජීවත් වෙයි. — සත්‍යද?',ta:'மீன் நிலத்தில் வாழும். — சரியா?',en:'Fish lives on land. — Is this true?'},              answer:false, emoji:'🐟' },
-      { id:'F5',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'ගස් කීයක් තිබේද?',ta:'எத்தனை மரங்கள் உள்ளன?',en:'How many trees?'},                                                              display_emoji:'🌴', count:4, options:{si:['3','4','5','6'],ta:['3','4','5','6'],en:['3','4','5','6']},                                                                                                                                             answer:1, emoji:'🌴' },
+      { id:'F5',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'ගස් කීයක් තිබේද?',ta:'எத்தனை மரங்கள் உள்ளன?',en:'How many trees?'},                                                              display_emoji:'🌴', count:4, options:{si:['3','4','5'],ta:['3','4','5'],en:['3','4','5']},                                                                                                                                             answer:1, emoji:'🌴' },
       { id:'F6',  type:'match',      subject:'tamil',       skill:'vocabulary',           question:{si:'දෙමළ වචනය ගලපන්න',ta:'தமிழ் சொல்லை பொருத்துங்கள்',en:'Match the Tamil words'},                                                  pairs:[{word:{si:'அம்மா',ta:'அம்மா',en:'அம்மா '},emoji:'👩'},{word:{si:'அப்பா',ta:'அப்பா',en:'அப்பா'},emoji:'👨'},{word:{si:'தங்கை',ta:'தங்கை',en:'தங்கை'},emoji:'👧'},{word:{si:'அண்ணன்',ta:'அண்ணன்',en:'அண்ணன்'},emoji:'👦'}], emoji:'👨‍👩‍👧‍👦' },
       { id:'F7',  type:'mcq',        subject:'mathematics', skill:'subtraction',          question:{si:'18 - 9 = ?',ta:'18 - 9 = ?',en:'18 - 9 = ?'},                                                                                      options:{si:['7','8','9','10'],ta:['7','8','9','10'],en:['7','8','9','10']},                                                                                                                                                     answer:2, emoji:'➖' },
-      { id:'F8',  type:'mcq',        subject:'evs',         skill:'national_awareness',   question:{si:'ශ්‍රී ලංකාවේ ජාතික වෘක්ෂය කුමක්ද?',ta:'இலங்கையின் தேசிய மரம்?',en:'National tree of Sri Lanka?'},                                         options:{si:['නා','දේවදාර','නෙල්ලි','කොහොඹ'],ta:['நா மரம்','தேவதாரு','நெல்லி','கோம்பு'],en:['Na','Devadara','Nelli','Kohomba']},                                                                                                    answer:0, emoji:'🌳' },
-      { id:'F9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['3','6','9','12','?'],                                                                                                                                                                                              options:{si:['13','14','15','16'],ta:['13','14','15','16'],en:['13','14','15','16']},  answer:2, emoji:'🔢' },
-      { id:'F10', type:'mcq',        subject:'tamil',       skill:'reading',              question:{si:'ළමයා ___ කෑවේය. (Tamil sentence: குழந்தை ___ சாப்பிட்டது.)',ta:'குழந்தை ___ சாப்பிட்டது.',en:'The child ate ___.'},               options:{si:['சாதம்','கல்','மண்','நீர்'],ta:['சாதம்','கல்','மண்','நீர்'],en:['Rice ','Stone ','Mud ','Water']},                                                                                            answer:0, emoji:'🍚' },
+      { id:'F8',  type:'mcq',        subject:'evs',         skill:'national_awareness',   question:{si:'ශ්‍රී ලංකාවේ ජාතික වෘක්ෂය කුමක්ද?',ta:'இலங்கையின் தேசிய மரம்?',en:'National tree of Sri Lanka?'},                                         options:{si:['නා','නෙල්ලි','කොහොඹ'],ta:['நா மரம்','நெல்லி','கோம்பு'],en:['Na','Nelli','Kohomba']},                                                                                                    answer:0, emoji:'🌳' },
+      { id:'F9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['3','6','9','12','?'],   options:{si:['13','14','15'],ta:['13','14','15'],en:['13','14','15']},  answer:2, emoji:'🔢' },
+      { id:'F10', type:'fill_blank', subject:'tamil',       skill:'reading',              question:{si:'ළමයා ___ කෑවේය.',ta:'குழந்தை ___ சாப்பிட்டது.',en:'The child ate ___.'},               options:{si:['බත්', 'ගල්', 'ජලය'],ta:['சாதம்','கல்','நீர்'],en:['Rice ','Stone ','Water']},                                                                                            answer:0, emoji:'🍚' },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION G — Grade 4, harder mathematics + EVS
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'G',
     grade: 4,
     tasks: [
-      { id:'G1',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'6 × 7 = ?',ta:'6 × 7 = ?',en:'6 × 7 = ?'},                                                                                        options:{si:['40','41','42','43'],ta:['40','41','42','43'],en:['40','41','42','43']},                                                                                                                                             answer:2, emoji:'✖️' },
-      { id:'G2',  type:'mcq',        subject:'sinhala',     skill:'reading_comprehension',question:{si:'ගංවතුරකදී ආරක්ෂිත ස්ථානයකට ___ යා යුතුය.',ta:'வெள்ளத்தின் போது பாதுகாப்பான இடத்திற்கு ___ போக வேண்டும்.',en:'During a flood you must ___ to a safe place.'},  options:{si:['ඉක්මනින්','සෙමින්','ඉඳලා','නිදාගෙන'],ta:['விரைவாக','மெதுவாக','தங்கி','தூங்கி'],en:['Quickly','Slowly','Stay','Sleep']},                                                                          answer:0, emoji:'🌊' },
+      { id:'G1',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'3 × 5 = ?',ta:'3 × 5 = ?',en:'3 × 5 = ?'},                                                                                        options:{si:['20','31','15'],ta:['20','31','15'],en:['20','31','15']},                                                                                                                                             answer:2, emoji:'✖️' },
+      { id:'G2',  type:'fill_blank', subject:'sinhala',     skill:'reading_comprehension',question:{si:'අම්මා සමඟ ___ යාමට නංගී ඉතා කැමතියි.',ta:'අම්මා සමඟ ___ යාමට නංගී ඉතා කැමතියි.',en:'අම්මා සමඟ ___ යාමට නංගී ඉතා කැමතියි.'},  options:{si:['ගමන් බිමන්','කෑම බීම ','තෑගී බෝග '],ta:['ගමන් බිමන්','කෑම බීම ','තෑගී බෝග '],en:['ගමන් බිමන්','කෑම බීම ','තෑගී බෝග ']},                                                                          answer:0, emoji:'🌊' },
       { id:'G3',  type:'fill_blank', subject:'english',     skill:'grammar',              question:{si:'She ___ to school every day.',ta:'She ___ to school every day.',en:'She ___ to school every day.'},                                blank_choices:{si:['goes','go','went'],ta:['goes','go','went'],en:['goes','go','went']},                                                                                                                                  answer:0, emoji:'🏫' },
-      { id:'G4',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'වෘත්ත ගණන කීයද ?',ta:'எத்தனை வட்டங்கள் உள்ளன?',en:'How many circles?'},                                                           display_emoji:'⭕', count:10, options:{si:['8','9','10','11'],ta:['8','9','10','11'],en:['8','9','10','11']},                                                                                                                                            answer:2, emoji:'⭕' },
-      { id:'G5',  type:'mcq',        subject:'evs',         skill:'environment',          question:{si:'වාතය දූෂිත කරන්නේ ___ .'  ,ta:'காற்றை மாசுபடுத்துவது ___.',en:'___ pollutes the air.'},                                          options:{si:['කර්මාන්ත ශාලා දුම','ජලය','කොළ','ගස්'],ta:['தொழிற்சாலை புகை','நீர்','இலைகள்','மரங்கள்'],en:['Factory smoke','Water','Leaves','Trees']},                                                                               answer:0, emoji:'🏭' },
-      { id:'G6',  type:'mcq',        subject:'mathematics', skill:'division',             question:{si:'12 ÷ 3 = ?',ta:'12 ÷ 3 = ?',en:'12 ÷ 3 = ?'},                                                                                      options:{si:['2','3','4','5'],ta:['2','3','4','5'],en:['2','3','4','5']},                                                                                                                                                         answer:2, emoji:'➗' },
-      { id:'G7',  type:'true_false', subject:'sinhala',     skill:'comprehension',        question:{si:'විශාල ශරීරය ඇති සතුන් ජලයේ ජීවත් නොවේ. - සත්‍යද?',ta:'நிலத்தில் வாழும் விலங்குகள் நீரில் வாழ்வதில்லை. — சரியா?',en:'Land animals do not live in water. — True?'},      answer:false, emoji:'🦛' },
+      { id:'G4',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'වෘත්ත ගණන කීයද ?',ta:'எத்தனை வட்டங்கள் உள்ளன?',en:'How many circles?'},                                                           display_emoji:'⭕', count:10, options:{si:['8','9','10'],ta:['8','9','10'],en:['8','9','10']},                                                                                                                                            answer:2, emoji:'⭕' },
+      { id:'G5',  type:'fill_blank', subject:'evs',         skill:'environment',          question:{si:'වාතය දූෂිත කරන්නේ ___ .'  ,ta:'காற்றை மாசுபடுத்துவது ___.',en:'___ pollutes the air.'},                                          options:{si:['කර්මාන්ත ශාලා දුම','ජලය','කොළ'],ta:['தொழிற்சாலை புகை','நீர்','இலைகள்'],en:['Factory smoke','Water','Leaves']},                                                                               answer:0, emoji:'🏭' },
+      { id:'G6',  type:'mcq',        subject:'mathematics', skill:'division',             question:{si:'6 ÷ 3 = ?',ta:'6 ÷ 3 = ?',en:'6 ÷ 3 = ?'},                                                                                      options:{si:['2','3','4'],ta:['2','3','4'],en:['2','3','4']},                                                                                                                                                         answer:0, emoji:'➗' },
+      { id:'G7',  type:'true_false', subject:'sinhala',     skill:'comprehension',        question:{si:'"ගසකට වර්ධනය වීමට ජලය අවශ්‍යය." - සත්‍යද?',ta:'"மரத்திற்கு வளர தண்ணீர் தேவை." — சரியா?',en:'"Plants need water to grow." — True?'},      answer:true, emoji:'🌱' },
       { id:'G8',  type:'match',      subject:'english',     skill:'vocabulary',           question:{si:'ක්‍රියා ගලපන්න',ta:'வினைச்சொற்களை பொருத்துங்கள்',en:'Match the action words'},                                                   pairs:[{word:{si:'දිවීම',ta:'ஓடுவது',en:'Run'},emoji:'🏃'},{word:{si:'පිහිනීම',ta:'நீந்துவது',en:'Swim'},emoji:'🏊'},{word:{si:'ගීත ගැයීම',ta:'பாடுவது',en:'Sing'},emoji:'🎤'},{word:{si:'ඇඳීම',ta:'வரைவது',en:'Draw'},emoji:'🎨'}], emoji:'🔗' },
-      { id:'G9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['100','90','80','70','?'],                                                                                                                                                                                          options:{si:['65','60','55','50'],ta:['65','60','55','50'],en:['65','60','55','50']}, answer:1, emoji:'🔢' },
-      { id:'G10', type:'mcq',        subject:'evs',         skill:'health',               question:{si:'ශරීරය සෝදා පිරිසිදු කර ගැනීම ___ .',ta:'உடலை சுத்தம் செய்வது ___.',en:'Keeping the body clean is ___.'},                         options:{si:['වැදගත්','අනවශ්‍ය','අමාරු','නරක'],ta:['முக்கியம்','தேவையற்றது','கஷ்டமானது','கெட்டது'],en:['Important','Unnecessary','Difficult','Bad']},                                                                                answer:0, emoji:'🧼' },
+      { id:'G9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['100','90','80','70','?'],  options:{si:['65','60','55'],ta:['65','60','55'],en:['65','60','55']}, answer:1, emoji:'🔢' },
+      { id:'G10', type:'fill_blank', subject:'evs',         skill:'health',               question:{si:'ශරීරය සෝදා පිරිසිදු කර ගැනීම ___ .',ta:'உடலை சுத்தம் செய்வது ___.',en:'Keeping the body clean is ___.'},                         options:{si:['වැදගත්','අනවශ්‍ය','නරක'],ta:['முக்கியம்','தேவையற்றது','கெட்டது'],en:['Important','Unnecessary','Bad']},                                                                                answer:0, emoji:'🧼' },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION H — Mixed Grade 3/4, body + community + higher maths
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'H',
     grade: 4,
     tasks: [
-      { id:'H1',  type:'mcq',        subject:'evs',         skill:'human_body',           question:{si:'හදවත ශරීරය තුළ ___ කරයි.',ta:'இதயம் உடலில் ___ செய்கிறது.',en:'The heart ___ inside the body.'},                                 options:{si:['රුධිරය පොම්ප කරයි','ජලය ගිලිනවා','ආහාර ජීර්ණය කරයි','ඔක්සිජන් සාදයි'],ta:['இரத்தத்தை செலுத்துகிறது','நீரை விழுங்குகிறது','உணவை செரிக்கிறது','ஆக்சிஜன் உருவாக்குகிறது'],en:['Pumps blood','Swallows water','Digests food','Makes oxygen']},answer:0, emoji:'❤️' },
-      { id:'H2',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'8 × 4 = ?',ta:'8 × 4 = ?',en:'8 × 4 = ?'},                                                                                        options:{si:['30','31','32','33'],ta:['30','31','32','33'],en:['30','31','32','33']},                                                                                                                                             answer:2, emoji:'✖️' },
-      { id:'H3',  type:'sort_order', subject:'sinhala',     skill:'sequence',             question:{si:'නිවැරදි පිළිවෙලට සකසන්න', ta:'சரியான வரிசையில் வையுங்கள் (நாள்)',en:'Put in correct order of the day'},                         words:{si:['රාත්‍රිය','දවල්','උදෑසන'],ta:['இரவு','மதியம்','காலை'],en:['Night','Noon','Morning']},                                                                                                                             correct_order:{si:['උදෑසන','දවල්','රාත්‍රිය'],ta:['காலை','மதியம்','இரவு'],en:['Morning','Noon','Night']},  emoji:'🌅' },
+      { id:'H1',  type:'fill_blank', subject:'evs',         skill:'human_body',           question:{si:'හදවත ශරීරය තුළ ___ කරයි.',ta:'இதயம் உடலில் ___ செய்கிறது.',en:'The heart ___ inside the body.'},                                 options:{si:['රුධිරය පොම්ප කරයි','ජලය ගිලිනවා','ආහාර ජීර්ණය කරයි'],ta:['இரத்தத்தை செலுத்துகிறது','நீரை விழுங்குகிறது','உணவை செரிக்கிறது'],en:['Pumps blood','Swallows water','Digests food']},answer:0, emoji:'❤️' },
+      { id:'H2',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'4 × 2 = ?',ta:'4 × 2 = ?',en:'4 × 2 = ?'},                                                                                        options:{si:['6','8','10'],ta:['6','8','10'],en:['6','8','10']},                                                                                                                                             answer:1, emoji:'✖️' },
+      { id:'H3',  type:'sort_order', subject:'sinhala',     skill:'sequence',             question:{si:'නිවැරදි පිළිවෙලට සකසන්න', ta:'சரியான வரிசையில் வையுங்கள் (நாள்)',en:'Put in correct order of the day'},                         words:{si:['රාත්‍රිය','දවල්','උදෑසන'],ta:['இரவு','மதியம்','காலை'],en:['Night','Noon','Morning']},                                                                                                                  correct_order:{si:['උදෑසන','දවල්','රාත්‍රිය'],ta:['காலை','மதியம்','இரவு'],en:['Morning','Noon','Night']},  emoji:'🌅' },
       { id:'H4',  type:'fill_blank', subject:'english',     skill:'grammar',              question:{si:'The children ___ playing in the garden.',ta:'The children ___ playing in the garden.',en:'The children ___ playing in the garden.'},blank_choices:{si:['are','is','am'],ta:['are','is','am'],en:['are','is','am']},                                                                                                                   answer:0, emoji:'🌻' },
-      { id:'H5',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'කෝප්ප කීයක් තිබේද ?',ta:'எத்தனை கோப்பைகள் உள்ளன?',en:'How many cups are there?'},                                                 display_emoji:'☕', count:3, options:{si:['2','3','4','5'],ta:['2','3','4','5'],en:['2','3','4','5']},                                                                                                                                            answer:1, emoji:'☕' },
-      { id:'H6',  type:'mcq',        subject:'evs',         skill:'community',            question:{si:'ගමට ජලය සපයන්නේ?',ta:'கிராமத்திற்கு தண்ணீர் வழங்குவது யார்?',en:'Who supplies water to the village?'},                          options:{si:['ජලාශය','ගුරුවරයා','රෝහල','කඩය'],ta:['நீர்த்தேக்கம்','ஆசிரியர்','மருத்துவமனை','கடை'],en:['Reservoir','Teacher','Hospital','Shop']},                                                                          answer:0, emoji:'💧' },
-      { id:'H7',  type:'mcq',        subject:'mathematics', skill:'division',             question:{si:'20 ÷ 4 = ?',ta:'20 ÷ 4 = ?',en:'20 ÷ 4 = ?'},                                                                                      options:{si:['4','5','6','7'],ta:['4','5','6','7'],en:['4','5','6','7']},                                                                                                                                                         answer:1, emoji:'➗' },
-      { id:'H8',  type:'true_false', subject:'english',     skill:'comprehension',        question:{si:'Dogs can talk like humans. — Is this true?',ta:'நாய்களால் மனிதர்களைப் போல பேச முடியும். — இது சரியா?',en:'Dogs can talk like humans. — Is this true?'}, answer:false, emoji:'🐕' },
-      { id:'H9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['1','4','9','16','?'],                                                                                                                                                                                              options:{si:['20','24','25','30'],ta:['20','24','25','30'],en:['20','24','25','30']},   answer:2, emoji:'🔢' },
-      { id:'H10', type:'mcq',        subject:'sinhala',     skill:'reading_comprehension',question:{si:'ශ්‍රී ලංකාව ___ දූපතකි.',ta:'இலங்கை ஒரு ___ தீவு.',en:'Sri Lanka is a ___ island.'},                                          options:{si:['වියළි ','කුඩා','ශීතල','ගිනිකඳු'],ta:['உலர்','சிறிய','குளிரான','எரிமலை'],en:['Dry','Small','Cold','Volcanic']},                                                                                                  answer:1, emoji:'🇱🇰' },
+      { id:'H5',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'කෝප්ප කීයක් තිබේද ?',ta:'எத்தனை கோப்பைகள் உள்ளன?',en:'How many cups are there?'},                                                 display_emoji:'☕', count:3, options:{si:['2','3','4','5'],ta:['2','3','4','5'],en:['2','3','4','5']},                                                                                                                answer:1, emoji:'☕' },
+      { id:'H6',  type:'mcq',        subject:'evs',         skill:'community',            question:{si:'ලිපියක් යවන්න කුමන ස්ථානයට යා යුතුද?',ta:'கடிதம் அனுப்ப எந்த இடத்திற்கு செல்ல வேண்டும்?',en:'Where should you go to send a letter?'},                          options:{si:['තැපැල් කාර්යාලය','පාසල','රෝහල'],ta:['அஞ்சலகம்','பள்ளி','மருத்துவமனை'],en:['Post office','School','Hospital']},                         answer:0, emoji:'📮' },
+      { id:'H7',  type:'mcq',        subject:'mathematics', skill:'division',             question:{si:'20 ÷ 4 = ?',ta:'20 ÷ 4 = ?',en:'20 ÷ 4 = ?'},                                                                                      options:{si:['4','5','6'],ta:['4','5','6'],en:['4','5','6']},                                                                                                                       answer:1, emoji:'➗' },
+      { id:'H8',  type:'true_false', subject:'english',     skill:'comprehension',        question:{si:'Dogs can talk. Is this true?',ta:'Dogs can talk. — Is this true?',en:'Dogs can talk. — Is this true?'}, answer:false, emoji:'🐕' },
+      { id:'H9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['3','6','9','12','?'],                                                                                                                                                                                              options:{si:['10','14','15'],ta:['10','14','15'],en:['10','14','15']},   answer:2, emoji:'🔢' },
+      { id:'H10', type:'fill_blank', subject:'sinhala',     skill:'reading_comprehension',question:{si:'ශ්‍රී ලංකාව ___ දූපතකි.',ta:'இலங்கை ஒரு ___ தீவு.',en:'Sri Lanka is a ___ island.'},                                          options:{si:['වියළි ','කුඩා','ශීතල'],ta:['உலர்','சிறிய','குளிரான'],en:['Dry','Small','Cold']},                                                                                                  answer:1, emoji:'🇱🇰' },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION I — Creative / higher-order thinking Grade 4
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'I',
     grade: 4,
     tasks: [
-      { id:'I1',  type:'mcq',        subject:'evs',         skill:'environment',          question:{si:'වැසි ජලය රැකගැනීම ___ .',ta:'மழை நீரை சேமிப்பது ___.',en:'Saving rainwater is ___.'},                                           options:{si:['හොඳයි','නරකයි','කාල නාස්තිකරනවා','ව්‍යාකූලයි'],ta:['நல்லது','கெட்டது','நேரத்தை வீணடிப்பது','குழப்பமானது'],en:['Good','Bad','Wasteful','Confusing']},                                                          answer:0, emoji:'🌧️' },
-      { id:'I2',  type:'mcq',        subject:'mathematics', skill:'fractions',            question:{si:'අයියා අඹ ගෙඩි 7ක් කැඩුවේ ය. ඉන් 3 ක් මට දුන්නේනම් අයියාට අඹ ගෙඩි කීයද? ',ta:'என் சகோதரன் 7 மாம்பழங்களைப் பறித்தான். அவற்றில் 3-ஐ அவன் எனக்குக் கொடுத்தால், அவனிடம் எத்தனை மாம்பழங்கள் இருக்கும்?',en:'My brother picked 7 mangoes. If he gave me 3 of them, how many mangoes would my brother have?'},options:{si:['2','3','4','5'],ta:['2','3','4','5'],en:['2','3','4','5']},     answer:3, emoji:'🥭' },
+      { id:'I1',  type:'fill_blank', subject:'evs',         skill:'environment',          question:{si:'වැසි ජලය රැකගැනීම ___ .',ta:'மழை நீரை சேமிப்பது ___.',en:'Saving rainwater is ___.'},                                           options:{si:['හොඳයි','නරකයි','කාල නාස්තිකරනවා'],ta:['நல்லது','கெட்டது','நேரத்தை வீணடிப்பது'],en:['Good','Bad','Wasteful']},                                                          answer:0, emoji:'🌧️' },
+      { id:'I2',  type:'mcq',        subject:'mathematics', skill:'fractions',            question:{si:'අයියා අඹ ගෙඩි 7ක් කැඩුවේ ය. ඉන් 3 ක් මට දුන්නේනම් අයියාට අඹ ගෙඩි කීයද? ',ta:'என் சகோதரன் 7 மாம்பழங்களைப் பறித்தான். அவற்றில் 3-ஐ அவன் எனக்குக் கொடுத்தால், அவனிடம் எத்தனை மாம்பழங்கள் இருக்கும்?',en:'My brother picked 7 mangoes. If he gave me 3 of them, how many mangoes would my brother have?'},options:{si:['2','3','4'],ta:['2','3','4'],en:['2','3','4']},     answer:2, emoji:'🥭' },
       { id:'I3',  type:'sort_order', subject:'evs',         skill:'sequence',             question:{si:'ශාකයේ වර්ධනය නිවැරදි ක්‍රමයට සකසන්න',ta:'தாவரத்தின் வளர்ச்சியை சரியான வரிசையில் வையுங்கள்',en:'Put plant growth in correct order'},words:{si:['ගෙඩිය','බීජය','පැළය','ගස'],ta:['பழம்','விதை','நாற்று','மரம்'],en:['Fruit','Seed','Seedling','Tree']},                                                               correct_order:{si:['බීජය','පැළය','ගස','ගෙඩිය'],ta:['விதை','நாற்று','மரம்','பழம்'],en:['Seed','Seedling','Tree','Fruit']}, emoji:'🌱' },
-      { id:'I4',  type:'mcq',        subject:'english',     skill:'reading',              question:{si:'"The sun is a star:"',ta:'"The sun is a star:"',en:'"The sun is a star:"'},options:{si:['Morning','Night','Noon','Evening'],ta:['காலை','இரவு','மதியம்','மாலை'],en:['Morning','Night','Noon','Evening']},                                   answer:0, emoji:'📖' },
-      { id:'I5',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'අඹ ගෙඩි කීයක් තියනවද?',ta:'எத்தனை கோல் பழங்கள் உள்ளன?',en:'How many mangoes are there?'},                                       display_emoji:'🥭', count:6, options:{si:['4','5','6','7'],ta:['4','5','6','7'],en:['4','5','6','7']},                                                                                                                                            answer:2, emoji:'🥭' },
-      { id:'I6',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'9 × 3 = ?',ta:'9 × 3 = ?',en:'9 × 3 = ?'},                                                                                        options:{si:['25','26','27','28'],ta:['25','26','27','28'],en:['25','26','27','28']},                                                                                                                                             answer:2, emoji:'✖️' },
+      { id:'I4',  type:'true_false', subject:'english',     skill:'comprehension',        question:{si:'"Birds can fly:"',ta:'"Birds can fly:"',en:'"Birds can fly:"'},answer:true, emoji:'🐦' },
+      { id:'I5',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'අඹ ගෙඩි කීයක් තියනවද?',ta:'எத்தனை கோல் பழங்கள் உள்ளன?',en:'How many mangoes are there?'},                                       display_emoji:'🥭', count:6, options:{si:['4','5','6'],ta:['4','5','6'],en:['4','5','6']},                                                                                                                                            answer:2, emoji:'🥭' },
+      { id:'I6',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'2 × 3 = ?',ta:'2 × 3 = ?',en:'2 × 3 = ?'},                                                                                        options:{si:['6','7','8','9'],ta:['6','7','8','9'],en:['6','7','8','9']},                                                                                                                                             answer:0, emoji:'✖️' },
       { id:'I7',  type:'fill_blank', subject:'sinhala',     skill:'vocabulary',           question:{si:'ශ්‍රී ලංකාවේ ජාතික ක්‍රීඩාව ___ ය.', ta:'இலங்கையின் தேசிய விளையாட்டு ___.',en:'The national sport of Sri Lanka is ___.'},           blank_choices:{si:['වොලිබෝල්','ක්‍රිකට්','හොකී'],ta:['கைப்பந்து','கிரிக்கெட்','ஹாக்கி'],en:['Volleyball','Cricket','Hockey']},                                                                                               answer:0, emoji:'🏐' },
       { id:'I8',  type:'true_false', subject:'evs',         skill:'science',              question:{si:'ශාක වැඩෙන්න හිරු එළිය අවශ්‍ය වේ.',ta:'தாவரங்கள் வளர்வதற்கு சூரிய ஒளி தேவைப்படுகிறது.',en:'Plants need sunlight to grow.'}, answer:true, emoji:'🌿' },
-      { id:'I9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['2','4','8','16','?'],                                                                                                                                                                                              options:{si:['20','24','32','36'],ta:['20','24','32','36'],en:['20','24','32','36']}, answer:2, emoji:'🔢' },
-      { id:'I10', type:'match',      subject:'english',     skill:'vocabulary',           question:{si:'ශ්‍රී ලංකාවේ ස්ථාන ගලපන්න',ta:'இலங்கை இடங்களை பொருத்துங்கள்',en:'Match Sri Lanka places'},                                        pairs:[{word:{si:'කොළඹ',ta:'கொழும்பு',en:'Colombo'},emoji:'🏙️'},{word:{si:'ගාල්ල',ta:'காலி',en:'Galle'},emoji:'🏰'},{word:{si:'නුවර',ta:'கண்டி',en:'Kandy'},emoji:'⛰️'},{word:{si:'ජාෆ්නා',ta:'யாழ்ப்பாணம்',en:'Jaffna'},emoji:'🌊'}], emoji:'🗺️' },
+      { id:'I9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['2','4','8','16','?'],          options:{si:['20','24','32'],ta:['20','24','32'],en:['20','24','32']}, answer:2, emoji:'🔢' },
+      { id:'I10', type:'match',      subject:'english',     skill:'vocabulary',           question:{si:'සත්තු හා ඔවුන්ගේ වාසස්ථාන ගලපන්න',ta:'விலங்குகள் மற்றும் அவற்றின் வாழிடங்களை பொருத்துங்கள்',en:'Match animals with their homes'},                                        pairs:[{word:{si:'වනය',ta:'காடு',en:'Forest'},emoji:'🦁'},{word:{si:'ගුල',ta:'துளை',en:'Hole'},emoji:'🐭'},{word:{si:'කූඩුව',ta:'கூண்டு',en:'Coop'},emoji:'🐔'},{word:{si:'ජලය',ta:'நீர்',en:'Water'},emoji:'🐟'}] },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION J — Grade 4, disaster awareness + advanced
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'J',
     grade: 4,
     tasks: [
-      { id:'J1',  type:'mcq',        subject:'evs',         skill:'disaster_safety',      question:{si:'ගංවතුරක් ආ විට ඔබ ___ .',ta:'வெள்ளம் வரும்போது நீங்கள் ___.',en:'When a flood comes you should ___.'},                           options:{si:['ඉහළ ප්‍රදේශයකට යන්න','ගඟ අසලට යන්න','නිදා ගන්න','ගෙදරම ඉන්න'],ta:['உயரமான இடத்திற்கு செல்லுங்கள்','ஆற்றருகே செல்லுங்கள்','தூங்குங்கள்','வீட்டிலேயே இருங்கள்'],en:['Go to high ground','Go near the river','Sleep','Stay at home']},answer:0, emoji:'🌊' },
-      { id:'J2',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'7 × 8 = ?',ta:'7 × 8 = ?',en:'7 × 8 = ?'},                                                                                        options:{si:['54','55','56','57'],ta:['54','55','56','57'],en:['54','55','56','57']},                                                                                                                                             answer:2, emoji:'✖️' },
-      { id:'J3',  type:'fill_blank', subject:'sinhala',     skill:'vocabulary',           question:{si:'ඔබෙන් පාසලට ලබා දිය හැකි තිළිණයකි.',ta:'நீங்கள் பள்ளிக்குக் கொடுக்கக்கூடிய ஒரு பரிசு.',en:'A gift you can give to the school.'},              blank_choices:{si:['මල් පාත්ති සැකසීම','හොඳින් ඉගෙන ගැනීම.','දිනපතා පාසල් නොයෑම.'],ta:['பூ படுக்கை ஏற்பாடு','நன்றாகப் படிப்பது','தினமும் பள்ளிக்குச் செல்லாமல் இருப்பது.'],en:['Flower bed arrangementd','Studying well','Not going to school every day.']},    answer:1, emoji:'🎁' },
+      { id:'J1',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['3','6','9','12','?'],                                                                                                                                                                                             options:{si:['20','14','15','16'],ta:['20','14','15','16'],en:['20','14','15','16']}, answer:2, emoji:'🔢' },
+      { id:'J2',  type:'mcq',        subject:'mathematics', skill:'multiplication',       question:{si:'2 × 8 = ?',ta:'2 × 8 = ?',en:'2 × 8 = ?'},                                                                                        options:{si:['16','17','18','19'],ta:['16','17','18','19'],en:['16','17','18','19']},                                                                                                                                             answer:0, emoji:'✖️' },
+      { id:'J3',  type:'mcq',        subject:'sinhala',     skill:'vocabulary',           question:{si:'ඔබෙන් පාසලට ලබා දිය හැකි තිළිණයකි.',ta:'நீங்கள் பள்ளிக்குக் கொடுக்கக்கூடிய ஒரு பரிசு.',en:'A gift you can give to the school.'},              blank_choices:{si:['මල් පාත්ති සැකසීම','හොඳින් ඉගෙන ගැනීම.','දිනපතා පාසල් නොයෑම.'],ta:['பூ படுக்கை ஏற்பாடு','நன்றாகப் படிப்பது','தினமும் பள்ளிக்குச் செல்லாமல் இருப்பது.'],en:['Flower bed arrangementd','Studying well','Not going to school every day.']},    answer:1, emoji:'🎁' },
       { id:'J4',  type:'mcq',        subject:'evs',         skill:'vocabulary',           question:{si:'ජාතික ගීය ගයන කරන විට ',ta:'தேசிய கீதம் பாடப்படும்போது',en:'When the national anthem is sung'},                                          options:{si:['කෙලින් සිට ගෙන සිටිය යුතු ය.','නිශ්ශබ්දව සිටිය යුතුයි.', 'සීරුවෙන් සිට ගෙන සිට ඊට ගෞරවය කල යුතුය.'], ta:['நீங்கள் நேராக நிற்க வேண்டும்.','நீங்கள் அமைதியாக இருக்க வேண்டும்.', 'நாம் விழிப்புடன் இருந்து அதை மதிக்க வேண்டும்.'],en:['You should stand up straight.','You should be silent.','You should stand respectfully.']},    answer:2, emoji:'🎶' },
       { id:'J5',  type:'match', subject:'english', skill:'vocabulary',
       question: { si: 'සතුන් සහ රූපය ගලපන්න', ta: 'விலங்குகளை படத்துடன் பொருத்துங்கள்', en: 'Match the animals to the pictures' },
@@ -706,36 +687,34 @@ export const SESSIONS = [
         { word: { si: 'Fish', ta: 'Fish', en: 'Fish' }, emoji: '🐟' },
       ],
       emoji: '🐾',},
-      { id:'J6',  type:'true_false', subject:'evs',         skill:'vocabulary',           question:{si:'කපුටා ගෘහ ආශ්‍රිතව ඇති කරන සතෙකි.',ta:'காக்கை என்பது வீட்டில் வளர்க்கப்படும் ஒரு விலங்கு.',en:'The crow is an animal that is kept in the household. — True?'}, answer:true, emoji:'✅' },
-      { id:'J7',  type:'mcq',        subject:'mathematics', skill:'division',             question:{si:'36 ÷ 6 = ?',ta:'36 ÷ 6 = ?',en:'36 ÷ 6 = ?'},                                                                                      options:{si:['4','5','6','7'],ta:['4','5','6','7'],en:['4','5','6','7']},                                                                                                                                                         answer:2, emoji:'➗' },
+      { id:'J6',  type:'true_false', subject:'evs',         skill:'vocabulary',           question:{si:'කපුටා ගෘහ ආශ්‍රිතව ඇති කරන සතෙකි.',ta:'காக்கை என்பது வீட்டில் வளர்க்கப்படும் ஒரு விலங்கு.',en:'The crow is an animal that is kept in the household. — True?'}, answer:false, emoji:'✅' },
+      { id:'J7',  type:'mcq',        subject:'mathematics', skill:'division',             question:{si:'6 ÷ 6 = ?',ta:'6 ÷ 6 = ?',en:'6 ÷ 6 = ?'},                                                                                      options:{si:['1','2','3'],ta:['1','2','3'],en:['1','2','3']},                                                                                                                                                         answer:0, emoji:'➗' },
       { id:'J8',  type:'mcq',        subject:'sinhala',     skill:'reading_comprehension',question:{si:'ස්වේච්ඡා සේවකයෝ ___ කරයි.',ta:'தன்னார்வலர்கள் ___ செய்கிறார்கள்.',en:'Volunteers ___ to help others.'},                          options:{si:['නොමිලේ සේවය','ගෙවීමට','අලසව '],ta:['இலவசமாக சேவை','பணம் பெற்று','சோம்பேறித்தனமாக'],en:['Serve for free','Get paid','Lazily']},                                                          answer:0, emoji:'🤝' },
-      { id:'J9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද ?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['1','3','7','15','?'],                                                                                                                                                                                              options:{si:['20','28','31','34'],ta:['20','28','31','34'],en:['20','28','31','34']},    answer:2, emoji:'🔢' },
-      { id:'J10', type:'mcq',        subject:'evs',         skill:'disaster_safety',      question:{si:'ගින්නක් ආ විට ළමුන් ___ .',ta:'தீ வரும்போது குழந்தைகள் ___.',en:'When fire breaks out children should ___.'},                   options:{si:['ලඟා නොවෙමින් ආරක්ෂිත ස්ථානයකට යන්න','ගිනි ළඟට දිවෙන්න','නිදා ගන්න','ගෙදරම ඉන්න'],ta:['நெருங்காமல் பாதுகாப்பான இடத்திற்கு செல்லுங்கள்','தீயை நெருங்குங்கள்','தூங்குங்கள்','வீட்டிலேயே இருங்கள்'],en:['Move away to safety','Run towards fire','Sleep','Stay home']}, answer:0, emoji:'🔥' },
+      { id:'J9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක්ද ?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['1','3','7','15','?'],                                options:{si:['20','28','31'],ta:['20','28','31'],en:['20','28','31']},    answer:2, emoji:'🔢' },
+      { id:'J10', type:'mcq',        subject:'evs',         skill:'disaster_safety',      question:{si:'ගින්නක් ආ විට ළමුන් ___ .',ta:'தீ வரும்போது குழந்தைகள் ___.',en:'When fire breaks out children should ___.'},                   options:{si:['ලඟා නොවෙමින් ආරක්ෂිත ස්ථානයකට යන්න.','ගින්දර ළඟට යන්න.','නිදා ගන්න.'],ta:['நெருங்காமல் பாதுகாப்பான இடத்திற்கு செல்லுங்கள்','தீயை நெருங்குங்கள்','தூங்குங்கள்'],en:['Move away to safety','Run towards fire','Sleep']}, answer:0, emoji:'🔥' },
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SESSION K — Special: all-EVS + community + health
-  // ══════════════════════════════════════════════════════════════════════════
   {
     id: 'K',
     grade: 3,
     tasks: [
-      { id:'K1',  type:'mcq',        subject:'evs',         skill:'health',               question:{si:'දිනකට ___ වතාවක් දත් මදිනු ලැබේ.',ta:'ஒரு நாளில் ___ முறை பல் தேய்க்க வேண்டும்.',en:'You should brush teeth ___ times a day.'},     options:{si:['1','2','3','4'],ta:['1','2','3','4'],en:['1','2','3','4']},                                                                                                                                                         answer:1, emoji:'🦷' },
-      { id:'K2',  type:'mcq',        subject:'mathematics', skill:'addition',             question:{si:'16 + 14 = ?',ta:'16 + 14 = ?',en:'16 + 14 = ?'},                                                                                  options:{si:['28','29','30','31'],ta:['28','29','30','31'],en:['28','29','30','31']},                                                                                                                                             answer:2, emoji:'➕' },
+      { id:'K1',  type:'fill_blank', subject:'evs',         skill:'health',               question:{si:'දිනකට ___ වතාවක් දත් මදිනු ලැබේ.',ta:'ஒரு நாளில் ___ முறை பல் தேய்க்க வேண்டும்.',en:'You should brush teeth ___ times a day.'},     options:{si:['1','2','3'],ta:['1','2','3'],en:['1','2','3']},                                                                                                                                                         answer:1, emoji:'🦷' },
+      { id:'K2',  type:'mcq',        subject:'mathematics', skill:'addition',             question:{si:'10 + 4 = ?',ta:'10 + 4 = ?',en:'10 + 4 = ?'},                                                                                  options:{si:['18','14','20'],ta:['18','14','20'],en:['18','14','20']},                                                                                                                                             answer:1, emoji:'➕' },
       { id:'K3',  type:'match',      subject:'english',     skill:'vocabulary',           question:{si:'Match food groups',ta:'Match food groups',en:'Match food groups'},                                                      pairs:[{word:{si:'Banana',ta:'Banana',en:'Banana'},emoji:'🍌'},{word:{si:'Carrot',ta:'Carrot',en:'Carrot'},emoji:'🥕'},{word:{si:'Fish',ta:'Fish',en:'Fish'},emoji:'🐟'},{word:{si:'Milk',ta:'Milk',en:'Milk'},emoji:'🥛'}], emoji:'🥗' },
       { id:'K4',  type:'true_false', subject:'evs',         skill:'health',               question:{si:'ශාරීරික ව්‍යායාම සෞඛ්‍යයට හොඳයි.',ta:'உடற்பயிற்சி உடலுக்கு நல்லது. — சரியா?',en:'Physical exercise is good for health.'}, answer:true, emoji:'🏃' },
-      { id:'K5',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'ළූණු කීයක් තිබේද ?',ta:'எத்தனை வெங்காயங்கள் உள்ளன?',en:'How many onions?'},                                                       display_emoji:'🧅', count:13, options:{si:['12','9','13','10'],ta:['12','9','13','10'],en:['12','9','13','10']},                                                                                                                                            answer:2, emoji:'🧅' },
-      { id:'K6',  type:'mcq',        subject:'evs',         skill:'community',            question:{si:'පාසලේ ගණිත ඉගැන්වීමේ වගකීම ___ ට ඇත  .',ta:'பள்ளியில் கணிதம் கற்பிக்கும் பொறுப்பு ___.',en:'Who is responsible for teaching Maths in school?'},options:{si:['ගුරුවරයා','වෛද්‍යවරයා','ගොවියා','ගිනි නිවනනා'],ta:['ஆசிரியர்','மருத்துவர்','விவசாயி','தீயணைப்பாளர்'],en:['Teacher','Doctor','Farmer','Firefighter']},                            answer:0, emoji:'👩‍🏫' },
-      { id:'K7',  type:'mcq',        subject:'mathematics', skill:'subtraction',          question:{si:'40 - 17 = ?',ta:'40 - 17 = ?',en:'40 - 17 = ?'},                                                                                  options:{si:['21','22','23','24'],ta:['21','22','23','24'],en:['21','22','23','24']},                                                                                                                                             answer:2, emoji:'➖' },
-      { id:'K8',  type:'fill_blank', subject:'sinhala',     skill:'vocabulary',           question:{si:'ශ්‍රී ලංකාවේ ජාතික සෘතූන් ___ ඇත.',ta:'இலங்கையில் ___ பருவகாலங்கள் உள்ளன.',en:'Sri Lanka has ___ main seasons.'},           blank_choices:{si:['2','3','4'],ta:['2','3','4'],en:['2','3','4']},                                                                                                                                                           answer:0, emoji:'🌦️' },
-      { id:'K9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක් ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['10','20','30','40','?'],                                                                                                                                                                                           options:{si:['45','48','50','55'],ta:['45','48','50','55'],en:['45','48','50','55']},    answer:2, emoji:'🔢' },
-      { id:'K10', type:'mcq',        subject:'evs',         skill:'environment',          question:{si:'ශ්‍රී ලංකාවේ ජාතික වනෝද්‍යානයකි?',ta:'இலங்கையின் தேசிய பூங்கா?',en:'A famous national park in Sri Lanka?'},                         options:{si:['යාල','ලා ශ්‍රී','ශ්‍රී ලංකාව','ගිණිකන්ද'],ta:['யால','கண்டி','இலங்கை','மலை'],en:['Yala','Kandy','Colombo','Nuwara Eliya']},                                                                                        answer:0, emoji:'🦁' },
+      { id:'K5',  type:'count',      subject:'mathematics', skill:'counting',             question:{si:'ළූණු කීයක් තිබේද ?',ta:'எத்தனை வெங்காயங்கள் உள்ளன?',en:'How many onions?'},                                                       display_emoji:'🧅', count:13, options:{si:['12','9','13'],ta:['12','9','13'],en:['12','9','13']},                                                                                                       answer:2, emoji:'🧅' },
+      { id:'K6',  type:'mcq',        subject:'evs',         skill:'community',            question:{si:'මාර්ගය හරහා යාමට පෙර ඔබ කුමක් කළ යුතුද?',ta:'சாலையை கடக்க முன் நீங்கள் என்ன செய்ய வேண்டும்?',en:'What should you do before crossing the road?'},options:{si:['වම හා දකුණ බලන්න','ඉක්මනින් දුවන්න','ඇස් වසාගන්න'],ta:['இடமும் வலமும் பார்க்க','வேகமாக ஓட','கண்களை மூட'],en:['Look left and right','Run fast','Close eyes']},                            answer:0, emoji:'👩‍🏫' },
+      { id:'K7',  type:'mcq',        subject:'mathematics', skill:'subtraction',          question:{si:'10 - 5 = ?',ta:'10 - 5 = ?',en:'10 - 5 = ?'},                                                                                  options:{si:['5','6','7'],ta:['5','6','7'],en:['5','6','7']},                                                                                                                                             answer:0, emoji:'➖' },
+      { id:'K8',  type:'mcq',        subject:'sinhala',     skill:'vocabulary',           question:{si:'ශ්‍රී ලංකාවේ ජාතික පුෂ්පය කුමක්ද?',ta:'இலங்கையின் தேசிய மலர் எது?',en:'What is the national flower of Sri Lanka?'},           blank_choices:{si:['කපුරු','අරලිය','නිල් මානෙල් '],ta:['கற்பூரம்','கோயில்','நீல அல்லி'],en:['Camphor','Temple tree flower','Blue Water Lily']},                                                                             answer:2, },
+      { id:'K9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ සංඛ්‍යාව කුමක් ද?',ta:'அடுத்த எண்?',en:'Next number?'},                                                                              sequence:['10','20','30','40','?'],       options:{si:['45','48','50'],ta:['45','48','50'],en:['45','48','50']},    answer:2, emoji:'🔢' },
+      { id:'K10', type:'mcq',        subject:'evs',         skill:'environment',          question:{si:'ශ්‍රී ලංකාවේ ජාතික වනෝද්‍යානයකි?',ta:'இலங்கையின் தேசிய பூங்கா?',en:'A famous national park in Sri Lanka?'},                         options:{si:['යාල', 'මහනුවර', 'කොළඹ'],ta:['யால', 'கண்டி', 'கொழும்பு'],en:['Yala','Kandy','Colombo']},                                                                                        answer:0, emoji:'🦁' },
     ],
   },
 ]
 
-// ── Session utilities ─────────────────────────────────────────────────────────
+// ── Session utilities 
 
 /**
  * Get a random session, optionally filtered by grade
@@ -746,6 +725,28 @@ export function getRandomSession(grade = null) {
   const pool = grade
     ? SESSIONS.filter(s => s.grade === grade || s.grade === null)
     : SESSIONS
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
+/**
+ * Get a random session avoiding recently used ones
+ * @param {string[]} recentLabels - array of recently used session IDs (e.g., ['A', 'B', 'C'])
+ * @param {3|4|null} grade - optional grade filter
+ * @returns {Object} session
+ */
+export function getRandomSessionExcluding(recentLabels, grade = null) {
+  const basePool = grade
+    ? SESSIONS.filter(s => s.grade === grade || s.grade === null)
+    : SESSIONS
+  
+  // Filter out recently used sessions
+  const available = recentLabels && recentLabels.length > 0
+    ? basePool.filter(s => !recentLabels.includes(s.id))
+    : basePool
+  
+  // If all have been used recently, fall back to full pool
+  const pool = available.length > 0 ? available : basePool
+  
   return pool[Math.floor(Math.random() * pool.length)]
 }
 

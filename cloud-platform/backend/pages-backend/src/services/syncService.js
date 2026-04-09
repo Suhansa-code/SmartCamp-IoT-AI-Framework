@@ -7,9 +7,6 @@ import { db} from '../config/database.js';
 import { pgQuery, pgIsReachable } from '../config/tursoConfig.js';
 import { nowISO } from '../utils/helpers.js';
 
-// ── Column definitions per table ──────────────────────────────────────────────
-// Defines which columns to read from SQLite and insert to PostgreSQL.
-// All column names are identical between SQLite and PostgreSQL by design.
 
 const TABLE_COLUMNS = {
   pages_children: [
@@ -236,9 +233,9 @@ function s3Download(url, dest) {
  */
 function writeSyncLog(recordsPushed, modelsPulled, syncStatus, errorMessage = null) {
   db.prepare(`
-    INSERT INTO pages_sync_log (records_pushed, model_files_pulled, sync_status, error_message)
-    VALUES (?, ?, ?, ?)
-  `).run(recordsPushed, modelsPulled, syncStatus, errorMessage);
+    INSERT INTO pages_sync_log (records_pushed, model_files_pulled, sync_status, error_message, synced_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(recordsPushed, modelsPulled, syncStatus, errorMessage, nowISO());
 }
 
 /**
@@ -255,7 +252,7 @@ async function runSync() {
   let hasError = false;
 
   try {
-    // ── Push records in FK-safe order ──────────────────────────────────────
+    //Push records in FK-safe order 
     for (const tableName of C.SYNC_TABLE_ORDER) {
       // Get pending queue items for this table in batches of 50
       let offset = 0;
@@ -317,7 +314,7 @@ async function runSync() {
       }
     }
 
-    // ── Pull model files ────────────────────────────────────────────────────
+    // Pull model files
     try {
       modelsPulled = await pullModelFiles();
     } catch (err) {

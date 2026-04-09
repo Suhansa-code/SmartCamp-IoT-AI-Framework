@@ -1,16 +1,9 @@
 'use client'
 
-// src/app/child/cognitive/page.js
-// ─────────────────────────────────────────────────────────────────────────────
-// Cognitive activity page — picks a random session and runs it.
-// Child arrives here from the high-score path after the Go/No-Go game.
-// On completion routes back to /child (welcome screen).
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLang }          from '@/components/psychoedu/context/LanguageContext'
-import { getRandomSession } from '@/components/psychoedu/lib/sessions'
+import { getRandomSession, getRandomSessionExcluding } from '@/components/psychoedu/lib/sessions'
 import CognitiveSession     from '@/components/psychoedu/cognitive/CognitiveSession'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
@@ -32,14 +25,47 @@ function CognitiveInner() {
     setChildId(storedChildId)
     // Pick a random session
     setSession(getRandomSession())
-  }, [])
+
+    
+    // Pick a random session, avoiding recently used ones
+    async function selectSession() {
+      const childId = searchParams.get('child') ?? 'offline'
+      
+      // If offline, just pick random
+      if (childId === 'offline') {
+        setSession(getRandomSession())
+        return
+      }
+      
+      try {
+        // Fetch last 3 sessions for this child
+        const res = await fetch(`${API_BASE}/api/session/recent/${encodeURIComponent(childId)}`)
+        if (!res.ok) {
+          setSession(getRandomSession())
+          return
+        }
+        
+        const data = await res.json()
+        const recentLabels = data.recent_labels ?? []
+        
+        // Pick session avoiding those in recent list
+        const chosen = getRandomSessionExcluding(recentLabels)
+        setSession(chosen)
+      } catch {
+        // Fallback if fetch fails
+        setSession(getRandomSession())
+      }
+    }
+    
+    selectSession()
+  }, [searchParams])
 
   function handleComplete({ score, total, results = [] }) {
     // Save result to backend
     const sessionId = searchParams.get('session') ?? 'offline'
     const contentResponses = results.map((r) => ({
       taskId: r.taskId,
-      answer: 'a',
+      answer: String(r.selectedAnswer ?? ''),
       isCorrect: !!r.correct,
       timeTakenMs: 0,
     }))

@@ -1,8 +1,5 @@
 'use client'
 
-// app/child/content/page.jsx
-// Syncs ?lang= from URL into context, then shows ContentCard.
-
 import { Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useLang }    from '@/components/psychoedu/context/LanguageContext'

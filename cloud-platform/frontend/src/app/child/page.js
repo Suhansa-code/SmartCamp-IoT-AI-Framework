@@ -1,12 +1,6 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// src/app/child/page.js — PAGES Child Welcome Screen — Eli's World
-// Full animated scene: sky, clouds, butterflies, flowers, Eli floating
-// Flow: Idle → Scan QR → Session start → Language picker
-// ─────────────────────────────────────────────────────────────────────────────
-
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import { t }       from '@/components/psychoedu/lib/translations'
@@ -19,13 +13,13 @@ const GREETING_KEYS = [
   'welcome.greeting_3', 'welcome.greeting_4',
 ]
 
-const SPEECH_LINES = [
-  "Hello! I am Eli, your friend.",
-  'ආයුබෝවන්! මම එලී, ඔයාගේ යාළුවා.',
-  'வணக்கம்! நான் Eli, உன் நண்பன்.',
-]
+const SPEECH_LINES = {
+  si: 'ආයුබෝවන්! මම එලී, ඔයාගේ යාළුවා.',
+  ta: 'வணக்கம்! நான் Eli, உன் நண்பன்.',
+  en: 'Hello! I am Eli, your friend.',
+}
 
-// ── Sparkle particle ─────────────────────────────────────────────────────────
+// Sparkle particle 
 function Sparkle({ x, y, color = '#FFD93D', delay = 0 }) {
   return (
     <div style={{
@@ -38,7 +32,7 @@ function Sparkle({ x, y, color = '#FFD93D', delay = 0 }) {
   )
 }
 
-// ── Camera scan overlay ───────────────────────────────────────────────────────
+//Camera scan overlay 
 function CameraView({ videoRef, onCancel, lang }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'1rem', width:'100%' }}>
@@ -86,12 +80,12 @@ function CameraView({ videoRef, onCancel, lang }) {
   )
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// Main 
 export default function ChildWelcomePage() {
   const router            = useRouter()
   const { lang, setLang } = useLang()
 
-  const [screen,    setScreen]   = useState('welcome')  // welcome|camera|loading|language
+  const [screen,    setScreen]   = useState('language')  // welcome|camera|loading|language
   const [camState,  setCamState] = useState('idle')
   const [errorMsg,  setErrorMsg] = useState('')
   const [greetIdx,  setGreetIdx] = useState(0)
@@ -100,7 +94,6 @@ export default function ChildWelcomePage() {
   const [sparkles,  setSparkles] = useState([])
   const [tapCount,  setTapCount] = useState(0)
   const [eliSize,   setEliSize]  = useState(160)
-  const [speechIdx, setSpeechIdx] = useState(0)
 
   const videoRef  = useRef(null)
   const streamRef = useRef(null)
@@ -113,15 +106,6 @@ export default function ChildWelcomePage() {
       setGreetIdx(i => (i + 1) % GREETING_KEYS.length)
       setEliMood(m => m === 'wave' ? 'happy' : 'wave')
     }, 3200)
-    return () => clearInterval(id)
-  }, [screen])
-
-  // Rotate Eli's spoken line through 3 languages.
-  useEffect(() => {
-    if (screen !== 'welcome') return
-    const id = setInterval(() => {
-      setSpeechIdx(i => (i + 1) % SPEECH_LINES.length)
-    }, 2600)
     return () => clearInterval(id)
   }, [screen])
 
@@ -151,7 +135,7 @@ export default function ChildWelcomePage() {
     setTimeout(() => setEliMood('wave'), 1000)
   }
 
-  // ── Camera ────────────────────────────────────────────────────────────────
+  // Camera 
   async function startCamera() {
     setErrorMsg('')
     setCamState('requesting')
@@ -196,39 +180,39 @@ export default function ChildWelcomePage() {
     }
   }
 
-  const handleQR = useCallback(async (childId) => {
+  async function handleQR(childId) {
     stopCamera(); setCamState('idle'); setScreen('loading')
+    let sid = 'offline'
     try {
       const res = await fetch('/api/session/start', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ childId }),
       })
       if (!res.ok) throw new Error()
-      const { sessionId: sid } = await res.json()
-      setSessionId(sid)
-    } catch { setSessionId('offline') }
-    setScreen('language')
-  }, [])
+      const payload = await res.json()
+      sid = payload?.sessionId ?? payload?.session_id ?? 'offline'
+    } catch {
+      sid = 'offline'
+    }
+
+    setSessionId(sid)
+    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(lang)}`)
+  }
 
   function handleLanguageSelect(code) {
     setLang(code)
-    router.push(`/child/task?session=${sessionId ?? 'offline'}&lang=${code}`)
+    setScreen('welcome')
   }
 
-  function goToLanguageSelection() {
-    setSessionId(prev => prev ?? 'offline')
-    setScreen('language')
-  }
-
-  // ── Language picker screen ────────────────────────────────────────────────
+  //  Language picker screen 
   if (screen === 'language') {
     return <LanguagePicker sessionId={sessionId} onSelect={handleLanguageSelect} />
   }
 
-  // ── Loading screen ────────────────────────────────────────────────────────
+  // Loading screen 
   if (screen === 'loading') {
     return (
-      <SceneBackground>
+      <SceneBackground largeGroundFlowers>
         <div style={{ minHeight:'100svh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'2rem' }}>
           <div className="eli-float">
             <Eli size={140} mood="happy" animated={false} />
@@ -249,11 +233,11 @@ export default function ChildWelcomePage() {
     )
   }
 
-  // ── Welcome / camera screen ───────────────────────────────────────────────
+  // Welcome / camera screen
   const greeting = t(GREETING_KEYS[greetIdx], lang)
 
   return (
-    <SceneBackground>
+    <SceneBackground largeGroundFlowers>
       <style>{`
         @keyframes greeting-pop{0%{opacity:0;transform:scale(0.8) translateY(8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
         .greeting-anim{animation:greeting-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both}
@@ -268,20 +252,6 @@ export default function ChildWelcomePage() {
         boxSizing:'border-box',
       }}>
 
-        {/* ── Top badge ── */}
-        <div className="anim-fade-down delay-100" style={{ display:'flex', justifyContent:'center', width:'100%' }}>
-          <div style={{
-            background:'rgba(255,255,255,0.9)', backdropFilter:'blur(10px)',
-            borderRadius:'99px', padding:'8px 24px',
-            fontFamily:"'Baloo 2',cursive", fontWeight:900, fontSize:'clamp(11px,2.5vw,14px)',
-            color:'#0D9488', letterSpacing:'0.12em', textTransform:'uppercase',
-            boxShadow:'0 4px 20px rgba(13,148,136,0.2)',
-            border:'2px solid rgba(13,148,136,0.2)',
-          }}>
-            
-          </div>
-        </div>
-
         {/* ── Centre ── */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(1rem,3vw,1.5rem)', width:'100%', maxWidth:'min(400px,92vw)' }}>
 
@@ -290,9 +260,21 @@ export default function ChildWelcomePage() {
 
           {/* Welcome idle */}
           {screen === 'welcome' && (
-            <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', marginTop:'clamp(2.2rem,8vw,4.8rem)' }}>
+            <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', marginTop:'clamp(2rem,8vw,4.8rem)' }}>
             {/* Eli speech bubble */}
-              <div className="anim-fade-scale delay-600" style={{ position:'relative', width:'100%', marginTop:'clamp(4rem,4vw,2rem)' }}>
+              <div
+                className="anim-fade-scale delay-600"
+                style={{
+                  position:'relative',
+                  width:
+                    lang === 'si'
+                      ? 'min(420px, 94vw)'
+                      : lang === 'ta'
+                        ? 'min(360px, 92vw)'
+                        : 'min(300px, 84vw)',
+                  marginTop:'clamp(5.5rem,10vw,7.5rem)',
+                }}
+              >
                 <div style={{
                   background:'rgba(255,255,255,0.92)', backdropFilter:'blur(12px)',
                   borderRadius:'1.5rem 1.5rem 1.5rem 0.3rem',
@@ -301,8 +283,8 @@ export default function ChildWelcomePage() {
                   border:'3px solid rgba(255,255,255,0.8)',
                   textAlign:'center',
                 }}>
-                  <p key={speechIdx} className="greeting-anim" style={{ fontSize:'clamp(0.95rem,3vw,1.08rem)', fontWeight:700, color:'#0D9488', marginTop:2, letterSpacing:'0.01em', lineHeight:1.35 }}>
-                    {SPEECH_LINES[speechIdx]}
+                  <p className="greeting-anim" style={{ fontSize:'clamp(0.95rem,3vw,1.08rem)', fontWeight:700, color:'#0D9488', margin:0, letterSpacing:'0.01em', lineHeight:1.35, whiteSpace:'nowrap', textAlign:'center' }}>
+                    {SPEECH_LINES[lang] ?? SPEECH_LINES.en}
                   </p>
                 </div>
                 {/* Bubble tail */}
@@ -354,6 +336,7 @@ export default function ChildWelcomePage() {
                 className="scan-btn btn-press"
                 style={{
                   width:'100%',
+                  marginTop:'40px',
                   minHeight:'clamp(68px,15vw,80px)',
                   background: camState === 'requesting'
                     ? 'linear-gradient(135deg,#FDBA74,#FCD34D)'
@@ -380,44 +363,14 @@ export default function ChildWelcomePage() {
                   <span>
                     {camState === 'requesting' ? t('welcome.requesting', lang) : t('welcome.scan_btn', lang)}
                   </span>
-                  <span style={{ fontSize:'clamp(0.62rem,2vw,0.72rem)', fontWeight:800, opacity:0.95, letterSpacing:'0.1em' }}>
-                    SCAN WRISTBAND QR
-                  </span>
                 </span>
               </button>
 
-              <button
-                onClick={goToLanguageSelection}
-                style={{
-                  width:'100%',
-                  minHeight:54,
-                  marginTop:10,
-                  borderRadius:'99px',
-                  border:'3px solid rgba(13,148,136,0.4)',
-                  background:'rgba(255,255,255,0.9)',
-                  color:'#0D9488',
-                  fontFamily:"'Baloo 2',cursive",
-                  fontSize:'clamp(0.95rem,3.6vw,1.15rem)',
-                  fontWeight:900,
-                  cursor:'pointer',
-                }}
-              >
-                Next: Choose Language
-              </button>
             </div>
           )}
         </div>
 
-        {/* ── Bottom: language strip ── */}
-        <div style={{ display:'flex', gap:'0.5rem', alignItems:'center', justifyContent:'center' }}>
-          {['සිංහල','தமிழ்','English'].map((l, i) => (
-            <span key={i} style={{
-              background:'rgba(255,255,255,0.75)', borderRadius:'99px', padding:'4px 12px',
-              fontSize:'clamp(0.7rem,2vw,0.8rem)', fontWeight:700, color:'#0D9488',
-              fontFamily:"'Nunito',sans-serif",
-            }}>{l}</span>
-          ))}
-        </div>
+        <div />
 
       </div>
     </SceneBackground>
