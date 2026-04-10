@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import { db } from '../config/database.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
-import { newId } from '../utils/helpers.js';
 import { createError } from '../middleware/errorHandler.js';
 import { getAlerts, resolveAlert } from '../services/alertService.js';
  

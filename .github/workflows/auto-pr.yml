@@ -17,14 +17,9 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
           base: main
+          branch: auto-pr-${{ github.ref_name }}
           title: "Auto PR: ${{ github.ref_name }} → main"
           body: |
             This PR was automatically created from ${{ github.ref_name }} branch.
-          labels: automated, ${{ github.ref_name }}-to-main
-
-      - name: Enable Auto Merge
-        run: gh pr merge --auto --merge
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          labels: automated
