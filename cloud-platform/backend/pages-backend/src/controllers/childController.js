@@ -1,7 +1,7 @@
 'use strict';
 
 import { db } from '../config/database.js';
-import { tursoInsert, tursoUpdate, tursoRetrieve, tursoGetLastChildId, tursoRetrieveall } from '../config/tursoConfig.js';
+import { tursoInsert, tursoGetLastChildId, tursoRetrieveall } from '../config/tursoConfig.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { nextChildId, enqueue , nowISO } from '../utils/helpers.js';

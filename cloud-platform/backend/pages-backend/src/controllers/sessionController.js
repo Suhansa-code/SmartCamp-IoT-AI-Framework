@@ -144,11 +144,12 @@ async function taskComplete(req, res, next) {
         );
     
         logger.info(`[SCORING] Received scores for session ${session_id}:`, scoring);
-        const { compositeScore, taskScore, passiveScore, zScore, ifScore, anomalyFlagged } = scoring;
+        const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
     
 
         // 2. Apply first gate
         const gateDecision = applyFirstGate(compositeScore);
+        const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_FIRST;
         logger.info(`[GATING] First gate decision for session ${session_id}: ${gateDecision}`);
     
         // 3. Write signals + update session + gate decision — all in one transaction
@@ -212,7 +213,7 @@ async function taskComplete(req, res, next) {
           //   session_id,
           // );
 
-          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${anomalyFlagged}`);
+          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`);
 
           // tursoDB - Update session record with scores + gate decision - #delete when implementing
           await tursoUpdate("pages_sessions", {
@@ -221,7 +222,7 @@ async function taskComplete(req, res, next) {
             task_score: taskScore,
             passive_score: passiveScore,
             gate_decision: gateDecision,
-            anomaly_flagged: anomalyFlagged ? 1 : 0,
+            anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
             z_score: zScore || null,
             if_score: ifScore || null
           }, 'session_id = ?', [session_id]);
@@ -254,14 +255,14 @@ async function taskComplete(req, res, next) {
 
     
         // 4. If anomaly flagged — run alert check (outside transaction, reads DB)
-        if (anomalyFlagged) {
+        if (sessionAnomalyFlag) {
           checkAndCreateAlert(child_id, session_id);
         }
     
         
         logger.info(
           `[SESSION] Task complete: session=${session_id}, composite=${compositeScore}, ` +
-          `gate=${gateDecision}, anomaly=${anomalyFlagged}`
+          `gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`
         );
     
         // 5. Return only gate decision — never send internal ML scores
@@ -313,10 +314,11 @@ async function secondGate(req, res, next) {
       child_id, session_id, taskMetrics, passiveSignals
     );
  
-    const { compositeScore, taskScore, passiveScore, zScore, ifScore, anomalyFlagged } = scoring;
+    const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
  
     // 2. Apply second gate
     const gateDecision = applySecondGate(compositeScore);
+    const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
  
     const decisionId = newId();
  
@@ -337,7 +339,7 @@ async function secondGate(req, res, next) {
           passive_score: passiveScore,
           second_gate_score: compositeScore,
           gate_decision: gateDecision,
-          anomaly_flagged: anomalyFlagged ? 1 : 0,
+          anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
           z_score: zScore ?? null,
           if_score: ifScore ?? null,
         },
@@ -379,6 +381,8 @@ async function secondGate(req, res, next) {
           'child_id = ?',
           [child_id]
         );
+
+        checkAndCreateAlert(child_id, session_id);
       }
  
       enqueue('pages_gate_decisions', decisionId, 'INSERT');
