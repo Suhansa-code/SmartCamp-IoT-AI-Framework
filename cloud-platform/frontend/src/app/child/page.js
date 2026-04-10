@@ -180,7 +180,7 @@ export default function ChildWelcomePage() {
     }
   }
 
-  async function handleQR(childId) {
+  async function handleQR(childId, selectedLang = lang) {
     stopCamera(); setCamState('idle'); setScreen('loading')
     let sid = 'offline'
     try {
@@ -196,12 +196,12 @@ export default function ChildWelcomePage() {
     }
 
     setSessionId(sid)
-    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(lang)}`)
+    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(selectedLang)}`)
   }
 
   function handleLanguageSelect(code) {
     setLang(code)
-    setScreen('welcome')
+    handleQR('CHILD-DEMO-001', code)
   }
 
   //  Language picker screen 
