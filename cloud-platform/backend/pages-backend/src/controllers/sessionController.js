@@ -305,7 +305,7 @@ async function secondGate(req, res, next) {
 
 
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
-    if (session.gate_decision !== C.GATE.FAIL_FIRST) {
+    if (session.gate_decision && session.gate_decision !== C.GATE.FAIL_FIRST) {
       return next(createError(400, 'Second gate only valid after FAIL_FIRST decision'));
     }
  
