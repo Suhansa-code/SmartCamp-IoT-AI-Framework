@@ -5,7 +5,7 @@
 const BASE =
   process.env.NEXT_PUBLIC_API_URL ??
   process.env.REACT_APP_API_BASE_URL ??
-  'http://localhost:3000'
+  'http://localhost:3001'
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {

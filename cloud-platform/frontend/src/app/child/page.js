@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import { t }       from '@/components/psychoedu/lib/translations'
+import { startSession } from '@/components/psychoedu/lib/api'
 import Eli          from '@/components/psychoedu/child/Eli'
 import SceneBackground from '@/components/psychoedu/child/SceneBackground'
 import LanguagePicker  from '@/components/psychoedu/child/LanguagePicker'
@@ -180,28 +181,34 @@ export default function ChildWelcomePage() {
     }
   }
 
-  async function handleQR(childId) {
+  async function handleQR(childId, selectedLang = lang) {
     stopCamera(); setCamState('idle'); setScreen('loading')
     let sid = 'offline'
+    const storedChildId = typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : ''
+    const effectiveChildId = (childId || storedChildId || '').trim()
+
+    if (!effectiveChildId) {
+      setSessionId(sid)
+      router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(selectedLang)}`)
+      return
+    }
+
     try {
-      const res = await fetch('/api/session/start', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ childId }),
-      })
-      if (!res.ok) throw new Error()
-      const payload = await res.json()
+      const payload = await startSession(effectiveChildId)
       sid = payload?.sessionId ?? payload?.session_id ?? 'offline'
     } catch {
       sid = 'offline'
     }
 
     setSessionId(sid)
-    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(lang)}`)
+    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(selectedLang)}`)
   }
 
   function handleLanguageSelect(code) {
     setLang(code)
-    setScreen('welcome')
+    const sid = 'offline'
+    setSessionId(sid)
+    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(code)}`)
   }
 
   //  Language picker screen 

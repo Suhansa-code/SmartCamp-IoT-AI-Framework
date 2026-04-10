@@ -13,6 +13,7 @@ export default function Home() {
   const [statusMsg, setStatusMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [manualChildId, setManualChildId] = useState('');
+  const [isValidatingChildId, setIsValidatingChildId] = useState(false);
   const [mode, setMode] = useState('enrol'); // 'enrol' or 'existing'
   const [formData, setFormData] = useState({
     res_id: 'TEST-RES-001',
@@ -22,7 +23,7 @@ export default function Home() {
   });
 
   const apiBase = useMemo(
-    () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002',
+    () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
     []
   );
 
@@ -65,14 +66,37 @@ export default function Home() {
     router.push('/child');
   }
 
-  function handleUseExistingChildId() {
-    if (!manualChildId.trim()) {
+  async function handleUseExistingChildId() {
+    const childId = manualChildId.trim();
+    if (!childId) {
       setErrorMsg('Please enter a child ID');
       return;
     }
-    setEnrolledChildId(manualChildId.trim());
-    setStatusMsg('Child ID loaded. Ready to continue.');
+
+    setIsValidatingChildId(true);
     setErrorMsg('');
+    setStatusMsg('Validating child ID...');
+
+    try {
+      const response = await fetch(`${apiBase}/api/child/${encodeURIComponent(childId)}`);
+      const payload = await response.json().catch(() => ({}));
+
+      console.log('Validation response:', { status: response.status, payload });
+
+      if (!response.ok || !payload?.child?.child_id) {
+        throw new Error(payload.message || 'Child ID not found');
+      }
+
+      setEnrolledChildId(payload.child.child_id);
+      setStatusMsg('Child ID verified. Ready to continue.');
+      setErrorMsg('');
+    } catch (err) {
+      setEnrolledChildId('');
+      setStatusMsg('');
+      setErrorMsg(err.message || 'Unable to verify child ID right now.');
+    } finally {
+      setIsValidatingChildId(false);
+    }
   }
 
   return (
@@ -229,7 +253,7 @@ export default function Home() {
                         suppressHydrationWarning
                         value={manualChildId}
                         onChange={(e) => setManualChildId(e.target.value)}
-                        onKeyPress={(e) => {
+                        onKeyDown={(e) => {
                           if (e.key === 'Enter' && manualChildId.trim()) {
                             handleUseExistingChildId();
                           }
@@ -243,10 +267,10 @@ export default function Home() {
                   <button
                     suppressHydrationWarning
                     onClick={handleUseExistingChildId}
-                    disabled={!manualChildId.trim()}
+                    disabled={!manualChildId.trim() || isValidatingChildId}
                     className="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-cyan-300"
                   >
-                    Load Child ID
+                    {isValidatingChildId ? 'Checking Child ID...' : 'Load Child ID'}
                   </button>
                 </>
               )}
