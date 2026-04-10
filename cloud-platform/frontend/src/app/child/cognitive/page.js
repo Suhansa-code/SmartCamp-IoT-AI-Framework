@@ -78,6 +78,7 @@ function CognitiveInner() {
         child_id: childId,
         cognitiveScore: score,
         contentResponses,
+        contentSessionId: session?.id ? `SESSION-${session.id}` : null,
       }),
     }).catch(() => {})
 
