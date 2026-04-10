@@ -1,9 +1,7 @@
-'use strict';
-
-const { db }      = require('../config/database');
-const logger      = require('../utils/logger');
-const C           = require('../config/constants');
-const { newId, nowISO, enqueue } = require('../utils/helpers');
+import { db } from '../config/database.js';
+import logger from '../utils/logger.js';
+import C from '../config/constants.js';
+import { newId, nowISO, enqueue } from '../utils/helpers.js';
 
 /**
  * Run the alert check for a child after a flagged session.
@@ -119,7 +117,7 @@ function checkAndCreateAlert(childId, sessionId) {
  * @returns {Array}
  */
 function getAlerts(status) {
-  const whereClause = status ? `WHERE a.status = ?` : `WHERE 1=1`;
+  const whereClause = status ? 'WHERE a.status = ?' : 'WHERE 1=1';
   const params      = status ? [status] : [];
 
   const alerts = db.prepare(`
@@ -200,4 +198,4 @@ function resolveAlert(alertId, notes) {
   return true;
 }
 
-module.exports = { checkAndCreateAlert, getAlerts, resolveAlert };
+export { checkAndCreateAlert, getAlerts, resolveAlert };

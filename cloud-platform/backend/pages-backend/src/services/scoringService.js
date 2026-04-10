@@ -1,9 +1,7 @@
-'use strict';
-
-const axios  = require('axios');
-const logger = require('../utils/logger');
-const C      = require('../config/constants');
-const { round, clamp } = require('../utils/helpers');
+import axios from 'axios';
+import logger from '../utils/logger.js';
+import C from '../config/constants.js';
+import { round, clamp } from '../utils/helpers.js';
 
 /**
  * Fallback: compute composite score locally when Flask is unavailable.
@@ -97,6 +95,7 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
     );
 
     const data = response.data;
+    logger.info(`[SCORE] Received response from Flask for session ${sessionId}: ${JSON.stringify(data)}`);
 
     // Validate Flask response has the required fields
     if (
@@ -134,4 +133,4 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
   }
 }
 
-module.exports = { getScore, computeLocalScore, checkFlaskHealth };
+export { getScore, computeLocalScore, checkFlaskHealth };

@@ -1,11 +1,11 @@
 'use strict';
 
-const path      = require('path');
-const fs        = require('fs');
-const Database  = require('better-sqlite3');
-const { Pool }  = require('pg');
-const logger    = require('../utils/logger');
-const C         = require('./constants');
+import path from 'path';
+import fs from 'fs';
+import Database from 'better-sqlite3';
+import { Pool } from 'pg';
+import logger from '../utils/logger.js';
+import C from './constants.js';
 
 function migrateSelectedAnswerConstraint(db) {
   const row = db.prepare(`
@@ -169,4 +169,4 @@ async function pgQuery(text, params = []) {
   }
 }
 
-module.exports = { db, pgPool, pgIsReachable, pgQuery };
+export { db, pgPool, pgIsReachable, pgQuery };

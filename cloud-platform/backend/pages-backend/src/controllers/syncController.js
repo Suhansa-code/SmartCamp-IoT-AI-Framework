@@ -1,9 +1,7 @@
-'use strict';
- 
-const logger = require('../utils/logger');
-const { createError } = require('../middleware/errorHandler');
-const syncService = require('../services/syncService');
-const connectivityService = require('../services/connectivityService');
+import logger from '../utils/logger.js';
+import { createError } from '../middleware/errorHandler.js';
+import * as syncService from '../services/syncService.js';
+import * as connectivityService from '../services/connectivityService.js';
  
 // POST /api/sync/trigger 
  
@@ -59,4 +57,4 @@ function getSyncStatus(req, res, next) {
   }
 }
  
-module.exports = { triggerSync, getSyncStatus };
+export { triggerSync, getSyncStatus };

@@ -1,7 +1,7 @@
-'use strict';
 
-const { v4: uuidv4 } = require('uuid');
-const { db }         = require('../config/database');
+'use strict';
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../config/database.js';
 
 const APP_TIME_ZONE = 'Asia/Colombo';
 
@@ -128,7 +128,7 @@ function enqueue(tableName, recordId, operation = 'INSERT') {
   `).run(tableName, recordId, operation, nowISO());
 }
 
-module.exports = {
+export {
   newId,
   todayDate,
   nowTime,

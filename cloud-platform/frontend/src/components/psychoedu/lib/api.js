@@ -1,4 +1,11 @@
-const BASE = process.env.REACT_APP_API_BASE_URL ?? 'http://localhost:3001'
+// lib/api.js — API call functions to Node.js backend
+// All calls go to /api/* (Next.js route handlers proxy to Node.js)
+// Includes offline-safe wrappers with fallback behaviour
+
+const BASE =
+  process.env.NEXT_PUBLIC_API_URL ??
+  process.env.REACT_APP_API_BASE_URL ??
+  'http://localhost:3000'
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -19,7 +26,7 @@ async function apiFetch(path, options = {}) {
 export async function startSession(childId) {
   return apiFetch('/api/session/start', {
     method: 'POST',
-    body: JSON.stringify({ childId }),
+    body: JSON.stringify({ child_id: childId }),
   })
 }
 
