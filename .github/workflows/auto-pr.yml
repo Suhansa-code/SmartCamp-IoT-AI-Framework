@@ -3,7 +3,7 @@ name: Auto PR from backend-dev to main
 on:
   push:
     branches:
-      - backend-dev
+      - "*-dev"
 
 jobs:
   create-pull-request:
@@ -17,12 +17,12 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: backend-dev
+          branch: ${{ github.ref_name }}
           base: main
-          title: "Auto PR: backend-dev → main"
+          title: "Auto PR: ${{ github.ref_name }} → main"
           body: |
-            This PR was automatically created from backend-dev branch.
-          labels: automated, backend-dev-to-main
+            This PR was automatically created from ${{ github.ref_name }} branch.
+          labels: automated, ${{ github.ref_name }}-to-main
 
       - name: Enable Auto Merge
         run: gh pr merge --auto --merge
