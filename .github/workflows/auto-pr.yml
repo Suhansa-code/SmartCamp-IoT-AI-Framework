@@ -1,0 +1,30 @@
+name: Auto PR from backend-dev to main
+
+on:
+  push:
+    branches:
+      - backend-dev
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: backend-dev
+          base: main
+          title: "Auto PR: backend-dev → main"
+          body: |
+            This PR was automatically created from backend-dev branch.
+          labels: automated, backend-dev-to-main
+
+      - name: Enable Auto Merge
+        run: gh pr merge --auto --merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
