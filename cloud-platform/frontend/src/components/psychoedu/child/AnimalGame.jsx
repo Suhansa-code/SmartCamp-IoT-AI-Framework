@@ -171,6 +171,20 @@ export default function AnimalGame({ onComplete }) {
     setIsStarting(true)
 
     try {
+      // Retry flow (attempt 2+) must continue on the same session,
+      // otherwise second-gate updates cannot apply to FAIL_FIRST record.
+      if (attempt >= 2 && sessionId && sessionId !== 'offline') {
+        const now = Date.now()
+        gameStartAt.current = now
+        lastClickAt.current = now
+        idleMs.current = 0
+        rapidClicks.current = 0
+        setPhase('show')
+        shownAt.current = now
+        tapped.current = false
+        return
+      }
+
       const storedChildId = childId || (typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : '')
       if (!storedChildId) {
         throw new Error('No child ID selected')
