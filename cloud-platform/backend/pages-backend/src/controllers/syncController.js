@@ -1,5 +1,4 @@
 import logger from '../utils/logger.js';
-import { createError } from '../middleware/errorHandler.js';
 import * as syncService from '../services/syncService.js';
 import * as connectivityService from '../services/connectivityService.js';
  
