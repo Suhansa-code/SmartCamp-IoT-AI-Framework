@@ -2,6 +2,36 @@ import axios from 'axios';
 import logger from '../utils/logger.js';
 import C from '../config/constants.js';
 import { round, clamp } from '../utils/helpers.js';
+import { tursoRetrieve } from '../config/tursoConfig.js';
+
+const ZSCORE_MIN_SESSIONS = 3;
+
+async function computeLocalZScore(childId, compositeScore) {
+  try {
+    const rows = await tursoRetrieve(
+      'pages_sessions',
+      'composite_score',
+      'child_id = ? AND composite_score IS NOT NULL',
+      [childId]
+    );
+
+    const scores = rows
+      .map((r) => Number(r.composite_score))
+      .filter((n) => Number.isFinite(n));
+
+    if (scores.length < ZSCORE_MIN_SESSIONS - 1) return null;
+
+    const meanScore = scores.reduce((sum, n) => sum + n, 0) / scores.length;
+    const varianceScore = scores.reduce((sum, n) => sum + (n - meanScore) ** 2, 0) / scores.length;
+    const stdDev = varianceScore > 0 ? Math.sqrt(varianceScore) : 1;
+    const z = (compositeScore - meanScore) / stdDev;
+
+    return round(z < 0 ? Math.max(z, -5) : z, 4);
+  } catch (err) {
+    logger.warn(`[SCORE] Local z-score computation failed for child ${childId}: ${err.message}`);
+    return null;
+  }
+}
 
 /**
  * Fallback: compute composite score locally when Flask is unavailable.
@@ -111,14 +141,19 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
       `zScore=${data.zScore}, ifScore=${data.ifScore}`
     );
 
+    const localZScore = await computeLocalZScore(childId, data.compositeScore);
+    const ifScore = data.ifScore ?? null;
+    const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
+    const anomalyByIF = ifScore !== null && ifScore < C.IF_SCORE_THRESHOLD;
+
     return {
       compositeScore: round(data.compositeScore, 2),
       taskScore:      round(data.taskScore,      2),
       passiveScore:   round(data.passiveScore,   2),
       baselineScore:  data.baselineScore  || null,
-      zScore:         data.zScore         || null,
-      ifScore:        data.ifScore        || null,
-      anomalyFlagged: data.anomalyFlagged === true,
+      zScore:         localZScore,
+      ifScore:        ifScore,
+      anomalyFlagged: anomalyByZ || anomalyByIF,
       fallbackUsed:   false,
     };
   } catch (err) {
@@ -126,10 +161,17 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
       `[SCORE] ❌ Flask unavailable at ${C.FLASK_URL} (${err.code || err.message}) — using fallback for session ${sessionId}`
     );
     const fallback = computeLocalScore(taskMetrics, passiveSignals);
+    const localZScore = await computeLocalZScore(childId, fallback.compositeScore);
+    const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
+
     logger.info(
       `[SCORE] FALLBACK scored session ${sessionId}: composite=${fallback.compositeScore}`
     );
-    return fallback;
+    return {
+      ...fallback,
+      zScore: localZScore,
+      anomalyFlagged: anomalyByZ,
+    };
   }
 }
 

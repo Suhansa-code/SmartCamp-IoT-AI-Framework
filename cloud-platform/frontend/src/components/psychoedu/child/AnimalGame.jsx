@@ -28,7 +28,9 @@ const SHOW_MS       = 1500
 const BLANK_MS      = 500   
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const IDLE_THRESHOLD_MS = 1000
+const RAPID_CLICK_THRESHOLD_MS = 450
 
 // Math helpers
 const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
@@ -150,6 +152,7 @@ export default function AnimalGame({ onComplete }) {
   const router       = useRouter()
   const { lang }     = useLang()
   const isEnglish = lang === 'en'
+  const attempt = Math.max(1, Number(searchParams?.get('attempt') ?? 1) || 1)
 
   const [sessionId, setSessionId] = useState(searchParams?.get('session') ?? 'offline')
   const [childId, setChildId] = useState('')
@@ -186,9 +189,14 @@ export default function AnimalGame({ onComplete }) {
         throw new Error(payload.message || 'Failed to start session')
       }
 
+      const now = Date.now()
       setSessionId(payload.session_id)
+      gameStartAt.current = now
+      lastClickAt.current = now
+      idleMs.current = 0
+      rapidClicks.current = 0
       setPhase('show')
-      shownAt.current = Date.now()
+      shownAt.current = now
       tapped.current = false
     } catch (err) {
       console.error('Failed to start session:', err)
@@ -212,6 +220,10 @@ export default function AnimalGame({ onComplete }) {
   const falseTaps     = useRef(0)
   const missedTargets = useRef(0)
   const reactionTimes = useRef([])
+  const gameStartAt   = useRef(0)
+  const lastClickAt   = useRef(0)
+  const idleMs        = useRef(0)
+  const rapidClicks   = useRef(0)
   const shownAt       = useRef(0)
   const tapped        = useRef(false)
   const timerRef      = useRef(null)
@@ -223,6 +235,11 @@ export default function AnimalGame({ onComplete }) {
 
   // Start game handler
   function startGame() {
+    const now = Date.now()
+    gameStartAt.current = now
+    lastClickAt.current = now
+    idleMs.current = 0
+    rapidClicks.current = 0
     setPhase('show')
     shownAt.current = Date.now()
     tapped.current = false
@@ -275,6 +292,18 @@ export default function AnimalGame({ onComplete }) {
   }, [phase, trialIdx, timeLeft])
 
   function handleTap() {
+    const now = Date.now()
+    if (lastClickAt.current) {
+      const gap = now - lastClickAt.current
+      if (gap > IDLE_THRESHOLD_MS) {
+        idleMs.current += gap - IDLE_THRESHOLD_MS
+      }
+      if (gap <= RAPID_CLICK_THRESHOLD_MS) {
+        rapidClicks.current += 1
+      }
+    }
+    lastClickAt.current = now
+
     if (phase !== 'show' || tapped.current) return
     tapped.current = true
     clearTimeout(trialTimer.current)
@@ -292,13 +321,19 @@ export default function AnimalGame({ onComplete }) {
     const totalTargets     = trials.filter(tr => tr.type === 'target').length
     const totalDistractors = trials.filter(tr => tr.type === 'distractor').length
     const rts              = reactionTimes.current
+    const gameEndAt        = Date.now()
+    const totalElapsedMs   = Math.max(1, gameEndAt - (gameStartAt.current || gameEndAt))
+    const finalIdleGapMs   = lastClickAt.current ? Math.max(0, gameEndAt - lastClickAt.current - IDLE_THRESHOLD_MS) : 0
+    const idleTimeMs      = idleMs.current + finalIdleGapMs
     const storedChildId = typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : ''
     const metrics = {
       correctTaps: correctTaps.current,
       falseTaps: falseTaps.current,
       missedTargets: missedTargets.current,
       reactionTimes: [...rts],
-      accuracyRate:           totalTargets     > 0 ? correctTaps.current / totalTargets     : 0,
+      accuracyRate:           (correctTaps.current + falseTaps.current + missedTargets.current) > 0
+        ? correctTaps.current / (correctTaps.current + falseTaps.current + missedTargets.current)
+        : 0,
       falseTapRate:           totalDistractors > 0 ? falseTaps.current   / totalDistractors : 0,
       avgReactionTime:        Math.round(mean(rts)),
       reactionTimeVariance:   Math.round(variance(rts)),
@@ -314,8 +349,8 @@ export default function AnimalGame({ onComplete }) {
         reactionVariance: metrics.reactionTimeVariance,
       },
       passiveSignals: {
-        idleTimeRatio: 0,
-        rapidClickCount: 0,
+        idleTimeRatio: Number((idleTimeMs / totalElapsedMs).toFixed(3)),
+        rapidClickCount: rapidClicks.current,
         timeToFirstMs: rts[0] || 0,
         completionRatio: metrics.accuracyRate,
       }

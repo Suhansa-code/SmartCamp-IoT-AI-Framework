@@ -97,7 +97,6 @@ export default function BreathingCircle({ onComplete }) {
       setCycles(nCycles)
       if (nCycles >= TOTAL_CYCLES) {
         setIsDone(true)
-        setTimeout(() => onComplete?.(), 800)
         return
       }
     }
@@ -127,6 +126,26 @@ export default function BreathingCircle({ onComplete }) {
             {t('breathe.done_sub', lang)}
           </p>
         </div>
+
+        <button
+          onClick={() => onComplete?.()}
+          className="btn-press"
+          style={{
+            minHeight:'clamp(60px,13vw,72px)',
+            padding:'0 clamp(1.75rem,6vw,2.75rem)',
+            background:'linear-gradient(135deg,#7C3AED,#8B5CF6)',
+            color:'white',
+            borderRadius:'9999px',
+            border:'none',
+            fontFamily:"'Baloo 2',cursive",
+            fontSize:'clamp(1.05rem,4vw,1.25rem)',
+            fontWeight:900,
+            cursor:'pointer',
+            boxShadow:'0 8px 28px rgba(124,58,237,0.32)',
+          }}
+        >
+          {lang === 'si' ? 'ඊළඟට යන්න' : lang === 'ta' ? 'அடுத்ததுக்கு செல்லவும்' : 'Continue to Next Session'}
+        </button>
       </div>
     )
   }
