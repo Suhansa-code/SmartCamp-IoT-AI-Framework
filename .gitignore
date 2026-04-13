@@ -1,4 +1,4 @@
-# dependencies
+# Dependencies
 node_modules/
 .pnp
 .pnp.*
@@ -8,28 +8,33 @@ node_modules/
 !.yarn/releases
 !.yarn/versions
 
-# build outputs
+# Build outputs
 dist/
 build/
 *.egg-info/
 
-# testing
+# Next.js
+.next/
+out/
+
+# Testing
 coverage/
 
-# misc
+# Misc
 .DS_Store
 *.pem
 
-# debug logs
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# Environment files
 .env*
+!.env.example
 
-# python
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -38,13 +43,50 @@ __pycache__/
 venv/
 .venv/
 pip-log.txt
+pip-delete-this-directory.txt
 .pytest_cache/
+.mypy_cache/
+*.so
+Pillow-*.gif
+
+# ML Models
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.pb
+*.tflite
+models/*.h5
+models/*.pkl
+models/*.joblib
+models/*.pt
+models/*.onnx
+
+# Arduino/C++ (sensor-node)
+*.ino.hex
+*.cpp.hex
+*.c.hex
+*.S
+*.elf
+*.map
+*.d
+*.o
+*.a
+build/
+libraries/
 
 # IDEs
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
 
 # Logs
+logs/
 *.log
+
+# OS files
+Thumbs.db
