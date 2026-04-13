@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #ffffff;
@@ -12,27 +14,6 @@
   --navy-light: #3B5F8A;
   --white:   #FFFFFF;
   --gray-soft: #E2E8F0;
-
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
 }
 
 @layer base {
@@ -52,16 +33,16 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 text-xl
-           shadow-lg active:scale-95 transition-transform duration-150
-           min-h-[64px] flex items-center justify-center gap-2;
+    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply shadow-lg active:scale-95 transition-transform duration-150;
+    @apply min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--coral);
   }
 
   .btn-teal {
-    @apply font-bold rounded-3xl py-4 px-8 text-xl
-           shadow-lg active:scale-95 transition-transform duration-150
-           min-h-[64px] flex items-center justify-center gap-2;
+    @apply font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply shadow-lg active:scale-95 transition-transform duration-150;
+    @apply min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--teal);
     color: var(--white);
   }

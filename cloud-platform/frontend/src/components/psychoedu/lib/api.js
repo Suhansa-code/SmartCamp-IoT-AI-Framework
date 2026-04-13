@@ -69,3 +69,24 @@ export async function actionAlert(alertId, action) {
   // action: 'acknowledge' | 'escalate' | 'resolve'
   return apiFetch(`/api/alerts/${alertId}/${action}`, { method: 'POST' })
 }
+
+// ── Network Monitoring ──────────────────────────────────────
+export async function fetchNetworkMetrics() {
+  return apiFetch('/api/network/metrics')
+}
+
+export async function fetchNetworkStats() {
+  return apiFetch('/api/network/stats')
+}
+
+export async function fetchNetworkBuffer() {
+  return apiFetch('/api/network/buffer')
+}
+
+export async function fetchNetworkHistory(limit = 100) {
+  return apiFetch(`/api/network/history?limit=${limit}`)
+}
+
+export async function clearNetworkBuffer() {
+  return apiFetch('/api/network/clear-buffer', { method: 'POST' })
+}

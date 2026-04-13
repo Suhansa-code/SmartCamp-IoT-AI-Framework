@@ -67,6 +67,7 @@ export default function AdminPage() {
             { label:'All Camps', path:'/admin', active: true },
             { label:'Alerts',    path:'/admin/alerts', active: false },
             { label:'Analytics', path:'/admin/analytics', active: false },
+            { label:'Network',   path:'/admin/network', active: false },
           ].map(tab => (
             <button key={tab.path} onClick={() => router.push(tab.path)} style={{
               padding:'0.75rem 1.25rem',
