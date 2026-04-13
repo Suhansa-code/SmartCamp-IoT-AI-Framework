@@ -1,7 +1,3 @@
-// CampOverview — summary card for a single camp
-// Used in Admin dashboard grid view
-// Shows: camp name, active children, alert count, status badge
-
 'use client'
 
 import { useRouter } from 'next/navigation'
@@ -22,7 +18,7 @@ export default function CampOverview({ camp }) {
   return (
     <div
       className="card-soft flex flex-col gap-4 cursor-pointer hover:shadow-xl transition-shadow duration-200 active:scale-[0.98]"
-      onClick={() => router.push(`/admin/alerts?camp=${camp.id}`)}
+      onClick={() => router.push(`/admin/alert?camp=${camp.id}`)}
     >
       {/* Camp header */}
       <div className="flex items-start justify-between">

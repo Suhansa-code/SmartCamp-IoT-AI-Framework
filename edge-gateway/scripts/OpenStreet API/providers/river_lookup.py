@@ -1,7 +1,6 @@
-import requests
 from geopy.distance import geodesic
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+from providers.overpass_client import query_overpass
 
 
 def get_nearest_named_river(latitude: float, longitude: float, radius_m: int = 5000):
@@ -15,30 +14,9 @@ def get_nearest_named_river(latitude: float, longitude: float, radius_m: int = 5
     out center tags;
     """
 
-    try:
-        response = requests.get(
-            OVERPASS_URL,
-            params={"data": query},
-            headers={"User-Agent": "OpenStreet-API-Script/1.0"},
-            timeout=90,
-        )
-        response.raise_for_status()
-
-        content_type = response.headers.get("Content-Type", "")
-        if "json" not in content_type.lower():
-            return None, {
-                "error": "Overpass response was not JSON.",
-                "status": response.status_code,
-                "content_type": content_type,
-                "body_preview": response.text[:500],
-            }
-
-        data = response.json()
-
-    except requests.exceptions.RequestException as exc:
-        return None, {"error": f"Request failed: {exc}"}
-    except ValueError as exc:
-        return None, {"error": f"Failed to parse JSON: {exc}"}
+    data, error = query_overpass(query)
+    if error:
+        return None, error
 
     nearest_river = None
     min_distance_km = float("inf")

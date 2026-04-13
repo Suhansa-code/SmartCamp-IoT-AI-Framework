@@ -14,6 +14,74 @@
   --navy-light: #3B5F8A;
   --white:   #FFFFFF;
   --gray-soft: #E2E8F0;
+
+  --eli-teal:       #0D9488;
+  --eli-teal-mid:   #14B8A6;
+  --eli-teal-light: #CCFBF1;
+  --eli-sky:        #E0F7FF;
+  --eli-coral:      #FF6B35;
+  --eli-coral-soft: #FFB347;
+  --eli-yellow:     #FFD93D;
+  --eli-purple:     #A855F7;
+  --eli-purple-soft:#EDE9FE;
+  --eli-pink:       #FF6B9D;
+  --eli-green:      #4ADE80;
+  --eli-navy:       #1E3A5F;
+  --eli-cloud:      #FFFFFF;
+  --eli-grass:      #86EFAC;
+
+  --sky-top:    #87CEEB;
+  --sky-mid:    #B8E4F7;
+  --sky-bottom: #D4F1FF;
+  --ground:     #6DBE47;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --teal:    #0D9488;
+  --teal-light: #CCFBF1;
+  --sky-bg:  #F0F9FF;
+  --coral:   #F97316;
+  --coral-light: #FED7AA;
+  --navy:    #1E3A5F;
+  --navy-light: #3B5F8A;
+  --white:   #FFFFFF;
+  --gray-soft: #E2E8F0;
+
+  --eli-teal:       #0D9488;
+  --eli-teal-mid:   #14B8A6;
+  --eli-teal-light: #CCFBF1;
+  --eli-sky:        #E0F7FF;
+  --eli-coral:      #FF6B35;
+  --eli-coral-soft: #FFB347;
+  --eli-yellow:     #FFD93D;
+  --eli-purple:     #A855F7;
+  --eli-purple-soft:#EDE9FE;
+  --eli-pink:       #FF6B9D;
+  --eli-green:      #4ADE80;
+  --eli-navy:       #1E3A5F;
+  --eli-cloud:      #FFFFFF;
+  --eli-grass:      #86EFAC;
+
+  --sky-top:    #87CEEB;
+  --sky-mid:    #B8E4F7;
+  --sky-bottom: #D4F1FF;
+  --ground:     #6DBE47;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), sans-serif;
 }
 
 @layer base {
@@ -67,50 +135,169 @@
   }
 }
 
-/* Breathing animation */
-@keyframes breathe {
-  0%, 100% { transform: scale(1); opacity: 0.9; }
-  50%       { transform: scale(1.35); opacity: 1; }
+/* Eli floating */
+@keyframes eli-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25%       { transform: translateY(-14px) rotate(-2deg); }
+  75%       { transform: translateY(-8px)  rotate(2deg); }
+}
+.eli-float { animation: eli-float 3.5s ease-in-out infinite; }
+
+/* Eli excited bounce */
+@keyframes eli-bounce {
+  0%,100% { transform: translateY(0) scaleY(1); }
+  40%     { transform: translateY(-20px) scaleY(1.05); }
+  60%     { transform: translateY(-14px) scaleY(0.97); }
+}
+.eli-bounce { animation: eli-bounce 0.8s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+
+/* Eli wiggle (celebration) */
+@keyframes eli-wiggle {
+  0%,100% { transform: rotate(0deg) scale(1); }
+  15%     { transform: rotate(-8deg) scale(1.05); }
+  30%     { transform: rotate(8deg) scale(1.05); }
+  45%     { transform: rotate(-6deg) scale(1.03); }
+  60%     { transform: rotate(6deg) scale(1.03); }
+  75%     { transform: rotate(-3deg) scale(1.01); }
+}
+.eli-wiggle { animation: eli-wiggle 0.9s ease-in-out; }
+
+/* Eli breathe (breathing exercise) */
+@keyframes eli-breathe-in  { 0%{transform:scale(1)} 100%{transform:scale(1.22)} }
+@keyframes eli-breathe-out { 0%{transform:scale(1.22)} 100%{transform:scale(1)} }
+.eli-breathe-in  { animation: eli-breathe-in  4s ease-in-out forwards; }
+.eli-breathe-out { animation: eli-breathe-out 4s ease-in-out forwards; }
+
+/* Stars & sparkles */
+@keyframes star-spin {
+  0%   { transform: scale(0) rotate(-30deg); opacity: 0; }
+  60%  { transform: scale(1.3) rotate(10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.star-pop { animation: star-spin 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+@keyframes sparkle-float {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-60px) scale(0); opacity: 0; }
+}
+.sparkle { animation: sparkle-float 1.2s ease-out forwards; }
+
+/* Clouds drifting */
+@keyframes cloud-drift-1 {
+  0%   { transform: translateX(-10px); }
+  50%  { transform: translateX(10px); }
+  100% { transform: translateX(-10px); }
+}
+@keyframes cloud-drift-2 {
+  0%   { transform: translateX(8px); }
+  50%  { transform: translateX(-8px); }
+  100% { transform: translateX(8px); }
+}
+@keyframes cloud-drift-3 {
+  0%   { transform: translateX(-6px) translateY(0); }
+  50%  { transform: translateX(6px) translateY(-4px); }
+  100% { transform: translateX(-6px) translateY(0); }
+}
+.cloud-1 { animation: cloud-drift-1 8s ease-in-out infinite; }
+.cloud-2 { animation: cloud-drift-2 11s ease-in-out infinite; }
+.cloud-3 { animation: cloud-drift-3 9s ease-in-out infinite 1s; }
+
+/* Butterflies */
+@keyframes butterfly-fly {
+  0%   { transform: translate(0,0) rotate(0deg); }
+  25%  { transform: translate(12px,-8px) rotate(5deg); }
+  50%  { transform: translate(0,-14px) rotate(0deg); }
+  75%  { transform: translate(-12px,-8px) rotate(-5deg); }
+  100% { transform: translate(0,0) rotate(0deg); }
+}
+.butterfly { animation: butterfly-fly 4s ease-in-out infinite; }
+.butterfly-2 { animation: butterfly-fly 5s ease-in-out infinite 1.5s; }
+
+/* Leaves swaying */
+@keyframes leaf-sway {
+  0%,100% { transform: rotate(-5deg); }
+  50%     { transform: rotate(5deg); }
+}
+.leaf-sway { animation: leaf-sway 3s ease-in-out infinite; }
+
+/* Rainbow shimmer */
+@keyframes rainbow-shift {
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
 }
 
-.breathe-circle {
-  animation: breathe 4s ease-in-out infinite;
+/* Breathing circle */
+@keyframes breathe-expand {
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139,92,246,0.4); }
+  50%     { transform: scale(1.08); box-shadow: 0 0 60px 20px rgba(139,92,246,0.15); }
+}
+.breathe-pulse { animation: breathe-expand 4s ease-in-out infinite; }
+
+/* Ripple rings */
+@keyframes ripple-out {
+  0%   { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.ripple-1 { animation: ripple-out 2.5s ease-out infinite; }
+.ripple-2 { animation: ripple-out 2.5s ease-out infinite 0.8s; }
+.ripple-3 { animation: ripple-out 2.5s ease-out infinite 1.6s; }
+
+/* Fade and slide entries */
+@keyframes fade-up   { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fade-down { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fade-left { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
+@keyframes fade-scale{ from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
+
+.anim-fade-up    { animation: fade-up    0.5s ease forwards; }
+.anim-fade-down  { animation: fade-down  0.5s ease forwards; }
+.anim-fade-left  { animation: fade-left  0.5s ease forwards; }
+.anim-fade-scale { animation: fade-scale 0.4s cubic-bezier(0.34,1.4,0.64,1) forwards; }
+
+.delay-100 { animation-delay: 0.1s; opacity: 0; }
+.delay-200 { animation-delay: 0.2s; opacity: 0; }
+.delay-300 { animation-delay: 0.3s; opacity: 0; }
+.delay-400 { animation-delay: 0.4s; opacity: 0; }
+.delay-500 { animation-delay: 0.5s; opacity: 0; }
+.delay-600 { animation-delay: 0.6s; opacity: 0; }
+
+/* Language card hover bounce */
+@keyframes card-hover-bounce {
+  0%,100% { transform: translateY(0) scale(1); }
+  50%     { transform: translateY(-6px) scale(1.02); }
 }
 
-/* Bounce for mascot */
-@keyframes bounce-slow {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-12px); }
-}
-.mascot-bounce {
-  animation: bounce-slow 3s ease-in-out infinite;
+/* Confetti fall */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100px) rotate(720deg); opacity: 0; }
 }
 
-/* Pulse for alert badge */
-@keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); }
-  70%  { box-shadow: 0 0 0 12px rgba(249,115,22,0); }
-  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
-}
-.pulse-alert {
-  animation: pulse-ring 1.5s ease-out infinite;
-}
+/* Spin */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-anim { animation: spin 0.8s linear infinite; }
 
-/* Fade-in slide up */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Twinkling stars */
+@keyframes twinkle {
+  0%,100% { opacity: 0.3; transform: scale(0.8); }
+  50%     { opacity: 1; transform: scale(1.2); }
 }
-.fade-up {
-  animation: fade-up 0.5s ease forwards;
-}
+.twinkle-1 { animation: twinkle 2s ease-in-out infinite; }
+.twinkle-2 { animation: twinkle 2.5s ease-in-out infinite 0.5s; }
+.twinkle-3 { animation: twinkle 1.8s ease-in-out infinite 1s; }
 
-/* Star pop */
-@keyframes star-pop {
-  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
-  70%  { transform: scale(1.2) rotate(5deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); opacity: 1; }
+/* Water ripple for breathing */
+@keyframes water-ripple {
+  0%   { transform: scaleX(1); }
+  50%  { transform: scaleX(1.04); }
+  100% { transform: scaleX(1); }
 }
-.star-pop {
-  animation: star-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
-}
+.water-ripple { animation: water-ripple 2s ease-in-out infinite; }
+
+/* Progress fill */
+@keyframes progress-fill { from { width: 0% } }
+
+/* Button press */
+.btn-press:active { transform: scale(0.93) !important; }
+
+/* ── Scrollbar hidden on mobile ─────────────────────────────────────────── */
+.no-scroll { overflow: hidden; }
