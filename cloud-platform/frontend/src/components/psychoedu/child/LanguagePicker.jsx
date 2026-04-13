@@ -1,130 +1,254 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LANGUAGES } from '@/components/psychoedu/lib/translations'
+import Eli from './Eli'
+import SceneBackground from './SceneBackground'
 
-function WavingMascot() {
+//Confetti piece 
+function ConfettiPiece({ x, color, delay, shape }) {
+  const size = 8 + Math.random() * 8
   return (
-    <svg width="72" height="72" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <ellipse cx="80" cy="149" rx="38" ry="6"  fill="#0D9488" opacity="0.1" />
-      <ellipse cx="80" cy="108" rx="34" ry="27" fill="#0D9488" />
-      <circle  cx="80" cy="74"  r="29"          fill="#0D9488" />
-      <ellipse cx="46"  cy="72" rx="13" ry="18" fill="#0A7670" />
-      <ellipse cx="114" cy="72" rx="13" ry="18" fill="#0A7670" />
-      <circle cx="68" cy="68" r="6"   fill="white" />
-      <circle cx="92" cy="68" r="6"   fill="white" />
-      <circle cx="70" cy="69" r="3.5" fill="#1E3A5F" />
-      <circle cx="94" cy="69" r="3.5" fill="#1E3A5F" />
-      <circle cx="71" cy="68" r="1.2" fill="white" />
-      <circle cx="95" cy="68" r="1.2" fill="white" />
-      <path d="M68 84 Q80 93 92 84" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-      <path d="M80 98 Q73 114 78 124 Q82 132 78 138" stroke="#0A7670" strokeWidth="8" strokeLinecap="round" fill="none" />
-      <path d="M78 138 Q68 146 70 136" stroke="#0A7670" strokeWidth="6" strokeLinecap="round" fill="none" />
-      <rect x="52" y="128" width="18" height="16" rx="7" fill="#0A7670" />
-      <rect x="90" y="128" width="18" height="16" rx="7" fill="#0A7670" />
-    </svg>
+    <div style={{
+      position:'fixed', top:'-20px', left:`${x}%`,
+      width: size, height: shape === 'circle' ? size : size * 0.6,
+      borderRadius: shape === 'circle' ? '50%' : '2px',
+      background: color,
+      animation: `confetti-fall ${1.2 + Math.random()}s ease-out ${delay}s forwards`,
+      zIndex: 50,
+      pointerEvents: 'none',
+    }} />
   )
 }
 
-export default function LanguagePicker({ sessionId, onSelect }) {
-  const [selected, setSelected] = useState(null)
-  const [pressing, setPressing] = useState(null)
+// Language card 
+const LANG_DESIGNS = {
+  si: {
+    gradient: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 50%, #FFB347 100%)',
+    glow:     'rgba(255,107,53,0.35)',
+    shadow:   '0 12px 40px rgba(255,107,53,0.3)',
+    icon:     '🇱🇰',
+    bg:       '#FFF3EE',
+    accent:   '#FF6B35',
+    pattern:  '❋ ❋ ❋',
+  },
+  ta: {
+    gradient: 'linear-gradient(135deg, #A855F7 0%, #C084FC 50%, #E879F9 100%)',
+    glow:     'rgba(168,85,247,0.35)',
+    shadow:   '0 12px 40px rgba(168,85,247,0.3)',
+    icon:     '🌺',
+    bg:       '#FAF5FF',
+    accent:   '#A855F7',
+    pattern:  '✿ ✿ ✿',
+  },
+  en: {
+    gradient: 'linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #2DD4BF 100%)',
+    glow:     'rgba(13,148,136,0.35)',
+    shadow:   '0 12px 40px rgba(13,148,136,0.3)',
+    icon:     '📖',
+    bg:       '#F0FDF9',
+    accent:   '#0D9488',
+    pattern:  '★ ★ ★',
+  },
+}
 
-  function handlePick(code) {
-    setSelected(code)
-    setTimeout(() => onSelect(code), 320)
-  }
+function LangCard({ lang, onSelect, delay, selected, disabled }) {
+  const d = LANG_DESIGNS[lang.code]
+  const isSelected = selected === lang.code
 
   return (
-    <>
+    <button
+      onClick={() => !disabled && onSelect(lang.code)}
+      className="btn-press"
+      style={{
+        width:'100%',
+        minHeight:'clamp(80px,16vw,100px)',
+        borderRadius:'clamp(1.25rem,4vw,1.75rem)',
+        border:`3px solid ${isSelected ? d.accent : 'rgba(255,255,255,0.7)'}`,
+        background: isSelected ? d.gradient : 'rgba(255,255,255,0.88)',
+        backdropFilter:'blur(12px)',
+        boxShadow: isSelected ? d.shadow : '0 4px 20px rgba(0,0,0,0.08)',
+        display:'flex', alignItems:'center', gap:'clamp(0.75rem,3vw,1.25rem)',
+        padding:'0 clamp(1rem,4vw,1.75rem)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transform: isSelected ? 'scale(1.03)' : 'scale(1)',
+        transition:'all 0.2s cubic-bezier(0.34,1.4,0.64,1)',
+        animation:`card-enter 0.5s cubic-bezier(0.34,1.56,0.64,1) ${delay}s both`,
+        opacity: 0,
+        position:'relative', overflow:'hidden',
+      }}
+    >
       <style>{`
-        @keyframes fadeSlideUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes bounceMascot { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
-        .lang-card  { animation: fadeSlideUp 0.4s ease forwards; opacity:0; }
-        .mascot-bob { animation: bounceMascot 2.8s ease-in-out infinite; }
+        @keyframes card-enter{0%{opacity:0;transform:translateY(30px) scale(0.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
       `}</style>
 
+      {/* Background pattern (subtle) */}
       <div style={{
-        minHeight:'100svh',
-        background:'linear-gradient(160deg,#F0F9FF 0%,#EEF2FF 100%)',
-        display:'flex', flexDirection:'column', alignItems:'center',
-        justifyContent:'space-between',
-        padding:'clamp(1.25rem,4vw,2.5rem) clamp(1rem,4vw,2rem)',
-        position:'relative', overflow:'hidden', boxSizing:'border-box',
+        position:'absolute', right:12, top:'50%', transform:'translateY(-50%)',
+        fontSize:28, opacity: isSelected ? 0.25 : 0.08, letterSpacing:8,
+        color: isSelected ? 'white' : d.accent, pointerEvents:'none',
+        fontFamily:'serif',
       }}>
-        {/* Background blobs */}
-        <div style={{ position:'absolute', top:'-80px', right:'-80px', width:'240px', height:'240px', borderRadius:'50%', background:'#0D9488', opacity:0.06, pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:'-100px', left:'-60px', width:'280px', height:'280px', borderRadius:'50%', background:'#8B5CF6', opacity:0.05, pointerEvents:'none' }} />
+        {d.pattern}
+      </div>
 
-        {/* Mascot + headings */}
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(0.75rem,2vw,1.25rem)', width:'100%', maxWidth:'480px' }}>
-          <div className="mascot-bob">
-            <div style={{ width:'clamp(72px,15vw,100px)', height:'clamp(72px,15vw,100px)', borderRadius:'50%', background:'linear-gradient(135deg,#CCFBF1,#BAE6FD)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 8px 32px rgba(13,148,136,0.18)' }}>
-              <WavingMascot />
-            </div>
+      {/* Flag/icon circle */}
+      <div style={{
+        width:'clamp(52px,13vw,64px)', height:'clamp(52px,13vw,64px)',
+        borderRadius:'50%',
+        background: isSelected ? 'rgba(255,255,255,0.25)' : `${d.bg}`,
+        border:`3px solid ${isSelected ? 'rgba(255,255,255,0.5)' : d.accent}22`,
+        display:'flex', alignItems:'center', justifyContent:'center',
+        fontSize:'clamp(1.6rem,6vw,2rem)', flexShrink:0,
+        boxShadow: isSelected ? '0 4px 16px rgba(0,0,0,0.15)' : 'none',
+        transition:'all 0.2s',
+      }}>
+        {d.icon}
+      </div>
+
+      {/* Labels */}
+      <div style={{ flex:1, textAlign:'left' }}>
+        <p style={{
+          fontFamily:"'Baloo 2',cursive",
+          fontSize:'clamp(1.3rem,5vw,1.75rem)', fontWeight:900, lineHeight:1.1,
+          color: isSelected ? 'white' : '#1E3A5F',
+          transition:'color 0.2s',
+        }}>
+          {lang.label}
+        </p>
+        <p style={{
+          fontSize:'clamp(0.75rem,2.5vw,0.9rem)', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase',
+          color: isSelected ? 'rgba(255,255,255,0.8)' : d.accent,
+          marginTop:2, transition:'color 0.2s',
+        }}>
+          {lang.labelEn}
+        </p>
+      </div>
+
+      {/* Check */}
+      <div style={{
+        width:'clamp(28px,6vw,36px)', height:'clamp(28px,6vw,36px)',
+        borderRadius:'50%',
+        background: isSelected ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.5)',
+        border:`2px solid ${isSelected ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.1)'}`,
+        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+        fontSize:16, transition:'all 0.2s',
+      }}>
+        {isSelected ? '✓' : ''}
+      </div>
+    </button>
+  )
+}
+
+// Main component
+export default function LanguagePicker({ sessionId, onSelect }) {
+  const [selected,   setSelected]  = useState(null)
+  const [confetti,   setConfetti]  = useState([])
+  const [eliMood,    setEliMood]   = useState('wave')
+  const [confirmed,  setConfirmed] = useState(false)
+  const [eliSize,    setEliSize]   = useState(110)
+
+  useEffect(() => {
+    function updateEliSize() {
+      setEliSize(Math.min(130, Math.round(window.innerWidth * 0.3)))
+    }
+
+    updateEliSize()
+    window.addEventListener('resize', updateEliSize)
+    return () => window.removeEventListener('resize', updateEliSize)
+  }, [])
+
+  function handlePick(code) {
+    if (confirmed) return
+    setSelected(code)
+    setEliMood('excited')
+
+    // Confetti burst
+    const pieces = Array.from({ length: 28 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      color: ['#FF6B35','#FFD93D','#FF6B9D','#A855F7','#0D9488','#4ADE80','#60A5FA'][i % 7],
+      delay: Math.random() * 0.4,
+      shape: i % 3 === 0 ? 'circle' : 'rect',
+    }))
+    setConfetti(pieces)
+
+    // After brief pause, confirm
+    setTimeout(() => {
+      setEliMood('star')
+      setConfirmed(true)
+      setTimeout(() => onSelect(code), 700)
+    }, 600)
+  }
+
+  // Cleanup confetti
+  useEffect(() => {
+    if (!confetti.length) return
+    const t = setTimeout(() => setConfetti([]), 2200)
+    return () => clearTimeout(t)
+  }, [confetti])
+
+  return (
+    <SceneBackground largeGroundFlowers>
+      <style>{`
+        @keyframes heading-bounce{0%{opacity:0;transform:translateY(-20px) scale(0.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
+      `}</style>
+
+      {/* Confetti */}
+      {confetti.map(p => <ConfettiPiece key={p.id} {...p} />)}
+
+      <div style={{
+        minHeight:'100svh', display:'flex', flexDirection:'column', alignItems:'center',
+        justifyContent:'space-between',
+        padding:'clamp(1rem,4vw,1.5rem) clamp(1rem,4vw,1.25rem)',
+        boxSizing:'border-box',
+      }}>
+
+        {/* Eli + heading */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(0.5rem,2vw,0.75rem)', width:'100%' }}>
+          <div style={{ animation:'heading-bounce 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s both', opacity:0 }}>
+            <Eli
+              size={eliSize}
+              mood={eliMood}
+            />
           </div>
-          <div style={{ textAlign:'center' }}>
-            <h1 style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.4rem,5vw,2.2rem)', fontWeight:900, color:'#1E3A5F', lineHeight:1.2, marginBottom:'0.25rem' }}>
-              ඔබේ භාෂාව තෝරන්න
-            </h1>
-            <p style={{ fontSize:'clamp(1rem,3vw,1.2rem)', fontWeight:700, color:'#1E3A5F', opacity:0.7, lineHeight:1.3 }}>
+
+          {/* Trilingual heading */}
+          <div style={{
+            background:'rgba(255,255,255,0.88)', backdropFilter:'blur(12px)',
+            borderRadius:'1.5rem', padding:'clamp(0.75rem,3vw,1rem) clamp(1.25rem,4vw,1.75rem)',
+            textAlign:'center', boxShadow:'0 4px 24px rgba(0,0,0,0.08)',
+            border:'2px solid rgba(255,255,255,0.9)',
+            animation:'heading-bounce 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.25s both',
+            opacity:0,
+          }}>
+            <p style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(1.3rem,5vw,1.8rem)', fontWeight:900, color:'#1E3A5F', lineHeight:1.2 }}>
+              ඔබේ භාෂාව තෝරන්න 🌟
+            </p>
+            <p style={{ fontSize:'clamp(0.95rem,3vw,1.15rem)', fontWeight:700, color:'#A855F7', marginTop:2 }}>
               உங்கள் மொழியை தேர்ந்தெடுக்கவும்
             </p>
-            <p style={{ fontSize:'clamp(0.85rem,2.5vw,1rem)', fontWeight:600, color:'#0D9488', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:'4px' }}>
+            <p style={{ fontSize:'clamp(0.82rem,2.5vw,0.95rem)', fontWeight:700, color:'#0D9488', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:2 }}>
               Choose Your Language
             </p>
           </div>
         </div>
 
         {/* Language cards */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'clamp(0.75rem,2.5vw,1.1rem)', width:'100%', maxWidth:'480px' }}>
-          {LANGUAGES.map((lang, i) => {
-            const isSel  = selected === lang.code
-            const isPress= pressing === lang.code
-            return (
-              <button
-                key={lang.code}
-                className="lang-card"
-                style={{ animationDelay:`${i * 0.1}s`, animationFillMode:'forwards' }}
-                onPointerDown={() => setPressing(lang.code)}
-                onPointerUp={() => { setPressing(null); handlePick(lang.code) }}
-                onPointerLeave={() => setPressing(null)}
-                aria-label={`Select ${lang.labelEn}`}
-              >
-                <div style={{
-                  width:'100%', minHeight:'clamp(76px,14vw,96px)',
-                  borderRadius:'clamp(1rem,3vw,1.5rem)',
-                  background: isSel ? lang.color : isPress ? `${lang.color}22` : 'white',
-                  border:`3px solid ${isSel ? lang.color : isPress ? lang.color : '#E2E8F0'}`,
-                  boxShadow: isSel ? `0 8px 32px ${lang.color}55` : isPress ? `0 4px 20px ${lang.color}33` : '0 2px 12px rgba(0,0,0,0.06)',
-                  display:'flex', alignItems:'center', gap:'clamp(1rem,4vw,1.75rem)',
-                  padding:'0 clamp(1.25rem,4vw,2rem)',
-                  transform: isPress ? 'scale(0.97)' : isSel ? 'scale(1.02)' : 'scale(1)',
-                  transition:'transform 0.12s, box-shadow 0.15s, background 0.15s, border-color 0.15s',
-                  textAlign:'left', cursor:'pointer',
-                }}>
-                  <span style={{ fontSize:'clamp(2rem,7vw,2.8rem)', lineHeight:1, flexShrink:0 }}>{lang.flag}</span>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontFamily:"'Noto Sans Sinhala','Noto Sans Tamil','Baloo 2',sans-serif", fontSize:'clamp(1.3rem,4.5vw,1.9rem)', fontWeight:900, color: isSel ? 'white' : '#1E3A5F', lineHeight:1.3, paddingTop:'2px', transition:'color 0.15s', whiteSpace:'normal', overflow:'visible' }}>
-                      {lang.label}
-                    </p>
-                    <p style={{ fontSize:'clamp(0.75rem,2.5vw,0.95rem)', fontWeight:600, color: isSel ? 'rgba(255,255,255,0.85)' : '#64748B', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:'2px', transition:'color 0.15s' }}>
-                      {lang.labelEn}
-                    </p>
-                  </div>
-                  <div style={{ width:'clamp(28px,6vw,36px)', height:'clamp(28px,6vw,36px)', borderRadius:'50%', background: isSel ? 'rgba(255,255,255,0.3)' : '#F0F9FF', border:`2px solid ${isSel ? 'rgba(255,255,255,0.6)' : '#E2E8F0'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
-                    {isSel && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8 L6.5 11.5 L13 4.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                  </div>
-                </div>
-              </button>
-            )
-          })}
+        <div style={{ display:'flex', flexDirection:'column', gap:'clamp(0.65rem,2.5vw,0.9rem)', width:'100%', maxWidth:'min(460px,94vw)' }}>
+          {LANGUAGES.map((lang, i) => (
+            <LangCard
+              key={lang.code}
+              lang={lang}
+              onSelect={handlePick}
+              delay={0.4 + i * 0.12}
+              selected={selected}
+              disabled={confirmed}
+            />
+          ))}
         </div>
 
-        <p style={{ fontSize:'clamp(0.72rem,2vw,0.82rem)', fontWeight:600, color:'#0D9488', opacity:0.6, textAlign:'center' }}>
-          PAGES · Session: {sessionId?.slice(0, 8) ?? '—'}
-        </p>
       </div>
-    </>
+    </SceneBackground>
   )
 }

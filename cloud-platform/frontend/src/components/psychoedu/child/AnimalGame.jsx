@@ -1,19 +1,11 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// components/child/AnimalGame.jsx — PAGES Go/No-Go Task
-// Language-aware: reads lang from LanguageContext
-// Fully responsive — clamp() fluid sizing, works on all phones + tablets
-// 90 s · 45 trials · 70% GO / 30% NO-GO · emoji fallback when images absent
-// onComplete({ accuracyRate, falseTapRate, avgReactionTime, reactionTimeVariance })
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLang }  from '@/components/psychoedu/context/LanguageContext'
 import { t }        from '@/components/psychoedu/lib/translations'
 
-// ── Animals ───────────────────────────────────────────────────────────────────
+// Animals
 const TARGET_DEFS = [
   { id: 'elephant',  emoji: '🐘', file: 'elephant.svg'   },
   { id: 'rabbit',    emoji: '🐰', file: 'rabbit.svg'     },
@@ -29,15 +21,18 @@ const DISTRACTOR_DEFS = [
   { id: 'crab',   emoji: '🦀', file: 'crab.svg'   },
 ]
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// Config 
 const TOTAL_TRIALS  = 45
 const TARGET_RATIO  = 0.70
 const SHOW_MS       = 1500  
 const BLANK_MS      = 500   
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const IDLE_THRESHOLD_MS = 1000
+const RAPID_CLICK_THRESHOLD_MS = 450
 
-// ── Math helpers ──────────────────────────────────────────────────────────────
+// Math helpers
 const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
 const variance = arr => {
   if (arr.length < 2) return 0
@@ -60,15 +55,15 @@ function buildTrials() {
   return shuffle([...targets, ...distractors])
 }
 
-// ── Countdown screen ──────────────────────────────────────────────────────────
-function CountdownScreen({ count, lang, total }) {
+// Countdown screen
+function CountdownScreen({ count, lang, total, onStart }) {
   const isEnglish = lang === 'en'
 
   return (
     <div style={{
       minHeight:'100svh', background:'#F0F9FF',
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      gap:'clamp(1.25rem,4vw,2rem)', padding:'clamp(1rem,4vw,1.5rem)',
+      gap:'clamp(1.5rem,4vw,2.5rem)', padding:'clamp(1rem,4vw,1.5rem)',
       boxSizing:'border-box',
     }}>
       {/* Instruction card */}
@@ -89,25 +84,53 @@ function CountdownScreen({ count, lang, total }) {
         </p>
       </div>
 
-      {/* Ring countdown */}
-      <div style={{ position:'relative', width:'clamp(100px,25vw,140px)', height:'clamp(100px,25vw,140px)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <svg width="100%" height="100%" viewBox="0 0 140 140" style={{ position:'absolute', transform:'rotate(-90deg)' }}>
-          <circle cx="70" cy="70" r="60" fill="none" stroke="#E2E8F0" strokeWidth="8" />
-          <circle cx="70" cy="70" r="60" fill="none" stroke="#0D9488" strokeWidth="8"
-            strokeDasharray={`${((total - count) / total) * 376.99} 376.99`}
-            strokeLinecap="round"
-            style={{ transition:'stroke-dasharray 0.9s linear' }}
-          />
-        </svg>
-        <span style={{ fontFamily:"'Baloo 2',cursive", fontSize:'clamp(2.5rem,8vw,4.5rem)', fontWeight:900, color:'#1E3A5F', lineHeight:1 }}>
-          {count || '▶'}
-        </span>
-      </div>
+      {/* Start Game Button - child friendly */}
+      <button
+        onClick={onStart}
+        style={{
+          background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
+          color: 'white',
+          border: 'none',
+          borderRadius: 'clamp(1.25rem,4vw,2rem)',
+          padding: 'clamp(1rem,3vw,1.25rem) clamp(1.5rem,6vw,2.5rem)',
+          fontSize: 'clamp(1.1rem,4vw,1.6rem)',
+          fontWeight: 900,
+          fontFamily: "'Baloo 2', cursive",
+          cursor: 'pointer',
+          boxShadow: '0 8px 24px rgba(13, 148, 136, 0.3)',
+          transition: 'all 0.2s ease',
+          minWidth: '180px',
+          maxWidth: 'min(300px,85vw)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem',
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'scale(0.96)'
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(13, 148, 136, 0.2)'
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'scale(1)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(13, 148, 136, 0.3)'
+        }}
+        onTouchStart={(e) => {
+          e.currentTarget.style.transform = 'scale(0.96)'
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(13, 148, 136, 0.2)'
+        }}
+        onTouchEnd={(e) => {
+          e.currentTarget.style.transform = 'scale(1)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(13, 148, 136, 0.3)'
+        }}
+      >
+        <span>🎮</span>
+        <span>{t('game.start_btn', lang)}</span>
+      </button>
     </div>
   )
 }
 
-// ── Done screen ───────────────────────────────────────────────────────────────
+// Done screen 
 function DoneScreen({ lang }) {
   return (
     <div style={{ minHeight:'100svh', background:'#F0F9FF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'1.25rem', padding:'2rem', textAlign:'center' }}>
@@ -123,14 +146,64 @@ function DoneScreen({ lang }) {
   )
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// Main component
 export default function AnimalGame({ onComplete }) {
   const searchParams = useSearchParams()
   const router       = useRouter()
   const { lang }     = useLang()
   const isEnglish = lang === 'en'
+  const attempt = Math.max(1, Number(searchParams?.get('attempt') ?? 1) || 1)
 
-  const sessionId = searchParams?.get('session') ?? 'offline'
+  const [sessionId, setSessionId] = useState(searchParams?.get('session') ?? 'offline')
+  const [childId, setChildId] = useState('')
+  const [isStarting, setIsStarting] = useState(false)
+
+  useEffect(() => {
+    const urlChildId = searchParams?.get('child') ?? ''
+    const storedChildId = typeof window !== 'undefined'
+      ? (sessionStorage.getItem('selectedChildId') ?? '')
+      : ''
+    setChildId(urlChildId || storedChildId)
+  }, [searchParams])
+
+  async function handleStartSession() {
+    if (isStarting) return
+    setIsStarting(true)
+
+    try {
+      const storedChildId = childId || (typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : '')
+      if (!storedChildId) {
+        throw new Error('No child ID selected')
+      }
+
+      const response = await fetch(`${API_BASE}/api/session/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ child_id: storedChildId }),
+      })
+
+      console.log('Start session response:', response)
+
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || !payload.session_id) {
+        throw new Error(payload.message || 'Failed to start session')
+      }
+
+      const now = Date.now()
+      setSessionId(payload.session_id)
+      gameStartAt.current = now
+      lastClickAt.current = now
+      idleMs.current = 0
+      rapidClicks.current = 0
+      setPhase('show')
+      shownAt.current = now
+      tapped.current = false
+    } catch (err) {
+      console.error('Failed to start session:', err)
+    } finally {
+      setIsStarting(false)
+    }
+  }
 
   const trialsRef = useRef(null)
   if (!trialsRef.current) trialsRef.current = buildTrials()
@@ -147,6 +220,10 @@ export default function AnimalGame({ onComplete }) {
   const falseTaps     = useRef(0)
   const missedTargets = useRef(0)
   const reactionTimes = useRef([])
+  const gameStartAt   = useRef(0)
+  const lastClickAt   = useRef(0)
+  const idleMs        = useRef(0)
+  const rapidClicks   = useRef(0)
   const shownAt       = useRef(0)
   const tapped        = useRef(false)
   const timerRef      = useRef(null)
@@ -156,13 +233,17 @@ export default function AnimalGame({ onComplete }) {
 
   const trial = trials[trialIdx]
 
-  // Countdown
-  useEffect(() => {
-    if (phase !== 'countdown') return
-    if (cdCount === 0) { setPhase('show'); shownAt.current = Date.now(); tapped.current = false; return }
-    const t = setTimeout(() => setCdCount(c => c - 1), 1000)
-    return () => clearTimeout(t)
-  }, [phase, cdCount])
+  // Start game handler
+  function startGame() {
+    const now = Date.now()
+    gameStartAt.current = now
+    lastClickAt.current = now
+    idleMs.current = 0
+    rapidClicks.current = 0
+    setPhase('show')
+    shownAt.current = Date.now()
+    tapped.current = false
+  }
 
   // 90-s timer (wall-clock based to avoid interval drift)
   useEffect(() => {
@@ -211,6 +292,18 @@ export default function AnimalGame({ onComplete }) {
   }, [phase, trialIdx, timeLeft])
 
   function handleTap() {
+    const now = Date.now()
+    if (lastClickAt.current) {
+      const gap = now - lastClickAt.current
+      if (gap > IDLE_THRESHOLD_MS) {
+        idleMs.current += gap - IDLE_THRESHOLD_MS
+      }
+      if (gap <= RAPID_CLICK_THRESHOLD_MS) {
+        rapidClicks.current += 1
+      }
+    }
+    lastClickAt.current = now
+
     if (phase !== 'show' || tapped.current) return
     tapped.current = true
     clearTimeout(trialTimer.current)
@@ -222,27 +315,96 @@ export default function AnimalGame({ onComplete }) {
 
   function flash(type) { setFeedback(type); setTimeout(() => setFeedback(null), 380) }
 
-  function endGame() {
+  async function endGame() {
     clearInterval(timerRef.current); clearTimeout(trialTimer.current)
     setPhase('done')
     const totalTargets     = trials.filter(tr => tr.type === 'target').length
     const totalDistractors = trials.filter(tr => tr.type === 'distractor').length
     const rts              = reactionTimes.current
+    const gameEndAt        = Date.now()
+    const totalElapsedMs   = Math.max(1, gameEndAt - (gameStartAt.current || gameEndAt))
+    const finalIdleGapMs   = lastClickAt.current ? Math.max(0, gameEndAt - lastClickAt.current - IDLE_THRESHOLD_MS) : 0
+    const idleTimeMs      = idleMs.current + finalIdleGapMs
+    const storedChildId = typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : ''
     const metrics = {
       correctTaps: correctTaps.current,
       falseTaps: falseTaps.current,
       missedTargets: missedTargets.current,
       reactionTimes: [...rts],
-      accuracyRate:           totalTargets     > 0 ? correctTaps.current / totalTargets     : 0,
+      accuracyRate:           (correctTaps.current + falseTaps.current + missedTargets.current) > 0
+        ? correctTaps.current / (correctTaps.current + falseTaps.current + missedTargets.current)
+        : 0,
       falseTapRate:           totalDistractors > 0 ? falseTaps.current   / totalDistractors : 0,
       avgReactionTime:        Math.round(mean(rts)),
       reactionTimeVariance:   Math.round(variance(rts)),
     }
-    fetch('/api/session/score', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ sessionId, lang, ...metrics }) }).catch(() => {})
-    if (onComplete) onComplete(metrics)
-    else {
-      const poor = metrics.accuracyRate < 0.5 || metrics.falseTapRate > 0.6
-      setTimeout(() => router.push(`${poor ? '/child/calming' : '/child/content'}?lang=${lang}`), 1600)
+    const payload = {
+      session_id: sessionId,
+      child_id: storedChildId,
+      lang,
+      taskMetrics: {
+        accuracyRate: metrics.accuracyRate,
+        falseTapRate: metrics.falseTapRate,
+        avgReactionTime: metrics.avgReactionTime,
+        reactionVariance: metrics.reactionTimeVariance,
+      },
+      passiveSignals: {
+        idleTimeRatio: Number((idleTimeMs / totalElapsedMs).toFixed(3)),
+        rapidClickCount: rapidClicks.current,
+        timeToFirstMs: rts[0] || 0,
+        completionRatio: metrics.accuracyRate,
+      }
+    }
+    const gatePath = attempt >= 2 ? '/api/session/second-gate' : '/api/session/task-complete'
+    let gateDecision = null
+
+    try {
+      const res = await fetch(`${API_BASE}${gatePath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json().catch(() => null)
+      if (res.ok && data?.gate_decision) gateDecision = data.gate_decision
+    } catch (_) {}
+
+    if (onComplete) {
+      onComplete(metrics)
+    } else {
+      const langParam = `lang=${encodeURIComponent(lang)}`
+      const baseParams = `session=${encodeURIComponent(sessionId)}&child=${encodeURIComponent(childId)}&attempt=${attempt}&${langParam}`
+
+      if (gateDecision === 'PASS' || gateDecision === 'PASS_RECOVERED') {
+        setTimeout(() =>
+          router.push(`/child/cognitive?${baseParams}`),
+        1600)
+      } else if (gateDecision === 'FAIL_CONFIRMED') {
+        setTimeout(() =>
+          router.push(`/child/play?${baseParams}`),
+        1600)
+      } else if (gateDecision === 'FAIL_FIRST') {
+        setTimeout(() =>
+          router.push(`/child/calming?${baseParams}`),
+        1600)
+      } else {
+        // Fallback if backend is unavailable: preserve previous UX behavior.
+        const isGate1Pass = metrics.accuracyRate >= 0.5 && metrics.falseTapRate <= 0.6
+        if (isGate1Pass) {
+          setTimeout(() =>
+            router.push(`/child/cognitive?${baseParams}`),
+          1600)
+          return
+        }
+        if (attempt >= 2) {
+          setTimeout(() =>
+            router.push(`/child/play?${baseParams}`),
+          1600)
+          return
+        }
+        setTimeout(() =>
+          router.push(`/child/calming?${baseParams}`),
+        1600)
+      }
     }
   }
 
@@ -254,7 +416,7 @@ export default function AnimalGame({ onComplete }) {
   }
   const fb = feedback ? FB[feedback] : null
 
-  if (phase === 'countdown') return <CountdownScreen count={cdCount} lang={lang} total={COUNTDOWN_SECONDS} />
+  if (phase === 'countdown') return <CountdownScreen count={cdCount} lang={lang} total={COUNTDOWN_SECONDS} onStart={handleStartSession} />
   if (phase === 'done')      return <DoneScreen lang={lang} />
 
   // Animal name in chosen language
