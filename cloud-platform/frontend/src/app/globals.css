@@ -50,8 +50,56 @@ body {
     font-family: 'Nunito', sans-serif;
     background-color: var(--sky-bg);
     color: var(--navy);
-    font-size: 18px;
+    font-size: 24px;
     line-height: 1.6;
+  }
+
+  /* Mobile-first font scaling */
+  @media (max-width: 640px) {
+    body {
+      font-size: 28px;
+    }
+    h1 {
+      font-size: 3.25rem;
+      line-height: 1.2;
+    }
+    h2 {
+      font-size: 2.75rem;
+      line-height: 1.3;
+    }
+    h3 {
+      font-size: 2rem;
+      line-height: 1.4;
+    }
+  }
+
+  /* Tablet */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    body {
+      font-size: 25px;
+    }
+    h1 {
+      font-size: 2.8rem;
+    }
+    h2 {
+      font-size: 2.3rem;
+    }
+    h3 {
+      font-size: 1.7rem;
+    }
+  }
+
+  /* Desktop */
+  @media (min-width: 1025px) {
+    h1 {
+      font-size: 2.5rem;
+    }
+    h2 {
+      font-size: 2rem;
+    }
+    h3 {
+      font-size: 1.6rem;
+    }
   }
 
   h1, h2, h3 {
@@ -62,18 +110,34 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 text-xl
-           shadow-lg active:scale-95 transition-transform duration-150
+    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 shadow-lg active:scale-95 transition-transform duration-150
            min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--coral);
+    font-size: 1.375rem;
+  }
+
+  @media (max-width: 640px) {
+    .btn-primary {
+      font-size: 1.625rem;
+      min-height: 80px;
+      padding: 1.25rem 2.5rem;
+    }
   }
 
   .btn-teal {
-    @apply font-bold rounded-3xl py-4 px-8 text-xl
-           shadow-lg active:scale-95 transition-transform duration-150
+    @apply font-bold rounded-3xl py-4 px-8 shadow-lg active:scale-95 transition-transform duration-150
            min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--teal);
     color: var(--white);
+    font-size: 1.375rem;
+  }
+
+  @media (max-width: 640px) {
+    .btn-teal {
+      font-size: 1.625rem;
+      min-height: 80px;
+      padding: 1.25rem 2.5rem;
+    }
   }
 
   .card-soft {
@@ -85,14 +149,26 @@ body {
   }
 
   .label-sinhala {
-    @apply text-2xl font-bold;
+    @apply text-3xl font-bold;
     font-family: 'Baloo 2', cursive;
     color: var(--navy);
   }
 
+  @media (max-width: 640px) {
+    .label-sinhala {
+      @apply text-4xl;
+    }
+  }
+
   .label-english {
-    @apply text-base font-semibold uppercase tracking-widest;
+    @apply text-lg font-semibold uppercase tracking-widest;
     color: var(--teal);
+  }
+
+  @media (max-width: 640px) {
+    .label-english {
+      @apply text-xl;
+    }
   }
 }
 
@@ -260,5 +336,44 @@ body {
 /* Button press */
 .btn-press:active { transform: scale(0.93) !important; }
 
-/* ── Scrollbar hidden on mobile ─────────────────────────────────────────── */
 .no-scroll { overflow: hidden; }
+
+/* Mobile-Responsive  */
+@layer utilities {
+  /* Large text (for main headings/titles) */
+  .text-responsive-lg {
+    font-size: 1.875rem;
+  }
+  @media (max-width: 640px) {
+    .text-responsive-lg {
+      font-size: 2.5rem;
+    }
+  }
+
+  .text-responsive-md {
+    font-size: 1.25rem;
+  }
+  @media (max-width: 640px) {
+    .text-responsive-md {
+      font-size: 1.5rem;
+    }
+  }
+
+  .text-responsive-sm {
+    font-size: 1rem;
+  }
+  @media (max-width: 640px) {
+    .text-responsive-sm {
+      font-size: 1.25rem;
+    }
+  }
+
+  .text-responsive-xl {
+    font-size: 2.5rem;
+  }
+  @media (max-width: 640px) {
+    .text-responsive-xl {
+      font-size: 3.25rem;
+    }
+  }
+}
