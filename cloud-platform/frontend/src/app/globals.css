@@ -1,8 +1,19 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --teal:    #0D9488;
+  --teal-light: #CCFBF1;
+  --sky-bg:  #F0F9FF;
+  --coral:   #F97316;
+  --coral-light: #FED7AA;
+  --navy:    #1E3A5F;
+  --navy-light: #3B5F8A;
+  --white:   #FFFFFF;
+  --gray-soft: #E2E8F0;
 
   --eli-teal:       #0D9488;
   --eli-teal-mid:   #14B8A6;
@@ -33,10 +44,38 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --teal:    #0D9488;
+  --teal-light: #CCFBF1;
+  --sky-bg:  #F0F9FF;
+  --coral:   #F97316;
+  --coral-light: #FED7AA;
+  --navy:    #1E3A5F;
+  --navy-light: #3B5F8A;
+  --white:   #FFFFFF;
+  --gray-soft: #E2E8F0;
+
+  --eli-teal:       #0D9488;
+  --eli-teal-mid:   #14B8A6;
+  --eli-teal-light: #CCFBF1;
+  --eli-sky:        #E0F7FF;
+  --eli-coral:      #FF6B35;
+  --eli-coral-soft: #FFB347;
+  --eli-yellow:     #FFD93D;
+  --eli-purple:     #A855F7;
+  --eli-purple-soft:#EDE9FE;
+  --eli-pink:       #FF6B9D;
+  --eli-green:      #4ADE80;
+  --eli-navy:       #1E3A5F;
+  --eli-cloud:      #FFFFFF;
+  --eli-grass:      #86EFAC;
+
+  --sky-top:    #87CEEB;
+  --sky-mid:    #B8E4F7;
+  --sky-bottom: #D4F1FF;
+  --ground:     #6DBE47;
 }
 
 body {
@@ -110,8 +149,9 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 shadow-lg active:scale-95 transition-transform duration-150
-           min-h-[64px] flex items-center justify-center gap-2;
+    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply shadow-lg active:scale-95 transition-transform duration-150;
+    @apply min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--coral);
     font-size: 1.375rem;
   }
@@ -125,8 +165,9 @@ body {
   }
 
   .btn-teal {
-    @apply font-bold rounded-3xl py-4 px-8 shadow-lg active:scale-95 transition-transform duration-150
-           min-h-[64px] flex items-center justify-center gap-2;
+    @apply font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply shadow-lg active:scale-95 transition-transform duration-150;
+    @apply min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--teal);
     color: var(--white);
     font-size: 1.375rem;
