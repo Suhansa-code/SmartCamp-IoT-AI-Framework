@@ -50,26 +50,17 @@ export default function NetworkPage() {
 
   useEffect(() => {
     updateData()
-    const interval = setInterval(updateData, 2000)
+    const interval = setInterval(updateData, 5000)
     return () => clearInterval(interval)
   }, [updateData])
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@400;600;700;800&display=swap');
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width:6px; }
         ::-webkit-scrollbar-track { background: #071B30; }
         ::-webkit-scrollbar-thumb { background: #2D4A70; border-radius:9999px; }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        @keyframes slide {
-          from { transform: translateY(-10px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
         .pulse { animation: pulse 1.5s ease-in-out infinite; }
         .slide { animation: slide 0.15s ease; }
       `}</style>

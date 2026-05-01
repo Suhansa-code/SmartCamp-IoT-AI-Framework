@@ -59,7 +59,6 @@ function CameraView({ videoRef, onCancel, lang }) {
           animation:'scanLine 1.8s ease-in-out infinite',
           boxShadow:'0 0 8px rgba(255,107,53,0.8)',
         }} />
-        <style>{`@keyframes scanLine{0%,100%{top:18%}50%{top:80%}}`}</style>
         {/* Caption */}
         <div style={{ position:'absolute', bottom:10, left:0, right:0, display:'flex', justifyContent:'center' }}>
           <span style={{ background:'rgba(0,0,0,0.7)', color:'white', borderRadius:'99px', padding:'4px 16px', fontSize:12, fontWeight:700, fontFamily:"'Nunito',sans-serif" }}>
@@ -157,7 +156,11 @@ export default function ChildWelcomePage() {
   }
 
   function stopCamera() {
-    clearInterval(scanRef.current); clearTimeout(scanRef.current)
+    if (scanRef.current) {
+      clearInterval(scanRef.current)
+      scanRef.current = null
+    }
+    if (scanRef.current) clearTimeout(scanRef.current)
     streamRef.current?.getTracks().forEach(tr => tr.stop())
     streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
@@ -175,7 +178,7 @@ export default function ChildWelcomePage() {
           const codes = await detector.detect(videoRef.current)
           if (codes.length > 0) { clearInterval(scanRef.current); handleQR(codes[0].rawValue) }
         } catch {}
-      }, 300)
+      }, 500)
     } else {
       scanRef.current = setTimeout(() => handleQR('CHILD-DEMO-001'), 2500)
     }
@@ -234,7 +237,6 @@ export default function ChildWelcomePage() {
               ))}
             </div>
           </div>
-          <style>{`@keyframes bounce-dot{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
         </div>
       </SceneBackground>
     )
@@ -248,8 +250,6 @@ export default function ChildWelcomePage() {
       <style>{`
         @keyframes greeting-pop{0%{opacity:0;transform:scale(0.8) translateY(8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
         .greeting-anim{animation:greeting-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both}
-        @keyframes btn-glow{0%,100%{box-shadow:0 8px 32px rgba(255,107,53,0.4),0 0 0 0 rgba(255,107,53,0.3)}50%{box-shadow:0 12px 40px rgba(255,107,53,0.5),0 0 0 10px rgba(255,107,53,0.08)}}
-        .scan-btn{animation:btn-glow 2.5s ease-in-out infinite}
       `}</style>
 
       <div style={{
@@ -362,7 +362,6 @@ export default function ChildWelcomePage() {
               >
                 {/* Shimmer */}
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.2) 50%,transparent 60%)', animation:'shimmer 2.5s linear infinite' }} />
-                <style>{`@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}`}</style>
                 <span style={{ fontSize:'clamp(1.6rem,6vw,2rem)', zIndex:1 }}>
                   {camState === 'requesting' ? '⏳' : '📷'}
                 </span>
