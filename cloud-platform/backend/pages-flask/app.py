@@ -155,62 +155,56 @@ def compute_passive_score(passive_signals: dict) -> float:
     return round(min(max(score, 0), 100), 2)
 
 
-def compute_composite(task_score: float, passive_score: float) -> float:
-    """Composite score: task×0.60 + passive×0.40."""
-    return round(task_score * COMPOSITE_TASK_W + passive_score * COMPOSITE_PASSIVE_W, 2)
+def compute_composite(task_score: float,
+                      passive_score: float,
+                      baseline: float) -> float:
+    """
+    Composite = task×0.50 + passive×0.30 + baseline×0.20
+    As specified in proposal Section 3.2.3
+    """
+    score = (
+        task_score    * 0.50 +
+        passive_score * 0.30 +
+        baseline      * 0.20
+    )
+    return round(min(max(score, 0.0), 100.0), 2)
 
 
-def compute_z_score(child_id: str, composite: float) -> float | None:
-    """
-    Compute z-score of today's composite vs child's own history.
-    Returns None if fewer than ZSCORE_MIN_SESSIONS previous sessions.
-    Z = (current - mean(history)) / std(history)
-    """
+def compute_z_score(child_id: str,
+                    composite: float) -> float | None:
+
     history = session_history.get(child_id, [])
     prev_scores = [s['composite'] for s in history]
-    
-    # DEBUG: Log the exact history state
-    logger.info(f'[ZSCORE] {child_id}: history size={len(history)}, prev_scores={len(prev_scores)}, need >= {ZSCORE_MIN_SESSIONS-1}')
-    if history:
-        logger.info(f'[ZSCORE] {child_id}: scores = {prev_scores}')
 
-    if len(prev_scores) < ZSCORE_MIN_SESSIONS - 1:
-        logger.info(f'[ZSCORE] {child_id}: Not enough history (need {ZSCORE_MIN_SESSIONS-1}, have {len(prev_scores)})')
-        return None  # not enough history yet
-
-    if len(prev_scores) == 0:
+    # Need minimum 2 previous sessions
+    # This means Z-Score activates on session 3
+    if len(prev_scores) < 2:
         return None
 
     n    = len(prev_scores)
     mean = sum(prev_scores) / n
-    if n < 2:
-        return None
 
+    # Population standard deviation
     variance = sum((x - mean) ** 2 for x in prev_scores) / n
-    std      = math.sqrt(variance) if variance > 0 else 1.0
+
+    # Minimum std dev of 1.0 prevents division by zero
+    # when all previous sessions have identical scores
+    std = math.sqrt(variance) if variance > 0 else 1.0
 
     z = (composite - mean) / std
-    
-    # OPTION 2: Cap z-score at -5.0 to prevent extreme outliers
-    # Keeps values meaningful: -72 becomes -5.0 (still flags as anomaly since -5.0 < -2.0)
-    # Positive z-scores (good performance) are not capped
-    z_capped = max(z, -5.0) if z < 0 else z
-    
-    if z != z_capped:
-        logger.info(f'[ZSCORE] {child_id}: ⚠️  CAPPED z from {z:.4f} to {z_capped:.4f} (prevents extreme outliers)')
-    else:
-        logger.info(f'[ZSCORE] {child_id}: ✓ CALCULATED z={z_capped:.4f} (mean={mean:.2f}, std={std:.2f}, current={composite:.2f})')
-    
-    return round(z_capped, 4)
+
+    logger.info(
+        f'[ZSCORE] {child_id}: '
+        f'z={z:.4f} current={composite:.2f} '
+        f'mean={mean:.2f} std={std:.2f} '
+        f'n={n} previous sessions'
+    )
+
+    return round(z, 4)
 
 
 def train_if_model(child_id: str) -> bool:
-    """
-    Train Isolation Forest model on child's first 8 sessions (Phase 2).
-    Called when child reaches IF_MIN_SESSIONS.
-    
-    Returns True if training successful, False otherwise.
-    """
+
     if not NUMPY_AVAILABLE or not SKLEARN_AVAILABLE:
         logger.warning(f'[IF] Cannot train model: numpy/sklearn not installed')
         return False
@@ -257,17 +251,7 @@ def train_if_model(child_id: str) -> bool:
 
 
 def compute_if_score(child_id: str, task_metrics: dict, passive_signals: dict) -> float | None:
-    """
-    Compute Isolation Forest anomaly score using child-specific model (Phase 2).
-    
-    Activates from session 8 onwards:
-    - Sessions 1-7: Returns None (building history)
-    - Session 8: Trains model on first 8 sessions, returns None (model initialization)
-    - Session 9+: Uses trained model to detect anomalies
-    
-    Returns:
-      float | None: IF anomaly score (lower = more anomalous), or None if not ready
-    """
+
     history = session_history.get(child_id, [])
     
     # Phase 2 requires at least IF_MIN_SESSIONS (default 8)
@@ -400,7 +384,8 @@ def score():
     # 1. Compute scores
     task_score    = compute_task_score(task_metrics)
     passive_score = compute_passive_score(passive_signals)
-    composite     = compute_composite(task_score, passive_score)
+    baseline      = child_baselines.get(child_id, BASELINE_INIT)
+    composite     = compute_composite(task_score, passive_score, baseline)
 
     # 2. Z-score (from session 3 onwards)
     z_score = compute_z_score(child_id, composite)

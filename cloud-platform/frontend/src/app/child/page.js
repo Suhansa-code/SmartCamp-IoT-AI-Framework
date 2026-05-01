@@ -372,6 +372,33 @@ export default function ChildWelcomePage() {
                 </span>
               </button>
 
+              {/* ── START BUTTON ── */}
+              <button
+                onClick={() => router.push(`/child/task?lang=${lang}`)}
+                className="btn-press"
+                style={{
+                  width:'100%',
+                  marginTop:'16px',
+                  minHeight:'clamp(60px,14vw,72px)',
+                  background: 'linear-gradient(135deg,#10B981 0%,#059669 50%,#047857 100%)',
+                  color:'white',
+                  borderRadius:'99px',
+                  border:'none',
+                  fontFamily:"'Baloo 2',cursive",
+                  fontSize:'clamp(1rem,4vw,1.3rem)',
+                  fontWeight:900,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:'0.75rem',
+                  cursor:'pointer',
+                  transition:'transform 0.1s',
+                  position:'relative', overflow:'hidden',
+                  boxShadow:'0 8px 24px rgba(16,185,129,0.3)',
+                }}
+              >
+                <div style={{ position:'absolute', inset:0, background:'linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.15) 50%,transparent 60%)', animation:'shimmer 2.5s linear infinite' }} />
+                <span style={{ fontSize:'clamp(1.4rem,5vw,1.8rem)', zIndex:1 }}>🚀</span>
+                <span style={{ zIndex:1 }}>Start Game</span>
+              </button>
+
             </div>
           )}
         </div>

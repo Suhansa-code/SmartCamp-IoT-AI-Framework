@@ -417,8 +417,8 @@ export const SESSIONS = [
       {
         id: 'C1',
         type: 'mcq', subject: 'evs', skill: 'plants',
-        question: { si: 'ශාක වල ආහාරය සාදා ගන්නේ.', ta: 'தாவரத்தின் ___ உணவை தயாரிக்கும்.', en: 'The ___ of a plant makes food.' },
-        options: { si: ['කොළ', 'මල', 'ගෙඩිය'], ta: ['இலைகள்', 'மலர்','பழம்'], en: ['Leaves', 'Flower','Fruit'] },
+        question: { si: 'ශාක වල කොටසක් නොවන්නේ කුමක්ද?.', ta: 'தாவரங்களின் ஒரு பகுதியாக இல்லாதது எது?', en: 'What is not a part of plants?' },
+        options: { si: ['පොලොව', 'මල', 'ගෙඩිය'], ta: ['பூமி', 'மலர்','பழம்'], en: ['Earth', 'Flower','Fruit'] },
         answer: 0, emoji: '🌿',
       },
       {
@@ -571,7 +571,7 @@ export const SESSIONS = [
       {
         id: 'D10',
         type: 'mcq', subject: 'evs', skill: 'community',
-        question: { si: 'ගිනි නිවීමේ රථය ගෙන යන්නේ?', ta: 'தீயை அணைப்பவர் யார்?', en: 'Who drives a fire engine?' },
+        question: { si: 'ගිනි නිවීමේ රථය ගෙන යන්නේ කවුද?', ta: 'தீயை அணைப்பவர் யார்?', en: 'Who drives a fire engine?' },
         options: { si: ['වෛද්‍යවරයා', 'ගිනි නිවන භටයා', 'ගුරුවරයා'], ta: ['மருத்துவர்', 'தீயணைப்பாளர்', 'ஆசிரியர்'], en: ['Doctor', 'Firefighter', 'Teacher'] },
         answer: 1, emoji: '🚒',
       },
@@ -592,7 +592,7 @@ export const SESSIONS = [
       { id:'E7',  type:'fill_blank', subject:'sinhala',     skill:'vocabulary',           question:{si:'පාසලේ  ___ නාදය කරයි.',ta:'பள்ளி ___ ஒலிக்கும்.',en:'The school ___ rings.'},                                                  blank_choices:{si:['සීනුව','දොර','ජනේලය'],ta:['மணி','கதவு','சன்னல்'],en:['Bell','Door','Window']},                                                                                                                           answer:0, emoji:'🔔' },
       { id:'E8',  type:'fill_blank',        subject:'evs',         skill:'environment',          question:{si:'ගස් කපා දැමීමෙන් ___ විනාශ වේ.',ta:'மரங்களை வெட்டுவதால் ___ அழியும்.',en:'Cutting trees destroys ___.'},                       options:{si:['වනාන්තර','ගල්','අහස '],ta:['காடுகள்','கற்கள்','வானம்'],en:['Forests','Stones','Sky']},                                                                                                  answer:0, emoji:'🌲' },
       { id:'E9',  type:'pattern',    subject:'mathematics', skill:'patterns',             question:{si:'ඊළඟ හැඩය කුමක්ද?',ta:'அடுத்த வடிவம்?',en:'Next shape?'},                                                                                sequence:['🟠','🟠','🟠','🟠','?'],                                                                                                                                                                                          options:{si:['🟡','🟢','🟠','🔴'],ta:['🟡','🟢','🟠','🔴'],en:['🟡','🟢','🟠','🔴']}, answer:2, emoji:'🔮' },
-      { id:'E10', type:'fill_blank',        subject:'sinhala',     skill:'reading_comprehension',question:{si:'ඈ දිනපතා ව්‍යායාම කරයි. ඈ ශරීරය ___ තබා ගනී.',ta:'அவள் தினமும் உடற்பயிற்சி செய்கிறாள். அவள் உடலை ___ வைக்கிறாள்.',en:'She exercises every day. She keeps her body ___.'},options:{si:['සෞඛ්‍යසම්පන්නව','රෝගාතුරව','කම්මැලිව'],ta:['ஆரோக்கியமாக','நோய்வாய்ப்பட்டு','சோம்பலாக'],en:['Healthy','Sick','Lazy']},                                                  answer:0, emoji:'🏃' },
+      { id:'E10', type:'fill_blank',        subject:'sinhala',     skill:'reading_comprehension',question:{si:'ඈ දිනපතා ව්‍යායාම කරන නිසා ඈ ශරීරය ___ තබා ගනී.',ta:'அவள் தினமும் உடற்பயிற்சி செய்கிறாள். அவள் உடலை ___ வைக்கிறாள்.',en:'She exercises every day. She keeps her body ___.'},options:{si:['සෞඛ්‍යසම්පන්නව','රෝගාතුරව','කම්මැලිව'],ta:['ஆரோக்கியமாக','நோய்வாய்ப்பட்டு','சோம்பலாக'],en:['Healthy','Sick','Lazy']},                                                  answer:0, emoji:'🏃' },
     ],
   },
 
