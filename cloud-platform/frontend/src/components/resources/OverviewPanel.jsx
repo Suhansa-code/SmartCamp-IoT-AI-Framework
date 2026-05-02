@@ -1,0 +1,396 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+const C = {
+  bg:      '#0A2540',
+  panel:   '#0D1F35',
+  border:  '#1E3A5F',
+  teal:    '#0D9488',
+  tealDim: '#0A6B62',
+  muted:   '#64748B',
+  text:    '#E2E8F0',
+  dim:     '#94A3B8',
+  warn:    '#F59E0B',
+  danger:  '#EF4444',
+  green:   '#22C55E',
+  blue:    '#60A5FA',
+  purple:  '#A78BFA',
+}
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+function timeAgo(iso) {
+  if (!iso) return '—'
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000)
+  if (diff < 60)   return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  return `${Math.floor(diff / 3600)}h ago`
+}
+
+function networkColor(state) {
+  if (state === 'STABLE')       return C.green
+  if (state === 'DEGRADED')     return C.warn
+  if (state === 'DISCONNECTED') return C.danger
+  return C.danger
+}
+
+function confidenceColor(c) {
+  if (c === 'HIGH')   return C.green
+  if (c === 'MEDIUM') return C.warn
+  return C.muted
+}
+
+const EVENT_META = {
+  registration: { dot: C.green,  icon: '🆕', label: 'Registered' },
+  checkin:      { dot: C.blue,   icon: '✓',  label: 'Checked in' },
+  distribution: { dot: C.teal,   icon: '🍽️', label: 'Served' },
+}
+
+// ── sub-components ────────────────────────────────────────────────────────────
+
+function StatCard({ icon, value, label, color = C.teal, sub }) {
+  return (
+    <div style={{
+      background: C.panel, border: `1px solid ${C.border}`,
+      borderRadius: 10, padding: '14px 18px', flex: '1 1 130px',
+      display: 'flex', flexDirection: 'column', gap: 2,
+    }}>
+      <div style={{ fontSize: 20 }}>{icon}</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color, fontFamily: "'Baloo 2',cursive", lineHeight: 1 }}>
+        {value ?? '—'}
+      </div>
+      <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+        {label}
+      </div>
+      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{sub}</div>}
+    </div>
+  )
+}
+
+function DistBar({ icon, label, served, pending, percent }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
+      <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{icon}</span>
+      <div style={{ width: 80, fontSize: 12, fontWeight: 700, color: C.text }}>{label}</div>
+      <div style={{ flex: 1, background: '#1E3A5F', borderRadius: 99, height: 10, overflow: 'hidden' }}>
+        <div style={{
+          width: `${percent}%`, height: '100%', borderRadius: 99,
+          background: percent === 100 ? C.green : percent > 60 ? C.teal : C.warn,
+          transition: 'width 0.6s ease',
+        }} />
+      </div>
+      <div style={{ width: 40, textAlign: 'right', fontSize: 12, fontWeight: 800, color: C.text }}>
+        {percent}%
+      </div>
+      <div style={{ width: 60, fontSize: 11, color: C.muted }}>
+        {served}/{served + pending}
+      </div>
+    </div>
+  )
+}
+
+function PredictionRow({ icon, label, value, unit }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '10px 14px', background: '#0A1A2E', borderRadius: 8,
+      border: `1px solid ${C.border}`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 20 }}>{icon}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{label}</span>
+      </div>
+      <div>
+        <span style={{ fontSize: 22, fontWeight: 900, color: C.teal, fontFamily: "'Baloo 2',cursive" }}>
+          {value}
+        </span>
+        <span style={{ fontSize: 12, color: C.dim, marginLeft: 4 }}>{unit}</span>
+      </div>
+    </div>
+  )
+}
+
+function EventRow({ event }) {
+  const meta = EVENT_META[event.type] || { dot: C.muted, icon: '·', label: event.type }
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '7px 12px', borderRadius: 7,
+      background: '#0A1A2E', border: `1px solid ${C.border}`,
+    }}>
+      <div style={{
+        width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+        background: meta.dot, boxShadow: `0 0 5px ${meta.dot}`,
+      }} />
+      <span style={{ fontSize: 14, flexShrink: 0 }}>{meta.icon}</span>
+      <span style={{ flex: 1, fontSize: 12, color: C.text,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {event.summary}
+      </span>
+      <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{timeAgo(event.timestamp)}</span>
+    </div>
+  )
+}
+
+// ── main component ─────────────────────────────────────────────────────────────
+
+export default function OverviewPanel() {
+  const [data,       setData]       = useState(null)
+  const [loading,    setLoading]    = useState(true)
+  const [error,      setError]      = useState(null)
+  const [lastUpdate, setLastUpdate] = useState(null)
+  const [,           setTick]       = useState(0)
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/resources/overview`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setData(await res.json())
+      setLastUpdate(Date.now())
+      setError(null)
+    } catch {
+      setError('Cannot reach cloud backend on port 3001')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchStats()
+    const id = setInterval(fetchStats, 30_000)
+    return () => clearInterval(id)
+  }, [fetchStats])
+
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 15_000)
+    return () => clearInterval(id)
+  }, [])
+
+  // ── loading / error ──────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
+        <div>Connecting to EMQX data stream…</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: C.danger }}>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
+        <div style={{ fontWeight: 700 }}>{error}</div>
+        <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
+          Make sure the cloud backend is running on port 3001
+        </div>
+        <button onClick={fetchStats} style={{
+          marginTop: 16, padding: '8px 20px', borderRadius: 8,
+          background: C.teal, border: 'none', color: 'white', fontWeight: 700, cursor: 'pointer',
+        }}>Retry</button>
+      </div>
+    )
+  }
+
+  const {
+    population, vulnerable, distribution_today, eligible_for_distribution,
+    prediction_tomorrow, mqtt, recent_registrations, recent_events,
+  } = data
+
+  const servedAny   = Object.values(distribution_today).reduce((s, d) => s + d.served, 0)
+  const totalSlots  = eligible_for_distribution * 4
+  const overallPct  = totalSlots > 0 ? Math.round((servedAny / totalSlots) * 100) : 0
+
+  return (
+    <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+      {/* ── header ───────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontFamily: "'Baloo 2',cursive", fontWeight: 900, fontSize: '1.1rem', color: C.text }}>
+          Camp Overview
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: networkColor(mqtt.network_state),
+            boxShadow: `0 0 6px ${networkColor(mqtt.network_state)}`,
+          }} />
+          <span style={{ fontSize: 11, color: C.dim }}>
+            {mqtt.network_state} · updated {lastUpdate ? timeAgo(new Date(lastUpdate)) : '—'}
+          </span>
+          <button onClick={fetchStats} style={{
+            background: 'transparent', border: `1px solid ${C.border}`,
+            borderRadius: 6, color: C.dim, cursor: 'pointer', fontSize: 11, padding: '2px 8px',
+          }}>↻</button>
+        </div>
+      </div>
+
+      {/* ── stat cards ───────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <StatCard icon="👥" value={population.total}
+          label="Registered" color={C.teal}
+          sub={`${population.families} families`} />
+        <StatCard icon="🆕" value={population.today_registered}
+          label="Today New" color={C.blue}
+          sub={`${population.today_checkins} check-ins`} />
+        <StatCard icon="📊" value={`${population.attendance_rate_pct ?? 0}%`}
+          label="Attendance" color={population.attendance_rate_pct > 70 ? C.green : C.warn}
+          sub={`${population.today_checkins} of ${population.total} present`} />
+        <StatCard icon="🍽️" value={`${overallPct}%`}
+          label="Fed Today" color={overallPct > 80 ? C.green : C.warn}
+          sub={`${servedAny} of ${totalSlots} servings`} />
+        <StatCard icon="⚠️" value={vulnerable.total_flagged}
+          label="Need Attention" color={vulnerable.total_flagged > 0 ? C.warn : C.green}
+          sub={`${vulnerable.pregnant} pregnant · ${vulnerable.chronic_illness} chronic`} />
+        <StatCard icon="📡" value={mqtt.buffered_messages}
+          label="MQTT Buffered" color={mqtt.buffered_messages > 0 ? C.warn : C.green}
+          sub={mqtt.network_state} />
+      </div>
+
+      {/* ── distribution progress ─────────────────────────────────────── */}
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px' }}>
+        <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: 1, marginBottom: 10 }}>
+          Today's Distribution
+          <span style={{ color: C.muted, fontWeight: 400 }}> · {eligible_for_distribution} eligible</span>
+        </div>
+        <DistBar icon="☕" label="Breakfast" {...distribution_today.breakfast} />
+        <DistBar icon="🍛" label="Lunch"     {...distribution_today.lunch} />
+        <DistBar icon="🍲" label="Dinner"    {...distribution_today.dinner} />
+        <DistBar icon="💧" label="Water"     {...distribution_today.water} />
+      </div>
+
+      {/* ── prediction ───────────────────────────────────────────────── */}
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Tomorrow's Resource Prediction
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {/* confidence badge */}
+            <span style={{
+              fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 99,
+              background: '#0A1A2E', border: `1px solid ${confidenceColor(prediction_tomorrow.confidence)}`,
+              color: confidenceColor(prediction_tomorrow.confidence),
+            }}>
+              {prediction_tomorrow.confidence} · {prediction_tomorrow.days_of_data}d data
+            </span>
+            <span style={{
+              fontSize: 11, background: '#0A1A2E', border: `1px solid ${C.border}`,
+              borderRadius: 6, padding: '3px 10px', color: C.teal, fontWeight: 700,
+            }}>
+              {prediction_tomorrow.expected_persons} people · {prediction_tomorrow.attendance_rate_pct}% attendance
+            </span>
+          </div>
+        </div>
+
+        {/* sub-stats row */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Expected new arrivals', value: `+${prediction_tomorrow.expected_new_arrivals}` },
+          ].map(s => (
+            <div key={s.label} style={{
+              background: '#0A1A2E', border: `1px solid ${C.border}`, borderRadius: 6,
+              padding: '4px 12px', fontSize: 11, color: C.dim,
+            }}>
+              {s.label}: <span style={{ color: C.blue, fontWeight: 700 }}>{s.value}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <PredictionRow icon="☕" label="Breakfast"  value={prediction_tomorrow.breakfast_kg}  unit="kg" />
+          <PredictionRow icon="🍛" label="Lunch"      value={prediction_tomorrow.lunch_kg}      unit="kg" />
+          <PredictionRow icon="🍲" label="Dinner"     value={prediction_tomorrow.dinner_kg}     unit="kg" />
+          <PredictionRow icon="💧" label="Water"      value={prediction_tomorrow.water_litres}  unit="litres" />
+        </div>
+
+        {prediction_tomorrow.note && (
+          <div style={{ marginTop: 10, fontSize: 11, color: C.warn, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>ℹ️</span> {prediction_tomorrow.note}
+          </div>
+        )}
+      </div>
+
+      {/* two-column: event feed + recent registrations */}
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+
+        {/* ── live event feed ───────────────────────────────────── */}
+        <div style={{ flex: '1 1 340px', background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px' }}>
+          <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: 1, marginBottom: 10 }}>
+            📡 Live EMQX Events
+          </div>
+          {!recent_events || recent_events.length === 0 ? (
+            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: '1rem 0' }}>
+              Waiting for events from the camp…
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {recent_events.slice(0, 10).map((ev, i) => <EventRow key={i} event={ev} />)}
+            </div>
+          )}
+        </div>
+
+        {/* ── recent registrations ──────────────────────────────── */}
+        <div style={{ flex: '1 1 340px', background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px' }}>
+          <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: 1, marginBottom: 10 }}>
+            Recent Registrations
+          </div>
+          {recent_registrations.length === 0 ? (
+            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: '1rem 0' }}>
+              No registrations yet
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {recent_registrations.map(p => (
+                <div key={p.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 12px', background: '#0A1A2E',
+                  borderRadius: 8, border: `1px solid ${C.border}`,
+                }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                    background: p.is_pregnant ? '#7C3AED' : p.has_chronic_illness ? '#B45309' : C.tealDim,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 15, fontWeight: 900, color: 'white',
+                  }}>
+                    {p.full_name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.full_name}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted }}>
+                      {p.wristband_barcode ?? 'No wristband'} · {p.age}y {p.gender}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {p.is_pregnant         && <span title="Pregnant"        style={flagStyle('#7C3AED')}>🤰</span>}
+                    {p.has_chronic_illness && <span title="Chronic illness"  style={flagStyle('#B45309')}>💊</span>}
+                    {p.pre_registered
+                      ? <span style={flagStyle(C.tealDim)} title="Pre-registered">✓</span>
+                      : <span style={flagStyle('#1E3A5F')} title="New arrival">🆕</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>
+                    {timeAgo(p.created_at)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
+const flagStyle = bg => ({
+  background: bg, borderRadius: 4, padding: '1px 5px', fontSize: 12,
+})
