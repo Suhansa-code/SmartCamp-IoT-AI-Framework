@@ -1,10 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
-import networkRoutes from './routes/network.js';
-import { MqttService } from './services/mqtt.js';
-import { NetworkMonitor } from './services/networkMonitor.js';
-import { SimulationService } from './services/simulation.js';
+import networkRoutes              from './routes/network.js';
+import resourceRoutes             from './routes/resources.js';
+import { MqttService }            from './services/mqtt.js';
+import { NetworkMonitor }         from './services/networkMonitor.js';
+import { SimulationService }      from './services/simulation.js';
+import { startCampDataService }   from './services/campDataService.js';
 
 config();
 
@@ -18,7 +20,8 @@ const mqttService = new MqttService();
 const networkMonitor = new NetworkMonitor(mqttService);
 const simulationService = new SimulationService(networkMonitor);
 
-app.use('/api/network', networkRoutes(networkMonitor));
+app.use('/api/network',    networkRoutes(networkMonitor));
+app.use('/api/resources', resourceRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
@@ -36,6 +39,10 @@ async function startServer() {
 
     networkMonitor.start();
     console.log('[Monitor] Network monitoring started');
+
+    // Subscribe to camp MQTT events from EMQX for the cloud dashboard
+    startCampDataService();
+    console.log('[Camp Data] Camp data service started');
 
     app.listen(PORT, () => {
       console.log(`[Server] Running on port ${PORT}`);
