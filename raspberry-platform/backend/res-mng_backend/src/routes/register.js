@@ -15,7 +15,7 @@ function genPassword() {
 
 router.post('/', async (req, res) => {
   const {
-    full_name, age, gender, family_size,
+    full_name, age, gender, person_type, family_size,
     is_pregnant, has_chronic_illness, medical_notes,
   } = req.body
 
@@ -29,11 +29,11 @@ router.post('/', async (req, res) => {
   // ── 1. Insert person ──────────────────────────────────────────
   const result = db.prepare(`
     INSERT INTO persons
-    (fingerprint_id, full_name, age, gender, family_unit_id, family_size,
+    (fingerprint_id, full_name, age, gender, person_type, family_unit_id, family_size,
      is_pregnant, has_chronic_illness, medical_notes, pre_registered)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
   `).run(
-    fpId, full_name, parseInt(age), gender || 'M', familyUnitId,
+    fpId, full_name, parseInt(age), gender || 'M', person_type || 'refugee', familyUnitId,
     parseInt(family_size) || 1,
     is_pregnant || 0, has_chronic_illness || 0, medical_notes || ''
   )

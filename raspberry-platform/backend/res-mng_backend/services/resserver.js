@@ -15,8 +15,9 @@ const checkinRoute = require('../src/routes/checkin');
 const registerRoute = require('../src/routes/register');
 const wristbandRoute = require('../src/routes/wristband');
 const distributeRoute = require('../src/routes/distribute');
-const networkRoute = require('../src/routes/network');
-const statsRoute   = require('../src/routes/stats');
+const networkRoute    = require('../src/routes/network');
+const statsRoute      = require('../src/routes/stats');
+const predictionRoute = require('../src/routes/prediction');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -36,8 +37,9 @@ app.use('/api/checkin', checkinRoute);
 app.use('/api/register', registerRoute);
 app.use('/api/wristband', wristbandRoute);
 app.use('/api/distribute', distributeRoute);
-app.use('/api/network', networkRoute);
-app.use('/api/stats',   statsRoute);
+app.use('/api/network',     networkRoute);
+app.use('/api/stats',      statsRoute);
+app.use('/api/prediction', predictionRoute);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'smartcamp-backend' });
