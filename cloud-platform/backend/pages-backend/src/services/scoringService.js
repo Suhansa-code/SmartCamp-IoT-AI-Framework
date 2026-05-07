@@ -5,13 +5,14 @@ import { round, clamp } from '../utils/helpers.js';
 
 /**
  * Fallback: compute composite score locally when Flask is unavailable.
- * Matches the formula documented in the system specification.
+ * Matches the formula documented in the system specification and Flask implementation.
  *
  * @param {object} taskMetrics
  * @param {object} passiveSignals
+ * @param {number} baseline - Child's baseline score (default 60.0)
  * @returns {{ compositeScore, taskScore, passiveScore, anomalyFlagged }}
  */
-function computeLocalScore(taskMetrics, passiveSignals) {
+function computeLocalScore(taskMetrics, passiveSignals, baseline = 60.0) {
   const {
     accuracyRate,
     falseTapRate,
@@ -38,8 +39,9 @@ function computeLocalScore(taskMetrics, passiveSignals) {
     (Math.max(0, 1 - rapidClickCount / 10)     * 100 * 0.25) +
     (completionRatio                           * 100 * 0.40);
 
-  // Composite — Flask uses 0.60 / 0.40 split on fallback
-  const compositeScore = (taskScore * 0.60) + (passiveScore * 0.40);
+  // Composite = task×0.50 + passive×0.30 + baseline×0.20
+  // Matches Flask compute_composite() formula
+  const compositeScore = (taskScore * 0.50) + (passiveScore * 0.30) + (baseline * 0.20);
 
   return {
     compositeScore: round(clamp(compositeScore, 0, 100), 2),
@@ -83,9 +85,10 @@ async function checkFlaskHealth() {
  * @param {string} sessionId
  * @param {object} taskMetrics
  * @param {object} passiveSignals
+ * @param {number} baseline - Child's baseline score (default 60.0)
  * @returns {Promise<object>} scoring result
  */
-async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
+async function getScore(childId, sessionId, taskMetrics, passiveSignals, baseline = 60.0) {
   try {
     logger.info(`[SCORE] Attempting to call Flask at ${C.FLASK_URL}/score for session ${sessionId}`);
     const response = await axios.post(
@@ -115,7 +118,7 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
       compositeScore: round(data.compositeScore, 2),
       taskScore:      round(data.taskScore,      2),
       passiveScore:   round(data.passiveScore,   2),
-      baselineScore:  data.baselineScore  || null,
+      baselineScore:  data.baselineScore  || baseline,
       zScore:         data.zScore         || null,
       ifScore:        data.ifScore        || null,
       anomalyFlagged: data.anomalyFlagged === true,
@@ -125,7 +128,7 @@ async function getScore(childId, sessionId, taskMetrics, passiveSignals) {
     logger.warn(
       `[SCORE] ❌ Flask unavailable at ${C.FLASK_URL} (${err.code || err.message}) — using fallback for session ${sessionId}`
     );
-    const fallback = computeLocalScore(taskMetrics, passiveSignals);
+    const fallback = computeLocalScore(taskMetrics, passiveSignals, baseline);
     logger.info(
       `[SCORE] FALLBACK scored session ${sessionId}: composite=${fallback.compositeScore}`
     );
