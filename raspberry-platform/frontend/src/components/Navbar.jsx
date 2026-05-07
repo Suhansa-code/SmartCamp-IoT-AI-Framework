@@ -4,6 +4,7 @@ function Navbar({ activeTab, setActiveTab }) {
   const tabs = [
     { id: "registration", label: "Registration" },
     { id: "wristband", label: "Wristband Distribution" },
+    { id: "prediction", label: "AI Predictions" },
   ];
 
   return (

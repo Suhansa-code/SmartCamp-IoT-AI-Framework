@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import WristbandScanScreen from './components/resources/WristbandScanScreen'
 import RegistrationScreen from './components/resources/RegistrationScreen'
+import PredictionScreen from './components/resources/PredictionScreen'
 import Navbar from './components/Navbar'
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
       <div className="p-6">
         {activeTab === 'registration' && <RegistrationScreen />}
         {activeTab === 'wristband' && <WristbandScanScreen />}
+        {activeTab === 'prediction' && <PredictionScreen />}
       </div>
     </div>
   )

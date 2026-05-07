@@ -26,6 +26,7 @@ const CLIENT_ID = `smartcamp_pi_${Math.random().toString(16).slice(2, 8)}`;
 // =============================================================
 let client = null;
 let isConnected = false;
+const messageHandlers = {};
 
 function connect() {
   let ca;
@@ -67,11 +68,18 @@ function connect() {
   });
 
   client.on('message', (topic, messageBuffer) => {
+    let payload;
     try {
-      const payload = JSON.parse(messageBuffer.toString());
+      payload = JSON.parse(messageBuffer.toString());
       console.log(`[MQTT ▼] ${topic} | client: ${payload.person?.id ?? payload.person_id ?? '?'} | event: ${payload.event ?? '-'}`);
     } catch {
       console.log(`[MQTT ▼] ${topic} | (raw) ${messageBuffer.toString().slice(0, 80)}`);
+      return;
+    }
+    if (messageHandlers[topic]) {
+      try { messageHandlers[topic](payload); } catch (e) {
+        console.error('[MQTT] Handler error for', topic, e.message);
+      }
     }
   });
 
@@ -314,6 +322,10 @@ function publish(topic, payload, source, action) {
   };
 }
 
+function onMessage(topic, callback) {
+  messageHandlers[topic] = callback;
+}
+
 module.exports = {
   connect,
   publish,
@@ -321,4 +333,5 @@ module.exports = {
   setNetworkState,
   getNetworkState,
   flushBuffer,
+  onMessage,
 };
