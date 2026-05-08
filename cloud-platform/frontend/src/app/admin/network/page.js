@@ -28,6 +28,7 @@ export default function NetworkPage() {
   const [stats, setStats] = useState({})
   const [buffer, setBuffer] = useState([])
   const [history, setHistory] = useState([])
+  const [isDarkMode, setIsDarkMode] = useState(true)
 
   const updateData = useCallback(async () => {
     try {
@@ -115,17 +116,24 @@ export default function NetworkPage() {
         </nav>
 
         {/* SAAMP Network Monitor Content */}
-        <div style={{ 
-          background: '#0d1520',
-          minHeight: 'calc(100svh - 72px)',
-          padding: '2rem',
-        }}>
-          {/* MQTT Manager Header */}
-          <Header 
-            networkState={networkState}
-            connected={connected}
-            metrics={metrics}
-          />
+        <div className={isDarkMode ? 'dark' : ''}>
+          <div className="min-h-[calc(100svh-72px)] p-6 sm:p-8 lg:p-10 transition-colors duration-500 bg-slate-50 dark:bg-[#0d1520] text-slate-800 dark:text-slate-200 relative overflow-hidden z-0">
+            {/* Dynamic Background Blurs for Light Mode */}
+            {!isDarkMode && (
+              <>
+                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px] mix-blend-multiply pointer-events-none -z-10" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-400/20 rounded-full blur-[120px] mix-blend-multiply pointer-events-none -z-10" />
+              </>
+            )}
+
+            {/* MQTT Manager Header */}
+            <Header 
+              networkState={networkState}
+              connected={connected}
+              metrics={metrics}
+              isDarkMode={isDarkMode}
+              toggleTheme={() => setIsDarkMode(!isDarkMode)}
+            />
 
           {/* Stat Cards */}
           <StatCards metrics={metrics} history={history} />
@@ -188,6 +196,7 @@ export default function NetworkPage() {
           <div style={{ marginTop: 18 }}>
             <BottomBar metrics={metrics} />
           </div>
+        </div>
         </div>
       </div>
     </>
