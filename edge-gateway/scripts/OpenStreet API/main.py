@@ -1,7 +1,7 @@
 from service import find_nearest_gauging_station_detailed
 from providers.river_lookup import get_nearest_named_river
 from providers.weather_forecast_location import fetch_forecast_location
-from providers.live_water_level_api import get_gauge_data
+from providers.live_water_level_api import get_latest_gauge_data
 
 # Camp GPS location
 LATITUDE = 7.507
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
         
         # Get live water level data from API
-        gauge_data = get_gauge_data(detailed_result.get('station_name', ''), include_geometry=True)
+        gauge_data = get_latest_gauge_data(detailed_result.get('station_name', ''), include_geometry=True)
         if gauge_data:
             print("\n💧 LIVE WATER LEVEL DATA:")
             print(f"   Current Water Level: {gauge_data.get('water_level', 'N/A')} m")
