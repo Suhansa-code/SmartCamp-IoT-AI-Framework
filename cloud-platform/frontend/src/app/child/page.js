@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import { t }       from '@/components/psychoedu/lib/translations'
-import { startSession } from '@/components/psychoedu/lib/api'
+import { startSession, saveLanguagePreference } from '@/components/psychoedu/lib/api'
 import Eli          from '@/components/psychoedu/child/Eli'
 import SceneBackground from '@/components/psychoedu/child/SceneBackground'
 import LanguagePicker  from '@/components/psychoedu/child/LanguagePicker'
@@ -34,16 +34,7 @@ function Sparkle({ x, y, color = '#FFD93D', delay = 0 }) {
 }
 
 //Camera scan overlay 
-function CameraView({ videoRef, onCancel, onManualEntry, lang }) {
-  const [manualChildId, setManualChildId] = useState('')
-  
-  const handleManualSubmit = () => {
-    if (manualChildId.trim()) {
-      onManualEntry(manualChildId.trim())
-      setManualChildId('')
-    }
-  }
-  
+function CameraView({ videoRef, onCancel, lang }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'1rem', width:'100%' }}>
       <div style={{
@@ -77,40 +68,6 @@ function CameraView({ videoRef, onCancel, onManualEntry, lang }) {
         </div>
       </div>
       
-      {/* Manual QR Entry */}
-      <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', gap:'0.5rem' }}>
-        <p style={{ fontSize:'0.9rem', color:'rgba(255,255,255,0.7)', margin:'0.5rem 0 0 0', fontFamily:"'Nunito',sans-serif" }}>
-          Or paste QR code value:
-        </p>
-        <input 
-          type="text"
-          value={manualChildId}
-          onChange={(e) => setManualChildId(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleManualSubmit()}
-          placeholder="Enter child ID"
-          style={{
-            width:'80%', maxWidth:240, padding:'0.75rem 1rem', borderRadius:'0.5rem',
-            border:'2px solid rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.1)',
-            color:'white', fontSize:'0.95rem', fontFamily:"'Nunito',sans-serif",
-            textAlign:'center',
-          }}
-          onFocus={(e) => e.target.style.borderColor = '#FF6B35'}
-          onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.3)'}
-        />
-        {manualChildId && (
-          <button onClick={handleManualSubmit} style={{
-            minHeight: 44, padding:'0 1.5rem', borderRadius:'99px',
-            border:'none', background:'#FF6B35', color:'white', fontSize:'0.95rem', fontWeight:800,
-            fontFamily:"'Baloo 2',cursive", cursor:'pointer', transition:'transform 0.2s',
-          }}
-          onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-          onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            ▶ Submit
-          </button>
-        )}
-      </div>
-      
       {/* Cancel */}
       <button onClick={onCancel} style={{
         minHeight: 52, padding:'0 2rem', borderRadius:'99px',
@@ -130,7 +87,7 @@ export default function ChildWelcomePage() {
   const router            = useRouter()
   const { lang, setLang } = useLang()
 
-  const [screen,    setScreen]   = useState('language')  // welcome|camera|loading|language
+  const [screen,    setScreen]   = useState('language')  // language|camera|loading|welcome
   const [camState,  setCamState] = useState('idle')
   const [errorMsg,  setErrorMsg] = useState('')
   const [greetIdx,  setGreetIdx] = useState(0)
@@ -245,6 +202,14 @@ export default function ChildWelcomePage() {
       console.log('[QR] Session started, payload:', payload)
       sid = payload?.session_id ?? payload?.sessionId ?? 'offline'
       console.log('[QR] Using session ID:', sid)
+      
+      // Save language preference to Turso
+      try {
+        await saveLanguagePreference(childId, lang)
+        console.log('[QR] Language preference saved to Turso:', lang)
+      } catch (langErr) {
+        console.warn('[QR] Could not save language preference:', langErr)
+      }
     } catch (err) {
       console.error('[QR] Failed to start session:', err);
       sid = 'offline'
@@ -262,7 +227,10 @@ export default function ChildWelcomePage() {
 
   function handleLanguageSelect(code) {
     setLang(code)
+    localStorage.setItem('preferredLanguage', code)
+    // After language selection, start QR scanning
     setScreen('welcome')
+    setTimeout(() => startCamera(), 500)
   }
 
   //  Language picker screen 
@@ -317,7 +285,7 @@ export default function ChildWelcomePage() {
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(1rem,3vw,1.5rem)', width:'100%', maxWidth:'min(400px,92vw)' }}>
 
           {/* Camera */}
-          {screen === 'camera' && <CameraView videoRef={videoRef} onCancel={cancelCamera} onManualEntry={handleQR} lang={lang} />}
+          {screen === 'camera' && <CameraView videoRef={videoRef} onCancel={cancelCamera} lang={lang} />}
 
           {/* Welcome idle */}
           {screen === 'welcome' && (

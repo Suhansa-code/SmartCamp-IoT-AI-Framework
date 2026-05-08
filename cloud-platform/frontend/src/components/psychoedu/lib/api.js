@@ -30,6 +30,13 @@ export async function startSession(childId) {
   })
 }
 
+export async function saveLanguagePreference(childId, language) {
+  return apiFetch('/api/child/language', {
+    method: 'POST',
+    body: JSON.stringify({ child_id: childId, language }),
+  })
+}
+
 export async function submitScore(payload) {
   // payload: { sessionId, score, totalTrials, results }
   return apiFetch('/api/session/score', {

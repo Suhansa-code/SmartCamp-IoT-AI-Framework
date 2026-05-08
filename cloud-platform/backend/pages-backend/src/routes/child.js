@@ -67,4 +67,41 @@ router.get('/:childId/qrcode', (req, res, next) => {
 // GET /api/child/:childId - Get child profile
 router.get('/:childId', ctrl.getChild);
 
+// POST /api/child/language - Save language preference to Turso
+router.post('/language', async (req, res, next) => {
+  try {
+    const { child_id, language } = req.body;
+    
+    if (!child_id || !language) {
+      return next(createError(400, 'child_id and language are required'));
+    }
+    
+    if (!['en', 'si', 'ta'].includes(language)) {
+      return next(createError(400, 'Invalid language code'));
+    }
+    
+    // Get Turso client
+    const { tursoUpdate } = await import('../config/tursoConfig.js');
+    
+    // Update child's language in Turso
+    await tursoUpdate(
+      'pages_children',
+      { language },
+      'child_id = ?',
+      [child_id]
+    );
+    
+    console.log(`[CHILD] Language preference saved for ${child_id}: ${language}`);
+    
+    res.json({
+      success: true,
+      message: `Language preference updated to ${language}`,
+      child_id,
+      language,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
