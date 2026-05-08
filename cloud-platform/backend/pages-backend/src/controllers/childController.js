@@ -1,7 +1,7 @@
 'use strict';
 
 import { db } from '../config/database.js';
-import { tursoInsert, tursoUpdate, tursoRetrieve, tursoGetLastChildId } from '../config/tursoConfig.js';
+import { tursoInsert, tursoGetLastChildId, tursoRetrieveall } from '../config/tursoConfig.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { nextChildId, enqueue , nowISO } from '../utils/helpers.js';
@@ -155,24 +155,41 @@ async function tursoChildIdTest(req, res, next) {
  *
  * Returns child profile. Used by the frontend after QR scan.
  */
-function getChild(req, res, next) {
+async function getChild(req, res, next) {
   try {
     const { childId } = req.params;
- 
-    const child = db.prepare(`
-      SELECT
-        child_id, grade, camp_id, language,
-        total_sessions, baseline_score,
-        consecutive_low, alert_status, qr_code_data
-      FROM pages_children
-      WHERE child_id = ?
-    `).get(childId);
- 
-    if (!child) {
+
+    // const child = db.prepare(`
+    //   SELECT
+    //     child_id, grade, camp_id, language,
+    //     total_sessions, baseline_score,
+    //     consecutive_low, alert_status
+    //   FROM pages_children
+    //   WHERE child_id = ?
+    // `).get(childId.trim().toUpperCase());
+
+    //Check turso for child data - #Delete when implementing
+    const rows = await tursoRetrieveall('pages_children', 'child_id = ?', [childId.trim().toUpperCase()]);
+    const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+
+    if (!row) {
+      logger.warn(`[TURSO] Child not found: ${childId.trim().toUpperCase()}`);
       return next(createError(404, `Child not found: ${childId}`));
     }
- 
-    return res.json({ success: true, child });
+
+    const child = {
+      child_id: row.child_id,
+      grade: row.grade,
+      camp_id: row.camp_id,
+      zone_id: row.zone_id,
+      language: row.language,
+      total_sessions: row.total_sessions,
+      baseline_score: row.baseline_score,
+      consecutive_low: row.consecutive_low,
+      alert_status: row.alert_status,
+    };
+
+    return res.json({ success: true, child: child });
  
   } catch (err) {
     next(err);

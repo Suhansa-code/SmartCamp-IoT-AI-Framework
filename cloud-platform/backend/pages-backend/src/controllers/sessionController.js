@@ -22,10 +22,10 @@ async function startSession(req, res, next) {
     } = req.body;
  
     // Verify Flask is healthy before allowing session start
-    const flaskHealthy = await scoringService.checkFlaskHealth();
-    if (!flaskHealthy) {
-      return next(createError(503, 'Flask ML service is unavailable — cannot start session'));
-    }
+    // const flaskHealthy = await scoringService.checkFlaskHealth();
+    // if (!flaskHealthy) {
+    //   return next(createError(503, 'Flask ML service is unavailable — cannot start session'));
+    // }
  
     // Fetch child to get baseline + grade
     // const child = db.prepare(`
@@ -144,11 +144,12 @@ async function taskComplete(req, res, next) {
         );
     
         logger.info(`[SCORING] Received scores for session ${session_id}:`, scoring);
-        const { compositeScore, taskScore, passiveScore, zScore, ifScore, anomalyFlagged } = scoring;
+        const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
     
 
         // 2. Apply first gate
         const gateDecision = applyFirstGate(compositeScore);
+        const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_FIRST;
         logger.info(`[GATING] First gate decision for session ${session_id}: ${gateDecision}`);
     
         // 3. Write signals + update session + gate decision — all in one transaction
@@ -212,7 +213,7 @@ async function taskComplete(req, res, next) {
           //   session_id,
           // );
 
-          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${anomalyFlagged}`);
+          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`);
 
           // tursoDB - Update session record with scores + gate decision - #delete when implementing
           await tursoUpdate("pages_sessions", {
@@ -221,7 +222,7 @@ async function taskComplete(req, res, next) {
             task_score: taskScore,
             passive_score: passiveScore,
             gate_decision: gateDecision,
-            anomaly_flagged: anomalyFlagged ? 1 : 0,
+            anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
             z_score: zScore || null,
             if_score: ifScore || null
           }, 'session_id = ?', [session_id]);
@@ -254,14 +255,14 @@ async function taskComplete(req, res, next) {
 
     
         // 4. If anomaly flagged — run alert check (outside transaction, reads DB)
-        if (anomalyFlagged) {
+        if (sessionAnomalyFlag) {
           checkAndCreateAlert(child_id, session_id);
         }
     
         
         logger.info(
           `[SESSION] Task complete: session=${session_id}, composite=${compositeScore}, ` +
-          `gate=${gateDecision}, anomaly=${anomalyFlagged}`
+          `gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`
         );
     
         // 5. Return only gate decision — never send internal ML scores
@@ -289,8 +290,17 @@ async function secondGate(req, res, next) {
     );
     const session = sessionRows[0]
 
+    const childRows = await tursoRetrieve(
+      'pages_children',
+      'child_id, consecutive_low',
+      'child_id = ?',
+      [child_id]
+    );
+    const child = childRows[0]
+
+
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
-    if (session.gate_decision !== C.GATE.FAIL_FIRST) {
+    if (session.gate_decision && session.gate_decision !== C.GATE.FAIL_FIRST) {
       return next(createError(400, 'Second gate only valid after FAIL_FIRST decision'));
     }
     
@@ -310,10 +320,11 @@ async function secondGate(req, res, next) {
       child_id, session_id, taskMetrics, passiveSignals, childBaseline
     );
  
-    const { compositeScore, taskScore, passiveScore } = scoring;
+    const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
  
     // 2. Apply second gate
     const gateDecision = applySecondGate(compositeScore);
+    const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
  
     const decisionId = newId();
  
@@ -329,8 +340,14 @@ async function secondGate(req, res, next) {
       await tursoUpdate(
         'pages_sessions',
         {
+          composite_score: compositeScore,
+          task_score: taskScore,
+          passive_score: passiveScore,
           second_gate_score: compositeScore,
           gate_decision: gateDecision,
+          anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
+          z_score: zScore ?? null,
+          if_score: ifScore ?? null,
         },
         'session_id = ?',
         [session_id]
@@ -366,13 +383,16 @@ async function secondGate(req, res, next) {
         // tursoDB update pages children record to increment consecutive_low - #delete when implementing
         await tursoUpdate(
           'pages_children',
-          { consecutive_low: child.consecutive_low + 1 },
+          { consecutive_low: (Number(child?.consecutive_low) || 0) + 1 },
           'child_id = ?',
           [child_id]
         );
+
+        checkAndCreateAlert(child_id, session_id);
       }
  
       enqueue('pages_gate_decisions', decisionId, 'INSERT');
+      enqueue('pages_sessions', session_id, 'UPDATE');
 
  
     logger.info(
@@ -394,7 +414,13 @@ async function secondGate(req, res, next) {
 //POST /api/session/complete 
 async function completeSession(req, res, next) {
   try {
-    const { session_id, child_id, cognitiveScore, contentResponses } = req.body;
+    const {
+      session_id,
+      child_id,
+      cognitiveScore,
+      contentResponses = [],
+      contentSessionId = null,
+    } = req.body;
  
     // Fetch session for its composite_score (needed for baseline update)
     // const session = db.prepare(`
@@ -410,6 +436,7 @@ async function completeSession(req, res, next) {
       [session_id]
     )
     const session = sessionRows[0]
+    if (!session) return next(createError(404, `Session not found: ${session_id}`));
  
     // Fetch current baseline
     // const child = db.prepare(`
@@ -424,6 +451,7 @@ async function completeSession(req, res, next) {
       [child_id]
     )
     const child = childRows[0]
+    if (!child) return next(createError(404, `Child not found: ${child_id}`));
  
     // Compute new baseline
     const compositeScore = session.composite_score || child.baseline_score;
@@ -437,19 +465,6 @@ async function completeSession(req, res, next) {
       //   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       // `);
 
-      // TursoDB - Insert content responses - #delete when implementing
-      await tursoInsert("pages_content_responses", {
-        response_id: newId(),
-        session_id,
-        child_id,        
-        task_id: 'SAMPLE-TASK-ID',
-        selected_answer: 'A',
-        is_correct: 1,
-        time_taken_ms: 1500,
-        responded_at: nowISO(),
-      });
-
- 
       for (const r of contentResponses) {
         const responseId = newId();
         const row = {
@@ -462,16 +477,7 @@ async function completeSession(req, res, next) {
           time_taken_ms: r.timeTakenMs || 0,
           responded_at: nowISO(),
         };
-        insertResponse.run(
-          row.response_id,
-          row.session_id,
-          row.child_id,
-          row.task_id,
-          row.selected_answer,
-          row.is_correct,
-          row.time_taken_ms,
-          row.responded_at
-        );
+        await tursoInsert('pages_content_responses', row);
         contentRowsToSync.push(row);
         enqueue('pages_content_responses', responseId, 'INSERT');
       }
@@ -489,6 +495,7 @@ async function completeSession(req, res, next) {
         'pages_sessions',
         {
           cognitive_score: Number(cognitiveScore),
+          content_session_id: contentSessionId,
           session_complete: 1,
         },
         'session_id = ?',

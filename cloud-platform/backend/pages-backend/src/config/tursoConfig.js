@@ -135,6 +135,19 @@ async function tursoRetrieve(table, columns, whereClause, whereParams) {
   }
 }
 
+async function tursoRetrieveall(table, whereClause, whereParams) {
+  const sql = `SELECT * FROM ${table} WHERE ${whereClause}`;
+  
+  try {
+    const result = await pgQuery(sql, whereParams);
+    logger.info(`[TURSO] Retrieved all from ${table}: where ${whereClause}`);
+    return result;
+  } catch (err) {
+    logger.error(`[TURSO] Retrieve all from ${table} failed: ${err.message}`);
+    throw err;
+  }
+}
+
 async function tursoGetLastChildId() {
   const result = await pgQuery(`
     SELECT child_id FROM pages_children ORDER BY child_id DESC LIMIT 1
@@ -151,6 +164,7 @@ export {
   tursoInsert,
   tursoUpdate,
   tursoRetrieve,
-  tursoGetLastChildId
+  tursoGetLastChildId,
+  tursoRetrieveall
 };
 

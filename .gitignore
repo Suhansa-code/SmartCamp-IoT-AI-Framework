@@ -1,31 +1,161 @@
-# Python environment
-.venv/
+# ==========================================
+# Dependencies
+# ==========================================
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+vendor/
+
+# ==========================================
+# Virtual Environments
+# ==========================================
 venv/
+.venv/
 env/
+.env.bak/
+*.venv
+*siren_env/
+
+# ==========================================
+# Python
+# ==========================================
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+*.egg/
+*.egg-dist/
+dist/
+build/
+*.so
+Pillow-*.gif
+.tox/
+.mypy_cache/
+.pytest_cache/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Flask models
-cloud-platform/backend/pages-flask/models/
+# ==========================================
+# Jupyter Notebooks
+# ==========================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
 
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-*.db-journal
-*.db-wal
-*.db-shm
+# ==========================================
+# Environment Files
+# ==========================================
+.env*
+!.env.example
 
-# IDE
-.vscode/
+# ==========================================
+# Build Outputs
+# ==========================================
+.next/
+out/
+*.tsbuildinfo
+
+# ==========================================
+# Testing
+# ==========================================
+coverage/
+.nyc_output/
+.hypothesis/
+
+# ==========================================
+# Debug Logs
+# ==========================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# ==========================================
+# ML Models & Artifacts
+# ==========================================
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.pb
+*.tflite
+*.ckpt
+*.safetensors
+models/*.h5
+models/*.pkl
+models/*.joblib
+models/*.pt
+models/*.onnx
+
+# ==========================================
+# Data Files
+# ==========================================
+data/raw/*.csv
+data/network_logs/*.csv
+*.parquet
+*.feather
+
+# ==========================================
+# Logs
+# ==========================================
+logs/
+*.log
+log/
+
+# ==========================================
+# IDEs & Editors
+# ==========================================
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
 
-# OS
+# ==========================================
+# OS Files
+# ==========================================
 .DS_Store
-.env
-.env.local
-.env.*.local
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# Arduino/C++ (sensor-node)
+# ==========================================
+*.ino.hex
+*.cpp.hex
+*.c.hex
+*.S
+*.elf
+*.map
+*.d
+*.o
+*.a
+
+# ==========================================
+# Docker
+# ==========================================
+.dockerenv
+.docker/
+
+# ==========================================
+# Temporary Files
+# ==========================================
+*.tmp
+*.temp
+tmp/
+temp/

@@ -3,6 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --teal:    #0D9488;
+  --teal-light: #CCFBF1;
+  --sky-bg:  #F0F9FF;
+  --coral:   #F97316;
+  --coral-light: #FED7AA;
+  --navy:    #1E3A5F;
+  --navy-light: #3B5F8A;
+  --white:   #FFFFFF;
+  --gray-soft: #E2E8F0;
 
   --eli-teal:       #0D9488;
   --eli-teal-mid:   #14B8A6;
@@ -23,26 +32,6 @@
   --sky-mid:    #B8E4F7;
   --sky-bottom: #D4F1FF;
   --ground:     #6DBE47;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
 }
 
 @layer base {
@@ -108,10 +97,13 @@ body {
   }
 }
 
+
+
 @layer components {
   .btn-primary {
-    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 shadow-lg active:scale-95 transition-transform duration-150
-           min-h-[64px] flex items-center justify-center gap-2;
+    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply shadow-lg active:scale-95 transition-transform duration-150;
+    @apply min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--coral);
     font-size: 1.375rem;
   }
@@ -125,8 +117,9 @@ body {
   }
 
   .btn-teal {
-    @apply font-bold rounded-3xl py-4 px-8 shadow-lg active:scale-95 transition-transform duration-150
-           min-h-[64px] flex items-center justify-center gap-2;
+    @apply font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply shadow-lg active:scale-95 transition-transform duration-150;
+    @apply min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--teal);
     color: var(--white);
     font-size: 1.375rem;
@@ -141,11 +134,17 @@ body {
   }
 
   .card-soft {
-    @apply bg-white rounded-3xl shadow-md p-6;
+    background-color: white;
+    border-radius: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    padding: 1.5rem;
   }
 
   .label-bilingual {
-    @apply flex flex-col items-center gap-1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
   }
 
   .label-sinhala {
@@ -336,6 +335,27 @@ body {
 /* Button press */
 .btn-press:active { transform: scale(0.93) !important; }
 
+/* Network admin page */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes slide { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Scan button glow (child welcome) */
+@keyframes btn-glow {
+  0%,100% { box-shadow: 0 8px 32px rgba(255,107,53,0.4), 0 0 0 0 rgba(255,107,53,0.3); }
+  50%      { box-shadow: 0 12px 40px rgba(255,107,53,0.5), 0 0 0 10px rgba(255,107,53,0.08); }
+}
+.scan-btn { animation: btn-glow 2.5s ease-in-out infinite; }
+
+/* Shimmer overlay */
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+
+/* Scan line (camera view) */
+@keyframes scanLine { 0%, 100% { top: 18%; } 50% { top: 80%; } }
+
+/* Loading dots */
+@keyframes bounce-dot { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+/* ── Scrollbar hidden on mobile ─────────────────────────────────────────── */
 .no-scroll { overflow: hidden; }
 
 /* Mobile-Responsive  */
