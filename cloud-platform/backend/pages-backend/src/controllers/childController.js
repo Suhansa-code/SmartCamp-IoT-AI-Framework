@@ -141,7 +141,7 @@ async function getChild(req, res, next) {
       SELECT
         child_id, grade, camp_id, zone_id, language,
         total_sessions, baseline_score,
-        consecutive_low, alert_status
+        consecutive_low, alert_status, qr_code_data
       FROM pages_children
       WHERE child_id = ?
     `).get(childId.trim().toUpperCase());
@@ -161,6 +161,7 @@ async function getChild(req, res, next) {
       baseline_score: row.baseline_score,
       consecutive_low: row.consecutive_low,
       alert_status: row.alert_status,
+      qr_code_data: row.qr_code_data, 
     };
 
     return res.json({ success: true, child });

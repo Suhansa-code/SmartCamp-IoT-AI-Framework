@@ -8,6 +8,7 @@ import { startSession, saveLanguagePreference } from '@/components/psychoedu/lib
 import Eli          from '@/components/psychoedu/child/Eli'
 import SceneBackground from '@/components/psychoedu/child/SceneBackground'
 import LanguagePicker  from '@/components/psychoedu/child/LanguagePicker'
+import jsQR from "jsqr";
 
 const GREETING_KEYS = [
   'welcome.greeting_1', 'welcome.greeting_2',
@@ -177,24 +178,44 @@ export default function ChildWelcomePage() {
   function cancelCamera() { stopCamera(); setCamState('idle'); setScreen('welcome') }
 
   function beginQRScan() {
-    if (typeof window === 'undefined') return
-    if ('BarcodeDetector' in window) {
-      const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
-      scanRef.current = setInterval(async () => {
-        if (!videoRef.current || videoRef.current.readyState < 2) return
-        try {
-          const codes = await detector.detect(videoRef.current)
-          if (codes.length > 0) { clearInterval(scanRef.current); handleQR(codes[0].rawValue) }
-        } catch {}
-      }, 500)
-    } else {
-      // BarcodeDetector not available - require manual QR code entry
-      console.warn('[QR] BarcodeDetector API not available in this browser/device')
-      // Show the camera view but without auto-detection
-      setCamState('active')
-      // Optionally could add a text input for manual entry here
-    }
+  if (typeof window === 'undefined') return;
+
+  if ('BarcodeDetector' in window) {
+    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+    scanRef.current = setInterval(async () => {
+      if (!videoRef.current || videoRef.current.readyState < 2) return;
+      try {
+        const codes = await detector.detect(videoRef.current);
+        if (codes.length > 0) {
+          clearInterval(scanRef.current);
+          handleQR(codes[0].rawValue);
+        }
+      } catch (err) {
+        console.error("BarcodeDetector error:", err);
+      }
+    }, 500);
+  } else {
+    console.warn('[QR] BarcodeDetector API not available, using jsQR fallback');
+
+    scanRef.current = setInterval(() => {
+      if (!videoRef.current) return;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+      if (code) {
+        clearInterval(scanRef.current);
+        handleQR(code.data); // decoded child_id
+      }
+    }, 500);
   }
+}
 
   async function handleQR(childId, selectedLang = lang) {
     stopCamera(); setCamState('idle'); setScreen('loading')
@@ -394,32 +415,6 @@ export default function ChildWelcomePage() {
                 </span>
               </button>
 
-              {/* ── START BUTTON ── */}
-              <button
-                onClick={() => router.push(`/child/task?lang=${lang}`)}
-                className="btn-press"
-                style={{
-                  width:'100%',
-                  marginTop:'16px',
-                  minHeight:'clamp(60px,14vw,72px)',
-                  background: 'linear-gradient(135deg,#10B981 0%,#059669 50%,#047857 100%)',
-                  color:'white',
-                  borderRadius:'99px',
-                  border:'none',
-                  fontFamily:"'Baloo 2',cursive",
-                  fontSize:'clamp(1rem,4vw,1.3rem)',
-                  fontWeight:900,
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:'0.75rem',
-                  cursor:'pointer',
-                  transition:'transform 0.1s',
-                  position:'relative', overflow:'hidden',
-                  boxShadow:'0 8px 24px rgba(16,185,129,0.3)',
-                }}
-              >
-                <div style={{ position:'absolute', inset:0, background:'linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.15) 50%,transparent 60%)', animation:'shimmer 2.5s linear infinite' }} />
-                <span style={{ fontSize:'clamp(1.4rem,5vw,1.8rem)', zIndex:1 }}>🚀</span>
-                <span style={{ zIndex:1 }}>Start Game</span>
-              </button>
 
             </div>
           )}
