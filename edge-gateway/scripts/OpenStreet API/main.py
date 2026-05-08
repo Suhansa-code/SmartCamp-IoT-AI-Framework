@@ -1,16 +1,18 @@
 from service import find_nearest_gauging_station_detailed
 from providers.river_lookup import get_nearest_named_river
+from providers.weather_forecast_location import fetch_forecast_location
 
 # Camp GPS location
-LATITUDE = 6.22066
-LONGITUDE = 80.28489
+LATITUDE = 7.507
+LONGITUDE = 80.945
+ALTITUDE = 10.0  # meters above sea level (if available)
 
 
 if __name__ == "__main__":
     print("=" * 60)
     print("SMART CAMP - WATER LEVEL MONITORING")
     print("=" * 60)
-    print(f"\nQuery Location: Lat {LATITUDE}, Lon {LONGITUDE}")
+    print(f"\nQuery Location: Lat {LATITUDE}, Lon {LONGITUDE}, Alt {ALTITUDE}")
     print("-" * 60)
 
     # Get nearest named river and detailed gauging station information
@@ -52,6 +54,64 @@ if __name__ == "__main__":
                 print(f"   Major Flood Level: {major_flood} m")
         else:
             print("\n   No flood level data available")
+
+        # Fetch weather forecast for the location
+        forecast_data, forecast_error = fetch_forecast_location(LATITUDE, LONGITUDE)
+        if forecast_error:
+            print(f"\n❌ Weather forecast lookup failed: {forecast_error}")
+        else:
+            print("\n🌤️ WEATHER FORECAST LOCATION:")
+            print(f"   Forecast Location: Lat {forecast_data['forecast_location']['lat']}, Lon {forecast_data['forecast_location']['lon']}")
+            print(f"   Elevation: {forecast_data['forecast_location'].get('elevation', 'N/A')} m")
+            print(f"   Timezone: {forecast_data['forecast_location'].get('timezone', 'N/A')}")
+            print(f"   Timezone Abbreviation: {forecast_data['forecast_location'].get('timezone_abbreviation', 'N/A')}")
+            
+            # Display hourly forecast parameters for flood prediction
+            hourly_data = forecast_data.get('weather_forecast_parameters', {}).get('hourly', {})
+            hourly_units = forecast_data.get('weather_forecast_parameters', {}).get('hourly_units', {})
+            
+            if hourly_data and hourly_data.get('time'):
+                print("\n📊 HOURLY WEATHER FORECAST FOR FLOOD PREDICTION:")
+                times = hourly_data.get('time', [])
+                print(f"   Forecast Period: {times[0] if times else 'N/A'} to {times[-1] if times else 'N/A'} ({len(times)} hours)")
+                
+                # Get first and last hour data for summary
+                if len(times) > 0:
+                    print("\n   🌡️ Temperature & Humidity:")
+                    temps = hourly_data.get('temperature_2m', [])
+                    humidity = hourly_data.get('relative_humidity_2m', [])
+                    print(f"      Min Temp: {min(temps) if temps else 'N/A'}°C, Max Temp: {max(temps) if temps else 'N/A'}°C")
+                    print(f"      Avg Humidity: {sum(humidity)//len(humidity) if humidity else 'N/A'}%")
+                    
+                    print("\n   💧 Precipitation & Rainfall:")
+                    precip = hourly_data.get('precipitation', [])
+                    rain = hourly_data.get('rain', [])
+                    total_precip = sum(precip) if precip else 0
+                    total_rain = sum(rain) if rain else 0
+                    print(f"      Total Precipitation (24h): {total_precip} {hourly_units.get('precipitation', 'mm')}")
+                    print(f"      Total Rain (24h): {total_rain} {hourly_units.get('rain', 'mm')}")
+                    print(f"      Max Hourly Precipitation: {max(precip) if precip else 'N/A'} mm")
+                    
+                    print("\n   🌪️ Wind Conditions:")
+                    wind_speed = hourly_data.get('wind_speed_10m', [])
+                    wind_dir = hourly_data.get('wind_direction_10m', [])
+                    print(f"      Max Wind Speed: {max(wind_speed) if wind_speed else 'N/A'} {hourly_units.get('wind_speed_10m', 'km/h')}")
+                    print(f"      Avg Wind Speed: {sum(wind_speed)//len(wind_speed) if wind_speed else 'N/A'} {hourly_units.get('wind_speed_10m', 'km/h')}")
+                    
+                    print("\n   🌱 Soil Moisture:")
+                    soil_0_10 = hourly_data.get('soil_moisture_0_to_10cm', [])
+                    soil_10_35 = hourly_data.get('soil_moisture_10_to_35cm', [])
+                    valid_soil_0_10 = [x for x in soil_0_10 if x is not None]
+                    print(f"      Surface Soil (0-10cm): {valid_soil_0_10[0] if valid_soil_0_10 else 'N/A'} {hourly_units.get('soil_moisture_0_to_10cm', 'm³/m³')}")
+                    if soil_10_35 and any(soil_10_35):
+                        valid_soil_10_35 = [x for x in soil_10_35 if x is not None]
+                        print(f"      Deep Soil (10-35cm): {valid_soil_10_35[0] if valid_soil_10_35 else 'N/A'} {hourly_units.get('soil_moisture_10_to_35cm', 'm³/m³')}")
+                    
+                    print("\n   🔽 Atmospheric Pressure & Cloud Cover:")
+                    pressure = hourly_data.get('surface_pressure', [])
+                    cloud_cover = hourly_data.get('cloud_cover', [])
+                    print(f"      Avg Pressure: {sum(pressure)//len(pressure) if pressure else 'N/A'} {hourly_units.get('surface_pressure', 'hPa')}")
+                    print(f"      Max Cloud Cover: {max(cloud_cover) if cloud_cover else 'N/A'}%")
     else:
         print("No gauging station found")
 
