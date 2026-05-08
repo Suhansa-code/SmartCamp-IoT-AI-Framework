@@ -290,27 +290,20 @@ async function secondGate(req, res, next) {
     );
     const session = sessionRows[0]
 
+    // Fetch child to get baseline and consecutive_low for scoring
     const childRows = await tursoRetrieve(
       'pages_children',
-      'child_id, consecutive_low',
+      'child_id, baseline_score, consecutive_low',
       'child_id = ?',
       [child_id]
     );
     const child = childRows[0]
-
 
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
     if (session.gate_decision && session.gate_decision !== C.GATE.FAIL_FIRST) {
       return next(createError(400, 'Second gate only valid after FAIL_FIRST decision'));
     }
     
-    // Fetch child to get current baseline for scoring
-    const childRows = await tursoRetrieve(
-      'pages_children', 'child_id, baseline_score',
-      'child_id = ?',
-      [child_id]
-    );
-    const child = childRows[0]
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
     
     const childBaseline = child.baseline_score || 60.0;
