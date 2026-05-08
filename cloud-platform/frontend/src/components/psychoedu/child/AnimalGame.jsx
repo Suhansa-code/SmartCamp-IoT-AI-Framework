@@ -161,7 +161,7 @@ export default function AnimalGame({ onComplete }) {
   useEffect(() => {
     const urlChildId = searchParams?.get('child') ?? ''
     const storedChildId = typeof window !== 'undefined'
-      ? (sessionStorage.getItem('childId') ?? '')
+      ? (sessionStorage.getItem('selectedChildId') ?? '')
       : ''
     setChildId(urlChildId || storedChildId)
   }, [searchParams])
@@ -171,15 +171,14 @@ export default function AnimalGame({ onComplete }) {
     setIsStarting(true)
 
     try {
-      const storedChildId = (typeof window !== 'undefined' ? (sessionStorage.getItem('childId') ?? '') : '')
-      if (!storedChildId) {
+      if (!childId) {
         throw new Error('No child ID selected')
       }
 
       const response = await fetch(`${API_BASE}/api/session/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ child_id: storedChildId }),
+        body: JSON.stringify({ child_id: childId }),
       })
 
       console.log('Start session response:', response)

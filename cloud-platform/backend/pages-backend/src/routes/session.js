@@ -18,8 +18,8 @@ console.log('[ROUTES] Registering POST /api/session/task-complete')
 router.post('/task-complete', validateTaskPayload, ctrl.taskComplete);
 console.log('[ROUTES] Registered POST /api/session/task-complete')
 
-//Test tursoDB updates
-router.post('/turso-test', ctrl.tursoDBupdatesample);
+//Test database update
+router.post('/test-db-update', ctrl.testDBUpdate);
 
 // POST /api/session/second-gate
 router.post('/second-gate', validateTaskPayload, ctrl.secondGate);

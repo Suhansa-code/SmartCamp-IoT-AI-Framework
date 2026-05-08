@@ -217,13 +217,23 @@ export default function ChildWelcomePage() {
 
     setSessionId(sid)
     router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(selectedLang)}`)
+      // Persist language to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preferredLanguage', lang)
+    }
+    // Redirect to instruction page (gamified activity guide) instead of directly to task
+    router.push(`/child/instruction?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(lang)}`)
   }
 
   function handleLanguageSelect(code) {
+    // Save language preference
     setLang(code)
-    const sid = 'offline'
-    setSessionId(sid)
-    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(code)}`)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preferredLanguage', code)
+    }
+    // Transition to welcome screen (with Eli + QR scan button)
+    // User will scan QR to get child ID, then proceed to game
+    setScreen('welcome')
   }
 
   //  Language picker screen 
@@ -421,3 +431,4 @@ export default function ChildWelcomePage() {
     </SceneBackground>
   )
 }
+
