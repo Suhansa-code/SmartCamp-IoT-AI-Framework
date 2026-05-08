@@ -17,6 +17,7 @@ function RegistrationScreen() {
     full_name: "",
     age: "",
     gender: "M",
+    person_type: "refugee",
     family_size: 1,
     is_pregnant: 0,
     has_chronic_illness: 0,
@@ -236,6 +237,23 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel }) {
             onChange={(e) => update("age", e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Person Type</label>
+          <select
+            value={form.person_type}
+            onChange={(e) => update("person_type", e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+          >
+            <option value="refugee">Refugee</option>
+            <option value="asylum_seeker">Asylum Seeker</option>
+            <option value="idp">IDP (Internally Displaced)</option>
+            <option value="returned_refugee">Returned Refugee</option>
+            <option value="returned_idp">Returned IDP</option>
+            <option value="stateless">Stateless Person</option>
+            <option value="ooc">Others of Concern</option>
+          </select>
         </div>
 
         <div>

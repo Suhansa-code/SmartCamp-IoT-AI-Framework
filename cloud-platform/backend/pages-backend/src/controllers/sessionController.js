@@ -283,11 +283,6 @@ async function secondGate(req, res, next) {
     const { session_id, child_id, taskMetrics, passiveSignals } = req.body;
  
     // Verify session is in FAIL_FIRST state
-    // const session = db.prepare(`
-    //   SELECT session_id, gate_decision FROM pages_sessions WHERE session_id = ?
-    // `).get(session_id);
-
-    // tursoDB - Verify session is in FAIL_FIRST state - #delete when implementing
     const sessionRows = await tursoRetrieve(
       'pages_sessions','session_id, gate_decision',
       'session_id = ?',
@@ -308,10 +303,21 @@ async function secondGate(req, res, next) {
     if (session.gate_decision && session.gate_decision !== C.GATE.FAIL_FIRST) {
       return next(createError(400, 'Second gate only valid after FAIL_FIRST decision'));
     }
+    
+    // Fetch child to get current baseline for scoring
+    const childRows = await tursoRetrieve(
+      'pages_children', 'child_id, baseline_score',
+      'child_id = ?',
+      [child_id]
+    );
+    const child = childRows[0]
+    if (!child) return next(createError(404, `Child not found: ${child_id}`));
+    
+    const childBaseline = child.baseline_score || 60.0;
  
-    // 1. Get second score
+    // 1. Get second score — pass baseline for composite calculation
     const scoring = await scoringService.getScore(
-      child_id, session_id, taskMetrics, passiveSignals
+      child_id, session_id, taskMetrics, passiveSignals, childBaseline
     );
  
     const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;

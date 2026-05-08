@@ -1,8 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -99,6 +97,7 @@ export default function Home() {
     }
   }
 
+  // Show loading while redirecting
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12 lg:px-10">

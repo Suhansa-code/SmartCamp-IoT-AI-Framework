@@ -69,6 +69,24 @@ function migrateSelectedAnswerConstraint(db) {
   logger.info('[DB] Migrated pages_content_responses selected_answer constraint');
 }
 
+function migrateAddQRCodeColumn(db) {
+  const row = db.prepare(`
+    PRAGMA table_info(pages_children)
+  `).all();
+
+  const hasQRColumn = row.some(col => col.name === 'qr_code_data');
+  if (hasQRColumn) return;
+
+  try {
+    db.exec(`
+      ALTER TABLE pages_children ADD COLUMN qr_code_data TEXT;
+    `);
+    logger.info('[DB] Added qr_code_data column to pages_children');
+  } catch (err) {
+    logger.warn(`[DB] Could not add qr_code_data column: ${err.message}`);
+  }
+}
+
 // SQLite — initialise and apply schema 
 
 // Ensure the database directory exists
@@ -101,6 +119,7 @@ try {
     const schema = fs.readFileSync(schemaPath, 'utf8');
     db.exec(schema);
     migrateSelectedAnswerConstraint(db);
+    migrateAddQRCodeColumn(db);
     logger.info('[DB] SQLite schema applied successfully');
   } else {
     logger.warn('[DB] schema.sql not found — tables may not exist');

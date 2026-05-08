@@ -65,7 +65,20 @@ function initialize() {
       created_at TEXT DEFAULT (datetime('now')),
       flushed INTEGER DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS prediction_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      inputs TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      sent_at TEXT,
+      result TEXT
+    );
   `);
+
+  // Add person_type column for UNHCR category tracking
+  try { db.exec("ALTER TABLE persons ADD COLUMN person_type TEXT DEFAULT 'refugee'") } catch (_) {}
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_persons_type ON persons(person_type)`)
 
   // Add MQTT client columns if this is an existing database (safe to run on every startup).
   // SQLite ALTER TABLE does NOT support UNIQUE — uniqueness is enforced via a separate index.
