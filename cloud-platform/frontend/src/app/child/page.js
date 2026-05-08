@@ -34,7 +34,16 @@ function Sparkle({ x, y, color = '#FFD93D', delay = 0 }) {
 }
 
 //Camera scan overlay 
-function CameraView({ videoRef, onCancel, lang }) {
+function CameraView({ videoRef, onCancel, onManualEntry, lang }) {
+  const [manualChildId, setManualChildId] = useState('')
+  
+  const handleManualSubmit = () => {
+    if (manualChildId.trim()) {
+      onManualEntry(manualChildId.trim())
+      setManualChildId('')
+    }
+  }
+  
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'1rem', width:'100%' }}>
       <div style={{
@@ -66,6 +75,41 @@ function CameraView({ videoRef, onCancel, lang }) {
           </span>
         </div>
       </div>
+      
+      {/* Manual QR Entry */}
+      <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', gap:'0.5rem' }}>
+        <p style={{ fontSize:'0.9rem', color:'rgba(255,255,255,0.7)', margin:'0.5rem 0 0 0', fontFamily:"'Nunito',sans-serif" }}>
+          Or paste QR code value:
+        </p>
+        <input 
+          type="text"
+          value={manualChildId}
+          onChange={(e) => setManualChildId(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleManualSubmit()}
+          placeholder="Enter child ID"
+          style={{
+            width:'80%', maxWidth:240, padding:'0.75rem 1rem', borderRadius:'0.5rem',
+            border:'2px solid rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.1)',
+            color:'white', fontSize:'0.95rem', fontFamily:"'Nunito',sans-serif",
+            textAlign:'center',
+          }}
+          onFocus={(e) => e.target.style.borderColor = '#FF6B35'}
+          onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.3)'}
+        />
+        {manualChildId && (
+          <button onClick={handleManualSubmit} style={{
+            minHeight: 44, padding:'0 1.5rem', borderRadius:'99px',
+            border:'none', background:'#FF6B35', color:'white', fontSize:'0.95rem', fontWeight:800,
+            fontFamily:"'Baloo 2',cursive", cursor:'pointer', transition:'transform 0.2s',
+          }}
+          onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+          onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            ▶ Submit
+          </button>
+        )}
+      </div>
+      
       {/* Cancel */}
       <button onClick={onCancel} style={{
         minHeight: 52, padding:'0 2rem', borderRadius:'99px',
@@ -116,6 +160,13 @@ export default function ChildWelcomePage() {
     }
     updateEliSize()
     window.addEventListener('resize', updateEliSize)
+    
+    // Load language from localStorage on mount, but still show language picker first
+    const savedLang = localStorage.getItem('preferredLanguage')
+    if (savedLang && ['si', 'ta', 'en'].includes(savedLang)) {
+      setLang(savedLang)
+    }
+    
     return () => window.removeEventListener('resize', updateEliSize)
   }, [])
 
@@ -180,7 +231,11 @@ export default function ChildWelcomePage() {
         } catch {}
       }, 500)
     } else {
-      scanRef.current = setTimeout(() => handleQR('CHILD-DEMO-001'), 2500)
+      // BarcodeDetector not available - require manual QR code entry
+      console.warn('[QR] BarcodeDetector API not available in this browser/device')
+      // Show the camera view but without auto-detection
+      setCamState('active')
+      // Optionally could add a text input for manual entry here
     }
   }
 
@@ -263,7 +318,7 @@ export default function ChildWelcomePage() {
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(1rem,3vw,1.5rem)', width:'100%', maxWidth:'min(400px,92vw)' }}>
 
           {/* Camera */}
-          {screen === 'camera' && <CameraView videoRef={videoRef} onCancel={cancelCamera} lang={lang} />}
+          {screen === 'camera' && <CameraView videoRef={videoRef} onCancel={cancelCamera} onManualEntry={handleQR} lang={lang} />}
 
           {/* Welcome idle */}
           {screen === 'welcome' && (

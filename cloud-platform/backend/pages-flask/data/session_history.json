@@ -1,212 +1,2127 @@
 {
   "sessions": {
-    "B-005": [
+    "TEST-CHILD-000172": [
       {
-        "composite": 84.55,
-        "task": 74.25,
-        "passive": 100.0,
-        "ts": "2026-04-09T12:55:23.580201"
+        "composite": 65.434,
+        "task": 63.11,
+        "passive": 72.93,
+        "gate": "PASS",
+        "ts": "2026-04-11T09:26:04+05:30"
       },
       {
-        "composite": 85.22,
-        "task": 75.36,
-        "passive": 100.0,
-        "ts": "2026-04-09T12:58:23.544462"
+        "composite": 70.697,
+        "task": 68.5,
+        "passive": 80.55,
+        "gate": "PASS",
+        "ts": "2026-04-11T09:32:10+05:30"
       },
       {
-        "composite": 84.05,
-        "task": 73.41,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:01:27.146860"
+        "composite": 74.047,
+        "task": 73.54,
+        "passive": 81.73,
+        "gate": "PASS",
+        "ts": "2026-04-11T09:36:45+05:30"
+      },
+      {
+        "composite": 72.508,
+        "task": 69.79,
+        "passive": 81.11,
+        "gate": "PASS",
+        "ts": "2026-04-11T09:42:53+05:30"
+      },
+      {
+        "composite": 71.877,
+        "task": 68.58,
+        "passive": 79.97,
+        "gate": "PASS",
+        "ts": "2026-04-11T09:47:25+05:30"
+      },
+      {
+        "composite": 73.18,
+        "task": 70.09,
+        "passive": 81.11,
+        "gate": "PASS",
+        "ts": "2026-04-11T09:51:47+05:30"
+      },
+      {
+        "composite": 72.001,
+        "task": 67.28,
+        "passive": 81.13,
+        "gate": "PASS",
+        "ts": "2026-04-11T09:55:28+05:30"
+      },
+      {
+        "composite": 73.889,
+        "task": 70.39,
+        "passive": 81.88,
+        "gate": "PASS",
+        "ts": "2026-04-11T09:59:37+05:30"
+      },
+      {
+        "composite": 70.498,
+        "task": 63.89,
+        "passive": 80.83,
+        "gate": "PASS",
+        "ts": "2026-04-11T10:03:04+05:30"
+      },
+      {
+        "composite": 67.592,
+        "task": 58.02,
+        "passive": 81.04,
+        "gate": "PASS",
+        "ts": "2026-04-11T10:05:35+05:30"
+      },
+      {
+        "composite": 73.321,
+        "task": 69.68,
+        "passive": 81.25,
+        "gate": "PASS",
+        "ts": "2026-04-11T10:08:21+05:30"
+      },
+      {
+        "composite": 74.166,
+        "task": 70.73,
+        "passive": 81.81,
+        "gate": "PASS",
+        "ts": "2026-04-11T10:12:26+05:30"
+      },
+      {
+        "composite": 75.574,
+        "task": 73.43,
+        "passive": 81.49,
+        "gate": "PASS",
+        "ts": "2026-04-11T10:15:22+05:30"
       }
     ],
-    "B-002": [
+    "TEST-CHILD-000173": [
       {
-        "composite": 84.47,
-        "task": 74.12,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:25:22.012544"
+        "composite": 51.7,
+        "task": 48.74,
+        "passive": 56.14,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-04-11T11:04:58+05:30"
       },
       {
-        "composite": 85.0,
-        "task": 75.0,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:34:59.740039"
+        "composite": 62.603,
+        "task": 59.2,
+        "passive": 70.01,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-04-11T11:08:16+05:30"
       },
       {
-        "composite": 83.94,
-        "task": 73.23,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:38:01.298080"
+        "composite": 70.042,
+        "task": 69.43,
+        "passive": 77.29,
+        "gate": "PASS",
+        "ts": "2026-04-11T11:19:20+05:30"
       },
       {
-        "composite": 85.0,
-        "task": 75.0,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:41:09.327873"
+        "composite": 66.841,
+        "task": 63.4,
+        "passive": 75.09,
+        "gate": "PASS",
+        "ts": "2026-04-11T11:29:05+05:30"
+      },
+      {
+        "composite": 69.672,
+        "task": 66.43,
+        "passive": 78.81,
+        "gate": "PASS",
+        "ts": "2026-04-11T11:33:06+05:30"
+      },
+      {
+        "composite": 68.162,
+        "task": 64.8,
+        "passive": 75.52,
+        "gate": "PASS",
+        "ts": "2026-04-11T11:37:08+05:30"
+      },
+      {
+        "composite": 70.627,
+        "task": 67.49,
+        "passive": 78.78,
+        "gate": "PASS",
+        "ts": "2026-04-11T11:41:54+05:30"
+      },
+      {
+        "composite": 66.01,
+        "task": 56.19,
+        "passive": 80.74,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:02:55+05:30"
+      },
+      {
+        "composite": 65.06,
+        "task": 54.01,
+        "passive": 81.64,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:05:02+05:30"
+      },
+      {
+        "composite": 59.46,
+        "task": 50.62,
+        "passive": 72.73,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:06:48+05:30"
       }
     ],
-    "B-006": [
+    "TEST-CHILD-000174": [
       {
-        "composite": 86.67,
-        "task": 77.78,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:44:07.613954"
+        "composite": 61.388,
+        "task": 53.29,
+        "passive": 75.81,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:04:01+05:30"
       },
       {
-        "composite": 85.31,
-        "task": 75.51,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:46:30.606542"
+        "composite": 71.739,
+        "task": 72.68,
+        "passive": 77.69,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:13:55+05:30"
       },
       {
-        "composite": 84.33,
-        "task": 73.89,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:49:03.126791"
+        "composite": 72.286,
+        "task": 70.87,
+        "passive": 80.63,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:16:15+05:30"
       },
       {
-        "composite": 83.78,
-        "task": 73.82,
-        "passive": 98.71,
-        "ts": "2026-04-09T13:51:41.960591"
+        "composite": 72.919,
+        "task": 70.53,
+        "passive": 81.78,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:18:18+05:30"
       },
       {
-        "composite": 86.27,
-        "task": 77.12,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:54:19.690290"
+        "composite": 69.145,
+        "task": 64.32,
+        "passive": 78.29,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:20:21+05:30"
       },
       {
-        "composite": 80.61,
-        "task": 67.69,
-        "passive": 100.0,
-        "ts": "2026-04-09T13:56:53.970581"
+        "composite": 70.337,
+        "task": 65.6,
+        "passive": 79.81,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:22:22+05:30"
       },
       {
-        "composite": 80.08,
-        "task": 77.01,
-        "passive": 98.57,
-        "raw_signals": {
-          "task_metrics": {
-            "accuracyRate": 1,
-            "falseTapRate": 0,
-            "avgReactionTime": 426,
-            "reactionVariance": 13076
-          },
-          "passive_signals": {
-            "idleTimeRatio": 0,
-            "rapidClickCount": 0,
-            "timeToFirstMs": 716,
-            "completionRatio": 1
-          }
-        },
-        "ts": "2026-04-09T14:33:25.232745"
+        "composite": 72.369,
+        "task": 68.17,
+        "passive": 81.86,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:27:13+05:30"
+      },
+      {
+        "composite": 69.472,
+        "task": 62.09,
+        "passive": 81.67,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:29:11+05:30"
+      },
+      {
+        "composite": 70.407,
+        "task": 64.98,
+        "passive": 79.93,
+        "gate": "PASS",
+        "ts": "2026-04-11T12:31:11+05:30"
       }
     ],
-    "B-007": [
+    "TEST-CHILD-000175": [
       {
-        "composite": 78.36,
-        "task": 73.33,
-        "passive": 98.97,
-        "raw_signals": {
-          "task_metrics": {
-            "accuracyRate": 1,
-            "falseTapRate": 0.14285714285714285,
-            "avgReactionTime": 394,
-            "reactionVariance": 5176
-          },
-          "passive_signals": {
-            "idleTimeRatio": 0,
-            "rapidClickCount": 0,
-            "timeToFirstMs": 516,
-            "completionRatio": 1
-          }
-        },
-        "ts": "2026-04-09T14:37:43.527578"
+        "composite": 62.011,
+        "task": 57.23,
+        "passive": 71.32,
+        "gate": "PASS",
+        "ts": "2026-04-11T13:22:07+05:30"
       },
       {
-        "composite": 78.28,
-        "task": 72.97,
-        "passive": 99.3,
-        "raw_signals": {
-          "task_metrics": {
-            "accuracyRate": 1,
-            "falseTapRate": 0.14285714285714285,
-            "avgReactionTime": 413,
-            "reactionVariance": 10819
-          },
-          "passive_signals": {
-            "idleTimeRatio": 0,
-            "rapidClickCount": 0,
-            "timeToFirstMs": 348,
-            "completionRatio": 1
-          }
-        },
-        "ts": "2026-04-09T14:40:26.614087"
+        "composite": 67.458,
+        "task": 63.54,
+        "passive": 78.58,
+        "gate": "PASS",
+        "ts": "2026-04-11T13:31:35+05:30"
       },
       {
-        "composite": 80.11,
-        "task": 76.73,
-        "passive": 99.15,
-        "raw_signals": {
-          "task_metrics": {
-            "accuracyRate": 1,
-            "falseTapRate": 0,
-            "avgReactionTime": 441,
-            "reactionVariance": 6415
-          },
-          "passive_signals": {
-            "idleTimeRatio": 0,
-            "rapidClickCount": 0,
-            "timeToFirstMs": 424,
-            "completionRatio": 1
-          }
-        },
-        "ts": "2026-04-09T14:43:07.659855"
+        "composite": 73.426,
+        "task": 72.89,
+        "passive": 81.69,
+        "gate": "PASS",
+        "ts": "2026-04-11T13:38:27+05:30"
+      },
+      {
+        "composite": 74.352,
+        "task": 73.36,
+        "passive": 82.12,
+        "gate": "PASS",
+        "ts": "2026-04-11T13:44:36+05:30"
+      },
+      {
+        "composite": 57.969,
+        "task": 43.15,
+        "passive": 76.3,
+        "gate": "PASS",
+        "ts": "2026-04-11T13:54:39+05:30"
+      },
+      {
+        "composite": 67.98,
+        "task": 62.14,
+        "passive": 79.5,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:01:18+05:30"
+      },
+      {
+        "composite": 61.502,
+        "task": 55.63,
+        "passive": 68.25,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:05:40+05:30"
+      },
+      {
+        "composite": 65.385,
+        "task": 58.47,
+        "passive": 77.18,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:11:43+05:30"
+      },
+      {
+        "composite": 71.535,
+        "task": 67.9,
+        "passive": 81.83,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:16:32+05:30"
+      },
+      {
+        "composite": 68.439,
+        "task": 61.41,
+        "passive": 81.22,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:19:54+05:30"
+      },
+      {
+        "composite": 72.798,
+        "task": 69.76,
+        "passive": 81.5,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:26:06+05:30"
+      },
+      {
+        "composite": 72.082,
+        "task": 70.19,
+        "passive": 77.45,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:31:41+05:30"
+      },
+      {
+        "composite": 62.462,
+        "task": 49.27,
+        "passive": 79.67,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:35:18+05:30"
       }
     ],
-    "B-008": [
+    "TEST-CHILD-000176": [
       {
-        "composite": 83.11,
-        "task": 71.85,
-        "passive": 100.0,
-        "ts": "2026-04-09T14:50:36.475666"
+        "composite": 66.425,
+        "task": 62.08,
+        "passive": 77.95,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:55:10+05:30"
       },
       {
-        "composite": 83.66,
-        "task": 72.76,
-        "passive": 100.0,
-        "ts": "2026-04-09T14:53:06.179473"
+        "composite": 65.459,
+        "task": 63.78,
+        "passive": 70.77,
+        "gate": "PASS",
+        "ts": "2026-04-11T14:59:58+05:30"
       },
       {
-        "composite": 84.71,
-        "task": 74.51,
-        "passive": 100.0,
-        "ts": "2026-04-09T14:55:29.214940"
+        "composite": 65.063,
+        "task": 59.38,
+        "passive": 76.13,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:05:40+05:30"
       },
       {
-        "composite": 35.93,
-        "task": 13.87,
-        "passive": 69.03,
-        "ts": "2026-04-09T15:01:21.567891"
+        "composite": 72.783,
+        "task": 71.65,
+        "passive": 80.96,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:11:44+05:30"
       },
       {
-        "composite": 41.93,
-        "task": 20.42,
-        "passive": 74.19,
-        "ts": "2026-04-09T15:03:12.889113"
+        "composite": 65.519,
+        "task": 61.61,
+        "passive": 71.88,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:15:46+05:30"
       },
       {
-        "composite": 84.93,
-        "task": 74.89,
-        "passive": 100.0,
-        "ts": "2026-04-09T15:18:48.433732"
+        "composite": 72.556,
+        "task": 71.74,
+        "passive": 78.46,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:25:51+05:30"
+      },
+      {
+        "composite": 70.949,
+        "task": 66.42,
+        "passive": 80.81,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:30:40+05:30"
+      },
+      {
+        "composite": 69.798,
+        "task": 64.93,
+        "passive": 78.83,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:34:21+05:30"
+      }
+    ],
+    "TEST-CHILD-000177": [
+      {
+        "composite": 72.231,
+        "task": 71.97,
+        "passive": 80.82,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:08:09+05:30"
+      },
+      {
+        "composite": 70.949,
+        "task": 68.37,
+        "passive": 80.48,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:11:56+05:30"
+      },
+      {
+        "composite": 66.537,
+        "task": 62.98,
+        "passive": 73.41,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:21:11+05:30"
+      },
+      {
+        "composite": 67.404,
+        "task": 61.43,
+        "passive": 78.61,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:27:05+05:30"
+      },
+      {
+        "composite": 64.798,
+        "task": 69.33,
+        "passive": 56.39,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:32:28+05:30"
+      },
+      {
+        "composite": 51.54,
+        "task": 43.31,
+        "passive": 63.88,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-04-11T15:36:46+05:30"
+      },
+      {
+        "composite": 64.793,
+        "task": 59.3,
+        "passive": 73.35,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-04-11T15:38:26+05:30"
+      },
+      {
+        "composite": 70.145,
+        "task": 67.58,
+        "passive": 77.49,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:42:38+05:30"
+      },
+      {
+        "composite": 69.545,
+        "task": 65.84,
+        "passive": 77.59,
+        "gate": "PASS",
+        "ts": "2026-04-17T08:33:11+05:30"
+      },
+      {
+        "composite": 59.771,
+        "task": 53.59,
+        "passive": 64.92,
+        "gate": "PASS",
+        "ts": "2026-04-17T08:38:14+05:30"
+      }
+    ],
+    "TEST-CHILD-000178": [
+      {
+        "composite": 67.943,
+        "task": 64.3,
+        "passive": 79.31,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:39:46+05:30"
+      },
+      {
+        "composite": 54.89,
+        "task": 54.56,
+        "passive": 55.39,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-04-11T15:43:28+05:30"
+      },
+      {
+        "composite": 63.71,
+        "task": 55.19,
+        "passive": 79.01,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-04-11T15:45:14+05:30"
+      },
+      {
+        "composite": 57.283,
+        "task": 52.39,
+        "passive": 61.9,
+        "gate": "PASS",
+        "ts": "2026-04-11T15:48:47+05:30"
+      },
+      {
+        "composite": 35.46,
+        "task": 37.28,
+        "passive": 32.73,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-04-26T12:16:23+05:30"
+      },
+      {
+        "composite": 31.55,
+        "task": 31.43,
+        "passive": 31.72,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-04-26T12:19:00+05:30"
+      },
+      {
+        "composite": 71.988,
+        "task": 70.45,
+        "passive": 81.67,
+        "gate": "PASS",
+        "ts": "2026-04-28T18:14:45+05:30"
+      },
+      {
+        "composite": 70.415,
+        "task": 67.85,
+        "passive": 78.94,
+        "gate": "PASS",
+        "ts": "2026-04-28T18:19:18+05:30"
+      },
+      {
+        "composite": 69.662,
+        "task": 65.78,
+        "passive": 78.78,
+        "gate": "PASS",
+        "ts": "2026-04-28T18:21:27+05:30"
+      }
+    ],
+    "TEST-CHILD-000180": [
+      {
+        "composite": 58.034,
+        "task": 55.81,
+        "passive": 60.43,
+        "gate": "PASS",
+        "ts": "2026-04-15T15:39:44+05:30"
+      },
+      {
+        "composite": 30.65,
+        "task": 30,
+        "passive": 31.62,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-04-15T15:45:24+05:30"
+      },
+      {
+        "composite": 69.604,
+        "task": 68.71,
+        "passive": 77.81,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-04-15T15:47:41+05:30"
+      },
+      {
+        "composite": 70.72,
+        "task": 63.12,
+        "passive": 82.13,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:09:57+05:30"
+      },
+      {
+        "composite": 67.1,
+        "task": 63.57,
+        "passive": 72.41,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:11:39+05:30"
+      },
+      {
+        "composite": 72.69,
+        "task": 66.45,
+        "passive": 82.05,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:13:36+05:30"
+      },
+      {
+        "composite": 70.64,
+        "task": 63.1,
+        "passive": 81.95,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:15:26+05:30"
+      },
+      {
+        "composite": 63.37,
+        "task": 53.61,
+        "passive": 78.01,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:17:13+05:30"
+      },
+      {
+        "composite": 72.69,
+        "task": 66.68,
+        "passive": 81.7,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:19:16+05:30"
+      }
+    ],
+    "TEST-CHILD-000181": [
+      {
+        "composite": 69.429,
+        "task": 66.93,
+        "passive": 79.88,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:07:44+05:30"
+      },
+      {
+        "composite": 64.378,
+        "task": 59.31,
+        "passive": 74.13,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:10:04+05:30"
+      },
+      {
+        "composite": 59.493,
+        "task": 58.01,
+        "passive": 59.64,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:26:41+05:30"
+      },
+      {
+        "composite": 64.938,
+        "task": 61.15,
+        "passive": 73.13,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:29:44+05:30"
+      },
+      {
+        "composite": 60.502,
+        "task": 51.77,
+        "passive": 73.47,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:31:47+05:30"
+      },
+      {
+        "composite": 64.277,
+        "task": 63.68,
+        "passive": 66.53,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:33:57+05:30"
+      },
+      {
+        "composite": 62.881,
+        "task": 60.02,
+        "passive": 67.65,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:35:54+05:30"
+      },
+      {
+        "composite": 58.344,
+        "task": 48.05,
+        "passive": 72.45,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:37:56+05:30"
+      },
+      {
+        "composite": 65.493,
+        "task": 57.11,
+        "passive": 81.86,
+        "gate": "PASS",
+        "ts": "2026-04-29T11:40:27+05:30"
+      }
+    ],
+    "TEST-CHILD-000182": [
+      {
+        "composite": 42.11,
+        "task": 42.86,
+        "passive": 41,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-04-29T12:49:57+05:30"
+      },
+      {
+        "composite": 68.81,
+        "task": 66.25,
+        "passive": 78.95,
+        "gate": "PASS",
+        "ts": "2026-04-30T10:31:19+05:30"
+      },
+      {
+        "composite": 63.425,
+        "task": 58.55,
+        "passive": 72.32,
+        "gate": "PASS",
+        "ts": "2026-04-30T10:33:53+05:30"
+      },
+      {
+        "composite": 64.481,
+        "task": 64.25,
+        "passive": 66.1,
+        "gate": "PASS",
+        "ts": "2026-04-30T10:36:21+05:30"
+      },
+      {
+        "composite": 59.433,
+        "task": 55.94,
+        "passive": 62.81,
+        "gate": "PASS",
+        "ts": "2026-04-30T10:39:52+05:30"
+      },
+      {
+        "composite": 62.944,
+        "task": 58.28,
+        "passive": 71.2,
+        "gate": "PASS",
+        "ts": "2026-04-30T10:42:24+05:30"
+      },
+      {
+        "composite": 59.952,
+        "task": 59.18,
+        "passive": 59.56,
+        "gate": "PASS",
+        "ts": "2026-04-30T10:44:48+05:30"
+      },
+      {
+        "composite": 59.943,
+        "task": 59.84,
+        "passive": 58.85,
+        "gate": "PASS",
+        "ts": "2026-04-30T10:47:27+05:30"
+      },
+      {
+        "composite": 58.049,
+        "task": 61.08,
+        "passive": 50.79,
+        "gate": "PASS",
+        "ts": "2026-04-30T10:49:19+05:30"
+      }
+    ],
+    "TEST-CHILD-000183": [
+      {
+        "composite": 64.556,
+        "task": 62.74,
+        "passive": 70.62,
+        "gate": "PASS",
+        "ts": "2026-04-29T13:32:49+05:30"
+      },
+      {
+        "composite": 68.64,
+        "task": 65.54,
+        "passive": 78.78,
+        "gate": "PASS",
+        "ts": "2026-04-29T13:34:49+05:30"
+      },
+      {
+        "composite": 64.775,
+        "task": 60.2,
+        "passive": 73.51,
+        "gate": "PASS",
+        "ts": "2026-04-29T14:08:05+05:30"
+      },
+      {
+        "composite": 67.213,
+        "task": 62.01,
+        "passive": 78.3,
+        "gate": "PASS",
+        "ts": "2026-04-30T09:41:25+05:30"
+      },
+      {
+        "composite": 71.876,
+        "task": 71.21,
+        "passive": 77.85,
+        "gate": "PASS",
+        "ts": "2026-04-30T09:43:32+05:30"
+      },
+      {
+        "composite": 62.523,
+        "task": 53.43,
+        "passive": 73.28,
+        "gate": "PASS",
+        "ts": "2026-04-30T09:46:39+05:30"
+      },
+      {
+        "composite": 66.297,
+        "task": 66.98,
+        "passive": 64.31,
+        "gate": "PASS",
+        "ts": "2026-04-30T09:54:14+05:30"
+      },
+      {
+        "composite": 63.577,
+        "task": 59.38,
+        "passive": 68.13,
+        "gate": "PASS",
+        "ts": "2026-04-30T09:56:12+05:30"
+      },
+      {
+        "composite": 70.687,
+        "task": 65.74,
+        "passive": 81.81,
+        "gate": "PASS",
+        "ts": "2026-04-30T09:58:32+05:30"
+      },
+      {
+        "composite": 50.69,
+        "task": 49.23,
+        "passive": 52.88,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-04-30T10:07:17+05:30"
+      },
+      {
+        "composite": 71.088,
+        "task": 68.79,
+        "passive": 77.29,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-04-30T10:09:29+05:30"
+      }
+    ],
+    "TEST-CHILD-000184": [
+      {
+        "composite": 63.641,
+        "task": 62.77,
+        "passive": 67.52,
+        "gate": "PASS",
+        "ts": "2026-04-30T19:24:47+05:30"
+      },
+      {
+        "composite": 60.785,
+        "task": 53.71,
+        "passive": 72.48,
+        "gate": "PASS",
+        "ts": "2026-04-30T19:28:23+05:30"
+      },
+      {
+        "composite": 61.878,
+        "task": 57.78,
+        "passive": 69.3,
+        "gate": "PASS",
+        "ts": "2026-04-30T19:31:11+05:30"
+      },
+      {
+        "composite": 66.107,
+        "task": 61.65,
+        "passive": 76.76,
+        "gate": "PASS",
+        "ts": "2026-04-30T19:33:27+05:30"
+      },
+      {
+        "composite": 64.803,
+        "task": 55.83,
+        "passive": 81.26,
+        "gate": "PASS",
+        "ts": "2026-04-30T20:53:00+05:30"
+      },
+      {
+        "composite": 66.682,
+        "task": 64.1,
+        "passive": 73.28,
+        "gate": "PASS",
+        "ts": "2026-05-01T09:18:31+05:30"
+      },
+      {
+        "composite": 64.769,
+        "task": 56.64,
+        "passive": 78.73,
+        "gate": "PASS",
+        "ts": "2026-05-01T09:20:29+05:30"
+      },
+      {
+        "composite": 66.588,
+        "task": 62.73,
+        "passive": 74.47,
+        "gate": "PASS",
+        "ts": "2026-05-01T09:22:46+05:30"
+      },
+      {
+        "composite": 62.874,
+        "task": 58.74,
+        "passive": 68.34,
+        "gate": "PASS",
+        "ts": "2026-05-01T09:24:59+05:30"
+      },
+      {
+        "composite": 66.692,
+        "task": 65.18,
+        "passive": 70.66,
+        "gate": "PASS",
+        "ts": "2026-05-01T09:27:53+05:30"
+      },
+      {
+        "composite": 68.689,
+        "task": 63.12,
+        "passive": 80.37,
+        "gate": "PASS",
+        "ts": "2026-05-01T09:46:33+05:30"
+      },
+      {
+        "composite": 66.756,
+        "task": 62.89,
+        "passive": 73.65,
+        "gate": "PASS",
+        "ts": "2026-05-01T09:48:34+05:30"
+      }
+    ],
+    "TEST-CHILD-000185": [
+      {
+        "composite": 69.908,
+        "task": 68.71,
+        "passive": 78.51,
+        "gate": "PASS",
+        "ts": "2026-05-01T08:48:20+05:30"
+      },
+      {
+        "composite": 62.12,
+        "task": 56.51,
+        "passive": 70.53,
+        "gate": "PASS",
+        "ts": "2026-05-01T08:51:57+05:30"
+      },
+      {
+        "composite": 66.87,
+        "task": 60.25,
+        "passive": 76.81,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:22:02+05:30"
+      },
+      {
+        "composite": 75.09,
+        "task": 70.23,
+        "passive": 82.39,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:24:04+05:30"
+      },
+      {
+        "composite": 71.51,
+        "task": 66.27,
+        "passive": 79.38,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:26:02+05:30"
+      },
+      {
+        "composite": 70.57,
+        "task": 63.31,
+        "passive": 81.46,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:28:03+05:30"
+      },
+      {
+        "composite": 70.23,
+        "task": 64.43,
+        "passive": 78.91,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:29:58+05:30"
+      },
+      {
+        "composite": 65.24,
+        "task": 55.12,
+        "passive": 80.42,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:39:02+05:30"
+      },
+      {
+        "composite": 70.7,
+        "task": 63.53,
+        "passive": 81.46,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:41:19+05:30"
+      }
+    ],
+    "TEST-CHILD-000186": [
+      {
+        "composite": 30.81,
+        "task": 21.54,
+        "passive": 44.71,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-01T09:54:24+05:30"
+      },
+      {
+        "composite": 65.634,
+        "task": 64.05,
+        "passive": 72.03,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-05-01T09:56:32+05:30"
+      },
+      {
+        "composite": 67.562,
+        "task": 62.88,
+        "passive": 79.44,
+        "gate": "PASS",
+        "ts": "2026-05-01T09:58:40+05:30"
+      },
+      {
+        "composite": 63.619,
+        "task": 61.1,
+        "passive": 68.19,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:01:06+05:30"
+      },
+      {
+        "composite": 69.524,
+        "task": 69.73,
+        "passive": 73.37,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:03:13+05:30"
+      },
+      {
+        "composite": 68.585,
+        "task": 64.9,
+        "passive": 77.23,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:05:44+05:30"
+      },
+      {
+        "composite": 61.766,
+        "task": 52.8,
+        "passive": 74,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:07:48+05:30"
+      },
+      {
+        "composite": 69.104,
+        "task": 68.65,
+        "passive": 72.65,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:09:59+05:30"
+      },
+      {
+        "composite": 67.263,
+        "task": 64.06,
+        "passive": 73.45,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:12:14+05:30"
+      }
+    ],
+    "TEST-CHILD-000187": [
+      {
+        "composite": 67.536,
+        "task": 66.39,
+        "passive": 74.47,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:15:05+05:30"
+      },
+      {
+        "composite": 60.463,
+        "task": 54.29,
+        "passive": 69.78,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:18:12+05:30"
+      },
+      {
+        "composite": 60.257,
+        "task": 57.03,
+        "passive": 64.72,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:20:16+05:30"
+      },
+      {
+        "composite": 65.52,
+        "task": 60.33,
+        "passive": 76.97,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:23:18+05:30"
+      },
+      {
+        "composite": 59.986,
+        "task": 56.37,
+        "passive": 64.37,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:25:35+05:30"
+      },
+      {
+        "composite": 65.725,
+        "task": 60.16,
+        "passive": 77.57,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:28:14+05:30"
+      },
+      {
+        "composite": 65.027,
+        "task": 59.79,
+        "passive": 75.16,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:31:26+05:30"
+      },
+      {
+        "composite": 64.649,
+        "task": 54.63,
+        "passive": 82.1,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:33:20+05:30"
+      },
+      {
+        "composite": 63.636,
+        "task": 56.27,
+        "passive": 75.71,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:35:02+05:30"
+      },
+      {
+        "composite": 70.537,
+        "task": 66.32,
+        "passive": 81.95,
+        "gate": "PASS",
+        "ts": "2026-05-01T10:37:06+05:30"
+      }
+    ],
+    "TEST-CHILD-000188": [
+      {
+        "composite": 71.994,
+        "task": 71.01,
+        "passive": 81.63,
+        "gate": "PASS",
+        "ts": "2026-05-01T12:31:32+05:30"
+      },
+      {
+        "composite": 66.894,
+        "task": 63.25,
+        "passive": 75.53,
+        "gate": "PASS",
+        "ts": "2026-05-01T12:33:29+05:30"
+      },
+      {
+        "composite": 78.76,
+        "task": 76.99,
+        "passive": 81.4,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:43:57+05:30"
+      },
+      {
+        "composite": 72.64,
+        "task": 67.21,
+        "passive": 80.78,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:45:58+05:30"
+      },
+      {
+        "composite": 72.06,
+        "task": 65.54,
+        "passive": 81.84,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:47:59+05:30"
+      },
+      {
+        "composite": 64.21,
+        "task": 60.36,
+        "passive": 70,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:50:00+05:30"
+      },
+      {
+        "composite": 56.6,
+        "task": 52.38,
+        "passive": 62.94,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:52:33+05:30"
+      },
+      {
+        "composite": 70.09,
+        "task": 64.88,
+        "passive": 77.9,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:55:07+05:30"
+      },
+      {
+        "composite": 58.47,
+        "task": 48.09,
+        "passive": 74.04,
+        "gate": "PASS",
+        "ts": "2026-05-07T12:57:48+05:30"
+      }
+    ],
+    "TEST-CHILD-000189": [
+      {
+        "composite": 49.93,
+        "task": 41.81,
+        "passive": 62.11,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-01T17:41:20+05:30"
+      },
+      {
+        "composite": 47.72,
+        "task": 29.16,
+        "passive": 75.57,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-05-01T17:43:07+05:30"
+      },
+      {
+        "composite": 57.483,
+        "task": 45.99,
+        "passive": 74.96,
+        "gate": "PASS",
+        "ts": "2026-05-01T17:46:01+05:30"
+      },
+      {
+        "composite": 67.929,
+        "task": 65.67,
+        "passive": 77.3,
+        "gate": "PASS",
+        "ts": "2026-05-01T17:47:57+05:30"
+      },
+      {
+        "composite": 68.214,
+        "task": 65.73,
+        "passive": 76.71,
+        "gate": "PASS",
+        "ts": "2026-05-01T17:49:58+05:30"
+      },
+      {
+        "composite": 68.177,
+        "task": 62.13,
+        "passive": 81.46,
+        "gate": "PASS",
+        "ts": "2026-05-01T17:51:50+05:30"
+      },
+      {
+        "composite": 68.613,
+        "task": 65.05,
+        "passive": 77.18,
+        "gate": "PASS",
+        "ts": "2026-05-01T17:53:38+05:30"
+      },
+      {
+        "composite": 59.193,
+        "task": 53.86,
+        "passive": 63.73,
+        "gate": "PASS",
+        "ts": "2026-05-01T17:55:27+05:30"
+      },
+      {
+        "composite": 62.611,
+        "task": 59.42,
+        "passive": 66.91,
+        "gate": "PASS",
+        "ts": "2026-05-01T17:58:07+05:30"
+      },
+      {
+        "composite": 63.963,
+        "task": 56.23,
+        "passive": 76.96,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:00:12+05:30"
+      },
+      {
+        "composite": 53,
+        "task": 51.73,
+        "passive": 54.9,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-01T18:02:07+05:30"
+      },
+      {
+        "composite": 71.04,
+        "task": 70.82,
+        "passive": 76.14,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-05-01T18:04:13+05:30"
+      }
+    ],
+    "TEST-CHILD-000190": [
+      {
+        "composite": 61.132,
+        "task": 51.98,
+        "passive": 77.14,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:07:04+05:30"
+      },
+      {
+        "composite": 65.766,
+        "task": 60.16,
+        "passive": 78.68,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:09:05+05:30"
+      },
+      {
+        "composite": 65.068,
+        "task": 58.51,
+        "passive": 78.15,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:11:52+05:30"
+      },
+      {
+        "composite": 69.614,
+        "task": 66.56,
+        "passive": 79.28,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:13:48+05:30"
+      },
+      {
+        "composite": 61.423,
+        "task": 55.04,
+        "passive": 69.99,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:16:13+05:30"
+      },
+      {
+        "composite": 65.759,
+        "task": 62.63,
+        "passive": 72.26,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:18:10+05:30"
+      },
+      {
+        "composite": 63.9,
+        "task": 59.42,
+        "passive": 71.06,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:20:55+05:30"
+      },
+      {
+        "composite": 60.37,
+        "task": 55.69,
+        "passive": 65.55,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:23:09+05:30"
+      },
+      {
+        "composite": 65.562,
+        "task": 62.3,
+        "passive": 72.46,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:25:28+05:30"
+      },
+      {
+        "composite": 60.683,
+        "task": 50.94,
+        "passive": 74.73,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:27:37+05:30"
+      },
+      {
+        "composite": 58.158,
+        "task": 47.13,
+        "passive": 73.13,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:29:53+05:30"
+      },
+      {
+        "composite": 59.716,
+        "task": 55.92,
+        "passive": 64.44,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:31:48+05:30"
+      },
+      {
+        "composite": 62.411,
+        "task": 56.56,
+        "passive": 72.73,
+        "gate": "PASS",
+        "ts": "2026-05-01T18:34:01+05:30"
+      }
+    ],
+    "TEST-CHILD-000191": [
+      {
+        "composite": 60.418,
+        "task": 54.2,
+        "passive": 71.06,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:11:44+05:30"
+      },
+      {
+        "composite": 68.985,
+        "task": 67.61,
+        "passive": 77.14,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:13:41+05:30"
+      },
+      {
+        "composite": 64.238,
+        "task": 62.34,
+        "passive": 68.6,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:15:40+05:30"
+      },
+      {
+        "composite": 62.081,
+        "task": 56.34,
+        "passive": 71.09,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:17:53+05:30"
+      },
+      {
+        "composite": 62.539,
+        "task": 54.75,
+        "passive": 75.36,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:20:14+05:30"
+      },
+      {
+        "composite": 67.805,
+        "task": 61.9,
+        "passive": 80.97,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:22:05+05:30"
+      },
+      {
+        "composite": 68.786,
+        "task": 65.78,
+        "passive": 76.88,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:23:58+05:30"
+      },
+      {
+        "composite": 67.317,
+        "task": 59.82,
+        "passive": 81.11,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:25:46+05:30"
+      },
+      {
+        "composite": 68.849,
+        "task": 63.59,
+        "passive": 79.54,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:27:31+05:30"
+      },
+      {
+        "composite": 65.261,
+        "task": 59.07,
+        "passive": 74.58,
+        "gate": "PASS",
+        "ts": "2026-05-01T20:29:22+05:30"
+      }
+    ],
+    "TEST-CHILD-000192": [
+      {
+        "composite": 38.73,
+        "task": 35.65,
+        "passive": 43.36,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-03T11:58:24+05:30"
+      },
+      {
+        "composite": 71.076,
+        "task": 71.16,
+        "passive": 78.32,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-05-03T12:00:29+05:30"
+      },
+      {
+        "composite": 71.572,
+        "task": 70.47,
+        "passive": 79.25,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:02:31+05:30"
+      },
+      {
+        "composite": 65.755,
+        "task": 61.85,
+        "passive": 72.74,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:04:36+05:30"
+      },
+      {
+        "composite": 68.774,
+        "task": 65.09,
+        "passive": 77.25,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:06:29+05:30"
+      },
+      {
+        "composite": 66.232,
+        "task": 59.75,
+        "passive": 77.05,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:08:23+05:30"
+      },
+      {
+        "composite": 70.717,
+        "task": 66.53,
+        "passive": 80.64,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:10:13+05:30"
+      },
+      {
+        "composite": 60.007,
+        "task": 56.84,
+        "passive": 60.31,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:12:17+05:30"
+      },
+      {
+        "composite": 60.333,
+        "task": 52.58,
+        "passive": 69.73,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:14:19+05:30"
+      },
+      {
+        "composite": 64.254,
+        "task": 61.44,
+        "passive": 68.86,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:17:21+05:30"
+      },
+      {
+        "composite": 67.5,
+        "task": 61.43,
+        "passive": 79.69,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:19:46+05:30"
+      },
+      {
+        "composite": 66.186,
+        "task": 60.35,
+        "passive": 76.53,
+        "gate": "PASS",
+        "ts": "2026-05-03T12:21:37+05:30"
+      }
+    ],
+    "TEST-CHILD-000193": [
+      {
+        "composite": 59.153,
+        "task": 54.61,
+        "passive": 66.16,
+        "gate": "PASS",
+        "ts": "2026-05-03T13:49:36+05:30"
+      },
+      {
+        "composite": 64.305,
+        "task": 60.21,
+        "passive": 74.1,
+        "gate": "PASS",
+        "ts": "2026-05-03T13:51:27+05:30"
+      },
+      {
+        "composite": 66.862,
+        "task": 63.31,
+        "passive": 76.67,
+        "gate": "PASS",
+        "ts": "2026-05-03T13:53:20+05:30"
+      },
+      {
+        "composite": 68.767,
+        "task": 65.17,
+        "passive": 78.9,
+        "gate": "PASS",
+        "ts": "2026-05-03T13:55:28+05:30"
+      },
+      {
+        "composite": 64.159,
+        "task": 55.84,
+        "passive": 78.01,
+        "gate": "PASS",
+        "ts": "2026-05-03T13:57:25+05:30"
+      },
+      {
+        "composite": 64.709,
+        "task": 60.94,
+        "passive": 71.27,
+        "gate": "PASS",
+        "ts": "2026-05-03T13:59:26+05:30"
+      },
+      {
+        "composite": 70.91,
+        "task": 66.66,
+        "passive": 82.3,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:01:19+05:30"
+      },
+      {
+        "composite": 64.458,
+        "task": 55.12,
+        "passive": 78.9,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:03:02+05:30"
+      },
+      {
+        "composite": 71.663,
+        "task": 70.49,
+        "passive": 77.5,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:04:46+05:30"
+      },
+      {
+        "composite": 68.466,
+        "task": 62.78,
+        "passive": 78.7,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:06:39+05:30"
+      }
+    ],
+    "TEST-CHILD-000194": [
+      {
+        "composite": 49.94,
+        "task": 43.63,
+        "passive": 59.4,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-03T14:41:34+05:30"
+      },
+      {
+        "composite": 70.613,
+        "task": 70.87,
+        "passive": 77.26,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-05-03T14:43:16+05:30"
+      },
+      {
+        "composite": 69.168,
+        "task": 66.02,
+        "passive": 78.74,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:45:34+05:30"
+      },
+      {
+        "composite": 67.006,
+        "task": 62.19,
+        "passive": 76.79,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:48:01+05:30"
+      },
+      {
+        "composite": 66.184,
+        "task": 60.98,
+        "passive": 75.58,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:49:57+05:30"
+      },
+      {
+        "composite": 64.992,
+        "task": 60.23,
+        "passive": 72.63,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:51:50+05:30"
+      },
+      {
+        "composite": 70.843,
+        "task": 68.91,
+        "passive": 77.7,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:53:57+05:30"
+      },
+      {
+        "composite": 67.322,
+        "task": 61.85,
+        "passive": 76.79,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:55:54+05:30"
+      },
+      {
+        "composite": 68.043,
+        "task": 62.05,
+        "passive": 78.72,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:57:49+05:30"
+      },
+      {
+        "composite": 69.333,
+        "task": 64.02,
+        "passive": 79.51,
+        "gate": "PASS",
+        "ts": "2026-05-03T14:59:41+05:30"
+      }
+    ],
+    "TEST-CHILD-000195": [
+      {
+        "composite": 63.771,
+        "task": 58.38,
+        "passive": 75.27,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:34:52+05:30"
+      },
+      {
+        "composite": 58.969,
+        "task": 53.59,
+        "passive": 66.56,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:39:08+05:30"
+      },
+      {
+        "composite": 61.538,
+        "task": 54.3,
+        "passive": 74.24,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:41:18+05:30"
+      },
+      {
+        "composite": 66.227,
+        "task": 61.73,
+        "passive": 77.26,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:43:12+05:30"
+      },
+      {
+        "composite": 67.731,
+        "task": 64.1,
+        "passive": 77.39,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:45:08+05:30"
+      },
+      {
+        "composite": 60.025,
+        "task": 58.83,
+        "passive": 59.54,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:47:02+05:30"
+      },
+      {
+        "composite": 72.853,
+        "task": 71.37,
+        "passive": 82.02,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:48:52+05:30"
+      },
+      {
+        "composite": 66.371,
+        "task": 58.33,
+        "passive": 80.44,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:50:44+05:30"
+      },
+      {
+        "composite": 70.074,
+        "task": 64.62,
+        "passive": 82.06,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:52:24+05:30"
+      },
+      {
+        "composite": 69.03,
+        "task": 62.13,
+        "passive": 81.95,
+        "gate": "PASS",
+        "ts": "2026-05-04T10:54:12+05:30"
+      }
+    ],
+    "TEST-CHILD-000196": [
+      {
+        "composite": 60.212,
+        "task": 55.06,
+        "passive": 68.94,
+        "gate": "PASS",
+        "ts": "2026-05-04T16:24:18+05:30"
+      },
+      {
+        "composite": 64.803,
+        "task": 61.02,
+        "passive": 74.23,
+        "gate": "PASS",
+        "ts": "2026-05-04T16:26:33+05:30"
+      },
+      {
+        "composite": 62.32,
+        "task": 57.4,
+        "passive": 71.16,
+        "gate": "PASS",
+        "ts": "2026-05-04T16:29:17+05:30"
+      },
+      {
+        "composite": 59.171,
+        "task": 50.03,
+        "passive": 72.74,
+        "gate": "PASS",
+        "ts": "2026-05-04T16:31:12+05:30"
+      },
+      {
+        "composite": 60.902,
+        "task": 57.56,
+        "passive": 66.3,
+        "gate": "PASS",
+        "ts": "2026-05-04T16:33:13+05:30"
+      },
+      {
+        "composite": 68.357,
+        "task": 63.19,
+        "passive": 81.78,
+        "gate": "PASS",
+        "ts": "2026-05-04T16:35:08+05:30"
+      },
+      {
+        "composite": 63.689,
+        "task": 58.92,
+        "passive": 72.07,
+        "gate": "PASS",
+        "ts": "2026-05-04T16:37:12+05:30"
+      },
+      {
+        "composite": 60.625,
+        "task": 62.15,
+        "passive": 56.32,
+        "gate": "PASS",
+        "ts": "2026-05-04T16:39:15+05:30"
+      },
+      {
+        "composite": 51.21,
+        "task": 50.29,
+        "passive": 52.58,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-04T16:53:33+05:30"
+      },
+      {
+        "composite": 63.688,
+        "task": 59.72,
+        "passive": 71.04,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-05-04T17:02:33+05:30"
+      },
+      {
+        "composite": 63.389,
+        "task": 54.49,
+        "passive": 78.54,
+        "gate": "PASS",
+        "ts": "2026-05-04T17:04:38+05:30"
+      }
+    ],
+    "TEST-CHILD-000197": [
+      {
+        "composite": 62.733,
+        "task": 57.39,
+        "passive": 73.46,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:06:56+05:30"
+      },
+      {
+        "composite": 70.006,
+        "task": 67.57,
+        "passive": 80.23,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:08:59+05:30"
+      },
+      {
+        "composite": 65.897,
+        "task": 60.48,
+        "passive": 76.77,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:12:04+05:30"
+      },
+      {
+        "composite": 65.944,
+        "task": 59.39,
+        "passive": 78.23,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:14:18+05:30"
+      },
+      {
+        "composite": 67.642,
+        "task": 61.75,
+        "passive": 79.55,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:16:04+05:30"
+      },
+      {
+        "composite": 69.839,
+        "task": 64.86,
+        "passive": 81.11,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:17:49+05:30"
+      },
+      {
+        "composite": 69.84,
+        "task": 65.87,
+        "passive": 78.63,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:19:37+05:30"
+      },
+      {
+        "composite": 70.54,
+        "task": 65.37,
+        "passive": 81.21,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:21:51+05:30"
+      },
+      {
+        "composite": 72.067,
+        "task": 68.24,
+        "passive": 80.95,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:23:38+05:30"
+      },
+      {
+        "composite": 67.567,
+        "task": 58.81,
+        "passive": 81,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:25:26+05:30"
+      },
+      {
+        "composite": 64.226,
+        "task": 60.56,
+        "passive": 67.16,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:27:09+05:30"
+      },
+      {
+        "composite": 59.319,
+        "task": 45.93,
+        "passive": 75.96,
+        "gate": "PASS",
+        "ts": "2026-05-06T09:28:53+05:30"
+      }
+    ],
+    "TEST-CHILD-000198": [
+      {
+        "composite": 52.72,
+        "task": 47.61,
+        "passive": 60.39,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T10:04:48+05:30"
+      },
+      {
+        "composite": 72.709,
+        "task": 72.38,
+        "passive": 81.73,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-05-06T10:07:44+05:30"
+      },
+      {
+        "composite": 70.41,
+        "task": 69.05,
+        "passive": 77.47,
+        "gate": "PASS",
+        "ts": "2026-05-06T10:14:39+05:30"
+      },
+      {
+        "composite": 72.762,
+        "task": 73.51,
+        "passive": 76.65,
+        "gate": "PASS",
+        "ts": "2026-05-06T10:16:36+05:30"
+      },
+      {
+        "composite": 70.751,
+        "task": 68.04,
+        "passive": 77.77,
+        "gate": "PASS",
+        "ts": "2026-05-06T10:18:38+05:30"
+      },
+      {
+        "composite": 68.347,
+        "task": 61.21,
+        "passive": 80.48,
+        "gate": "PASS",
+        "ts": "2026-05-06T10:20:42+05:30"
+      },
+      {
+        "composite": 67.21,
+        "task": 64.14,
+        "passive": 71.68,
+        "gate": "PASS",
+        "ts": "2026-05-06T10:22:35+05:30"
+      },
+      {
+        "composite": 74.834,
+        "task": 74.11,
+        "passive": 80.61,
+        "gate": "PASS",
+        "ts": "2026-05-06T10:24:37+05:30"
+      },
+      {
+        "composite": 70.117,
+        "task": 64.51,
+        "passive": 79.72,
+        "gate": "PASS",
+        "ts": "2026-05-06T10:26:44+05:30"
+      },
+      {
+        "composite": 70.901,
+        "task": 66.34,
+        "passive": 79.17,
+        "gate": "PASS",
+        "ts": "2026-05-06T11:38:11+05:30"
+      }
+    ],
+    "TEST-CHILD-000199": [
+      {
+        "composite": 35.5,
+        "task": 32.98,
+        "passive": 39.28,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T11:41:16+05:30"
+      },
+      {
+        "composite": 30.87,
+        "task": 28.64,
+        "passive": 34.21,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-05-06T11:43:27+05:30"
+      },
+      {
+        "composite": 52.39,
+        "task": 46.2,
+        "passive": 61.68,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T11:48:29+05:30"
+      },
+      {
+        "composite": 59.099,
+        "task": 54.85,
+        "passive": 65.58,
+        "gate": "PASS_RECOVERED",
+        "ts": "2026-05-06T11:50:27+05:30"
+      },
+      {
+        "composite": 35.81,
+        "task": 28.64,
+        "passive": 46.55,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T11:52:40+05:30"
+      },
+      {
+        "composite": 49.84,
+        "task": 37.93,
+        "passive": 67.72,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-05-06T11:54:43+05:30"
+      },
+      {
+        "composite": 62.709,
+        "task": 59.09,
+        "passive": 70.66,
+        "gate": "PASS",
+        "ts": "2026-05-06T11:57:55+05:30"
+      },
+      {
+        "composite": 29.98,
+        "task": 20.71,
+        "passive": 43.89,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T12:00:04+05:30"
+      },
+      {
+        "composite": 28.19,
+        "task": 14.04,
+        "passive": 49.42,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-05-06T12:02:12+05:30"
+      },
+      {
+        "composite": 39.04,
+        "task": 27.08,
+        "passive": 56.98,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T12:05:05+05:30"
+      },
+      {
+        "composite": 29.67,
+        "task": 19.71,
+        "passive": 44.61,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-05-06T12:06:58+05:30"
+      }
+    ],
+    "TEST-CHILD-000200": [
+      {
+        "composite": 66.049,
+        "task": 61.97,
+        "passive": 76.88,
+        "gate": "PASS",
+        "ts": "2026-05-06T14:04:04+05:30"
+      },
+      {
+        "composite": 67.7,
+        "task": 63.91,
+        "passive": 78.09,
+        "gate": "PASS",
+        "ts": "2026-05-06T14:05:57+05:30"
+      },
+      {
+        "composite": 67.667,
+        "task": 60.72,
+        "passive": 82.23,
+        "gate": "PASS",
+        "ts": "2026-05-06T14:07:55+05:30"
+      },
+      {
+        "composite": 66.339,
+        "task": 57.65,
+        "passive": 82.1,
+        "gate": "PASS",
+        "ts": "2026-05-06T14:09:45+05:30"
+      },
+      {
+        "composite": 67.002,
+        "task": 61.91,
+        "passive": 76.81,
+        "gate": "PASS",
+        "ts": "2026-05-06T14:11:49+05:30"
+      },
+      {
+        "composite": 22.16,
+        "task": 12.05,
+        "passive": 37.33,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T14:13:46+05:30"
+      },
+      {
+        "composite": 36.22,
+        "task": 31.99,
+        "passive": 42.56,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-05-06T14:15:45+05:30"
+      },
+      {
+        "composite": 24.78,
+        "task": 16.3,
+        "passive": 37.51,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T14:19:17+05:30"
+      },
+      {
+        "composite": 22.15,
+        "task": 9.85,
+        "passive": 40.59,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-05-06T14:27:27+05:30"
+      },
+      {
+        "composite": 26.21,
+        "task": 15.67,
+        "passive": 42.02,
+        "gate": "FAIL_FIRST",
+        "ts": "2026-05-06T14:30:22+05:30"
+      },
+      {
+        "composite": 18.13,
+        "task": 7.08,
+        "passive": 34.72,
+        "gate": "FAIL_CONFIRMED",
+        "ts": "2026-05-06T14:32:22+05:30"
       }
     ]
   },
   "baselines": {
-    "B-008": 65.0
-  },
-  "saved_at": "2026-04-09T15:18:48.433732"
+    "TEST-CHILD-000172": 72.11,
+    "TEST-CHILD-000173": 64.51,
+    "TEST-CHILD-000174": 69.02,
+    "TEST-CHILD-000175": 67.4,
+    "TEST-CHILD-000176": 67.82,
+    "TEST-CHILD-000177": 64.24,
+    "TEST-CHILD-000178": 60.28,
+    "TEST-CHILD-000180": 66.23,
+    "TEST-CHILD-000181": 62.48,
+    "TEST-CHILD-000182": 60.09,
+    "TEST-CHILD-000183": 64.56,
+    "TEST-CHILD-000184": 65.63,
+    "TEST-CHILD-000185": 68.08,
+    "TEST-CHILD-000186": 64.68,
+    "TEST-CHILD-000187": 64.78,
+    "TEST-CHILD-000188": 64.8,
+    "TEST-CHILD-000189": 62.9,
+    "TEST-CHILD-000190": 61.73,
+    "TEST-CHILD-000191": 65.71,
+    "TEST-CHILD-000192": 64.79,
+    "TEST-CHILD-000193": 66.78,
+    "TEST-CHILD-000194": 66.85,
+    "TEST-CHILD-000195": 66.52,
+    "TEST-CHILD-000196": 61.28,
+    "TEST-CHILD-000197": 65.71,
+    "TEST-CHILD-000198": 69.16,
+    "TEST-CHILD-000199": 40.12,
+    "TEST-CHILD-000200": 34.57
+  }
 }

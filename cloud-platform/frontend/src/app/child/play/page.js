@@ -24,23 +24,10 @@ function PlayInner() {
     const sessionId = searchParams.get('session') ?? 'offline'
     const childId   = searchParams.get('child')   ?? ''
 
-    try {
-      // Close the session cleanly — cognitive score 0, no content responses
-      // This is intentional: child was not assessed on cognitive content.
-      await fetch('/api/session/complete', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id:       sessionId,
-          child_id:         childId,
-          cognitiveScore:   0,
-          contentResponses: [],
-        }),
-      })
-    } catch {
-      // Offline fallback — session will sync later when connectivity returns
-    }
-
+    // For now, just return to welcome screen
+    // The session was already submitted by the cognitive task or game
+    // No need to submit again here
+    
     // Return to welcome screen for next child
     router.push(`/child?lang=${lang}`)
   }
