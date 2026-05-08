@@ -305,37 +305,4 @@ def find_upstream_gauging_station(
 
 
 
-# Execution Function
-if __name__ == "__main__":
-
-    # Load datasets
-    rivers = load_river_data()
-    stations = load_gauging_station_data()
-
-    # Build graph
-    river_graph = build_river_graph(rivers)
-
-    # Precompute station graph nodes
-    station_graph_nodes = get_station_graph_nodes(
-        stations,
-        river_graph.nodes
-    )
-
-    # Example location
-    latitude = 6.9147
-    longitude = 79.9733
-
-    # Find station
-    result = find_upstream_gauging_station(
-        latitude=latitude,
-        longitude=longitude,
-        rivers=rivers,
-        stations=stations,
-        graph=river_graph,
-        station_node_mapping=station_graph_nodes
-    )
-
-    # Output
-    print("\n========== RESULT ==========")
-    print(result)
 
