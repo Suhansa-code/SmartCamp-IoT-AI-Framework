@@ -1,6 +1,7 @@
 from service import find_nearest_gauging_station_detailed
 from providers.river_lookup import get_nearest_named_river
 from providers.weather_forecast_location import fetch_forecast_location
+from providers.live_water_level_api import get_gauge_data
 
 # Camp GPS location
 LATITUDE = 7.507
@@ -44,16 +45,18 @@ if __name__ == "__main__":
         minor_flood = detailed_result.get('minor_flood_level')
         major_flood = detailed_result.get('major_flood_level')
 
-        if alert_level is not None or minor_flood is not None or major_flood is not None:
-            print("\n🌊 WATER LEVEL THRESHOLDS:")
-            if alert_level is not None:
-                print(f"   Normal/Alert Level: {alert_level} m")
-            if minor_flood is not None:
-                print(f"   Minor Flood Level: {minor_flood} m")
-            if major_flood is not None:
-                print(f"   Major Flood Level: {major_flood} m")
-        else:
-            print("\n   No flood level data available")
+        
+        # Get live water level data from API
+        gauge_data = get_gauge_data(detailed_result.get('station_name', ''), include_geometry=True)
+        if gauge_data:
+            print("\n💧 LIVE WATER LEVEL DATA:")
+            print(f"   Current Water Level: {gauge_data.get('water_level', 'N/A')} m")
+            print(f"   Rainfall: {gauge_data.get('rainfall', 'N/A')} mm")
+            print(f"   Alert Level: {gauge_data.get('alert_level', 'N/A')} m")
+            print(f"   Minor Flood Level: {gauge_data.get('minor_flood_level', 'N/A')} m")
+            print(f"   Major Flood Level: {gauge_data.get('major_flood_level', 'N/A')} m")
+            if gauge_data.get('latitude') and gauge_data.get('longitude'):
+                print(f"   Gauge Location: Lat {gauge_data['latitude']:.4f}, Lon {gauge_data['longitude']:.4f}")
 
         # Fetch weather forecast for the location
         forecast_data, forecast_error = fetch_forecast_location(LATITUDE, LONGITUDE)
@@ -63,8 +66,6 @@ if __name__ == "__main__":
             print("\n🌤️ WEATHER FORECAST LOCATION:")
             print(f"   Forecast Location: Lat {forecast_data['forecast_location']['lat']}, Lon {forecast_data['forecast_location']['lon']}")
             print(f"   Elevation: {forecast_data['forecast_location'].get('elevation', 'N/A')} m")
-            print(f"   Timezone: {forecast_data['forecast_location'].get('timezone', 'N/A')}")
-            print(f"   Timezone Abbreviation: {forecast_data['forecast_location'].get('timezone_abbreviation', 'N/A')}")
             
             # Display hourly forecast parameters for flood prediction
             hourly_data = forecast_data.get('weather_forecast_parameters', {}).get('hourly', {})
