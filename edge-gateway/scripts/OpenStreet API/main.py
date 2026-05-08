@@ -1,9 +1,9 @@
-from service import find_nearest_river_and_station
 from service import find_nearest_gauging_station_detailed
+from providers.river_lookup import get_nearest_named_river
 
 # Camp GPS location
-LATITUDE = 6.501
-LONGITUDE = 81.398
+LATITUDE = 6.22066
+LONGITUDE = 80.28489
 
 
 if __name__ == "__main__":
@@ -13,21 +13,28 @@ if __name__ == "__main__":
     print(f"\nQuery Location: Lat {LATITUDE}, Lon {LONGITUDE}")
     print("-" * 60)
 
-    # Get detailed gauging station information (with flood levels, alerts, etc.)
+    # Get nearest named river and detailed gauging station information
+    nearest_river, river_error = get_nearest_named_river(LATITUDE, LONGITUDE)
     detailed_result, detailed_error = find_nearest_gauging_station_detailed(LATITUDE, LONGITUDE)
-    result, error = find_nearest_river_and_station(LATITUDE, LONGITUDE)
-    river = result["river"]
+
+    if river_error:
+        print(f"❌ River lookup failed: {river_error}")
+        raise SystemExit(1)
 
     if detailed_error:
         print(f"❌ Lookup failed: {detailed_error}")
         raise SystemExit(1)
 
+    if nearest_river:
+        print(f"Nearest water path name: {nearest_river.get('name', 'N/A')}")
+
     if detailed_result:
-        print("Nearest River:", river["name"])
+        print(f"Nearest River (CSV): {detailed_result.get('river_name') or detailed_result.get('river', 'N/A')}")
         print("\n📍 GAUGING STATION DETAILS:")
         print(f"   Station Name: {detailed_result.get('station_name', 'N/A')}")
-        print(f"   Station DB River: {detailed_result.get('river', 'N/A')}")
-        print(f"   Distance: {detailed_result.get('distance_meters', 'N/A')} meters")
+        print(f"   Station River: {detailed_result.get('river_name') or detailed_result.get('river', 'N/A')}")
+        print(f"   Distance to Gauging Station: {detailed_result.get('distance_to_station_meters', detailed_result.get('distance_meters', 'N/A'))} meters")
+        print(f"   Distance to Upstream River: {detailed_result.get('distance_to_river_meters', 'N/A')} meters")
         print(f"   Type: {detailed_result.get('type', 'N/A')}")
 
         # Flood level information
@@ -38,7 +45,7 @@ if __name__ == "__main__":
         if alert_level is not None or minor_flood is not None or major_flood is not None:
             print("\n🌊 WATER LEVEL THRESHOLDS:")
             if alert_level is not None:
-                print(f"   Alert Level: {alert_level} m")
+                print(f"   Normal/Alert Level: {alert_level} m")
             if minor_flood is not None:
                 print(f"   Minor Flood Level: {minor_flood} m")
             if major_flood is not None:
