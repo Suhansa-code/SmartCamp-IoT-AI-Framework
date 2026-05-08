@@ -18,7 +18,7 @@ export default function CampOverview({ camp }) {
   return (
     <div
       className="card-soft flex flex-col gap-4 cursor-pointer hover:shadow-xl transition-shadow duration-200 active:scale-[0.98]"
-      onClick={() => router.push(`/admin/alerts?camp=${camp.id}`)}
+      onClick={() => router.push(`/admin/alert?camp=${camp.id}`)}
     >
       {/* Camp header */}
       <div className="flex items-start justify-between">
