@@ -22,21 +22,25 @@ It uses OpenStreetMap Overpass API data.
 - Shared application service layer.
 - Contains `find_nearest_river_and_station(latitude, longitude)`.
 - Orchestrates the full lookup flow:
-  1. nearest named river from `providers/river_lookup.py`
-  2. nearest gauging station near that river from `providers/gauging_station.py`
+  1. nearest named river from `providers/river_lookup.py` using nearest river-segment point
+  2. nearest gauging station from `providers/gauging_station.py` (river point first, then query-point fallback)
 - Used by both `api.py` and `main.py`.
 
 ### providers/river_lookup.py
 - Contains `get_nearest_named_river(latitude, longitude, radius_m=5000)`.
-- Queries Overpass for nearby `waterway=river` and `waterway=stream` ways.
-- Keeps only entries with names, calculates geodesic distance, and returns the closest one.
+- Queries Overpass for nearby `waterway=river` and `waterway=stream` ways with geometry.
+- Uses Shapely to project the query point onto each river polyline and compute nearest-point distance.
+- Keeps only named rivers/streams and returns the closest one.
 - Returns `(result, None)` on success or `(None, error_dict)` on failure.
 
 ### providers/gauging_station.py
-- Contains `get_nearest_waterlevel_station(latitude, longitude, radius_m=10000)`.
-- Queries Overpass for water-level monitoring/gauging features (nodes, ways, relations).
+- Contains `get_nearest_waterlevel_station(latitude, longitude, radius_m=10000, query_point=None)`.
+- Queries Overpass for water-level monitoring/gauging features (nodes, ways, relations) with expanded tag filters.
 - Extracts coordinates from element `lat/lon` or `center`.
-- Calculates geodesic distance and returns nearest station details.
+- Uses staged search radii and fallback center points:
+  1. nearest-river point
+  2. original query point
+- Calculates geodesic distance to the original query location and returns nearest station details.
 - Returns `(result, None)` on success or `(None, error_dict)` on failure.
 
 ### providers/overpass_client.py
@@ -59,7 +63,7 @@ It uses OpenStreetMap Overpass API data.
 Install dependencies (inside your active environment):
 
 ```bash
-pip install flask requests geopy
+pip install -r requirements.txt
 ```
 
 Run API server:
@@ -79,3 +83,7 @@ curl "http://127.0.0.1:5000/nearest-river-gauging-station?lat=6.501&lon=81.398"
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
+
+
+## River Gauging Station Gauge measure Site Link
+https://www.arcgis.com/apps/dashboards/2cffe83c9ff5497d97375498bdf3ff38

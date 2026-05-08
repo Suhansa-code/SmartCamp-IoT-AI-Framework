@@ -1,32 +1,57 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ScanBarcode, 
+  Search, 
+  X, 
+  Check, 
+  AlertCircle, 
+  Activity, 
+  UserCircle2,
+  Droplets,
+  Utensils,
+  Coffee,
+  PackageCheck
+} from 'lucide-react';
 
 function WristbandScanScreen() {
   const [barcode, setBarcode] = useState('');
   const [profile, setProfile] = useState(null);
   const [todayStatus, setTodayStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const [statusType, setStatusType] = useState('error'); // 'error' | 'success'
   const [qosInfo, setQosInfo] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const handleScan = async (e) => {
     e.preventDefault();
     if (!barcode.trim()) return;
 
+    setIsScanning(true);
+    
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/wristband/${barcode.trim()}`
-      );
+      const res = await fetch(`http://localhost:5000/api/wristband/${barcode.trim()}`);
       const data = await res.json();
-      if (data.error) {
-        setStatusMessage(data.error);
-        setProfile(null);
-        return;
-      }
-      setProfile(data.person);
-      setTodayStatus(data.today_distributions);
-      setStatusMessage('');
-      setQosInfo(null);
+      
+      // Artificial delay for UI polish
+      setTimeout(() => {
+        setIsScanning(false);
+        if (data.error) {
+          setStatusMessage(data.error);
+          setStatusType('error');
+          setProfile(null);
+          return;
+        }
+        setProfile(data.person);
+        setTodayStatus(data.today_distributions);
+        setStatusMessage('');
+        setQosInfo(null);
+      }, 600);
+
     } catch (err) {
+      setIsScanning(false);
       setStatusMessage('Lookup failed: ' + err.message);
+      setStatusType('error');
     }
   };
 
@@ -41,15 +66,24 @@ function WristbandScanScreen() {
         }),
       });
       const data = await res.json();
+      
       if (data.error) {
         setStatusMessage(data.error);
+        setStatusType('error');
         return;
       }
+      
       setTodayStatus(data.today_distributions);
       setQosInfo(data.mqtt);
-      setStatusMessage(`${resourceType} distributed`);
+      setStatusMessage(`${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)} distributed successfully.`);
+      setStatusType('success');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setStatusMessage(''), 3000);
+
     } catch (err) {
       setStatusMessage('Distribution failed: ' + err.message);
+      setStatusType('error');
     }
   };
 
@@ -63,148 +97,294 @@ function WristbandScanScreen() {
 
   const getPriorityColor = (priority) => {
     switch(priority?.toLowerCase()) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'high': return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+      case 'medium': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+      case 'low': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+      default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
     }
   };
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-800">Wristband Scan & Distribution</h2>
-          <p className="text-gray-600 mt-2">Scan barcode to distribute meals and water for the day.</p>
-        </div>
+    <div className="min-h-screen bg-slate-50 p-6 sm:p-8 lg:p-10 text-slate-800 font-sans relative overflow-hidden">
+      {/* Dynamic Background Blurs */}
+      <div className="absolute top-[20%] left-[-10%] w-[400px] h-[400px] bg-purple-400/20 rounded-full blur-[100px] mix-blend-multiply pointer-events-none" />
+      <div className="absolute top-[-10%] right-[10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[120px] mix-blend-multiply pointer-events-none" />
 
-        <form className="bg-white rounded-2xl shadow-lg p-6 mb-6" onSubmit={handleScan}>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Scan or type wristband barcode</label>
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              placeholder="WB000001"
-              autoFocus
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            />
+      <div className="max-w-5xl mx-auto space-y-8 relative z-10">
+        
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-5"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+            <ScanBarcode className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-900 to-slate-800 tracking-tight">
+              Distribution Hub
+            </h1>
+            <p className="text-slate-500 mt-1 font-medium">
+              Scan wristbands to allocate daily resources safely
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Scanner Form */}
+        <motion.form 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/60 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 sm:p-8 relative overflow-hidden" 
+          onSubmit={handleScan}
+        >
+          <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
+          
+          <label className="block text-sm font-bold text-slate-500 uppercase tracking-wide mb-3 relative z-10">
+            Wristband Barcode
+          </label>
+          <div className="flex flex-col sm:flex-row gap-4 relative z-10">
+            <div className="relative flex-1 group">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <Search className={`w-5 h-5 transition-colors ${isScanning ? 'text-indigo-500 animate-pulse' : 'text-slate-400 group-focus-within:text-indigo-500'}`} />
+              </div>
+              <input
+                type="text"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                placeholder="Scan or type barcode (e.g. WB000001)"
+                autoFocus
+                className="w-full pl-12 pr-12 py-4 bg-white/80 border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-lg font-mono font-medium text-slate-800 shadow-sm placeholder:font-sans placeholder:text-slate-400"
+              />
+              <AnimatePresence>
+                {barcode && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                    type="button"
+                    onClick={handleReset}
+                    className="absolute inset-y-0 right-4 flex items-center justify-center"
+                  >
+                    <div className="w-6 h-6 bg-slate-200 text-slate-600 rounded-full flex items-center justify-center hover:bg-slate-300 transition-colors">
+                      <X className="w-4 h-4" />
+                    </div>
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+            
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+              disabled={isScanning || !barcode.trim()}
+              className="relative group px-10 py-4 bg-slate-900 disabled:bg-slate-300 text-white font-bold rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(15,23,42,0.15)] hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] overflow-hidden disabled:hover:scale-100 disabled:hover:shadow-none"
             >
-              Look Up
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:group-hover:opacity-0" />
+              <span className="relative flex items-center gap-2 text-lg">
+                {isScanning ? <Activity className="w-5 h-5 animate-spin" /> : 'Lookup'}
+              </span>
             </button>
-            {profile && (
-              <button
-                type="button"
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                onClick={handleReset}
-              >
-                Clear
-              </button>
-            )}
           </div>
-        </form>
+        </motion.form>
 
-        {profile && todayStatus && (
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold">
-                {profile.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+        {/* Status Messages */}
+        <AnimatePresence mode="wait">
+          {statusMessage && !profile && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className={`mt-2 flex items-center gap-3 px-6 py-4 rounded-2xl border ${
+                statusType === 'error' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              }`}>
+                {statusType === 'error' ? <AlertCircle className="w-5 h-5" /> : <Check className="w-5 h-5" />}
+                <span className="font-medium">{statusMessage}</span>
               </div>
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold text-gray-800">{profile.full_name}</h3>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">Age {profile.age}</span>
-                  <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">{profile.gender}</span>
-                  <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">Family {profile.family_unit_id}</span>
-                  {profile.is_pregnant === 1 && (
-                    <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">Pregnant</span>
-                  )}
-                  {profile.has_chronic_illness === 1 && (
-                    <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">Chronic Illness</span>
-                  )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Profile & Distribution Cards */}
+        <AnimatePresence>
+          {profile && todayStatus && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-6"
+            >
+              {/* Profile Card */}
+              <div className="bg-white/80 backdrop-blur-2xl border border-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 p-1 shadow-lg shadow-indigo-500/20 shrink-0">
+                  <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-indigo-600 text-3xl font-extrabold">
+                    {profile.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
                 </div>
+                
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-2xl font-extrabold text-slate-800">{profile.full_name}</h3>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-3">
+                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-slate-200">
+                      Age {profile.age}
+                    </span>
+                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-slate-200">
+                      {profile.gender}
+                    </span>
+                    <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-indigo-100 flex items-center gap-1">
+                      <UserCircle2 className="w-3 h-3" /> Family {profile.family_unit_id}
+                    </span>
+                    {profile.is_pregnant === 1 && (
+                      <span className="bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-amber-200">
+                        Pregnant
+                      </span>
+                    )}
+                    {profile.has_chronic_illness === 1 && (
+                      <span className="bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-rose-200">
+                        Chronic Illness
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {statusMessage && statusType === 'success' && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                    className="absolute top-4 right-4 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-sm font-bold border border-emerald-200 flex items-center gap-2 shadow-sm"
+                  >
+                    <Check className="w-4 h-4" /> {statusMessage}
+                  </motion.div>
+                )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <DistributionTile
-                label="Breakfast"
-                icon="☕"
-                quantity="500 g"
-                given={todayStatus.breakfast}
-                onGive={() => handleDistribute('breakfast')}
-              />
-              <DistributionTile
-                label="Lunch"
-                icon="🍛"
-                quantity="600 g"
-                given={todayStatus.lunch}
-                onGive={() => handleDistribute('lunch')}
-              />
-              <DistributionTile
-                label="Dinner"
-                icon="🍲"
-                quantity="500 g"
-                given={todayStatus.dinner}
-                onGive={() => handleDistribute('dinner')}
-              />
-              <DistributionTile
-                label="Water"
-                icon="💧"
-                quantity="15 L"
-                given={todayStatus.water}
-                onGive={() => handleDistribute('water')}
-              />
-            </div>
-
-            {qosInfo && (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex flex-wrap gap-4 text-sm">
-                <span className="text-gray-600">Sent to admin via MQTT</span>
-                <span className={`font-semibold px-2 py-0.5 rounded ${getPriorityColor(qosInfo.priority)}`}>
-                  {qosInfo.priority}
-                </span>
-                <span className="text-gray-700">QoS {qosInfo.final_qos}</span>
-                <span className="text-gray-700">Network: {qosInfo.network_state}</span>
-                <span className="text-gray-700">{qosInfo.published ? 'Published' : 'Buffered'}</span>
+              {/* Grid of Distribution Tiles */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <DistributionTile
+                  label="Breakfast"
+                  icon={Coffee}
+                  quantity="500 g"
+                  color="amber"
+                  given={todayStatus.breakfast}
+                  onGive={() => handleDistribute('breakfast')}
+                />
+                <DistributionTile
+                  label="Lunch"
+                  icon={Utensils}
+                  quantity="600 g"
+                  color="orange"
+                  given={todayStatus.lunch}
+                  onGive={() => handleDistribute('lunch')}
+                />
+                <DistributionTile
+                  label="Dinner"
+                  icon={Utensils}
+                  quantity="500 g"
+                  color="rose"
+                  given={todayStatus.dinner}
+                  onGive={() => handleDistribute('dinner')}
+                />
+                <DistributionTile
+                  label="Water"
+                  icon={Droplets}
+                  quantity="15 L"
+                  color="blue"
+                  given={todayStatus.water}
+                  onGive={() => handleDistribute('water')}
+                />
               </div>
-            )}
-          </div>
-        )}
 
-        {statusMessage && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-6">
-            {statusMessage}
-          </div>
-        )}
+              {/* QoS Dashboard */}
+              {qosInfo && (
+                <motion.div 
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="bg-white/40 backdrop-blur-md rounded-2xl p-5 border border-white/50 flex flex-wrap gap-4 text-xs font-bold uppercase tracking-wider items-center shadow-sm"
+                >
+                  <span className="text-slate-500 flex items-center gap-2">
+                    <Activity className="w-4 h-4" /> MQTT Sync
+                  </span>
+                  <span className={`px-3 py-1.5 rounded-full border ${getPriorityColor(qosInfo.priority)}`}>
+                    Priority: {qosInfo.priority}
+                  </span>
+                  <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full border border-slate-200">
+                    QoS {qosInfo.final_qos}
+                  </span>
+                  <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full border border-slate-200">
+                    Net: {qosInfo.network_state}
+                  </span>
+                  <span className={`px-3 py-1.5 rounded-full border flex items-center gap-1 ${
+                    qosInfo.published ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'
+                  }`}>
+                    {qosInfo.published ? <><PackageCheck className="w-3 h-3" /> Published</> : 'Buffered locally'}
+                  </span>
+                </motion.div>
+              )}
+
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
       </div>
     </div>
   );
 }
 
-function DistributionTile({ label, icon, quantity, given, onGive }) {
+function DistributionTile({ label, icon: Icon, quantity, color, given, onGive }) {
+  const isGiven = given;
+  
+  const colorMap = {
+    amber: 'from-amber-400 to-orange-500 shadow-amber-500/30 text-amber-500 bg-amber-50 border-amber-200',
+    orange: 'from-orange-400 to-rose-500 shadow-orange-500/30 text-orange-500 bg-orange-50 border-orange-200',
+    rose: 'from-rose-400 to-pink-500 shadow-rose-500/30 text-rose-500 bg-rose-50 border-rose-200',
+    blue: 'from-cyan-400 to-blue-500 shadow-blue-500/30 text-blue-500 bg-blue-50 border-blue-200',
+    emerald: 'from-emerald-400 to-teal-500 shadow-emerald-500/30 text-emerald-500 bg-emerald-50 border-emerald-200',
+  };
+
+  const bgClasses = colorMap[color] || colorMap.blue;
+  const gradient = bgClasses.split(' ').slice(0,2).join(' ');
+  const shadow = bgClasses.split(' ')[2];
+  const textColor = bgClasses.split(' ')[3];
+  const givenBg = bgClasses.split(' ')[4];
+  const givenBorder = bgClasses.split(' ')[5];
+
   return (
-    <div className={`rounded-xl p-4 text-center transition-all duration-200 ${
-      given ? 'bg-green-50 border-2 border-green-200' : 'bg-white border-2 border-gray-200 hover:border-blue-300'
-    }`}>
-      <div className="text-3xl mb-2">{icon}</div>
-      <div className="font-semibold text-gray-800 mb-1">{label}</div>
-      <div className="text-sm text-gray-500 mb-3">{quantity}</div>
-      {given ? (
-        <div className="text-green-600 font-medium text-sm">
-          <span className="inline-block mr-1">✓</span> Given today
-        </div>
-      ) : (
-        <button
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition-colors duration-200"
-          onClick={onGive}
-        >
-          Mark as Given
-        </button>
+    <motion.div 
+      whileHover={!isGiven ? { y: -5 } : {}}
+      className={`relative rounded-3xl p-6 text-center transition-all duration-300 overflow-hidden flex flex-col items-center justify-center min-h-[220px] ${
+        isGiven 
+          ? `${givenBg} border-2 ${givenBorder}` 
+          : 'bg-white/80 backdrop-blur-md border border-white hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)]'
+      }`}
+    >
+      {/* Decorative gradient blob */}
+      {!isGiven && (
+        <div className={`absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br ${gradient} rounded-full blur-3xl opacity-10 pointer-events-none`} />
       )}
-    </div>
+
+      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-300 ${
+        isGiven ? 'bg-white shadow-sm scale-90' : `bg-gradient-to-br ${gradient} text-white shadow-lg ${shadow}`
+      }`}>
+        <Icon className={`w-8 h-8 ${isGiven ? textColor : 'text-white'}`} />
+      </div>
+      
+      <div className={`font-extrabold text-lg mb-1 ${isGiven ? textColor : 'text-slate-800'}`}>{label}</div>
+      <div className="text-sm font-bold text-slate-400 uppercase tracking-wide mb-6">{quantity}</div>
+      
+      <div className="mt-auto w-full">
+        {isGiven ? (
+          <div className={`flex items-center justify-center gap-2 font-bold text-sm bg-white/50 py-3 rounded-xl border ${givenBorder} ${textColor}`}>
+            <Check className="w-4 h-4" /> Allocated
+          </div>
+        ) : (
+          <button
+            onClick={onGive}
+            className={`w-full group relative px-4 py-3 bg-slate-900 text-white text-sm font-bold rounded-xl transition-all hover:scale-[1.03] active:scale-95 shadow-md overflow-hidden`}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-r ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+            <span className="relative flex items-center justify-center gap-2">
+              Distribute
+            </span>
+          </button>
+        )}
+      </div>
+    </motion.div>
   );
 }
 
