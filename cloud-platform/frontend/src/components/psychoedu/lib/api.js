@@ -1,11 +1,11 @@
 // lib/api.js — API call functions to Node.js backend
-// All calls go to /api/* (Next.js route handlers proxy to Node.js)
+// All calls go to http://localhost:3001 (backend running on port 3001)
 // Includes offline-safe wrappers with fallback behaviour
 
 const BASE =
   process.env.NEXT_PUBLIC_API_URL ??
   process.env.REACT_APP_API_BASE_URL ??
-  'http://localhost:3000'
+  'http://localhost:3001'
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {

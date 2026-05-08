@@ -28,7 +28,7 @@ const SHOW_MS       = 1500
 const BLANK_MS      = 500   
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 // Math helpers
 const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
@@ -153,12 +153,13 @@ export default function AnimalGame({ onComplete }) {
 
   const [sessionId, setSessionId] = useState(searchParams?.get('session') ?? 'offline')
   const [childId, setChildId] = useState('')
+  const [attempt, setAttempt] = useState(searchParams?.get('attempt') ?? '1')
   const [isStarting, setIsStarting] = useState(false)
 
   useEffect(() => {
     const urlChildId = searchParams?.get('child') ?? ''
     const storedChildId = typeof window !== 'undefined'
-      ? (sessionStorage.getItem('selectedChildId') ?? '')
+      ? (sessionStorage.getItem('childId') ?? '')
       : ''
     setChildId(urlChildId || storedChildId)
   }, [searchParams])
@@ -168,7 +169,7 @@ export default function AnimalGame({ onComplete }) {
     setIsStarting(true)
 
     try {
-      const storedChildId = childId || (typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : '')
+      const storedChildId = (typeof window !== 'undefined' ? (sessionStorage.getItem('childId') ?? '') : '')
       if (!storedChildId) {
         throw new Error('No child ID selected')
       }
@@ -292,7 +293,7 @@ export default function AnimalGame({ onComplete }) {
     const totalTargets     = trials.filter(tr => tr.type === 'target').length
     const totalDistractors = trials.filter(tr => tr.type === 'distractor').length
     const rts              = reactionTimes.current
-    const storedChildId = typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : ''
+    const storedChildId = typeof window !== 'undefined' ? (sessionStorage.getItem('childId') ?? '') : ''
     const metrics = {
       correctTaps: correctTaps.current,
       falseTaps: falseTaps.current,
@@ -320,18 +321,36 @@ export default function AnimalGame({ onComplete }) {
         completionRatio: metrics.accuracyRate,
       }
     }
-    const gatePath = attempt >= 2 ? '/api/session/second-gate' : '/api/session/task-complete'
+    
+    // Validate required fields
+    if (!sessionId) console.error('[GAME] ERROR: sessionId is missing!')
+    if (!storedChildId) console.error('[GAME] ERROR: storedChildId is missing!')
+    if (!payload.taskMetrics.accuracyRate) console.error('[GAME] ERROR: taskMetrics invalid!')
+    
+    console.log('[GAME] Final payload child_id:', payload.child_id, 'session_id:', payload.session_id)
+    const gatePath = parseInt(attempt, 10) >= 2 ? '/api/session/second-gate' : '/api/session/task-complete'
     let gateDecision = null
 
     try {
-      const res = await fetch(`${API_BASE}${gatePath}`, {
+      const fullUrl = `${API_BASE}${gatePath}`
+      console.log('[GAME] Full URL:', fullUrl)
+      console.log('[GAME] API_BASE:', API_BASE)
+      console.log('[GAME] gatePath:', gatePath)
+      console.log('[GAME] Submitting to:', fullUrl)
+      console.log('[GAME] Payload:', JSON.stringify(payload, null, 2))
+      const res = await fetch(fullUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+      console.log('[GAME] Response status:', res.status)
       const data = await res.json().catch(() => null)
+      console.log('[GAME] Response data:', data)
       if (res.ok && data?.gate_decision) gateDecision = data.gate_decision
-    } catch (_) {}
+      else console.error('[GAME] Failed response:', res.status, data)
+    } catch (err) {
+      console.error('[GAME] Fetch error:', err)
+    }
 
     if (onComplete) {
       onComplete(metrics)

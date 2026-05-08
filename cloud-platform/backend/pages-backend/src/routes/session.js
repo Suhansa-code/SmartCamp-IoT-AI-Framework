@@ -8,11 +8,15 @@ import {
 
 const router = express.Router();
 
+console.log('[ROUTES] Session routes loading...')
+
 // POST /api/session/start
 router.post('/start', validateSessionStart, ctrl.startSession);
 
 // POST /api/session/task-complete
-router.post('/task-complete', ctrl.taskComplete);
+console.log('[ROUTES] Registering POST /api/session/task-complete')
+router.post('/task-complete', validateTaskPayload, ctrl.taskComplete);
+console.log('[ROUTES] Registered POST /api/session/task-complete')
 
 //Test tursoDB updates
 router.post('/turso-test', ctrl.tursoDBupdatesample);
