@@ -152,9 +152,10 @@ export default function AnimalGame({ onComplete }) {
   const router       = useRouter()
   const { lang }     = useLang()
   const isEnglish = lang === 'en'
-  const attempt = Math.max(1, Number(searchParams?.get('attempt') ?? 1) || 1)
+
   const [sessionId, setSessionId] = useState(searchParams?.get('session') ?? 'offline')
   const [childId, setChildId] = useState('')
+  const [attempt, setAttempt] = useState(Math.max(1, Number(searchParams?.get('attempt') ?? 1) || 1))
   const [isStarting, setIsStarting] = useState(false)
 
   useEffect(() => {
