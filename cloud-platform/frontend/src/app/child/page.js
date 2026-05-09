@@ -217,34 +217,44 @@ export default function ChildWelcomePage() {
   }
 }
 
-  async function handleQR(childId, selectedLang = lang) {
-    stopCamera(); setCamState('idle'); setScreen('loading')
-    let sid = 'offline'
-    const storedChildId = typeof window !== 'undefined' ? (sessionStorage.getItem('selectedChildId') ?? '') : ''
-    const effectiveChildId = (childId || storedChildId || '').trim()
+async function handleQR(childId, selectedLang = lang) {
+  stopCamera();
+  setCamState('idle');
+  setScreen('loading');
 
-    if (!effectiveChildId) {
-      setSessionId(sid)
-      router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(selectedLang)}`)
-      return
-    }
+  let sid = 'offline';
 
-    try {
-      const payload = await startSession(effectiveChildId)
-      sid = payload?.sessionId ?? payload?.session_id ?? 'offline'
-    } catch {
-      sid = 'offline'
-    }
-
-    setSessionId(sid)
-    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(selectedLang)}`)
-      // Persist language to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('preferredLanguage', lang)
-    }
-    // Redirect to instruction page (gamified activity guide) instead of directly to task
-    router.push(`/child/instruction?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(lang)}`)
+  // Always persist the scanned childId
+  const effectiveChildId = (childId || '').trim();
+  if (typeof window !== 'undefined' && effectiveChildId) {
+    sessionStorage.setItem('selectedChildId', effectiveChildId);
+    localStorage.setItem('selectedChildId', effectiveChildId);
   }
+
+  if (!effectiveChildId) {
+    setSessionId(sid);
+    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(selectedLang)}`);
+    return;
+  }
+
+  try {
+    const payload = await startSession(effectiveChildId);
+    sid = payload?.sessionId ?? payload?.session_id ?? 'offline';
+  } catch (err) {
+    console.error("Session start failed:", err);
+    sid = 'offline';
+  }
+
+  setSessionId(sid);
+
+  // Persist language preference
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('preferredLanguage', selectedLang);
+  }
+
+  // Redirect with both session and childId
+  router.push(`/child/instruction?session=${encodeURIComponent(sid)}&child=${encodeURIComponent(effectiveChildId)}&lang=${encodeURIComponent(selectedLang)}`);
+}
 
   function handleLanguageSelect(code) {
     // Save language preference

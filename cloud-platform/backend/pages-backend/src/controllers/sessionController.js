@@ -346,7 +346,7 @@ async function completeSession(req, res, next) {
 
 
     //Turso get session record - #delete when implementing
-    const sessionRows = await tursoRetrieve(
+    const sessionRows = await sqliteRetrieve(
       'pages_sessions',undefined,
       'session_id = ?',
       [session_id]
@@ -582,7 +582,7 @@ async function getContentSession(req, res, next) {
     // `).all(contentSessionId);
 
     //turso - Get tasks for content session - #delete when implementing
-    const tasks = await tursoRetrieve(
+    const tasks = await sqliteRetrieve(
       'content_tasks',
       'task_id, task_order, subject, task_type, question_text, question_image, option_a, option_b, option_c, grade_level',
       'content_session_id = ? ORDER BY task_order ASC',
