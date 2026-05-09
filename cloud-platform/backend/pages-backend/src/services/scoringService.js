@@ -2,13 +2,13 @@ import axios from 'axios';
 import logger from '../utils/logger.js';
 import C from '../config/constants.js';
 import { round, clamp } from '../utils/helpers.js';
-import { sqliteRetrieve } from '../config/database.js';
+import { tursoRetrieve } from '../config/tursoConfig.js';
 
 const ZSCORE_MIN_SESSIONS = 3;
 
 async function computeLocalZScore(childId, compositeScore) {
   try {
-    const rows = sqliteRetrieve(
+    const rows = await tursoRetrieve(
       'pages_sessions',
       'composite_score',
       'child_id = ? AND composite_score IS NOT NULL',

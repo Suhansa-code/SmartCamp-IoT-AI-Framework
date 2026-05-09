@@ -9,8 +9,8 @@ const router = express.Router();
 // POST /api/child/enrol
 router.post('/enrol', validateEnrol, ctrl.enrolChild);
 
-// POST - Test Child ID Generation (SQLite)
-router.post('/test-child-generation', ctrl.testChildIdGeneration);
+// POST - Turso Child ID Create and Retrieve Test - #Delete when implementing
+router.post('/turso-child-test', ctrl.tursoChildIdTest);
 
 // GET /api/child/:childId/qrcode - Get QR code for printing (more specific route first)
 router.get('/:childId/qrcode', (req, res, next) => {
@@ -80,11 +80,11 @@ router.post('/language', async (req, res, next) => {
       return next(createError(400, 'Invalid language code'));
     }
     
-    // Import SQLite update function
-    const { sqliteUpdate } = await import('../config/database.js');
+    // Get Turso client
+    const { tursoUpdate } = await import('../config/tursoConfig.js');
     
-    // Update child's language in SQLite
-    sqliteUpdate(
+    // Update child's language in Turso
+    await tursoUpdate(
       'pages_children',
       { language },
       'child_id = ?',

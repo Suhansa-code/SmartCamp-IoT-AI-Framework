@@ -7,73 +7,56 @@ import { newId, nowISO, enqueue } from '../utils/helpers.js';
  * Run the alert check for a child after a flagged session.
  * Called only when anomaly_flagged = true on any session.
  *
- * Marks ALL sessions that meet the alert condition as alert_triggered = 1.
+ * All DB operations are wrapped in a single transaction.
  *
  * @param {string} childId
  * @param {string} sessionId  — the session that triggered the check
  */
 function checkAndCreateAlert(childId, sessionId) {
-  // Step 1: Get ALL sessions for this child, ordered oldest → newest
-  const allSessions = db.prepare(`
-    SELECT session_id, anomaly_flagged, alert_triggered, composite_score, created_at
+  // Step 1: Get last 5 sessions ordered newest first
+  const recentSessions = db.prepare(`
+    SELECT session_id, anomaly_flagged, composite_score, created_at
     FROM   pages_sessions
     WHERE  child_id = ?
-    ORDER  BY created_at ASC
+    ORDER  BY created_at DESC
+    LIMIT  5
   `).all(childId);
 
-  if (allSessions.length === 0) return;
+  if (recentSessions.length === 0) return;
 
-  // Step 2: Identify which sessions meet the alert condition
-  const sessionsToMark = [];
-  let alertTypeTriggered = null;
+  const flaggedCount = recentSessions.filter(s => s.anomaly_flagged === 1).length;
 
-  for (let i = 0; i < allSessions.length; i++) {
-    const session = allSessions[i];
-    
-    // Skip if already marked
-    if (session.alert_triggered === 1) continue;
-    
-    // Skip if not flagged as anomaly
-    if (session.anomaly_flagged !== 1) continue;
+  // Step 2: Check condition A — last 3 all flagged
+  const last3      = recentSessions.slice(0, 3);
+  const allFlagged = last3.length === 3 && last3.every(s => s.anomaly_flagged === 1);
 
-    // Check condition A: >= ALERT_CONSECUTIVE consecutive anomalies (including current)
-    let consecutiveCount = 1;
-    for (let j = i - 1; j >= 0 && allSessions[j].anomaly_flagged === 1; j--) {
-      consecutiveCount++;
-    }
+  // Step 3: Check condition B — 3 of last 5 flagged
+  const threeOfFive = flaggedCount >= C.ALERT_OF_FIVE;
 
-    if (consecutiveCount >= C.ALERT_CONSECUTIVE) {
-      sessionsToMark.push({ sessionId: session.session_id, reason: 'consecutive' });
-      alertTypeTriggered = C.ALERT_TYPES.CONSECUTIVE;
-      continue;
-    }
-
-    // Check condition B: 3 of last 5 anomalies
-    const last5 = allSessions.slice(Math.max(0, i - 4), i + 1);
-    const flaggedCountInWindow = last5.filter(s => s.anomaly_flagged === 1).length;
-    
-    if (flaggedCountInWindow >= C.ALERT_OF_FIVE) {
-      sessionsToMark.push({ sessionId: session.session_id, reason: 'of_five' });
-      if (!alertTypeTriggered) {
-        alertTypeTriggered = C.ALERT_TYPES.OF_FIVE;
-      }
-    }
-  }
-
-  // If no new sessions to mark, exit
-  if (sessionsToMark.length === 0) {
-    logger.debug(`[ALERT] No new sessions to mark for child ${childId}`);
+  if (!allFlagged && !threeOfFive) {
+    logger.debug(`[ALERT] No alert condition met for child ${childId}`);
     return;
   }
 
-  // Step 3: Check if alert already exists
+  const alertType = allFlagged
+    ? C.ALERT_TYPES.CONSECUTIVE
+    : C.ALERT_TYPES.OF_FIVE;
+
+  // Step 4: Check for existing pending alert — don't duplicate
   const existing = db.prepare(`
     SELECT alert_id FROM pages_alerts
     WHERE  child_id = ? AND status = 'pending'
     LIMIT  1
   `).get(childId);
 
-  // Step 4: Get child info
+  if (existing) {
+    logger.info(
+      `[ALERT] Pending alert already exists for child ${childId} — skipping duplicate`
+    );
+    return;
+  }
+
+  // Step 5: Get child info (res_id, camp_id) for alert record
   const child = db.prepare(`
     SELECT child_id, res_id, camp_id FROM pages_children WHERE child_id = ?
   `).get(childId);
@@ -84,60 +67,45 @@ function checkAndCreateAlert(childId, sessionId) {
   }
 
   // Build trigger detail (last 5 scores for admin context)
-  const last5Sessions = allSessions.slice(-5);
-  const recentScores = last5Sessions
+  const recentScores = recentSessions
     .map(s => s.composite_score !== null ? Math.round(s.composite_score) : null)
-    .filter(s => s !== null);
+    .filter(s => s !== null)
+    .reverse();   // oldest → newest
 
   const triggerDetail = JSON.stringify({
     trigger_session: sessionId,
-    alert_condition: alertTypeTriggered,
-    sessions_marked: sessionsToMark.length,
+    alert_condition: alertType,
     recent_scores:   recentScores,
     checked_at:      nowISO(),
   });
 
-  // Step 5: Update database in transaction
-  const updateAlert = db.transaction(() => {
-    // Mark all qualifying sessions as alert_triggered = 1
-    for (const item of sessionsToMark) {
-      db.prepare(`
-        UPDATE pages_sessions SET alert_triggered = 1 WHERE session_id = ?
-      `).run(item.sessionId);
-    }
+  const alertId = newId();
 
-    // Only create alert if it doesn't exist
-    if (!existing) {
-      const alertId = newId();
-      db.prepare(`
-        INSERT INTO pages_alerts
-          (alert_id, child_id, camp_id, res_id, alert_type, trigger_detail, triggered_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(alertId, childId, child.camp_id, child.res_id, alertTypeTriggered, triggerDetail, nowISO());
+  // Step 6 + 7: Insert alert + update child status + enqueue — all in one transaction
+  const createAlert = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO pages_alerts
+        (alert_id, child_id, camp_id, res_id, alert_type, trigger_detail, triggered_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(alertId, childId, child.camp_id, child.res_id, alertType, triggerDetail, nowISO());
 
-      db.prepare(`
-        UPDATE pages_children SET alert_status = 'active' WHERE child_id = ?
-      `).run(childId);
+    db.prepare(`
+      UPDATE pages_children SET alert_status = 'active' WHERE child_id = ?
+    `).run(childId);
 
-      enqueue('pages_alerts', alertId, 'INSERT');
-      
-      logger.info(
-        `[ALERT] Created alert ${alertId} for child ${childId}: type=${alertTypeTriggered}, marked=${sessionsToMark.length} sessions, recent_scores=${recentScores}`
-      );
-    } else {
-      // Alert already exists, just log the marked sessions
-      logger.info(
-        `[ALERT] Updated existing alert for child ${childId}: marked=${sessionsToMark.length} additional sessions`
-      );
-    }
+    // Mark the session as having triggered an alert
+    db.prepare(`
+      UPDATE pages_sessions SET alert_triggered = 1 WHERE session_id = ?
+    `).run(sessionId);
 
-    // Enqueue updated sessions for sync
-    for (const item of sessionsToMark) {
-      enqueue('pages_sessions', item.sessionId, 'UPDATE');
-    }
+    enqueue('pages_alerts', alertId, 'INSERT');
   });
 
-  updateAlert();
+  createAlert();
+
+  logger.info(
+    `[ALERT] Created alert ${alertId} for child ${childId}: type=${alertType}, recent_scores=${recentScores}`
+  );
 }
 
 /**

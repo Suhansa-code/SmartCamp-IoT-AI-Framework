@@ -161,7 +161,7 @@ export default function AnimalGame({ onComplete }) {
   useEffect(() => {
     const urlChildId = searchParams?.get('child') ?? ''
     const storedChildId = typeof window !== 'undefined'
-      ? (sessionStorage.getItem('selectedChildId') ?? '')
+      ? (sessionStorage.getItem('childId') ?? '')
       : ''
     setChildId(urlChildId || storedChildId)
   }, [searchParams])
@@ -171,14 +171,15 @@ export default function AnimalGame({ onComplete }) {
     setIsStarting(true)
 
     try {
-      if (!childId) {
+      const storedChildId = (typeof window !== 'undefined' ? (sessionStorage.getItem('childId') ?? '') : '')
+      if (!storedChildId) {
         throw new Error('No child ID selected')
       }
 
       const response = await fetch(`${API_BASE}/api/session/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ child_id: childId }),
+        body: JSON.stringify({ child_id: storedChildId }),
       })
 
       console.log('Start session response:', response)
@@ -358,7 +359,7 @@ export default function AnimalGame({ onComplete }) {
     // Validate required fields
     if (!sessionId) console.error('[GAME] ERROR: sessionId is missing!')
     if (!storedChildId) console.error('[GAME] ERROR: storedChildId is missing!')
-    if (payload.taskMetrics.accuracyRate == null) console.error('[GAME] ERROR: taskMetrics invalid!')
+    if (!payload.taskMetrics.accuracyRate) console.error('[GAME] ERROR: taskMetrics invalid!')
     
     console.log('[GAME] Final payload child_id:', payload.child_id, 'session_id:', payload.session_id)
     const gatePath = parseInt(attempt, 10) >= 2 ? '/api/session/second-gate' : '/api/session/task-complete'
@@ -472,12 +473,12 @@ export default function AnimalGame({ onComplete }) {
         </div>
 
         {/* Instruction strip */}
-        <div style={{ padding:'clamp(0.75rem,3vw,1.25rem) clamp(0.75rem,3vw,1rem)', width:'100%', maxWidth:'min(500px,92vw)', margin:'0 auto', flexShrink:0 }}>
-          <div style={{ background:'white', borderRadius:'clamp(1rem,3vw,1.5rem)', padding:'clamp(0.75rem,3vw,1rem) clamp(1rem,4vw,1.5rem)', textAlign:'center', border:'2px solid #E2E8F0' }}>
-            <p style={{ fontFamily:"'Baloo 2',cursive", fontSize: isEnglish ? 'clamp(1.35rem,4.8vw,1.8rem)' : 'clamp(1rem,3.3vw,1.25rem)', fontWeight:800, color:'#1E3A5F', lineHeight:1.3 }}>
+        <div style={{ padding:'0 clamp(0.75rem,3vw,1rem) 0.5rem', width:'100%', maxWidth:'min(400px,94vw)', margin:'0 auto', flexShrink:0 }}>
+          <div style={{ background:'white', borderRadius:'clamp(0.75rem,3vw,1.25rem)', padding:'clamp(0.5rem,2vw,0.6rem) clamp(0.75rem,3vw,1.25rem)', textAlign:'center', border:'2px solid #E2E8F0' }}>
+            <p style={{ fontFamily:"'Baloo 2',cursive", fontSize: isEnglish ? 'clamp(1.2rem,4.2vw,1.55rem)' : 'clamp(0.9rem,3vw,1.1rem)', fontWeight:800, color:'#1E3A5F', lineHeight:1.3 }}>
               {t('game.instruction_main', lang)}
             </p>
-            <p style={{ fontSize: isEnglish ? 'clamp(1.05rem,3.2vw,1.35rem)' : 'clamp(0.8rem,2.3vw,0.95rem)', fontWeight:600, color:'#0D9488', marginTop:4, lineHeight:1.3 }}>
+            <p style={{ fontSize: isEnglish ? 'clamp(0.95rem,2.9vw,1.15rem)' : 'clamp(0.72rem,2vw,0.82rem)', fontWeight:600, color:'#0D9488', marginTop:2, lineHeight:1.3 }}>
               {t('game.instruction_sub', lang)}
             </p>
           </div>

@@ -1,4 +1,5 @@
-import { db, sqliteInsert, sqliteUpdate, sqliteRetrieve, sqliteGetLastChildId } from '../config/database.js';
+import { db } from '../config/database.js';
+import { tursoInsert, tursoUpdate, tursoRetrieve, tursoGetLastChildId } from '../config/tursoConfig.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { newId, todayDate, nowTime, nowISO, enqueue } from '../utils/helpers.js';
@@ -26,14 +27,20 @@ async function startSession(req, res, next) {
     //   return next(createError(503, 'Flask ML service is unavailable — cannot start session'));
     // }
  
-    // Get child record from SQLite
-    const childRows = sqliteRetrieve(
-      'pages_children',
-      undefined,
+    // Fetch child to get baseline + grade
+    // const child = db.prepare(`
+    //   SELECT child_id, grade, language, total_sessions, baseline_score
+    //   FROM   pages_children
+    //   WHERE  child_id = ?
+    // `).get(child_id);
+
+    // Get Turso child record
+    const childRows = await tursoRetrieve(
+      'pages_children',undefined,
       'child_id = ?',
       [child_id]
-    );
-    const child = childRows[0];
+    )
+    const child = childRows[0]
 
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
  
@@ -44,9 +51,23 @@ async function startSession(req, res, next) {
     const condition     = condition_label.toUpperCase();
  
     console.log('Creating new session with ID:', sessionId, 'for child_id:', child_id);
-    
-    // Insert session into SQLite
-    sqliteInsert("pages_sessions", {
+    // db.prepare(`
+    //     INSERT INTO pages_sessions
+    //       (session_id, child_id, session_date, session_time,
+    //        condition_label, baseline_score_used, created_at)
+    //     VALUES (?, ?, ?, ?, ?, ?, ?)
+    //   `).run(
+    //     sessionId,
+    //     child_id,
+    //     sessionDate,
+    //     sessionTime,
+    //     condition,
+    //     child.baseline_score,
+    //     nowISO()
+    //   );
+
+
+    await tursoInsert("pages_sessions", {
       session_id: sessionId,
       child_id,
       session_date: sessionDate,
@@ -55,9 +76,6 @@ async function startSession(req, res, next) {
       baseline_score_used: child.baseline_score,
       created_at: nowISO()
     });
-    
-    // Enqueue for sync
-    enqueue('pages_sessions', sessionId, 'INSERT');
  
     logger.info(
       `[SESSION] Started session ${sessionId} for child ${child_id}, ` +
@@ -85,13 +103,22 @@ async function taskComplete(req, res, next) {
     const { child_id, session_id, taskMetrics, passiveSignals } = req.body;
   
         // Verify session exists
-        const sessionRows = sqliteRetrieve(
-          'pages_sessions',
-          'session_id, child_id, baseline_score_used',
+        /*
+        const session = db.prepare(`
+          SELECT session_id, child_id, baseline_score_used
+          FROM   pages_sessions
+          WHERE  session_id = ?
+        `).get(session_id);
+        if (!session) return next(createError(404, `Session not found: ${session_id}`));
+        */
+
+        // TursoDB - Verify session exists - #delete when implementing
+        const sessionRows = await tursoRetrieve(
+          'pages_sessions','session_id, child_id, baseline_score_used',
           'session_id = ?',
           [session_id]
         );
-        const session = sessionRows[0];
+        const session = sessionRows[0]
         if (!session) return next(createError(404, `Session not found: ${session_id}`));
     
         //Create Sample taskmetrics and passiveSignals - #Delete when implementing
@@ -150,9 +177,8 @@ async function taskComplete(req, res, next) {
           // );
 
           console.log('Inserting behavioral signals for session_id:', session_id, 'child_id:', child_id, 'signal_id:', signalId);
-          
-          // Insert behavioral signals into SQLite
-          sqliteInsert("pages_behavioral_signals", {
+                // tursoDB - Insert session record - #delete when implementing
+          await tursoInsert("pages_behavioral_signals", {
             signal_id: signalId,
             session_id: session_id,
             child_id: child_id,
@@ -164,12 +190,34 @@ async function taskComplete(req, res, next) {
             rapid_click_count: passiveSignals.rapidClickCount,
             time_to_first_ms: passiveSignals.timeToFirstMs,
             completion_ratio: passiveSignals.completionRatio,
-          });
-          
-          logger.info(`[DB] Inserted behavioral signals for session ${session_id} with signal_id ${signalId}`);
-          
+          }); 
+
+          logger.info(`[TURSO] Inserted behavioral signals for session ${session_id} with signal_id ${signalId} into TursoDB`);
           // Update session with scores + gate decision
-          sqliteUpdate("pages_sessions", {
+          // db.prepare(`
+          //   UPDATE pages_sessions
+          //   SET composite_score  = ?,
+          //       task_score       = ?,
+          //       passive_score    = ?,
+          //       gate_decision    = ?,
+          //       anomaly_flagged  = ?,
+          //       z_score          = ?,
+          //       if_score         = ?
+          //   WHERE session_id = ?
+          // `).run(
+          //   compositeScore, taskScore, passiveScore,
+          //   gateDecision,
+          //   anomalyFlagged ? 1 : 0,
+          //   zScore  || null,
+          //   ifScore || null,
+          //   session_id,
+          // );
+
+          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`);
+
+          // tursoDB - Update session record with scores + gate decision - #delete when implementing
+          await tursoUpdate("pages_sessions", {
+            session_id: session_id,
             composite_score: compositeScore,
             task_score: taskScore,
             passive_score: passiveScore,
@@ -179,10 +227,16 @@ async function taskComplete(req, res, next) {
             if_score: ifScore || null
           }, 'session_id = ?', [session_id]);
 
-          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`);
-
           // Write gate decision record (attempt 1)
-          sqliteInsert("pages_gate_decisions", {
+          // db.prepare(`
+          //   INSERT INTO pages_gate_decisions
+          //     (decision_id, session_id, child_id, attempt_number, composite_score, decision)
+          //   VALUES (?, ?, ?, 1, ?, ?)
+          // `).run(decisionId, session_id, child_id, compositeScore, gateDecision);
+    
+          logger.info(`[DB] Inserted gate decision for session ${session_id} with decision_id ${decisionId}`);
+          //TursoDB - Insert gate decision record - #delete when implementing
+          await tursoInsert("pages_gate_decisions", {
             decision_id: decisionId,
             session_id: session_id,
             child_id: child_id,
@@ -190,8 +244,8 @@ async function taskComplete(req, res, next) {
             composite_score: compositeScore,
             decision: gateDecision
           });
-          
-          logger.info(`[DB] Inserted gate decision for session ${session_id} with decision_id ${decisionId}`);
+
+          logger.info(`[TURSO] Inserted gate decision for session ${session_id} with decision_id ${decisionId} into TursoDB`);
 
           // Enqueue signals for sync
           enqueue('pages_behavioral_signals', signalId, 'INSERT');
@@ -229,22 +283,21 @@ async function secondGate(req, res, next) {
     const { session_id, child_id, taskMetrics, passiveSignals } = req.body;
  
     // Verify session is in FAIL_FIRST state
-    const sessionRows = sqliteRetrieve(
-      'pages_sessions',
-      'session_id, gate_decision',
+    const sessionRows = await tursoRetrieve(
+      'pages_sessions','session_id, gate_decision',
       'session_id = ?',
       [session_id]
     );
-    const session = sessionRows[0];
+    const session = sessionRows[0]
 
     // Fetch child to get baseline and consecutive_low for scoring
-    const childRows = sqliteRetrieve(
+    const childRows = await tursoRetrieve(
       'pages_children',
       'child_id, baseline_score, consecutive_low',
       'child_id = ?',
       [child_id]
     );
-    const child = childRows[0];
+    const child = childRows[0]
 
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
     if (session.gate_decision && session.gate_decision !== C.GATE.FAIL_FIRST) {
@@ -267,8 +320,17 @@ async function secondGate(req, res, next) {
     const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
  
     const decisionId = newId();
+ 
       // Update session
-      sqliteUpdate(
+      // db.prepare(`
+      //   UPDATE pages_sessions
+      //   SET second_gate_score = ?,
+      //       gate_decision     = ?
+      //   WHERE session_id = ?
+      // `).run(compositeScore, gateDecision, session_id);
+
+      // Turso - Update session record with second gate score and decision - #delete when implementing
+      await tursoUpdate(
         'pages_sessions',
         {
           composite_score: compositeScore,
@@ -284,8 +346,16 @@ async function secondGate(req, res, next) {
         [session_id]
       );
 
+
       // Write gate decision (attempt 2)
-      sqliteInsert('pages_gate_decisions', {
+      // db.prepare(`
+      //   INSERT INTO pages_gate_decisions
+      //     (decision_id, session_id, child_id, attempt_number, composite_score, decision, decided_at)
+      //   VALUES (?, ?, ?, 2, ?, ?, ?)
+      // `).run(decisionId, session_id, child_id, compositeScore, gateDecision, nowISO());
+
+      // TursoDB - Insert second gate decision record - #delete when implementing
+      await tursoInsert('pages_gate_decisions', {
         decision_id: decisionId,
         session_id,
         child_id,
@@ -297,7 +367,14 @@ async function secondGate(req, res, next) {
  
       // If FAIL_CONFIRMED — increment consecutive_low
       if (gateDecision === C.GATE.FAIL_CONFIRMED) {
-        sqliteUpdate(
+        // db.prepare(`
+        //   UPDATE pages_children
+        //   SET consecutive_low = consecutive_low + 1
+        //   WHERE child_id = ?
+        // `).run(child_id);
+
+        // tursoDB update pages children record to increment consecutive_low - #delete when implementing
+        await tursoUpdate(
           'pages_children',
           { consecutive_low: (Number(child?.consecutive_low) || 0) + 1 },
           'child_id = ?',
@@ -346,7 +423,7 @@ async function completeSession(req, res, next) {
 
 
     //Turso get session record - #delete when implementing
-    const sessionRows = await sqliteRetrieve(
+    const sessionRows = await tursoRetrieve(
       'pages_sessions',undefined,
       'session_id = ?',
       [session_id]
@@ -361,13 +438,12 @@ async function completeSession(req, res, next) {
     // if (!child) return next(createError(404, `Child not found: ${child_id}`));
 
     // Get Turso child record    
-    const childRows = sqliteRetrieve(
-      'pages_children',
-      undefined,
+    const childRows = await tursoRetrieve(
+      'pages_children',undefined,
       'child_id = ?',
       [child_id]
-    );
-    const child = childRows[0];
+    )
+    const child = childRows[0]
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
  
     // Compute new baseline
@@ -394,7 +470,7 @@ async function completeSession(req, res, next) {
           time_taken_ms: r.timeTakenMs || 0,
           responded_at: nowISO(),
         };
-        sqliteInsert('pages_content_responses', row);
+        await tursoInsert('pages_content_responses', row);
         contentRowsToSync.push(row);
         enqueue('pages_content_responses', responseId, 'INSERT');
       }
@@ -407,8 +483,8 @@ async function completeSession(req, res, next) {
       //   WHERE session_id = ?
       // `).run(Number(cognitiveScore), session_id);
 
-      // Mark session complete
-      sqliteUpdate(
+      // Mark Turso session complete - #delete when implementing
+      await tursoUpdate(
         'pages_sessions',
         {
           cognitive_score: Number(cognitiveScore),
@@ -418,7 +494,6 @@ async function completeSession(req, res, next) {
         'session_id = ?',
         [session_id]
       );
-      enqueue('pages_sessions', session_id, 'UPDATE');
 
       // 3. Update child baseline + total sessions
       // db.prepare(`
@@ -427,8 +502,15 @@ async function completeSession(req, res, next) {
       //       total_sessions   = total_sessions + 1,
       //       consecutive_low  = CASE WHEN ? >= ? THEN 0 ELSE consecutive_low END
       //   WHERE child_id = ?
-      // Update child baseline + total sessions
-      sqliteUpdate(
+      // `).run(
+      //   newBaseline,
+      //   compositeScore,
+      //   C.GATE_THRESHOLD,
+      //   child_id,
+      // );
+
+      // Update Turso child record - #delete when implementing
+      await tursoUpdate(
         'pages_children',
         {
           baseline_score: newBaseline,
@@ -441,7 +523,7 @@ async function completeSession(req, res, next) {
 
  
       // 4. Enqueue session + children for sync
-      enqueue('pages_sessions',  session_id, 'UPDATE');
+      enqueue('pages_sessions',  session_id, 'INSERT');
       enqueue('pages_children',  child_id,   'UPDATE');
  
     logger.info(
@@ -475,8 +557,8 @@ async function getRecentSessions(req, res, next) {
     //   LIMIT  3
     // `).all(childId);
 
-    // Get recent sessions for child
-    const recent = sqliteRetrieve(
+    // TursoDB - Get recent sessions for child - #delete when implementing
+    const recent = await tursoRetrieve(
       'pages_sessions',
       'session_id, condition_label, session_date, created_at',
       'child_id = ? ORDER BY created_at DESC LIMIT 3',
@@ -512,13 +594,11 @@ async function getContentSession(req, res, next) {
     // if (!child) return next(createError(404, `Child not found: ${childId}`));
 
     // Get Turso child record - #delete when implementing
-    const childRows = sqliteRetrieve(
-      'pages_children',
-      undefined,
+    const childRows = await tursoRetrieve(
+      'pages_children',undefined,
       'child_id = ?',
-      [childId]
-    );
-    const child = childRows[0];
+      [childId]    )
+    const child = childRows[0]
     if (!child) return next(createError(404, `Child not found: ${childId}`));
 
 
@@ -532,30 +612,46 @@ async function getContentSession(req, res, next) {
     //   LIMIT  3
     // `).all(childId).map(r => r.content_session_id);
 
-    // Get recently used content sessions
-    const recentlyUsedRows = sqliteRetrieve(
-      'pages_sessions',
-      'DISTINCT content_session_id',
+    //tursoDB - recemtly used content sessions - #delete when implementing
+    const recentlyUsedRows = await tursoRetrieve(
+      'pages_sessions','DISTINCT content_session_id',
       'child_id = ? AND content_session_id IS NOT NULL',
       [childId]
     );
     const recentlyUsed = recentlyUsedRows.map(r => r.content_session_id);
     
+ 
     // Get all approved sessions for this grade, excluding recently used
+    // const available = db.prepare(`
+    //   SELECT content_session_id
+    //   FROM   content_sessions
+    //   WHERE  grade_level = ?
+    //     AND  zeo_approved = 1
+    //     AND  content_session_id NOT IN (${recentlyUsed.map(() => '?').join(',') || '\'__NONE__\''})
+    // `).all(child.grade, ...recentlyUsed);
+
+    //turso - Get all approved sessions for this grade, excluding recently used - #delete when implementing
     const placeholders = recentlyUsed.map(() => '?').join(',') || '\'__NONE__\'';
-    const available = sqliteRetrieve(
-      'content_sessions',
-      'content_session_id',
+    const available = await tursoRetrieve(
+      'content_sessions','content_session_id',
       `grade_level = ? AND zeo_approved = 1 AND content_session_id NOT IN (${placeholders})`,
       [child.grade, ...recentlyUsed]
     );
  
     // If all sessions have been used recently, fall back to all approved
+    // const pool = available.length > 0
+    //   ? available
+    //   : db.prepare(`
+    //       SELECT content_session_id
+    //       FROM   content_sessions
+    //       WHERE  grade_level = ? AND zeo_approved = 1
+    //     `).all(child.grade);
+
+    //turso - if all sessions have been used recently, fall back to all approved - #delete when implementing
     const pool = available.length > 0
       ? available
-      : sqliteRetrieve(
-          'content_sessions',
-          'content_session_id',
+      : await tursoRetrieve(
+          'content_sessions','content_session_id',
           'grade_level = ? AND zeo_approved = 1',
           [child.grade]
         );
@@ -582,7 +678,7 @@ async function getContentSession(req, res, next) {
     // `).all(contentSessionId);
 
     //turso - Get tasks for content session - #delete when implementing
-    const tasks = await sqliteRetrieve(
+    const tasks = await tursoRetrieve(
       'content_tasks',
       'task_id, task_order, subject, task_type, question_text, question_image, option_a, option_b, option_c, grade_level',
       'content_session_id = ? ORDER BY task_order ASC',
@@ -609,29 +705,37 @@ async function getContentSession(req, res, next) {
   }
 }
  
-async function testDBUpdate(){
+async function tursoDBupdatesample(){
   try {
-    // Get latest child_id from SQLite and create new one
-    logger.info(`[DB] Fetching latest child_id from SQLite...`);
-    const child_id = sqliteGetLastChildId();
+
+    // Get Child ID from TursoDB and increase child ID by one after get latest child ID - #Delete when implementing
+    logger.info(`[TURSO] Fetching latest child_id from Turso...`);
+    const child_id=await tursoGetLastChildId();
 
     const new_child_id = `TEST-CHILD-${(parseInt(child_id.split('-').pop())+1).toString().padStart(6, '0')}`;
     const sample_session_id = newId();
     const sample_session_date = todayDate();
     const sample_session_time = nowTime();
 
-      // Insert child into SQLite
-      sqliteInsert("pages_children", {
+      await tursoInsert("pages_children", {
         child_id: new_child_id,
         res_id: 'TEST-RES-001',
         grade: 3,
         camp_id: 'CAMP-TEST',
         zone_id: 'ZONE-TEST',
       });
-      logger.info(`[DB] Inserted child_id: ${new_child_id}`);
+      logger.info(`[TURSO] Inserted child_id: ${new_child_id}`);
+
+      // Insert Same in Local DB
+      db.prepare(`
+        INSERT INTO pages_children
+          (child_id, res_id, grade, camp_id, zone_id)
+          VALUES (?, ?, ?, ?, ?)
+      `).run(new_child_id, 'TEST-RES-001', 3, 'CAMP-TEST', 'ZONE-TEST');
+      logger.info(`[DB] Inserted child_id: ${new_child_id} into local DB`);
 
       // Create a sample session so behavioral_signals FK(session_id) is valid
-      sqliteInsert("pages_sessions", {
+      await tursoInsert("pages_sessions", {
         session_id: sample_session_id,
         child_id: new_child_id,
         session_date: sample_session_date,
@@ -639,10 +743,17 @@ async function testDBUpdate(){
         condition_label: 'A',
         baseline_score_used: 60,
       });
-      logger.info(`[DB] Inserted sample session_id: ${sample_session_id} for child_id: ${new_child_id}`);
+      logger.info(`[TURSO] Inserted sample session_id: ${sample_session_id} for child_id: ${new_child_id}`);
 
-      // Sample data for behavioral signals
-      sqliteInsert("pages_behavioral_signals", {
+      db.prepare(`
+        INSERT INTO pages_sessions
+          (session_id, child_id, session_date, session_time, condition_label, baseline_score_used)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(sample_session_id, new_child_id, sample_session_date, sample_session_time, 'A', 60);
+      logger.info(`[DB] Inserted sample session_id: ${sample_session_id} into local DB`);
+
+      //Sample data for behavioral signals - #Delete when implementing
+      await tursoInsert("pages_behavioral_signals", {
         signal_id: newId(),
         session_id: sample_session_id,
         child_id: new_child_id,
@@ -655,14 +766,13 @@ async function testDBUpdate(){
         time_to_first_ms: 300,
         completion_ratio: 0.9,
       });
-      logger.info(`[DB] Inserted behavioral signals for child_id: ${new_child_id}`);
+      logger.info(`[TURSO] Inserted behavioral signals for child_id: ${new_child_id}`);
 
       return { success: true,
-        message: 'Database test update completed',
+        message: 'Turso DB update sample completed',
       };
-    } catch (err) {      
-      logger.error(`[DB] Unexpected error: ${err.message}`);
-      return { success: false, message: 'Failed to update database' };
+    } catch (err) {      logger.error(`[TURSO] Unexpected error: ${err.message}`);
+      return { success: false, message: 'Failed to update Turso DB' };
     }
   }
 
@@ -672,6 +782,6 @@ export {
   secondGate,
   completeSession,
   getContentSession,
-  testDBUpdate,
+  tursoDBupdatesample,
   getRecentSessions
 };

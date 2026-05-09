@@ -3,7 +3,8 @@ import fs from 'fs';
 import https from 'https';
 import logger from '../utils/logger.js';
 import C from '../config/constants.js';
-import { db, pgQuery, pgIsReachable } from '../config/database.js';
+import { db} from '../config/database.js';
+import { pgQuery, pgIsReachable } from '../config/tursoConfig.js';
 import { nowISO } from '../utils/helpers.js';
 
 
@@ -139,7 +140,7 @@ async function pullModelFiles() {
   const bucket  = C.AWS_S3_BUCKET;
   const region  = C.AWS_REGION;
 
-  if (!bucket || !C.AWS_S3_BUCKET) {
+  if (!bucket || !C.TURSO_URL) {
     logger.debug('[SYNC] S3 bucket not configured — skipping model pull');
     return 0;
   }

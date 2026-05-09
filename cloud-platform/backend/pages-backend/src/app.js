@@ -63,12 +63,12 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Initial PostgreSQL connection test (for cloud sync)
-import { pgIsReachable } from './config/database.js';
+// Call tursoconfig to check it works using tursoConfig
+import { pgIsReachable } from './config/tursoConfig.js';
 
 pgIsReachable()
-  .then(() => logger.info('[DB] PostgreSQL connection test successful'))
-  .catch((err) => logger.error(`[DB] PostgreSQL connection test failed: ${err.message}`));
+  .then(() => logger.info('[TURSO] Initial connection test successful'))
+  .catch((err) => logger.error(`[TURSO] Initial connection test failed: ${err.message}`));
 
 
 // ── Health check ──────────────────────────────────────────────────────────────

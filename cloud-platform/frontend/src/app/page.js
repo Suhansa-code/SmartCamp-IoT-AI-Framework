@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from 'next/link';
-import Image from 'next/image';
-
 
 export default function Home() {
   const router = useRouter();
-  const [selectedEndpoint, setSelectedEndpoint] = useState('/api/child/enrol');
+  const [selectedEndpoint, setSelectedEndpoint] = useState('/api/child/turso-child-test');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [enrolledChildId, setEnrolledChildId] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
@@ -67,42 +64,38 @@ export default function Home() {
     router.push('/child');
   }
 
-async function handleUseExistingChildId() {
-  const childId = manualChildId.trim();
-  if (!childId) {
-    setErrorMsg('Please enter a child ID');
-    return;
-  }
-
-  setIsValidatingChildId(true);
-  setErrorMsg('');
-  setStatusMsg('Validating child ID...');
-
-  try {
-    const response = await fetch(`${apiBase}/api/child/${encodeURIComponent(childId)}`);
-    const payload = await response.json().catch(() => ({}));
-
-    console.log('Validation response:', { status: response.status, payload });
-
-    if (!response.ok || !payload.child?.child_id) {
-      if (response.status === 404) {
-        throw new Error('Child ID not found');
-      } else {
-        throw new Error(payload.message || 'Unable to verify child ID right now.');
-      }
+  async function handleUseExistingChildId() {
+    const childId = manualChildId.trim();
+    if (!childId) {
+      setErrorMsg('Please enter a child ID');
+      return;
     }
 
-    setEnrolledChildId(payload.child.child_id);
-    setStatusMsg('Child ID verified. Ready to continue.');
+    setIsValidatingChildId(true);
     setErrorMsg('');
-  } catch (err) {
-    setEnrolledChildId('');
-    setStatusMsg('');
-    setErrorMsg(err.message || 'Unable to verify child ID right now.');
-  } finally {
-    setIsValidatingChildId(false);
+    setStatusMsg('Validating child ID...');
+
+    try {
+      const response = await fetch(`${apiBase}/api/child/${encodeURIComponent(childId)}`);
+      const payload = await response.json().catch(() => ({}));
+
+      console.log('Validation response:', { status: response.status, payload });
+
+      if (!response.ok || !payload?.child?.child_id) {
+        throw new Error(payload.message || 'Child ID not found');
+      }
+
+      setEnrolledChildId(payload.child.child_id);
+      setStatusMsg('Child ID verified. Ready to continue.');
+      setErrorMsg('');
+    } catch (err) {
+      setEnrolledChildId('');
+      setStatusMsg('');
+      setErrorMsg(err.message || 'Unable to verify child ID right now.');
+    } finally {
+      setIsValidatingChildId(false);
+    }
   }
-}
 
   // Show loading while redirecting
   return (
@@ -186,7 +179,7 @@ async function handleUseExistingChildId() {
                         className="w-full rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm outline-none ring-cyan-500 transition focus:ring-2"
                       >
                         <option value="/api/child/enrol">POST /api/child/enrol</option>
-                        <option value="/api/child/test-child-generation">POST /api/child/test-child-generation</option>
+                        <option value="/api/child/turso-child-test">POST /api/child/turso-child-test</option>
                       </select>
                     </label>
 
