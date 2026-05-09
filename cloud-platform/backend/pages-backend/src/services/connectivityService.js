@@ -2,7 +2,7 @@
 import cron from 'node-cron';
 import logger from '../utils/logger.js';
 import C from '../config/constants.js';
-import { pgIsReachable } from '../config/tursoConfig.js';
+import { pgIsReachable } from '../config/database.js';
 import { runSync } from './syncService.js';
 import { nowISO } from '../utils/helpers.js';
 

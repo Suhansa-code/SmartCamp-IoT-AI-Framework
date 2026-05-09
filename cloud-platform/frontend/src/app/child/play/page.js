@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import BubblePlayground from '@/components/psychoedu/child/BubblePlayground'
@@ -10,13 +10,17 @@ function PlayInner() {
   const router       = useRouter()
   const { lang, setLang } = useLang()
   const completedRef = useRef(false)
+  const [navigateHome, setNavigateHome] = useState(false)
 
+  // Initialize language from query
   useEffect(() => {
     const urlLang = searchParams.get('lang')
-    if (urlLang && ['si','ta','en'].includes(urlLang)) setLang(urlLang)
-  }, [])
+    if (urlLang && ['si','ta','en'].includes(urlLang)) {
+      setLang(urlLang)
+    }
+  }, [searchParams, setLang])
 
-  async function handleComplete() {
+  function handleComplete() {
     // Prevent double-submission
     if (completedRef.current) return
     completedRef.current = true
@@ -24,13 +28,18 @@ function PlayInner() {
     const sessionId = searchParams.get('session') ?? 'offline'
     const childId   = searchParams.get('child')   ?? ''
 
-    // For now, just return to welcome screen
-    // The session was already submitted by the cognitive task or game
-    // No need to submit again here
-    
-    // Return to welcome screen for next child
-    router.push(`/child?lang=${lang}`)
+    // Defer state change to next tick so it’s not inside child render
+    setTimeout(() => {
+      setNavigateHome(true)
+    }, 0)
   }
+
+  // Perform navigation after render cycle
+  useEffect(() => {
+    if (navigateHome) {
+      router.push(`/child?lang=${lang}`) // language selection page
+    }
+  }, [navigateHome, router, lang])
 
   return <BubblePlayground onComplete={handleComplete} />
 }

@@ -1,13 +1,11 @@
 'use strict';
 
-import { db } from '../config/database.js';
-import { tursoInsert, tursoGetLastChildId, tursoRetrieveall } from '../config/tursoConfig.js';
+import { db, sqliteInsert, sqliteGetLastChildId, sqliteRetrieveAll, sqliteCheckResId } from '../config/database.js';
 import C from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { nextChildId, enqueue , nowISO } from '../utils/helpers.js';
 import { createError } from '../middleware/errorHandler.js';
 import { generateChildQRCode } from '../services/qrCodeService.js';
-import { checkResId } from '../config/tursoConfig.js';
 
 async function enrolChild(req, res, next) {
   try {
@@ -27,21 +25,15 @@ async function enrolChild(req, res, next) {
       LIMIT  1
     `).get(res_id.trim(), campId);
 
-    //Check data is in turso - #Delete when implementing
-    checkResId(res_id.trim())
-      .then((exists) => {
-        if (!exists) {
-          logger.warn(`[TURSO] res_id not found: ${res_id.trim()}`);
-          // Optionally, you could return an error here instead of enrolling
-          // return res.status(400).json({ success: false, message: 'res_id not found in Turso' });
-        } else {
-          logger.info(`[TURSO] res_id exists: ${res_id.trim()}`);
-        }
-      })
-      .catch((err) => {
-        logger.error(`[TURSO] Error checking res_id: ${err.message}`);
-        // Proceed with enrolment even if Turso check fails
-      });
+    //Check data is in SQLite
+    const resIdExists = sqliteCheckResId(res_id.trim());
+    if (!resIdExists) {
+      logger.warn(`[DB] res_id not found in database: ${res_id.trim()}`);
+      // Optionally, you could return an error here instead of enrolling
+      // return res.status(400).json({ success: false, message: 'res_id not found in database' });
+    } else {
+      logger.info(`[DB] res_id exists: ${res_id.trim()}`);
+    }
 
     if (existing) {
       logger.info(`[ENROL] Already enrolled: res_id=${res_id} → child_id=${existing.child_id}`);
@@ -84,21 +76,6 @@ async function enrolChild(req, res, next) {
  
     insertChild();
 
-    // Insert into Turso asynchronously - #delete when implementing
-    tursoInsert("pages_children", {
-      child_id: childId,
-      res_id: res_id.trim(),
-      grade: Number(grade),
-      camp_id: campId,
-      zone_id: zone_id,
-      language: language,
-      qr_code_data: qrCodeData
-    })
-    .catch((err) => {
-      logger.warn(`[TURSO] Failed to insert child into cloud (async): ${err.message}`);
-      // Non-critical error — local sync will handle it
-    });
-
     logger.info(`[ENROL] New child enrolled: res_id=${res_id} → child_id=${childId}`);
     return res.status(201).json({
       success: true,
@@ -115,11 +92,11 @@ async function enrolChild(req, res, next) {
 }
  
 
-async function tursoChildIdTest(req, res, next) {
+async function testChildIdGeneration(req, res, next) {
   try {
-    // Get Child ID from TursoDB and increase child ID by one after get latest child ID - #Delete when implementing
-    let child_id = await tursoGetLastChildId();
-    const newLastDigit = (parseInt(child_id.split('-').pop(), 10)) + 1;
+    // Get last Child ID from SQLite and increment
+    let child_id = sqliteGetLastChildId();
+    const newLastDigit = child_id ? (parseInt(child_id.split('-').pop(), 10)) + 1 : 1;
     child_id = `TEST-CHILD-${newLastDigit.toString().padStart(6, '0')}`;
 
     console.log('Generated new child_id for test:', child_id);
@@ -133,8 +110,8 @@ async function tursoChildIdTest(req, res, next) {
       logger.warn(`[QR] Test QR code generation failed: ${err.message}`);
     }
 
-    // Insert Child ID into TursoDB - #Delete when implementing
-    await tursoInsert("pages_children", {
+    // Insert Child ID into SQLite
+    sqliteInsert("pages_children", {
       child_id: child_id,
       res_id: 'TEST-RES-001',
       grade: 3,
@@ -146,8 +123,8 @@ async function tursoChildIdTest(req, res, next) {
 
     return res.json({ success: true, child_id, qr_code: qrCodeData });
   } catch (err) {
-    logger.error(`[TURSO] Failed to insert child into cloud: ${err.message}`);
-    return res.status(500).json({ success: false, message: 'Failed to insert child into Turso' });
+    logger.error(`[DB] Failed to insert test child: ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to insert test child' });
   }
 }
 /**
@@ -159,21 +136,18 @@ async function getChild(req, res, next) {
   try {
     const { childId } = req.params;
 
-    // const child = db.prepare(`
-    //   SELECT
-    //     child_id, grade, camp_id, language,
-    //     total_sessions, baseline_score,
-    //     consecutive_low, alert_status
-    //   FROM pages_children
-    //   WHERE child_id = ?
-    // `).get(childId.trim().toUpperCase());
-
-    //Check turso for child data - #Delete when implementing
-    const rows = await tursoRetrieveall('pages_children', 'child_id = ?', [childId.trim().toUpperCase()]);
-    const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    // Query SQLite directly
+    const row = db.prepare(`
+      SELECT
+        child_id, grade, camp_id, zone_id, language,
+        total_sessions, baseline_score,
+        consecutive_low, alert_status, qr_code_data
+      FROM pages_children
+      WHERE child_id = ?
+    `).get(childId.trim().toUpperCase());
 
     if (!row) {
-      logger.warn(`[TURSO] Child not found: ${childId.trim().toUpperCase()}`);
+      logger.warn(`[DB] Child not found: ${childId.trim().toUpperCase()}`);
       return next(createError(404, `Child not found: ${childId}`));
     }
 
@@ -187,13 +161,14 @@ async function getChild(req, res, next) {
       baseline_score: row.baseline_score,
       consecutive_low: row.consecutive_low,
       alert_status: row.alert_status,
+      qr_code_data: row.qr_code_data, 
     };
 
-    return res.json({ success: true, child: child });
- 
+    return res.json({ success: true, child });
   } catch (err) {
+    logger.error(`[DB] getChild failed: ${err.message}`);
     next(err);
   }
 }
- 
-export { enrolChild, getChild, tursoChildIdTest };
+
+export { enrolChild, getChild, testChildIdGeneration };
