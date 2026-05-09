@@ -202,7 +202,7 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
       cancelAnimationFrame(animationRef.current)
       observer.disconnect()
     }
-  }, [camps, selected, proj, theme])
+  }, [camps, selected, proj, theme, zoom, panX, panY])
 
   const handleClick = useCallback((event) => {
     const canvas = canvasRef.current
