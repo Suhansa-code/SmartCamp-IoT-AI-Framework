@@ -20,7 +20,7 @@ function PlayInner() {
     }
   }, [searchParams, setLang])
 
-  async function handleComplete() {
+  function handleComplete() {
     // Prevent double-submission
     if (completedRef.current) return
     completedRef.current = true
@@ -28,8 +28,10 @@ function PlayInner() {
     const sessionId = searchParams.get('session') ?? 'offline'
     const childId   = searchParams.get('child')   ?? ''
 
-    // Mark that we should navigate after render
-    setNavigateHome(true)
+    // Defer state change to next tick so it’s not inside child render
+    setTimeout(() => {
+      setNavigateHome(true)
+    }, 0)
   }
 
   // Perform navigation after render cycle

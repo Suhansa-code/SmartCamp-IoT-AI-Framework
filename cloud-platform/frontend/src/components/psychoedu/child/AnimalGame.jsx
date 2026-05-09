@@ -358,7 +358,7 @@ export default function AnimalGame({ onComplete }) {
     // Validate required fields
     if (!sessionId) console.error('[GAME] ERROR: sessionId is missing!')
     if (!storedChildId) console.error('[GAME] ERROR: storedChildId is missing!')
-    if (!payload.taskMetrics.accuracyRate) console.error('[GAME] ERROR: taskMetrics invalid!')
+    if (payload.taskMetrics.accuracyRate == null) console.error('[GAME] ERROR: taskMetrics invalid!')
     
     console.log('[GAME] Final payload child_id:', payload.child_id, 'session_id:', payload.session_id)
     const gatePath = parseInt(attempt, 10) >= 2 ? '/api/session/second-gate' : '/api/session/task-complete'
