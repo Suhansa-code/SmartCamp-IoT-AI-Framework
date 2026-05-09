@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import WristbandScanScreen from './components/resources/WristbandScanScreen'
 import RegistrationScreen from './components/resources/RegistrationScreen'
 import PredictionScreen from './components/resources/PredictionScreen'
+import NetworkScreen from './components/resources/NetworkScreen'
 import Navbar from './components/Navbar'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         {activeTab === 'registration' && <RegistrationScreen />}
         {activeTab === 'wristband' && <WristbandScanScreen />}
         {activeTab === 'prediction' && <PredictionScreen />}
+        {activeTab === 'network' && <NetworkScreen />}
       </div>
     </div>
   )
