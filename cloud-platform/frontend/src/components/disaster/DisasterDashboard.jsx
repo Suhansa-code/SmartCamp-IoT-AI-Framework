@@ -81,8 +81,8 @@ export default function DisasterDashboard() {
   }
 
   return (
-    <div className="min-h-screen font-['Inter','Segoe_UI',sans-serif] transition-colors duration-300 p-4.5" style={{ background: theme.bg }}>
-      <div className="w-full max-w-6xl mx-auto flex flex-col min-h-[calc(100vh-36px)] transition-all duration-300" style={{ background: theme.surface, border: `1px solid ${theme.border}`, boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)' }}>
+    <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, transition: 'background 0.3s', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
+      <div style={{ width: '100%', maxWidth: 1560, margin: '0 auto', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -92,16 +92,16 @@ export default function DisasterDashboard() {
           button:hover { opacity: 0.9; }
         `}</style>
 
-        <header className="flex items-center justify-between gap-4 shrink-0 py-3 px-5.5" style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}` }}>
-          <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full animate-blink" style={{ background: theme.red, boxShadow: `0 0 10px ${theme.red}80` }} />
+        <header style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, padding: '12px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: theme.red, boxShadow: `0 0 10px ${theme.red}80`, animation: 'blink 1.1s infinite' }} />
             <div>
-              <div className="text-xs font-black tracking-widest" style={{ color: theme.t0 }}>DISASTER CAMP TRACKING SYSTEM</div>
-              <div className="mt-1 text-[10px] tracking-wide" style={{ color: theme.t2 }}>SRI LANKA REGION · DMCS-01</div>
+              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', color: theme.t0 }}>DISASTER CAMP TRACKING SYSTEM</div>
+              <div style={{ marginTop: 4, fontSize: 10, letterSpacing: '0.16em', color: theme.t2 }}>SRI LANKA REGION · DMCS-01</div>
             </div>
           </div>
 
-          <div className="flex gap-4.5 items-center flex-wrap justify-center">
+          <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             {[
               { label: 'TOTAL CAMPS', value: '14', color: theme.t0 },
               { label: 'DISPLACED', value: totalDisplaced.toLocaleString(), color: theme.orange },
@@ -109,15 +109,15 @@ export default function DisasterDashboard() {
               { label: 'COVERAGE', value: '89%', color: theme.green },
               { label: 'CRITICAL', value: '3', color: theme.red },
             ].map((item) => (
-              <div key={item.label} className="text-center min-w-[76px]">
-                <div className="text-xl font-black leading-tight" style={{ color: item.color }}>{item.value}</div>
-                <div className="mt-1 text-[9px] tracking-widest" style={{ color: theme.t2 }}>{item.label}</div>
+              <div key={item.label} style={{ textAlign: 'center', minWidth: 76 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: item.color, lineHeight: 1.1 }}>{item.value}</div>
+                <div style={{ marginTop: 4, fontSize: 9, color: theme.t2, letterSpacing: '0.16em' }}>{item.label}</div>
               </div>
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-[10px] tracking-wider flex items-center gap-1.5" style={{ color: theme.t2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ color: tick % 2 === 0 ? theme.t1 : theme.t3 }}>●</span>
               LIVE UTC {utc}
             </div>
@@ -125,23 +125,23 @@ export default function DisasterDashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-[250px_1fr_320px] flex-1 min-h-[720px]">
-          <aside className="flex flex-col" style={{ borderRight: `1px solid ${theme.border}` }}>
-            <div className="p-4 border-b shrink-0" style={{ borderColor: theme.border }}>
-              <div className="text-[10px] tracking-widest mb-2.5" style={{ color: theme.t2 }}>ACTIVE CAMPS</div>
-              <div className="max-h-[284px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} ${theme.bg}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr 320px', flex: 1, minHeight: 720 }}>
+          <aside style={{ borderRight: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
+              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>ACTIVE CAMPS</div>
+              <div style={{ maxHeight: 284, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${theme.border} ${theme.bg}` }}>
                 {CAMPS.map((camp) => {
                   const isSelected = selected === camp.id
                   const color = { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[camp.status]
 
                   return (
-                    <button key={camp.id} onClick={() => setSelected(camp.id === selected ? null : camp.id)} className="w-full text-left p-2.5 pl-2 border-l-[3px] border-b transition-colors hover:opacity-90" style={{ background: isSelected ? `${color}10` : 'transparent', borderLeft: `3px solid ${isSelected ? color : 'transparent'}`, borderBottom: `1px solid ${theme.border}20` }}>
-                      <div className="flex items-center justify-between gap-2.5">
+                    <button key={camp.id} onClick={() => setSelected(camp.id === selected ? null : camp.id)} style={{ width: '100%', textAlign: 'left', padding: '10px 10px 10px 8px', background: isSelected ? `${color}10` : 'transparent', border: 'none', borderLeft: `3px solid ${isSelected ? color : 'transparent'}`, borderBottom: `1px solid ${theme.border}20`, cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                         <div>
-                          <div className="text-xs font-bold leading-tight" style={{ color: isSelected ? theme.t0 : theme.t1 }}>{camp.name}</div>
-                          <div className="mt-0.75 text-[9px] tracking-wide" style={{ color: theme.t2 }}>{camp.code} · {camp.type}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: isSelected ? theme.t0 : theme.t1, lineHeight: 1.3 }}>{camp.name}</div>
+                          <div style={{ marginTop: 3, fontSize: 9, color: theme.t2, letterSpacing: '0.08em' }}>{camp.code} · {camp.type}</div>
                         </div>
-                        <span className="text-[9px] font-black tracking-wide" style={{ color }}>{compactStatusLabel(camp.status)}</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, color, letterSpacing: '0.08em' }}>{compactStatusLabel(camp.status)}</span>
                       </div>
                     </button>
                   )
@@ -149,49 +149,49 @@ export default function DisasterDashboard() {
               </div>
             </div>
 
-            <div className="p-4 border-b shrink-0" style={{ borderColor: theme.border }}>
-              <div className="text-[10px] tracking-widest mb-2.5" style={{ color: theme.t2 }}>SELECTED CAMP</div>
+            <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
+              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>SELECTED CAMP</div>
               {selectedCamp && selectedDetail ? <DisasterCampSummaryPanel camp={selectedCamp} detail={selectedDetail} theme={theme} onNavigate={handleNavigate} /> : (
-                <div className="text-center text-xs leading-relaxed tracking-wide" style={{ color: theme.t3 }}>
+                <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
                   SELECT A CAMP<br />TO VIEW DETAILS
                 </div>
               )}
             </div>
 
-            <div className="p-4 flex-1 min-h-0 flex items-center justify-center">
+            <div style={{ padding: 16, flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                <div />
              </div>
           </aside>
 
-          <section className="flex flex-col min-h-[720px] max-h-[720px] border-r" style={{ background: theme.mapBg, borderColor: theme.border }}>
-            <div className="flex-1 relative min-h-0 flex items-center justify-center">
+          <section style={{ display: 'flex', flexDirection: 'column', background: theme.mapBg, borderRight: `1px solid ${theme.border}`, minHeight: 720, maxHeight: 720 }}>
+            <div style={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <DisasterGeoMap camps={CAMPS} selected={selected} onSelect={setSelected} theme={theme} />
               
-              {/* Title - Top Left */}
-              <div className="absolute top-3 left-14.5 z-5">
-                <div className="text-lg font-black tracking-wide" style={{ color: theme.t0 }}>RELIEF OPERATIONS GRID</div>
-                <div className="mt-0.5 text-[10px] tracking-widest" style={{ color: theme.cyan }}>Terrain reference aligned with live camp nodes</div>
-              </div>
+              {/* Center Title */}
+               {/* Title - Top Left */}
+               <div style={{ position: 'absolute', top: 12, left: 58, zIndex: 5 }}>
+                 <div style={{ fontSize: 18, fontWeight: 900, color: theme.t0, letterSpacing: '0.08em' }}>RELIEF OPERATIONS GRID</div>
+                 <div style={{ marginTop: 2, fontSize: 10, color: theme.cyan, letterSpacing: '0.14em' }}>Terrain reference aligned with live camp nodes</div>
+               </div>
 
-              {/* NODE STATUS - Bottom Right */}
-              <div className="absolute bottom-3 right-3 z-10 rounded-[10px] p-3 border" style={{ background: `${theme.bg}e8`, borderColor: theme.border }}>
-                <div className="text-center text-[10px] font-bold tracking-widest mb-2" style={{ color: theme.t3 }}>NODE STATUS</div>
-                <div className="grid gap-1.25">
-                  {['critical', 'high', 'medium', 'stable', 'recovery'].map((status) => (
-                    <div key={status} className="flex items-center gap-1.5 text-[10px]">
-                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[status] }} />
-                      <span className="tracking-wide flex-1" style={{ color: theme.t1 }}>{compactStatusLabel(status)}</span>
-                      <span className="text-[9px]" style={{ color: theme.t2 }}>{CAMPS.filter((camp) => camp.status === status).length}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="absolute top-2.5 right-3 z-10 text-[10px] tracking-widest px-3 py-1.25 border rounded" style={{ color: theme.t2, background: `${theme.bg}e0`, borderColor: theme.border }}>DMCS-01 · ACTIVE</div>
+               {/* NODE STATUS - Bottom Right */}
+               <div style={{ position: 'absolute', bottom: 12, right: 12, background: `${theme.bg}e8`, border: `1px solid ${theme.border}`, borderRadius: 10, padding: '10px 12px', zIndex: 10 }}>
+                 <div style={{ textAlign: 'center', color: theme.t3, fontSize: 10, letterSpacing: '0.12em', marginBottom: 8, fontWeight: 700 }}>NODE STATUS</div>
+                 <div style={{ display: 'grid', gap: 5 }}>
+                   {['critical', 'high', 'medium', 'stable', 'recovery'].map((status) => (
+                     <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
+                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[status], flexShrink: 0 }} />
+                       <span style={{ color: theme.t1, letterSpacing: '0.08em', flex: 1 }}>{compactStatusLabel(status)}</span>
+                       <span style={{ color: theme.t2, fontSize: 9 }}>{CAMPS.filter((camp) => camp.status === status).length}</span>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+              <div style={{ position: 'absolute', top: 10, right: 12, fontSize: 10, color: theme.t2, letterSpacing: '0.12em', background: `${theme.bg}e0`, padding: '5px 12px', border: `1px solid ${theme.border}`, zIndex: 10 }}>DMCS-01 · ACTIVE</div>
             </div>
 
-            <div className="border-t py-3.5 px-5.5 shrink-0" style={{ background: theme.surface, borderColor: theme.border }}>
-              <div className="flex justify-center gap-5.5 mb-3.5 flex-wrap">
+            <div style={{ borderTop: `1px solid ${theme.border}`, padding: '16px 22px 14px', flexShrink: 0, background: theme.surface }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 22, marginBottom: 14, flexWrap: 'wrap' }}>
                 <Ring value={87} label="FOOD" color={theme.green} theme={theme} />
                 <Ring value={58} label="WATER" color={theme.cyan} theme={theme} />
                 <Ring value={41} label="MEDICAL" color={theme.red} theme={theme} />
@@ -199,7 +199,7 @@ export default function DisasterDashboard() {
                 <Ring value={65} label="POWER" color={theme.yellow} theme={theme} />
               </div>
 
-              <div className="grid grid-cols-5 gap-2.5">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
                 {[
                   { label: 'DISPLACED', value: '12,480', tone: theme.orange, fill: theme.orange, percent: 72 },
                   { label: 'EVACUATED', value: '8,340', tone: theme.green, fill: theme.green, percent: 55 },
@@ -207,45 +207,45 @@ export default function DisasterDashboard() {
                   { label: 'AID REQ.', value: '89%', tone: theme.yellow, fill: theme.yellow, percent: 89 },
                   { label: 'CRITICAL', value: '3', tone: theme.red, fill: theme.red, percent: 21 },
                 ].map((item) => (
-                  <div key={item.label} className="text-center">
-                    <div className="text-[10px] tracking-widest mb-1" style={{ color: theme.t2 }}>{item.label}</div>
-                    <div className="text-lg font-black mb-1.5" style={{ color: item.tone }}>{item.value}</div>
-                    <div className="h-0.5 rounded" style={{ background: theme.border }}><div className="h-full rounded" style={{ width: `${item.percent}%`, background: item.fill, boxShadow: `0 0 4px ${item.fill}60` }} /></div>
+                  <div key={item.label} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.1em', marginBottom: 4 }}>{item.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: item.tone, marginBottom: 6 }}>{item.value}</div>
+                    <div style={{ height: 2, background: theme.border }}><div style={{ height: '100%', width: `${item.percent}%`, background: item.fill, boxShadow: `0 0 4px ${item.fill}60` }} /></div>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          <aside className="flex flex-col">
-            <div className="p-4 border-b" style={{ borderColor: theme.border }}>
-              <div className="text-[10px] tracking-widest mb-2.5" style={{ color: theme.t2 }}>DISASTER DISTRIBUTION</div>
-              <div className="flex items-center justify-center gap-3">
-                <div className="flex flex-col gap-2.5 text-right">{DONUT_SEGS.slice(2, 4).map((segment) => <div key={segment.code}><div className="text-sm font-bold" style={{ color: theme.t0 }}>{segment.label}</div><div className="text-[10px] tracking-widest" style={{ color: theme.t2 }}>{segment.code}</div></div>)}</div>
+          <aside style={{ display: 'flex', flexDirection: 'column', background: theme.surface }}>
+            <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}` }}>
+              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>DISASTER DISTRIBUTION</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'right' }}>{DONUT_SEGS.slice(2, 4).map((segment) => <div key={segment.code}><div style={{ fontSize: 13, color: theme.t0, fontWeight: 700 }}>{segment.label}</div><div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.1em' }}>{segment.code}</div></div>)}</div>
                 <DonutChart segs={DONUT_SEGS} theme={theme} />
-                <div className="flex flex-col gap-2.5">{DONUT_SEGS.slice(0, 2).map((segment) => <div key={segment.code}><div className="text-sm font-bold" style={{ color: theme.t0 }}>{segment.label}</div><div className="text-[10px] tracking-widest" style={{ color: theme.t2 }}>{segment.code}</div></div>)}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{DONUT_SEGS.slice(0, 2).map((segment) => <div key={segment.code}><div style={{ fontSize: 13, color: theme.t0, fontWeight: 700 }}>{segment.label}</div><div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.1em' }}>{segment.code}</div></div>)}</div>
               </div>
-              <div className="flex justify-around mt-2.5">{DONUT_SEGS.slice(4).map((segment) => <div key={segment.code} className="text-center"><div className="text-xs font-bold" style={{ color: theme.t1 }}>{segment.label}</div><div className="text-[10px] tracking-widest" style={{ color: theme.t3 }}>{segment.code}</div></div>)}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 10 }}>{DONUT_SEGS.slice(4).map((segment) => <div key={segment.code} style={{ textAlign: 'center' }}><div style={{ fontSize: 12, color: theme.t1, fontWeight: 700 }}>{segment.label}</div><div style={{ fontSize: 10, color: theme.t3, letterSpacing: '0.1em' }}>{segment.code}</div></div>)}</div>
             </div>
 
-            <div className="p-4 border-b" style={{ borderColor: theme.border }}>
-              <div className="text-[10px] tracking-widest mb-2.5" style={{ color: theme.t2 }}>STATISTICS</div>
-              <div className="grid grid-cols-2 gap-3.5">
+            <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}` }}>
+              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>STATISTICS</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 {[
                   { label: 'DISPLACED', value: '12,480', arrow: '↑ 8.4%', accent: theme.orange, data: DISPLACED_SPARK, sparkColor: theme.orange },
                   { label: 'AIDED', value: '9,340', arrow: '↑ 12.1%', accent: theme.green, data: AIDED_SPARK, sparkColor: theme.cyan },
                 ].map((stat) => (
                   <div key={stat.label}>
-                    <div className="text-[10px] tracking-widest mb-1.25" style={{ color: theme.t2 }}>{stat.label}</div>
-                    <div className="flex items-baseline gap-1.5 mb-1.5"><span className="text-xl font-black" style={{ color: theme.t0 }}>{stat.value}</span><span className="text-[10px]" style={{ color: stat.accent }}>{stat.arrow}</span></div>
+                    <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.1em', marginBottom: 5 }}>{stat.label}</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><span style={{ fontSize: 20, fontWeight: 800, color: theme.t0 }}>{stat.value}</span><span style={{ fontSize: 10, color: stat.accent }}>{stat.arrow}</span></div>
                     <Sparkline data={stat.data} color={stat.sparkColor} w={118} h={30} />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-4 border-b" style={{ borderColor: theme.border }}>
-              <div className="text-[10px] tracking-widest mb-2.5" style={{ color: theme.t2 }}>LIVE ALERTS</div>
+            <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}` }}>
+              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>LIVE ALERTS</div>
               {[
                 { color: theme.red, message: 'Medical critical — Galle C-2', time: '06:42', live: true },
                 { color: theme.red, message: 'Water unit failure — Batticaloa', time: '05:18', live: true },
@@ -253,17 +253,18 @@ export default function DisasterDashboard() {
                 { color: theme.yellow, message: 'Supply delay — Ratnapura', time: '04:10', live: false },
                 { color: theme.cyan, message: 'Delivery confirmed — Jaffna North', time: '03:30', live: false },
                 { color: theme.green, message: 'Rain forecast — Matara coast', time: '02:00', live: false },
-              ].map((alert) => <div key={alert.message} className="flex items-start gap-2 py-1.5 border-b" style={{ borderColor: `${theme.border}20` }}><div className="w-1.5 h-1.5 rounded-full mt-1.25 shrink-0" style={{ background: alert.color, boxShadow: `0 0 4px ${alert.color}80`, animation: alert.live ? 'blink 1.1s infinite' : 'none' }} /><span className="text-sm leading-relaxed flex-1" style={{ color: theme.t1 }}>{alert.message}</span><span className="text-[10px] tracking-wide whitespace-nowrap" style={{ color: theme.t2 }}>{alert.time}</span></div>)}
+              ].map((alert) => <div key={alert.message} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', borderBottom: `1px solid ${theme.border}20` }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: alert.color, boxShadow: `0 0 4px ${alert.color}80`, marginTop: 5, flexShrink: 0, animation: alert.live ? 'blink 1.1s infinite' : 'none' }} /><span style={{ fontSize: 12, color: theme.t1, flex: 1, lineHeight: 1.5 }}>{alert.message}</span><span style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{alert.time}</span></div>)}
             </div>
 
-            <div className="p-4 flex-1">
-              <div className="text-[10px] tracking-widest mb-2.5" style={{ color: theme.t2 }}>DISPLACEMENT TREND</div>
+            <div style={{ padding: 16, flex: 1 }}>
+              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>DISPLACEMENT TREND</div>
               <TrendChart data={TREND_DATA} color={theme.cyan} theme={theme} />
-              <div className="flex justify-between mt-1.5 text-[10px] tracking-wide" style={{ color: theme.t3 }}>{['JAN', 'MAR', 'MAY', 'JUL', 'SEP', 'NOV'].map((month) => <span key={month}>{month}</span>)}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: theme.t3, letterSpacing: '0.08em' }}>{['JAN', 'MAR', 'MAY', 'JUL', 'SEP', 'NOV'].map((month) => <span key={month}>{month}</span>)}</div>
             </div>
           </aside>
         </div>
       </div>
+
       <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }`}</style>
     </div>
   )
