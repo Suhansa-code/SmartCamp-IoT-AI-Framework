@@ -188,18 +188,6 @@ export default function DisasterCampDetailPage() {
                     </div>
                   </div>
 
-                  <div style={{ padding: '10px 12px', borderRadius: 16, background: 'rgba(7,14,25,0.72)', border: `1px solid ${theme.border}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-                      <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Weather snapshot</div>
-                      <div style={{ fontSize: 8, color: theme.orange, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{detail.rain} mm rain</div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, fontSize: 10, color: '#e7f4fb' }}>
-                      <div style={{ padding: '7px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Min temp</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.minT}°C</div></div>
-                      <div style={{ padding: '7px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Max temp</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.maxT}°C</div></div>
-                      <div style={{ padding: '7px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Humidity</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.hum}%</div></div>
-                      <div style={{ padding: '7px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pressure</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.pres} hPa</div></div>
-                    </div>
-                  </div>
 
                   <div style={{ padding: '10px 12px', borderRadius: 16, background: 'rgba(7,14,25,0.72)', border: `1px solid ${theme.border}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
@@ -245,6 +233,20 @@ export default function DisasterCampDetailPage() {
         {/* Footer Button */}
         <div style={{ marginTop: 24, display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button onClick={() => router.push('/admin/disaster')} style={{ border: `1px solid ${theme.border}`, background: theme.surface, color: theme.t1, borderRadius: 6, padding: '10px 20px', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>Back to overview</button>
+        </div>
+      </div>
+
+      {/* Docked Weather snapshot card - bottom left */}
+      <div style={{ position: 'fixed', bottom: 20, left: 20, width: 280, padding: '10px 12px', borderRadius: 16, background: 'rgba(7,14,25,0.92)', border: `1px solid ${theme.border}`, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', zIndex: 100 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+          <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Weather snapshot</div>
+          <div style={{ fontSize: 8, color: theme.orange, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{detail.rain} mm rain</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 6, fontSize: 10, color: '#e7f4fb' }}>
+          <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Min</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.minT}°</div></div>
+          <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Max</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.maxT}°</div></div>
+          <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Humidity</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.hum}%</div></div>
+          <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pressure</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.pres}hPa</div></div>
         </div>
       </div>
     </div>
