@@ -252,8 +252,8 @@ async function handleQR(childId, selectedLang = lang) {
     localStorage.setItem('preferredLanguage', selectedLang);
   }
 
-  // Redirect with both session and childId
-  router.push(`/child/instruction?session=${encodeURIComponent(sid)}&child=${encodeURIComponent(effectiveChildId)}&lang=${encodeURIComponent(selectedLang)}`);
+  // Redirect directly to task (skip instruction page as AnimalGame has built-in instructions)
+  router.push(`/child/task?session=${encodeURIComponent(sid)}&child=${encodeURIComponent(effectiveChildId)}&lang=${encodeURIComponent(selectedLang)}`);
 }
 
   function handleLanguageSelect(code) {
