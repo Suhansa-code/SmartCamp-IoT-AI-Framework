@@ -1,15 +1,12 @@
 """
 model_comparison.py
 
-Comprehensive model comparison script to evaluate which models work best.
-Compares both flood prediction models and resource prediction models.
-
-Located in: edge-gateway/prediction-models/src/
+Discover trained models saved in edge-gateway/prediction-models/models/,
+evaluate the compatible ones against the available datasets, and report the
+best saved model.
 
 Usage:
     python model_comparison.py
-    python model_comparison.py --model-type flood
-    python model_comparison.py --model-type resource
     python model_comparison.py --generate-report
 """
 
@@ -33,17 +30,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Setup paths - adjusted for edge-gateway location
-HERE = Path(__file__).parent
-EDGE_GATEWAY_ROOT = HERE.parent
+# Setup paths - centralized model storage on edge-gateway
+HERE = Path(__file__).parent  # edge-gateway/prediction-models/
+EDGE_GATEWAY_ROOT = HERE.parent  # edge-gateway/
 RESOURCES_DIR = EDGE_GATEWAY_ROOT / "resources"
+MODELS_DIR = HERE / "models"  # Central location for all trained models
+MODELS_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR = HERE / "comparison_results"
 OUTPUT_DIR.mkdir(exist_ok=True)
+DATA_DIR = HERE / "data" / "processed"
 
-# Cloud platform paths (for resource models if needed)
-CLOUD_PLATFORM_ROOT = EDGE_GATEWAY_ROOT.parent.parent / "cloud-platform" / "prediction-models"
-CLOUD_MODELS_DIR = CLOUD_PLATFORM_ROOT / "models"
-CLOUD_DATA_DIR = CLOUD_PLATFORM_ROOT / "data" / "processed"
+logger.info(f"Models directory: {MODELS_DIR}")
+logger.info(f"Resources directory: {RESOURCES_DIR}")
 
 # Import metrics
 from sklearn.metrics import (
@@ -74,16 +72,8 @@ class ModelMetrics:
 
 
 class FloodModelComparison:
-    """Compare flood prediction models"""
+    """Compare flood prediction models stored in edge-gateway/prediction-models/models/"""
     
-    MODEL_TYPES = [
-        "decision_tree_model",
-        "logistic_regression_model", 
-        "random_forest_model",
-        "xgboost_model"
-    ]
-    
-    FLOOD_MODELS_DIR = EDGE_GATEWAY_ROOT
     DATASET_PATH = RESOURCES_DIR / "sri_lanka_flood_risk_dataset_25000.csv"
     
     FEATURES = [
@@ -112,15 +102,23 @@ class FloodModelComparison:
             df = pd.read_csv(self.DATASET_PATH)
             logger.info(f"Loaded flood dataset: {df.shape}")
             
-            # Prepare features and target
-            if self.TARGET not in df.columns:
-                logger.warning(f"Target column '{self.TARGET}' not found. Using 'flood_probability'")
-                if 'flood_probability' in df.columns:
-                    df[self.TARGET] = (df['flood_probability'] > df['flood_probability'].median()).astype(int)
-            
+            # Prepare features and target.
             if all(col in df.columns for col in self.FEATURES):
-                X = df[self.FEATURES].fillna(df[self.FEATURES].mean())
-                y = df[self.TARGET]
+                X = df[self.FEATURES].fillna(df[self.FEATURES].mean(numeric_only=True))
+
+                if self.TARGET in df.columns:
+                    y = pd.to_numeric(df[self.TARGET], errors="coerce")
+                elif "flood_occurrence_current_event" in df.columns:
+                    y = df["flood_occurrence_current_event"].map({"Yes": 1, "No": 0})
+                elif "flood_probability" in df.columns:
+                    flood_probability = pd.to_numeric(df["flood_probability"], errors="coerce")
+                    y = (flood_probability > flood_probability.median()).astype(int)
+                else:
+                    logger.warning("No usable flood target column found")
+                    return
+
+                y = y.dropna()
+                X = X.loc[y.index]
                 
                 self.X_test, _, self.y_test, _ = train_test_split(
                     X, y, test_size=0.2, random_state=42
@@ -133,29 +131,42 @@ class FloodModelComparison:
             logger.error(f"Error loading data: {e}")
     
     def load_models(self) -> Dict[str, object]:
-        """Load all flood prediction models"""
-        for model_name in self.MODEL_TYPES:
-            model_path = self.FLOOD_MODELS_DIR / model_name / f"{model_name}.py"
+        """Load every saved flood model from MODELS_DIR"""
+        model_files = sorted(
+            path for path in MODELS_DIR.glob("*.pkl") if not path.name.startswith("resource_")
+        )
+
+        for model_path in model_files:
+            model_name = model_path.stem
             
             if not model_path.exists():
-                logger.warning(f"Model file not found: {model_path}")
+                logger.warning(f"Flood model not found: {model_path}")
                 continue
                 
             try:
-                # Try to load pickled model if available
-                artifact_dir = self.FLOOD_MODELS_DIR / model_name / "artifacts"
-                if artifact_dir.exists():
-                    # Look for .pkl or .joblib files
-                    pkl_files = list(artifact_dir.glob("*.pkl")) + list(artifact_dir.glob("*.joblib"))
-                    if pkl_files:
-                        model = joblib.load(pkl_files[0])
-                        self.models[model_name] = model
-                        logger.info(f"Loaded {model_name}")
-                        
+                model = joblib.load(model_path)
+                self.models[model_name] = model
+                logger.info(f"✓ Loaded flood model: {model_name}")
             except Exception as e:
                 logger.error(f"Error loading {model_name}: {e}")
         
         return self.models
+
+    def best_result(self) -> Optional[ModelMetrics]:
+        """Return the best flood model using F1, then ROC-AUC, then accuracy."""
+        if not self.results:
+            return None
+
+        ranked = sorted(
+            self.results.values(),
+            key=lambda metrics: (
+                metrics.f1 if metrics.f1 is not None else -1,
+                metrics.roc_auc if metrics.roc_auc is not None else -1,
+                metrics.accuracy if metrics.accuracy is not None else -1,
+            ),
+            reverse=True,
+        )
+        return ranked[0]
     
     def evaluate_models(self) -> Dict[str, ModelMetrics]:
         """Evaluate all loaded models"""
@@ -183,120 +194,6 @@ class FloodModelComparison:
                 
             except Exception as e:
                 logger.error(f"Error evaluating {model_name}: {e}")
-        
-        return self.results
-
-
-class ResourceModelComparison:
-    """Compare resource prediction models from cloud platform"""
-    
-    TARGET_COLS = [
-        'food_kg_day',
-        'water_liters_day', 
-        'shelter_units',
-        'medical_staff_needed'
-    ]
-    
-    def __init__(self):
-        self.models = {}
-        self.results = {}
-        self.metadata = {}
-        self.X_test = None
-        self.y_test = None
-        self._load_metadata()
-        self._load_data()
-        
-    def _load_metadata(self):
-        """Load model metadata"""
-        meta_path = CLOUD_MODELS_DIR / "resource_models_meta.json"
-        if meta_path.exists():
-            with open(meta_path, 'r') as f:
-                self.metadata = json.load(f)
-            logger.info(f"Loaded metadata for {len(self.metadata)} resource models from cloud platform")
-        else:
-            logger.warning(f"Metadata file not found at {meta_path}")
-    
-    def _load_data(self):
-        """Load resource dataset"""
-        data_file = CLOUD_DATA_DIR / "camp_features.csv"
-        if not data_file.exists():
-            logger.warning(f"Data file not found: {data_file}")
-            return
-        
-        try:
-            df = pd.read_csv(data_file)
-            logger.info(f"Loaded resource data: {df.shape}")
-            
-            # Identify feature columns
-            feature_cols = [col for col in df.columns if col not in self.TARGET_COLS]
-            
-            if feature_cols and any(target in df.columns for target in self.TARGET_COLS):
-                X = df[feature_cols].fillna(df[feature_cols].mean())
-                
-                self.X_test, _, _, _ = train_test_split(
-                    X, X, test_size=0.2, random_state=42
-                )
-                logger.info(f"Prepared test set: {self.X_test.shape}")
-                
-        except Exception as e:
-            logger.error(f"Error loading resource data: {e}")
-    
-    def load_models(self) -> Dict[str, object]:
-        """Load all trained resource models from cloud platform"""
-        for target in self.TARGET_COLS:
-            model_path = CLOUD_MODELS_DIR / f"resource_model_{target}.pkl"
-            
-            if not model_path.exists():
-                logger.warning(f"Model not found: {model_path}")
-                continue
-            
-            try:
-                model = joblib.load(model_path)
-                self.models[target] = model
-                logger.info(f"Loaded model for {target} from cloud platform")
-                
-            except Exception as e:
-                logger.error(f"Error loading model for {target}: {e}")
-        
-        return self.models
-    
-    def evaluate_models(self) -> Dict[str, ModelMetrics]:
-        """Evaluate all resource models"""
-        if len(self.models) == 0:
-            logger.warning("No resource models available")
-            return {}
-        
-        for target, model in self.models.items():
-            try:
-                # Get test data for this target
-                test_file = CLOUD_DATA_DIR / "camp_features.csv"
-                if test_file.exists():
-                    df = pd.read_csv(test_file)
-                    
-                    feature_cols = [col for col in df.columns if col not in self.TARGET_COLS]
-                    X = df[feature_cols].fillna(df[feature_cols].mean())
-                    y = df[target] if target in df.columns else None
-                    
-                    if y is not None:
-                        _, X_test, _, y_test = train_test_split(
-                            X, y, test_size=0.2, random_state=42
-                        )
-                        
-                        y_pred = model.predict(X_test)
-                        
-                        metrics = ModelMetrics(
-                            model_name=f"Resource_{target}",
-                            model_type="Resource Prediction",
-                            mae=mean_absolute_error(y_test, y_pred),
-                            rmse=np.sqrt(mean_squared_error(y_test, y_pred)),
-                            r2=r2_score(y_test, y_pred)
-                        )
-                        
-                        self.results[target] = metrics
-                        logger.info(f"{target}: R²={metrics.r2:.4f}, MAE={metrics.mae:.2f}, RMSE={metrics.rmse:.2f}")
-                        
-            except Exception as e:
-                logger.error(f"Error evaluating {target}: {e}")
         
         return self.results
 
@@ -331,7 +228,7 @@ class ComparisonReport:
         
         if df.empty:
             logger.warning("No data to save")
-            return
+            return df
         
         # Save as CSV
         csv_path = OUTPUT_DIR / "model_comparison_summary.csv"
@@ -418,7 +315,6 @@ class ComparisonReport:
         report += "MODEL COMPARISON RECOMMENDATIONS\n"
         report += "="*60 + "\n\n"
         
-        # Flood models
         flood_df = df[df['model_type'] == 'Flood Prediction'].copy()
         if not flood_df.empty:
             report += "FLOOD PREDICTION MODELS:\n"
@@ -437,67 +333,46 @@ class ComparisonReport:
                 report += f"Accuracy={row.get('accuracy', 'N/A')}, "
                 report += f"F1={row.get('f1', 'N/A')}\n"
         
-        report += "\n"
-        
-        # Resource models
-        resource_df = df[df['model_type'] == 'Resource Prediction'].copy()
-        if not resource_df.empty:
-            report += "RESOURCE PREDICTION MODELS:\n"
-            report += "-" * 40 + "\n"
-            
-            if 'r2' in resource_df.columns:
-                best_model = resource_df.loc[resource_df['r2'].idxmax()]
-                report += f"✓ Best Model (by R²): {best_model['model_name']}\n"
-                report += f"  - R² Score: {best_model.get('r2', 'N/A')}\n"
-                report += f"  - MAE: {best_model.get('mae', 'N/A')}\n"
-                report += f"  - RMSE: {best_model.get('rmse', 'N/A')}\n"
-            
-            report += "\nAll Models Performance:\n"
-            for _, row in resource_df.iterrows():
-                report += f"  {row['model_name']}: "
-                report += f"R²={row.get('r2', 'N/A')}, "
-                report += f"MAE={row.get('mae', 'N/A')}\n"
-        
         report += "\n" + "="*60 + "\n"
         
         return report
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Compare all trained models')
-    parser.add_argument('--model-type', choices=['flood', 'resource', 'all'], 
-                       default='all', help='Type of models to compare')
-    parser.add_argument('--generate-report', action='store_true', 
-                       help='Generate detailed report and visualizations')
+    parser = argparse.ArgumentParser(description='Compare saved models and find the best one')
+    parser.add_argument('--generate-report', action='store_true',
+                        help='Generate visualizations for the evaluated models')
     
     args = parser.parse_args()
     
     logger.info("Starting Model Comparison")
     logger.info("="*60)
     
-    flood_results = {}
-    resource_results = {}
-    
-    # Compare flood models
-    if args.model_type in ['flood', 'all']:
-        logger.info("\n--- Comparing Flood Models ---")
-        flood_comp = FloodModelComparison()
-        flood_comp.load_models()
-        flood_results = flood_comp.evaluate_models()
-    
-    # Compare resource models
-    if args.model_type in ['resource', 'all']:
-        logger.info("\n--- Comparing Resource Models ---")
-        resource_comp = ResourceModelComparison()
-        resource_comp.load_models()
-        resource_results = resource_comp.evaluate_models()
+    logger.info("\n--- Comparing Saved Flood Models ---")
+    flood_comp = FloodModelComparison()
+    flood_comp.load_models()
+    flood_results = flood_comp.evaluate_models()
     
     # Generate reports
     logger.info("\n--- Generating Reports ---")
-    report = ComparisonReport(flood_results, resource_results)
+    report = ComparisonReport(flood_results, {})
     summary_df = report.save_summary_report()
     
-    print("\n" + summary_df.to_string() if not summary_df.empty else "\nNo results available")
+    if summary_df is not None and not summary_df.empty:
+        print("\n" + summary_df.to_string())
+    else:
+        print("\nNo results available")
+
+    best_result = flood_comp.best_result()
+    if best_result is not None:
+        print(
+            "\nBest saved model: "
+            f"{best_result.model_name} (F1={best_result.f1:.4f}, "
+            f"ROC-AUC={best_result.roc_auc:.4f}, Accuracy={best_result.accuracy:.4f})"
+        )
+    else:
+        print("\nNo flood models could be evaluated")
+
     print(report.generate_recommendations())
     
     if args.generate_report:

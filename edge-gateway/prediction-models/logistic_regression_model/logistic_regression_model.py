@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -32,6 +33,11 @@ MODEL_FEATURES = [
 ]
 
 CHARTS_OUTPUT_DIR = Path(__file__).resolve().parent / "artifacts"
+
+# Centralized model storage
+MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
+MODELS_DIR.mkdir(exist_ok=True)
+MODEL_SAVE_PATH = MODELS_DIR / "logistic_regression_model.pkl"
 
 
 @dataclass
@@ -99,6 +105,10 @@ class LocationAwareFloodLogisticModel:
             "test_size": int(len(x_test)),
             "charts_output_dir": str(CHARTS_OUTPUT_DIR),
         }
+        
+        # Save trained model to centralized models folder
+        self.save()
+        
         return self.metrics_
 
     def _save_accuracy_charts(
@@ -154,6 +164,18 @@ class LocationAwareFloodLogisticModel:
         plt.savefig(chart_dir / "confusion_matrix.png", dpi=150)
         plt.close()
 
+    def save(self, output_path: Optional[Path] = None) -> str:
+        """Save trained model to centralized models folder"""
+        if not self._is_trained:
+            raise RuntimeError("Cannot save untrained model. Call train() first.")
+        
+        save_path = output_path or MODEL_SAVE_PATH
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        joblib.dump(self.pipeline, save_path)
+        print(f"✓ Model saved to: {save_path}")
+        return str(save_path)
+    
     def _require_trained(self) -> None:
         if not self._is_trained:
             raise RuntimeError("Model is not trained. Call train() before prediction.")
@@ -257,9 +279,12 @@ class LocationAwareFloodLogisticModel:
 if __name__ == "__main__":
     model = LocationAwareFloodLogisticModel()
     metrics = model.train()
-    print("Training metrics (AUC):", round(metrics["roc_auc"], 4))
-    print("Charts saved to:", metrics["charts_output_dir"])
+    print(f"\n📊 Training Complete")
+    print(f"   AUC Score: {round(metrics['roc_auc'], 4)}")
+    print(f"   Charts saved to: {metrics['charts_output_dir']}")
+    print(f"   Model saved to: {MODEL_SAVE_PATH}")
 
+    print(f"\n🔮 Sample Prediction:")
     sample = model.predict_one(
         rainfall_mm=160.0,
         longitude=80.945,
@@ -270,4 +295,7 @@ if __name__ == "__main__":
         gauging_station_current_water_level_m=2.3,
         is_forecast=True,
     )
-    print(sample)
+    print(f"   Flood Possibility: {sample.flood_possibility}")
+    print(f"   Risk Category: {sample.category}")
+    print(f"   Probability: {sample.probability:.3f}")
+    print(f"   Forecast Probability: {sample.future_forecast['probability']:.3f}")

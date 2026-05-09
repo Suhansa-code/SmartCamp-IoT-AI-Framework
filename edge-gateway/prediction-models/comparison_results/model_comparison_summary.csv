@@ -1,0 +1,5 @@
+model_name,model_type,accuracy,precision,recall,f1,roc_auc
+decision_tree_model,Flood Prediction,0.6973,0.2246,0.8309,0.3536,0.8404
+logistic_regression_model,Flood Prediction,0.7093,0.2064,0.6739,0.316,0.7758
+random_forest_model,Flood Prediction,0.8002,0.3086,0.8108,0.4471,0.8857
+xgboost_model,Flood Prediction,0.8242,0.3501,0.8926,0.503,0.9272
