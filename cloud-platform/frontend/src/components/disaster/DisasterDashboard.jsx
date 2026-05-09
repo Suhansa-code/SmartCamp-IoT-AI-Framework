@@ -159,38 +159,35 @@ export default function DisasterDashboard() {
             </div>
 
             <div style={{ padding: 16, flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ textAlign: 'center', color: theme.t3, fontSize: 12, lineHeight: 1.8, letterSpacing: '0.08em' }}>
-                NODE STATUS
-                <div style={{ marginTop: 12, display: 'grid', gap: 6, textAlign: 'left' }}>
-                  {['critical', 'high', 'medium', 'stable', 'recovery'].map((status) => (
-                    <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
-                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[status], flexShrink: 0 }} />
-                      <span style={{ color: theme.t1, letterSpacing: '0.08em', flex: 1 }}>{compactStatusLabel(status)}</span>
-                      <span style={{ color: theme.t2, fontSize: 10 }}>{CAMPS.filter((camp) => camp.status === status).length}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+               <div />
+             </div>
           </aside>
 
-          <section style={{ display: 'flex', flexDirection: 'column', background: theme.mapBg, borderRight: `1px solid ${theme.border}` }}>
-            <div style={{ position: 'relative', height: 154, overflow: 'hidden', flexShrink: 0, borderBottom: `1px solid ${theme.border}` }}>
-              <img src="/disaster/terrain-topography.jpg" alt="Sri Lanka terrain topography" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: mode === 'dark' ? 0.8 : 0.55, filter: 'saturate(0.85) contrast(1.05)' }} />
-              <div style={{ position: 'absolute', inset: 0, background: mode === 'dark' ? 'linear-gradient(to bottom, transparent 35%, rgba(3,8,15,0.98) 100%)' : 'linear-gradient(to bottom, rgba(238,244,248,0) 35%, rgba(238,244,248,0.98) 100%)' }} />
-              <div style={{ position: 'absolute', bottom: 14, left: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ fontSize: 18, fontWeight: 900, color: mode === 'dark' ? '#e8f6ff' : '#0f2336', letterSpacing: '0.06em' }}>Relief Operations Grid</div>
-                <div style={{ fontSize: 10, color: theme.cyan, letterSpacing: '0.14em' }}>Terrain reference aligned with live camp nodes</div>
-              </div>
-              <div style={{ position: 'absolute', top: 14, right: 16, fontSize: 10, color: theme.t2, letterSpacing: '0.14em' }}>DMCS-01 · ACTIVE</div>
-            </div>
-
-            <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+          <section style={{ display: 'flex', flexDirection: 'column', background: theme.mapBg, borderRight: `1px solid ${theme.border}`, minHeight: 720, maxHeight: 720 }}>
+            <div style={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <DisasterGeoMap camps={CAMPS} selected={selected} onSelect={setSelected} theme={theme} />
-              <div style={{ position: 'absolute', top: 10, right: 12, fontSize: 10, color: theme.t2, letterSpacing: '0.12em', background: `${theme.bg}e0`, padding: '5px 12px', border: `1px solid ${theme.border}` }}>RELIEF OPERATIONS GRID</div>
-              <div style={{ position: 'absolute', top: 10, left: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {['+', '−', '⊙'].map((label) => <button key={label} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>{label}</button>)}
-              </div>
+              
+              {/* Center Title */}
+               {/* Title - Top Left */}
+               <div style={{ position: 'absolute', top: 12, left: 58, zIndex: 5 }}>
+                 <div style={{ fontSize: 18, fontWeight: 900, color: theme.t0, letterSpacing: '0.08em' }}>RELIEF OPERATIONS GRID</div>
+                 <div style={{ marginTop: 2, fontSize: 10, color: theme.cyan, letterSpacing: '0.14em' }}>Terrain reference aligned with live camp nodes</div>
+               </div>
+
+               {/* NODE STATUS - Bottom Right */}
+               <div style={{ position: 'absolute', bottom: 12, right: 12, background: `${theme.bg}e8`, border: `1px solid ${theme.border}`, borderRadius: 10, padding: '10px 12px', zIndex: 10 }}>
+                 <div style={{ textAlign: 'center', color: theme.t3, fontSize: 10, letterSpacing: '0.12em', marginBottom: 8, fontWeight: 700 }}>NODE STATUS</div>
+                 <div style={{ display: 'grid', gap: 5 }}>
+                   {['critical', 'high', 'medium', 'stable', 'recovery'].map((status) => (
+                     <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
+                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[status], flexShrink: 0 }} />
+                       <span style={{ color: theme.t1, letterSpacing: '0.08em', flex: 1 }}>{compactStatusLabel(status)}</span>
+                       <span style={{ color: theme.t2, fontSize: 9 }}>{CAMPS.filter((camp) => camp.status === status).length}</span>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+              <div style={{ position: 'absolute', top: 10, right: 12, fontSize: 10, color: theme.t2, letterSpacing: '0.12em', background: `${theme.bg}e0`, padding: '5px 12px', border: `1px solid ${theme.border}`, zIndex: 10 }}>DMCS-01 · ACTIVE</div>
             </div>
 
             <div style={{ borderTop: `1px solid ${theme.border}`, padding: '16px 22px 14px', flexShrink: 0, background: theme.surface }}>

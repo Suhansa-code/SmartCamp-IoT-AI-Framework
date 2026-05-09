@@ -1,13 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { statusColor } from './disasterData'
 
 const COAST = [[9.84, 80.15], [9.78, 80.27], [9.70, 80.37], [9.62, 80.44], [9.55, 80.48], [9.45, 80.56], [9.35, 80.61], [9.20, 80.68], [9.08, 80.73], [8.98, 80.79], [8.85, 80.84], [8.72, 80.87], [8.58, 80.89], [8.42, 80.92], [8.28, 80.94], [8.15, 80.90], [8.00, 80.87], [7.90, 80.80], [7.78, 80.72], [7.65, 80.66], [7.52, 80.60], [7.38, 80.52], [7.22, 80.42], [7.08, 80.35], [6.95, 80.25], [6.82, 80.12], [6.70, 79.98], [6.60, 79.88], [6.50, 79.82], [6.42, 79.78], [6.30, 79.73], [6.20, 79.77], [6.12, 79.82], [6.05, 79.88], [5.98, 79.96], [5.93, 80.05], [5.90, 80.15], [5.92, 80.25], [5.95, 80.35], [6.00, 80.45], [6.08, 80.55], [6.18, 80.65], [6.30, 80.75], [6.42, 80.83], [6.55, 80.90], [6.65, 80.95], [6.75, 81.00], [6.88, 81.05], [7.02, 81.10], [7.18, 81.12], [7.32, 81.15], [7.48, 81.17], [7.62, 81.18], [7.75, 81.20], [7.88, 81.22], [8.02, 81.24], [8.15, 81.25], [8.28, 81.22], [8.40, 81.20], [8.52, 81.15], [8.62, 81.10], [8.72, 81.05], [8.82, 81.00], [8.92, 80.95], [9.02, 80.88], [9.12, 80.82], [9.22, 80.75], [9.32, 80.70], [9.42, 80.65], [9.52, 80.60], [9.60, 80.52], [9.68, 80.44], [9.74, 80.36], [9.79, 80.28], [9.84, 80.15]]
 const PROVS = [[[9.67, 80.01], [8.76, 80.50]], [[8.76, 80.50], [8.34, 80.41]], [[8.34, 80.41], [7.48, 80.37]], [[7.48, 80.37], [7.29, 80.64]], [[7.29, 80.64], [6.92, 79.86]], [[7.29, 80.64], [7.30, 81.50]], [[8.34, 80.41], [8.58, 81.22]], [[7.48, 80.37], [6.68, 80.40]], [[6.68, 80.40], [6.03, 80.22]]]
 
 function project(lat, lng, width, height, pad = 44) {
-  return [pad + ((lng - 79.5) / 2.5) * (width - pad * 2), (height - pad * 0.8) - ((lat - 5.7) / 4.4) * (height - pad * 1.6)]
+  const x = pad + ((lng - 79.5) / 2.5) * (width - pad * 2)
+  const y = (height - pad * 0.8) - ((lat - 5.7) / 4.4) * (height - pad * 1.6)
+  return [x, y]
 }
 
 export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
@@ -15,8 +17,13 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
   const animationRef = useRef(0)
   const frameRef = useRef(0)
   const bgImageRef = useRef(null)
+  const [zoom, setZoom] = useState(1)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState(null)
 
-  const proj = useCallback(project, [])
+  const proj = useCallback((lat, lng, width, height) => project(lat, lng, width, height, 44), [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -48,6 +55,12 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const width = canvas.width / dpr
       const height = canvas.height / dpr
+      const centerX = width / 2
+      const centerY = height / 2
+
+      ctx.translate(centerX + panX, centerY + panY)
+      ctx.scale(zoom, zoom)
+      ctx.translate(-centerX, -centerY)
 
       // Draw background image or fallback color
       if (bgImageRef.current) {
@@ -92,16 +105,6 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
         ctx.fillText(`${lng}°E`, ax, ay + 11)
       }
 
-      ctx.save()
-      const landPoints = COAST.map(([lat, lng]) => proj(lat, lng, width, height))
-      ctx.beginPath()
-      landPoints.forEach(([x, y], index) => (index ? ctx.lineTo(x, y) : ctx.moveTo(x, y)))
-      ctx.closePath()
-      ctx.strokeStyle = theme.mapBorder
-      ctx.lineWidth = 1
-      ctx.stroke()
-      ctx.restore()
-
       ctx.setLineDash([3, 5])
       ctx.lineWidth = 0.6
       ctx.strokeStyle = theme.mode === 'dark' ? '#0b2030' : '#90b8d0'
@@ -111,8 +114,6 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
         ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
       })
       ctx.setLineDash([])
-
-
 
       if (selected) {
         const selectedCamp = camps.find((camp) => camp.id === selected)
@@ -169,10 +170,10 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
         ctx.lineJoin = 'round'
         ctx.strokeRect(cx - 8, labelY - 6, 16, 10)
         ctx.fillStyle = color
-        ctx.fillText(statusText, cx, labelY)
+        ctx.fillText(statusText, cx, labelY + 2)
         
         // Camp code below point
-        ctx.font = `${isSelected ? '8.5' : '8'}px Inter, sans-serif`
+        ctx.font = `${isSelected ? 8.5 : 8}px Inter, sans-serif`
         ctx.fillStyle = isSelected ? color : theme.t2
         ctx.textAlign = 'center'
         ctx.fillText(camp.code, cx, cy + radius + 10)
@@ -188,7 +189,7 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
       ctx.strokeStyle = theme.t2
       ctx.lineWidth = 0.8
       ctx.beginPath(); ctx.moveTo(start, y2); ctx.lineTo(end, y2); ctx.stroke()
-      ;[start, end].forEach((x) => { ctx.beginPath(); ctx.moveTo(x, y2 - 3); ctx.lineTo(x, y2 + 3); ctx.stroke() })
+      ;[[start, y2], [end, y2]].forEach(([x, y]) => { ctx.beginPath(); ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3); ctx.stroke() })
       ctx.fillStyle = theme.t2
       ctx.textAlign = 'center'
       ctx.fillText('≈ 50 km', (start + end) / 2, y2 - 5)
@@ -205,7 +206,7 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
 
   const handleClick = useCallback((event) => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas || isDragging) return
 
     const dpr = window.devicePixelRatio || 1
     const rect = canvas.getBoundingClientRect()
@@ -213,15 +214,61 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
     const mouseY = event.clientY - rect.top
     const width = canvas.width / dpr
     const height = canvas.height / dpr
+    const centerX = width / 2
+    const centerY = height / 2
     let hit = null
 
     camps.forEach((camp) => {
       const [cx, cy] = proj(camp.lat, camp.lng, width, height)
-      if (Math.hypot(mouseX - cx, mouseY - cy) < 14) hit = camp.id
+      const viewX = (cx - centerX) * zoom + centerX + panX
+      const viewY = (cy - centerY) * zoom + centerY + panY
+      if (Math.hypot(mouseX - viewX, mouseY - viewY) < 14 * zoom) hit = camp.id
     })
 
     onSelect(hit === selected ? null : hit)
-  }, [camps, selected, onSelect, proj])
+  }, [camps, selected, onSelect, proj, isDragging, zoom, panX, panY])
 
-  return <canvas ref={canvasRef} onClick={handleClick} style={{ display: 'block', width: '100%', height: '100%', cursor: 'crosshair' }} />
+    const handleMouseDown = useCallback((event) => {
+      setIsDragging(true)
+      setDragStart({ x: event.clientX, y: event.clientY })
+    }, [])
+
+    const handleMouseMove = useCallback((event) => {
+      if (!isDragging || !dragStart) return
+      const dx = event.clientX - dragStart.x
+      const dy = event.clientY - dragStart.y
+      setPanX((px) => px + dx)
+      setPanY((py) => py + dy)
+      setDragStart({ x: event.clientX, y: event.clientY })
+    }, [isDragging, dragStart])
+
+    const handleMouseUp = useCallback(() => {
+      setIsDragging(false)
+      setDragStart(null)
+    }, [])
+
+    const handleCenterMap = useCallback(() => {
+      setZoom(1)
+      setPanX(0)
+      setPanY(0)
+    }, [])
+
+    return (
+      <>
+        <canvas 
+          ref={canvasRef} 
+          onClick={handleClick}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ display: 'block', width: '100%', height: '100%', cursor: isDragging ? 'grabbing' : 'crosshair' }} 
+        />
+        <div style={{ position: 'absolute', top: 10, left: 12, display: 'flex', flexDirection: 'column', gap: 5, zIndex: 10 }}>
+          <button onClick={() => setZoom((z) => Math.min(3, z * 1.2))} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>+</button>
+          <button onClick={() => setZoom((z) => Math.max(0.5, z * 0.85))} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>−</button>
+          <button onClick={handleCenterMap} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>⊙</button>
+        </div>
+      </>
+    )
 }
