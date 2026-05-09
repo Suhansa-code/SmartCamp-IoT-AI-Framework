@@ -151,21 +151,24 @@ function getNetworkState() {
 // to produce final QoS. This is the visible "magic" of SAAMP.
 
 function decideAdaptiveQoS(priority, baseQos, networkState) {
-  // CRITICAL network → buffer everything except CRITICAL
+  // CRITICAL network → buffer everything except CRITICAL priority.
+  // Use QoS 1 (not 2): on a failing network, the 2-message QoS 1 handshake
+  // has a higher success rate than QoS 2's 4-message exchange.
   if (networkState === 'CRITICAL') {
-    if (priority === 'CRITICAL') return { qos: 2, action: 'publish' };
+    if (priority === 'CRITICAL') return { qos: 1, action: 'publish' };
     return { qos: baseQos, action: 'buffer' };
   }
 
   // DEGRADED network → upgrade QoS to protect deliveries
   if (networkState === 'DEGRADED') {
-    if (priority === 'LOW') return { qos: 1, action: 'publish' };
-    if (priority === 'MEDIUM') return { qos: 1, action: 'publish' };
-    if (priority === 'HIGH') return { qos: 2, action: 'publish' };
+    if (priority === 'LOW')      return { qos: 1, action: 'publish' };
+    if (priority === 'MEDIUM')   return { qos: 1, action: 'publish' };
+    if (priority === 'HIGH')     return { qos: 2, action: 'publish' };
     if (priority === 'CRITICAL') return { qos: 2, action: 'publish' };
   }
 
-  // STABLE — use semantic base QoS as-is
+  // STABLE — network is healthy: use full semantic base QoS.
+  // CRITICAL messages (base QoS 2) get exactly-once delivery when the network can support it.
   return { qos: baseQos, action: 'publish' };
 }
 

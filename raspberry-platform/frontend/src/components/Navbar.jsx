@@ -5,6 +5,7 @@ function Navbar({ activeTab, setActiveTab }) {
     { id: "registration", label: "Registration" },
     { id: "wristband", label: "Wristband Distribution" },
     { id: "prediction", label: "AI Predictions" },
+    { id: "network", label: "Network QoS" },
   ];
 
   return (

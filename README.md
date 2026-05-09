@@ -94,12 +94,3 @@
 
 # AI: Use TensorFlow Lite for edge prediction to minimize latency.
 
-
-
-
-
-<!-- ❯ Can you go though my model and create what are the inputs do i need in my prediction frontend frontend path is  
-  /home/suhansa-kashmira/Documents/SmartCamp-IoT-AI-Framework/raspberry-platform/frontend/src/components/resources    and backend is in           
-  rassberrypie and need to create buffer for sync during the low network the registration data and other model need data need to be get from the  
-  locl env (rassberry pie) and then it go to the brocker and then go to the cloud vm in there is my prediction dydtem is deployed inside the      
-  container and predicted  result need to be showd in admin dashboard   -->
