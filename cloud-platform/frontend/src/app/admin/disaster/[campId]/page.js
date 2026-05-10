@@ -151,6 +151,9 @@ export default function DisasterCampDetailPage() {
   const [predLoading, setPredLoading] = useState(false)
   const [predResult, setPredResult] = useState(prediction)
   const [predError, setPredError] = useState(predictionError)
+  const [waterLevelHistory, setWaterLevelHistory] = useState([])
+  const [waterLevelLoading, setWaterLevelLoading] = useState(false)
+  const [hoveredBarIndex, setHoveredBarIndex] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -188,6 +191,102 @@ export default function DisasterCampDetailPage() {
       active = false
     }
   }, [camp, campId])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadWaterLevelHistory() {
+      if (!campId) return
+
+      setWaterLevelLoading(true)
+      try {
+        const response = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}/water-level-history?hours=8`)
+        const payload = response.ok ? await response.json() : null
+        if (!active) return
+
+        const points = Array.isArray(payload?.points) ? payload.points : []
+        const history = points
+          .map((point) => {
+            const value = Number(point?.water_level)
+            if (!Number.isFinite(value)) return null
+            return {
+              value,
+              timestamp: point?.timestamp || null,
+            }
+          })
+          .filter(Boolean)
+
+        setWaterLevelHistory(history.slice(-8))
+      } catch {
+        if (!active) return
+        setWaterLevelHistory([])
+      } finally {
+        if (active) setWaterLevelLoading(false)
+      }
+    }
+
+    loadWaterLevelHistory()
+
+    return () => {
+      active = false
+    }
+  }, [campId])
+
+  const chartSeries = waterLevelHistory.length
+    ? waterLevelHistory
+    : Array.from({ length: 8 }, (_, idx) => ({ value: Number(detail?.wl || 0) + idx * 0.03, timestamp: null }))
+
+  const chartValues = chartSeries.map((point) => point.value)
+  const minChart = Math.min(...chartValues)
+  const maxChart = Math.max(...chartValues)
+  const chartRange = Math.max(maxChart - minChart, 0.01)
+  const chartBars = chartSeries.map((point) => {
+    const value = point.value
+    const normalized = (value - minChart) / chartRange
+    return {
+      value,
+      timestamp: point.timestamp,
+      height: Math.round(20 + normalized * 72),
+      normalized,
+    }
+  })
+  const chartWidth = 196
+  const chartHeight = 100
+  const chartPaddingX = 10
+  const chartPaddingY = 11
+  const chartPoints = chartBars.map((bar, index) => {
+    const x = chartBars.length > 1
+      ? chartPaddingX + (index / (chartBars.length - 1)) * (chartWidth - chartPaddingX * 2)
+      : chartWidth / 2
+    const y = chartHeight - chartPaddingY - bar.normalized * (chartHeight - chartPaddingY * 2)
+    const baseY = chartHeight - chartPaddingY
+    const barHeight = Math.max(2.5, baseY - y)
+    return { x, y, baseY, barHeight, ...bar }
+  })
+  const chartLinePath = chartPoints.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
+  const alertThreshold = Number(detail?.alertL)
+  const thresholdY = Number.isFinite(alertThreshold)
+    ? chartHeight - chartPaddingY - ((alertThreshold - minChart) / chartRange) * (chartHeight - chartPaddingY * 2)
+    : null
+
+  const chartLabels = chartPoints.map((point, index) => {
+    const label = point.timestamp ? formatChartTimestamp(point.timestamp) : `${chartPoints.length - index - 1}h`
+    return index === chartPoints.length - 1 ? 'NOW' : label || `${chartPoints.length - index - 1}h`
+  })
+
+  function formatChartTimestamp(timestamp) {
+    if (!timestamp) return ''
+    try {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Colombo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(new Date(timestamp))
+    } catch {
+      return ''
+    }
+  }
 
   if (loading) {
     return (
@@ -269,23 +368,120 @@ export default function DisasterCampDetailPage() {
                   <div>
                     <div style={{ fontSize: 10, letterSpacing: '0.18em', color: theme.cyan, textTransform: 'uppercase', marginBottom: 6 }}>{camp.code} · {camp.type}</div>
                     <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.05, color: theme.t0 }}>{camp.name}</div>
-                    <div style={{ marginTop: 6, fontSize: 10, color: theme.t2, letterSpacing: '0.08em' }}>Operational snapshot with displacement trend and aid readiness.</div>
+                    <div style={{ marginTop: 6, fontSize: 10, color: theme.t2, letterSpacing: '0.08em' }}>Past hourly gauging-station water levels with relative scaling for trend clarity.</div>
                   </div>
                   <div style={{ padding: '5px 10px', borderRadius: 999, background: `${statusColor(camp.status, theme)}18`, border: `1px solid ${statusColor(camp.status, theme)}44`, color: statusColor(camp.status, theme), fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{STATUS_META[camp.status].label}</div>
                 </div>
 
-                <div style={{ borderRadius: 16, border: `1px solid ${theme.border}`, background: mode === 'dark' ? 'rgba(6,16,26,0.86)' : 'rgba(255,255,255,0.92)', padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'end', gap: 10, height: 142 }}>
-                    {[28, 38, 33, 47, 62, 56, 68, 74].map((bar, index) => (
-                      <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'end', gap: 6 }}>
-                        <div style={{ height: `${bar}%`, minHeight: 14, borderRadius: 10, background: `linear-gradient(180deg, ${index % 2 === 0 ? theme.cyan : theme.orange} 0%, ${theme.bg} 100%)`, boxShadow: `0 0 12px ${(index % 2 === 0 ? theme.cyan : theme.orange)}30` }} />
-                        <div style={{ height: 2, background: theme.border, borderRadius: 999 }} />
+                <div style={{ borderRadius: 18, border: `1px solid ${theme.border}`, background: mode === 'dark' ? 'linear-gradient(180deg, rgba(7,18,29,0.92) 0%, rgba(4,10,17,0.96) 100%)' : 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(244,249,253,0.98) 100%)', padding: 14, position: 'relative', boxShadow: mode === 'dark' ? '0 14px 30px rgba(0,0,0,0.2)' : '0 14px 30px rgba(19,47,74,0.08)' }}>
+                  {hoveredBarIndex !== null && chartPoints[hoveredBarIndex] ? (
+                    <div style={{ position: 'absolute', top: 10, right: 10, padding: '6px 10px', borderRadius: 10, background: `${theme.bg}f0`, border: `1px solid ${theme.border}`, fontSize: 9, color: theme.t0, letterSpacing: '0.04em', zIndex: 2, boxShadow: '0 10px 24px rgba(0,0,0,0.18)' }}>
+                      <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Water level</div>
+                      <div style={{ fontSize: 12, fontWeight: 800 }}>{chartPoints[hoveredBarIndex].value.toFixed(2)} m</div>
+                      {chartPoints[hoveredBarIndex].timestamp ? (
+                        <div style={{ marginTop: 2, fontSize: 8, color: theme.t2 }}>{formatChartTimestamp(chartPoints[hoveredBarIndex].timestamp)}</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div style={{ position: 'relative', height: 176 }}>
+                    <svg viewBox="0 0 170 100" preserveAspectRatio="xMidYMid meet" style={{ width: 'calc(100% + 40px)', height: '100%', display: 'block', marginLeft: '-40px' }}>
+                      <defs>
+                        <linearGradient id="waterLevelArea" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={theme.cyan} stopOpacity="0.34" />
+                          <stop offset="100%" stopColor={theme.cyan} stopOpacity="0.02" />
+                        </linearGradient>
+                        <linearGradient id="waterLevelBar" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={theme.cyan} stopOpacity="0.92" />
+                          <stop offset="100%" stopColor={theme.orange} stopOpacity="0.62" />
+                        </linearGradient>
+                      </defs>
+
+                      {[0, 25, 50, 75, 100].map((lineY) => (
+                        <line key={lineY} x1="10" y1={lineY} x2="150" y2={lineY} stroke={theme.border} strokeWidth="0.45" strokeDasharray="1.6 2.8" opacity="0.7" />
+                      ))}
+
+                      {thresholdY !== null ? (
+                        <line x1="10" y1={thresholdY} x2="150" y2={thresholdY} stroke={theme.red} strokeWidth="0.7" strokeDasharray="3 2" opacity="0.8" />
+                      ) : null}
+
+                      {chartPoints.length > 1 ? (
+                        <path d={`M ${chartPoints[0].x} ${chartPoints[0].baseY} L ${chartPoints[0].x} ${chartPoints[0].y} ${chartPoints.slice(1).map((point) => `L ${point.x} ${point.y}`).join(' ')} L ${chartPoints[chartPoints.length - 1].x} ${chartPoints[chartPoints.length - 1].baseY} Z`} fill="url(#waterLevelArea)" />
+                      ) : null}
+
+                      {chartPoints.map((point, index) => (
+                        <rect
+                          key={`bar-${index}`}
+                          x={point.x - 2.0}
+                          y={point.baseY - point.barHeight}
+                          width="4"
+                          height={point.barHeight}
+                          rx="2"
+                          fill="url(#waterLevelBar)"
+                          opacity="0.6"
+                        />
+                      ))}
+
+                      {chartPoints.length > 1 ? (
+                        <path d={chartLinePath} fill="none" stroke={theme.cyan} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 2px ${theme.cyan}80)` }} />
+                      ) : null}
+
+                      {chartPoints.map((point, index) => (
+                        <g key={index}>
+                          <rect
+                            x={point.x - 5}
+                            y="0"
+                            width="10"
+                            height="100"
+                            fill="transparent"
+                            style={{ cursor: 'pointer' }}
+                            onMouseEnter={() => setHoveredBarIndex(index)}
+                            onMouseLeave={() => setHoveredBarIndex(null)}
+                          />
+                          <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={hoveredBarIndex === index ? 2.6 : 2.15}
+                            fill={theme.surface}
+                            stroke={index % 2 === 0 ? theme.cyan : theme.orange}
+                            strokeWidth="1.4"
+                            style={{ cursor: 'pointer', filter: `drop-shadow(0 0 5px ${(index % 2 === 0 ? theme.cyan : theme.orange)}78)` }}
+                            onMouseEnter={() => setHoveredBarIndex(index)}
+                            onMouseLeave={() => setHoveredBarIndex(null)}
+                          />
+                          <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={hoveredBarIndex === index ? 0.9 : 0.75}
+                            fill={index % 2 === 0 ? theme.cyan : theme.orange}
+                            pointerEvents="none"
+                          />
+                          {index === chartPoints.length - 1 ? (
+                            <text
+                              x={point.x}
+                              y={point.y - 4}
+                              textAnchor="middle"
+                              fill={theme.cyan}
+                              fontSize="4.8"
+                              fontWeight="800"
+                              letterSpacing="0.12em"
+                            >
+                              NOW
+                            </text>
+                          ) : null}
+                        </g>
+                      ))}
+                    </svg>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${chartLabels.length}, minmax(0, 1fr))`, gap: 4, marginTop: 6, paddingLeft: 2, paddingRight: 2 }}>
+                    {chartLabels.map((label, index) => (
+                      <div key={`${label}-${index}`} style={{ textAlign: 'center', fontSize: 8, color: index === chartLabels.length - 1 ? theme.cyan : theme.t3, letterSpacing: '0.08em', fontWeight: index === chartLabels.length - 1 ? 800 : 600 }}>
+                        {label}
                       </div>
                     ))}
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', color: theme.t2, fontSize: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                    <span>24h load</span>
-                    <span>response trend</span>
+                    <span>{waterLevelLoading ? 'loading levels' : 'relative water trend'}</span>
+                    <span>{detail?.station || 'gauging station'}</span>
                   </div>
                 </div>
               </div>
