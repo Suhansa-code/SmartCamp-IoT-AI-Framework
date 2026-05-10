@@ -248,9 +248,9 @@ export default function DisasterCampDetailPage() {
 
       {/* Main Content */}
       <div style={{ maxWidth: 1560, margin: '0 auto', padding: 18 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 16, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 16, alignItems: 'stretch' }}>
           {/* Left Column */}
-          <div style={{ display: 'grid', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%' }}>
             <div style={{ position: 'relative', minHeight: 320, borderRadius: 18, overflow: 'hidden', border: `1px solid ${theme.border}`, background: `linear-gradient(180deg, ${theme.surface} 0%, ${theme.bg} 100%)`, boxShadow: mode === 'dark' ? '0 18px 42px rgba(0,0,0,0.28)' : '0 18px 42px rgba(19,47,74,0.1)' }}>
               <div style={{ position: 'absolute', inset: 0, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -279,37 +279,27 @@ export default function DisasterCampDetailPage() {
               </div>
             </div>
 
-            <Section title="Camp snapshot" theme={theme}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-                <InfoCard label="Displaced" value={camp.displaced.toLocaleString()} tone={theme.orange} theme={theme} />
-                <InfoCard label="Capacity" value={camp.capacity.toLocaleString()} tone={theme.t0} theme={theme} />
-                <InfoCard label="Occupancy" value={`${occupancy}%`} tone={theme.yellow} theme={theme} />
-                <InfoCard label="Aid coverage" value={`${camp.aid}%`} tone={theme.green} theme={theme} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                <Section title="Camp snapshot" theme={theme}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, height: '100%' }}>
+                    <InfoCard label="Displaced" value={camp.displaced.toLocaleString()} tone={theme.orange} theme={theme} style={{ height: '100%' }} />
+                    <InfoCard label="Capacity" value={camp.capacity.toLocaleString()} tone={theme.t0} theme={theme} style={{ height: '100%' }} />
+                    <InfoCard label="Occupancy" value={`${occupancy}%`} tone={theme.yellow} theme={theme} style={{ height: '100%' }} />
+                    <InfoCard label="Aid coverage" value={`${camp.aid}%`} tone={theme.green} theme={theme} style={{ height: '100%' }} />
+                  </div>
+                </Section>
+
+                <Section title="Camp details" theme={theme}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Row label="Camp code" value={camp.code} tone={theme.t0} theme={theme} />
+                    <Row label="Disaster type" value={camp.type} tone={theme.t0} theme={theme} />
+                    <Row label="Workers" value={camp.workers} tone={theme.cyan} theme={theme} />
+                    <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={theme.t0} theme={theme} />
+                  </div>
+                </Section>
               </div>
-            </Section>
-
-            <Section title="Camp details" theme={theme}>
-              <Row label="Camp code" value={camp.code} tone={theme.t0} theme={theme} />
-              <Row label="Disaster type" value={camp.type} tone={theme.t0} theme={theme} />
-              <Row label="Workers" value={camp.workers} tone={theme.cyan} theme={theme} />
-              <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={theme.t0} theme={theme} />
-            </Section>
-
-            <Section title="Model output" theme={theme}>
-              {predLoading ? (
-                <div style={{ color: theme.t2 }}>Running model prediction…</div>
-              ) : predError ? (
-                <div style={{ color: theme.red }}>{predError}</div>
-              ) : predResult ? (
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <Row label="Category" value={predResult.category || '—'} tone={predictionTone} theme={theme} />
-                  <Row label="Probability" value={`${Math.round((predResult.probability || 0) * 100)}%`} tone={predictionTone} theme={theme} />
-                  <Row label="Flood possibility" value={String(predResult.flood_possibility)} tone={predictionTone} theme={theme} />
-                </div>
-              ) : (
-                <div style={{ color: theme.t2 }}>No prediction available</div>
-              )}
-            </Section>
+            </div>
           </div>
 
           {/* Right Column */}
