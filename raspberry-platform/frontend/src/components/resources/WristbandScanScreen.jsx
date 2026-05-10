@@ -105,12 +105,7 @@ function WristbandScanScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 sm:p-8 lg:p-10 text-slate-800 font-sans relative overflow-hidden">
-      {/* Dynamic Background Blurs */}
-      <div className="absolute top-[20%] left-[-10%] w-[400px] h-[400px] bg-purple-400/20 rounded-full blur-[100px] mix-blend-multiply pointer-events-none" />
-      <div className="absolute top-[-10%] right-[10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[120px] mix-blend-multiply pointer-events-none" />
-
-      <div className="max-w-5xl mx-auto space-y-8 relative z-10">
+    <div className="max-w-5xl mx-auto space-y-8 pb-12">
         
         {/* Header */}
         <motion.div 
@@ -319,8 +314,6 @@ function WristbandScanScreen() {
 
             </motion.div>
           )}
-        </AnimatePresence>
-        
       </div>
     </div>
   );

@@ -164,12 +164,7 @@ function PredictionScreen() {
   const ns = NETWORK_STYLE[networkState] || NETWORK_STYLE.STABLE;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 sm:p-8 lg:p-10 text-slate-800 font-sans relative overflow-hidden">
-      {/* Dynamic Background Blurs */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-400/20 rounded-full blur-[100px] mix-blend-multiply pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-400/20 rounded-full blur-[120px] mix-blend-multiply pointer-events-none" />
-
-      <div className="max-w-6xl mx-auto space-y-8 relative z-10">
+    <div className="max-w-5xl mx-auto space-y-8 pb-12">
 
         {/* Header Glass Card */}
         <motion.div 
@@ -336,8 +331,6 @@ function PredictionScreen() {
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
-
       </div>
     </div>
   );

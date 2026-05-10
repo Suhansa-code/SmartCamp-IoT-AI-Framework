@@ -94,12 +94,7 @@ function RegistrationScreen() {
 
   // ---------------- UI ----------------
   return (
-    <div className="min-h-screen bg-slate-50 p-6 sm:p-8 lg:p-10 text-slate-800 font-sans relative overflow-hidden">
-      {/* Dynamic Background Blurs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px] mix-blend-multiply pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-400/20 rounded-full blur-[120px] mix-blend-multiply pointer-events-none" />
-
-      <div className="max-w-6xl mx-auto space-y-8 relative z-10">
+    <div className="max-w-5xl mx-auto space-y-8 pb-12">
 
         {/* HEADER */}
         <motion.div 
@@ -327,7 +322,6 @@ function RegistrationScreen() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
         </div>
       </div>
     </div>
