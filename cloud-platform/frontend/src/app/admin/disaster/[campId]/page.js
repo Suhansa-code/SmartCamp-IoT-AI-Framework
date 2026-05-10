@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getCampById, CAMP_DETAIL, STATUS_META, statusColor } from '@/components/disaster/disasterData'
+import { STATUS_META, statusColor } from '@/components/disaster/disasterData'
 
 const DARK = {
   mode: 'dark',
@@ -46,15 +46,25 @@ function Row({ label, value, tone, theme }) {
   return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '7px 0', borderBottom: `1px solid ${theme.border}18`, fontSize: 12 }}><span style={{ color: theme.t2, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</span><span style={{ color: tone || theme.t0, fontWeight: 700, textAlign: 'right' }}>{value}</span></div>
 }
 
+const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
+
+function getPredictionTone(probability, theme) {
+  if (probability >= 0.7) return theme.red
+  if (probability >= 0.4) return theme.orange
+  return theme.green
+}
+
 export default function DisasterCampDetailPage() {
   const router = useRouter()
   const params = useParams()
   const [mode, setMode] = useState('dark')
   const [utc, setUtc] = useState('')
   const [tick, setTick] = useState(0)
-  
+  const [camp, setCamp] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
   const campId = Array.isArray(params?.campId) ? params.campId[0] : params?.campId
-  const camp = useMemo(() => getCampById(campId), [campId])
   const theme = mode === 'dark' ? DARK : LIGHT
 
   useEffect(() => {
@@ -65,13 +75,96 @@ export default function DisasterCampDetailPage() {
     return () => clearInterval(id)
   }, [])
 
+  useEffect(() => {
+    let active = true
+
+    async function loadCamp() {
+      if (campId === 'overview') {
+        router.replace('/admin/disaster')
+        return
+      }
+
+      if (!campId) {
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      setError('')
+
+      try {
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}`)
+        const payload = res.ok ? await res.json() : null
+        if (!active) return
+        setCamp(payload)
+        if (!payload) setError('Camp not found')
+      } catch (err) {
+        if (!active) return
+        setCamp(null)
+        setError(err instanceof Error ? err.message : 'Failed to load camp detail')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    loadCamp()
+
+    return () => {
+      active = false
+    }
+  }, [campId, router])
+
+  const detail = camp?.detail || null
+  const prediction = camp?.prediction || null
+  const predictionError = camp?.prediction_error || ''
+  const occupancy = camp ? Math.round((camp.displaced / camp.capacity) * 100) : 0
+  const waterTone = detail ? (detail.wl > detail.alertL ? theme.red : detail.wl > 0 ? theme.yellow : theme.cyan) : theme.cyan
+  const predictionTone = prediction ? getPredictionTone(prediction.probability, theme) : theme.t2
+
+  const [predLoading, setPredLoading] = useState(false)
+  const [predResult, setPredResult] = useState(prediction)
+  const [predError, setPredError] = useState(predictionError)
+
+  useEffect(() => {
+    let active = true
+    async function loadPrediction() {
+      if (!camp || camp.prediction) {
+        setPredResult(camp?.prediction || null)
+        setPredError(camp?.prediction_error || '')
+        return
+      }
+
+      setPredLoading(true)
+      setPredError('')
+      try {
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}/predict`)
+        if (!active) return
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Prediction failed' }))
+          setPredError(err.error || 'Prediction failed')
+          setPredResult(null)
+        } else {
+          const body = await res.json()
+          setPredResult(body.prediction || null)
+        }
+      } catch (err) {
+        if (!active) return
+        setPredError(err instanceof Error ? err.message : 'Prediction failed')
+        setPredResult(null)
+      } finally {
+        if (active) setPredLoading(false)
+      }
+    }
+
+    loadPrediction()
+    return () => {
+      active = false
+    }
+  }, [camp, campId])
+
   if (!camp) {
     return <div style={{ minHeight: '100vh', background: theme.bg, display: 'grid', placeItems: 'center', color: theme.t0, fontFamily: "'Inter','Segoe UI',sans-serif", padding: 24, transition: 'background 0.3s' }}><div style={{ maxWidth: 560, width: '100%', border: `1px solid ${theme.border}`, borderRadius: 20, padding: 28, background: theme.surface, textAlign: 'center' }}><div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Camp not found</div><div style={{ color: theme.t2, lineHeight: 1.7, marginBottom: 18, fontSize: 14 }}>The selected camp id is not available in the disaster dashboard data set.</div><button onClick={() => router.push('/admin/disaster')} style={{ border: 'none', borderRadius: 8, padding: '11px 20px', background: `linear-gradient(135deg, ${theme.cyan}, ${theme.green})`, color: '#07111b', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Back to disaster dashboard</button></div></div>
   }
-
-  const detail = CAMP_DETAIL[camp.id]
-  const occupancy = Math.round((camp.displaced / camp.capacity) * 100)
-  const waterTone = detail.wl > detail.alertL ? theme.red : detail.wl > 0 ? theme.yellow : theme.cyan
 
   return (
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: "'Inter','Segoe UI',sans-serif", transition: 'background 0.3s' }}>
@@ -155,6 +248,22 @@ export default function DisasterCampDetailPage() {
               <Row label="Workers" value={camp.workers} tone={theme.cyan} theme={theme} />
               <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={theme.t0} theme={theme} />
             </Section>
+
+            <Section title="Model output" theme={theme}>
+              {predLoading ? (
+                <div style={{ color: theme.t2 }}>Running model prediction…</div>
+              ) : predError ? (
+                <div style={{ color: theme.red }}>{predError}</div>
+              ) : predResult ? (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <Row label="Category" value={predResult.category || '—'} tone={predictionTone} theme={theme} />
+                  <Row label="Probability" value={`${Math.round((predResult.probability || 0) * 100)}%`} tone={predictionTone} theme={theme} />
+                  <Row label="Flood possibility" value={String(predResult.flood_possibility)} tone={predictionTone} theme={theme} />
+                </div>
+              ) : (
+                <div style={{ color: theme.t2 }}>No prediction available</div>
+              )}
+            </Section>
           </div>
 
           {/* Right Column */}
@@ -227,6 +336,37 @@ export default function DisasterCampDetailPage() {
             </div>
 
             <Section title="Operational summary" theme={theme}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}><InfoCard label="Precip 24h" value={`${detail.precip.toFixed(1)} mm`} tone={theme.orange} theme={theme} /><InfoCard label="Peak hour" value={`${detail.maxHrPrec} mm`} tone={theme.yellow} theme={theme} /><InfoCard label="Max wind" value={`${detail.maxWind} km/h`} tone={theme.t0} theme={theme} /><InfoCard label="Cloud cover" value={`${detail.cloud}%`} tone={theme.t1} theme={theme} /></div></Section>
+
+            <Section title="Model output" theme={theme}>
+              {prediction ? (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                    <InfoCard label="Flood risk" value={prediction.flood_possibility} tone={predictionTone} theme={theme} />
+                    <InfoCard label="Category" value={prediction.category} tone={predictionTone} theme={theme} />
+                    <InfoCard label="Probability" value={`${Math.round(prediction.probability * 100)}%`} tone={predictionTone} theme={theme} />
+                  </div>
+                  <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, padding: 12, background: theme.mode === 'dark' ? '#07121d' : '#f5f9fc' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+                      <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Future forecast</div>
+                      <div style={{ fontSize: 8, color: predictionTone, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{prediction.future_forecast?.category || 'UNKNOWN'}</div>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 999, background: `${theme.border}44`, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.round((prediction.future_forecast?.probability || 0) * 100)}%`, height: '100%', background: predictionTone }} />
+                    </div>
+                    <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 10, color: theme.t1 }}>
+                      <span>Forecast chance</span>
+                      <strong style={{ color: predictionTone }}>{Math.round((prediction.future_forecast?.probability || 0) * 100)}%</strong>
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 10, color: theme.t2, lineHeight: 1.6 }}>Source: {prediction.source}</div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, padding: 12, background: theme.mode === 'dark' ? '#07121d' : '#f5f9fc', color: theme.t2, fontSize: 11, lineHeight: 1.6 }}>
+                  Model output is unavailable for this camp.
+                  {predictionError ? <div style={{ marginTop: 6, color: theme.orange }}>{predictionError}</div> : null}
+                </div>
+              )}
+            </Section>
           </div>
         </div>
 

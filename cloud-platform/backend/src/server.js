@@ -3,6 +3,7 @@ import cors from 'cors';
 import { config } from 'dotenv';
 import networkRoutes              from './routes/network.js';
 import resourceRoutes             from './routes/resources.js';
+import disasterRoutes             from './routes/disaster.js';
 import { MqttService }            from './services/mqtt.js';
 import { NetworkMonitor }         from './services/networkMonitor.js';
 import { SimulationService }      from './services/simulation.js';
@@ -22,6 +23,7 @@ const simulationService = new SimulationService(networkMonitor);
 
 app.use('/api/network',    networkRoutes(networkMonitor));
 app.use('/api/resources', resourceRoutes);
+app.use('/api/disaster', disasterRoutes());
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });

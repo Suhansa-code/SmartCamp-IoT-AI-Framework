@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CAMPS, CAMP_DETAIL, DONUT_SEGS, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disasterData'
+import { DONUT_SEGS, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disasterData'
 import { DisasterGeoMap } from './DisasterGeoMap'
 import { DisasterCampSummaryPanel } from './DisasterCampSummaryPanel'
 import { DonutChart, Ring, Sparkline, ThemeToggle, TrendChart } from './DisasterVisuals'
@@ -55,10 +55,16 @@ function compactStatusLabel(status) {
   return { critical: 'Critical', high: 'High', medium: 'Medium', stable: 'Stable', recovery: 'Recovery' }[status] || 'Unknown'
 }
 
+const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
+
 export default function DisasterDashboard() {
   const router = useRouter()
   const [mode, setMode] = useState('dark')
   const [selected, setSelected] = useState(null)
+  const [overview, setOverview] = useState(null)
+  const [selectedDetail, setSelectedDetail] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [utc, setUtc] = useState('')
   const [tick, setTick] = useState(0)
   const theme = mode === 'dark' ? DARK : LIGHT
@@ -71,9 +77,73 @@ export default function DisasterDashboard() {
     return () => clearInterval(id)
   }, [])
 
-  const selectedCamp = useMemo(() => CAMPS.find((camp) => camp.id === selected) || null, [selected])
-  const selectedDetail = selectedCamp ? CAMP_DETAIL[selectedCamp.id] : null
-  const totalDisplaced = CAMPS.reduce((sum, camp) => sum + camp.displaced, 0)
+  useEffect(() => {
+    let active = true
+
+    async function loadOverview() {
+      setLoading(true)
+      setError('')
+
+      try {
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/overview`)
+        const payload = res.ok ? await res.json() : null
+        if (!active) return
+        setOverview(payload)
+      } catch (err) {
+        if (!active) return
+        setOverview(null)
+        setError(err instanceof Error ? err.message : 'Failed to load disaster overview')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    loadOverview()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadSelectedDetail() {
+      if (!selected) {
+        setSelectedDetail(null)
+        return
+      }
+
+      try {
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${selected}`)
+        const camp = res.ok ? await res.json() : null
+        if (!active) return
+        setSelectedDetail(camp?.detail || null)
+      } catch {
+        if (!active) return
+        setSelectedDetail(null)
+      }
+    }
+
+    loadSelectedDetail()
+
+    return () => {
+      active = false
+    }
+  }, [selected])
+
+  const camps = overview?.camps || []
+  const mapNodes = overview?.map_nodes || camps
+  const selectedCamp = useMemo(() => camps.find((camp) => camp.id === selected) || null, [camps, selected])
+  const totalDisplaced = overview?.total_displaced || camps.reduce((sum, camp) => sum + camp.displaced, 0)
+  const totalWorkers = overview?.total_workers || camps.reduce((sum, camp) => sum + camp.workers, 0)
+  const statusCounts = overview?.status_counts || {
+    critical: camps.filter((camp) => camp.status === 'critical').length,
+    high: camps.filter((camp) => camp.status === 'high').length,
+    medium: camps.filter((camp) => camp.status === 'medium').length,
+    stable: camps.filter((camp) => camp.status === 'stable').length,
+    recovery: camps.filter((camp) => camp.status === 'recovery').length,
+  }
 
   const handleNavigate = () => {
     if (!selectedCamp) return
@@ -103,11 +173,11 @@ export default function DisasterDashboard() {
 
           <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             {[
-              { label: 'TOTAL CAMPS', value: '14', color: theme.t0 },
+              { label: 'TOTAL CAMPS', value: loading ? '—' : String(camps.length), color: theme.t0 },
               { label: 'DISPLACED', value: totalDisplaced.toLocaleString(), color: theme.orange },
-              { label: 'AID WORKERS', value: '847', color: theme.cyan },
+              { label: 'AID WORKERS', value: totalWorkers.toLocaleString(), color: theme.cyan },
               { label: 'COVERAGE', value: '89%', color: theme.green },
-              { label: 'CRITICAL', value: '3', color: theme.red },
+              { label: 'CRITICAL', value: String(statusCounts.critical || 0), color: theme.red },
             ].map((item) => (
               <div key={item.label} style={{ textAlign: 'center', minWidth: 76 }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: item.color, lineHeight: 1.1 }}>{item.value}</div>
@@ -130,7 +200,7 @@ export default function DisasterDashboard() {
             <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>ACTIVE CAMPS</div>
               <div style={{ maxHeight: 284, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${theme.border} ${theme.bg}` }}>
-                {CAMPS.map((camp) => {
+                {camps.map((camp) => {
                   const isSelected = selected === camp.id
                   const color = { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[camp.status]
 
@@ -151,7 +221,15 @@ export default function DisasterDashboard() {
 
             <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>SELECTED CAMP</div>
-              {selectedCamp && selectedDetail ? <DisasterCampSummaryPanel camp={selectedCamp} detail={selectedDetail} theme={theme} onNavigate={handleNavigate} /> : (
+              {selectedCamp && selectedDetail ? <DisasterCampSummaryPanel camp={selectedCamp} detail={selectedDetail} theme={theme} onNavigate={handleNavigate} /> : loading ? (
+                <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                  LOADING CAMP DATA
+                </div>
+              ) : error ? (
+                <div style={{ textAlign: 'center', color: theme.red, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                  {error}
+                </div>
+              ) : (
                 <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
                   SELECT A CAMP<br />TO VIEW DETAILS
                 </div>
@@ -165,7 +243,7 @@ export default function DisasterDashboard() {
 
           <section style={{ display: 'flex', flexDirection: 'column', background: theme.mapBg, borderRight: `1px solid ${theme.border}`, minHeight: 720, maxHeight: 720 }}>
             <div style={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DisasterGeoMap camps={CAMPS} selected={selected} onSelect={setSelected} theme={theme} />
+              <DisasterGeoMap camps={mapNodes} selected={selected} onSelect={setSelected} theme={theme} />
               
               {/* Center Title */}
                {/* Title - Top Left */}
@@ -182,7 +260,7 @@ export default function DisasterDashboard() {
                      <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[status], flexShrink: 0 }} />
                        <span style={{ color: theme.t1, letterSpacing: '0.08em', flex: 1 }}>{compactStatusLabel(status)}</span>
-                       <span style={{ color: theme.t2, fontSize: 9 }}>{CAMPS.filter((camp) => camp.status === status).length}</span>
+                       <span style={{ color: theme.t2, fontSize: 9 }}>{statusCounts[status] || 0}</span>
                      </div>
                    ))}
                  </div>
@@ -203,7 +281,7 @@ export default function DisasterDashboard() {
                 {[
                   { label: 'DISPLACED', value: '12,480', tone: theme.orange, fill: theme.orange, percent: 72 },
                   { label: 'EVACUATED', value: '8,340', tone: theme.green, fill: theme.green, percent: 55 },
-                  { label: 'TOTAL CAMPS', value: '14', tone: theme.cyan, fill: theme.cyan, percent: 100 },
+                  { label: 'TOTAL CAMPS', value: String(camps.length || 0), tone: theme.cyan, fill: theme.cyan, percent: camps.length ? 100 : 0 },
                   { label: 'AID REQ.', value: '89%', tone: theme.yellow, fill: theme.yellow, percent: 89 },
                   { label: 'CRITICAL', value: '3', tone: theme.red, fill: theme.red, percent: 21 },
                 ].map((item) => (

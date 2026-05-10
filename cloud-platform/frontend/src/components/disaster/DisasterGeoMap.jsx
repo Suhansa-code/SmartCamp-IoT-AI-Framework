@@ -44,7 +44,7 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
 
     // Load background image
     const bgImage = new Image()
-    bgImage.src = '/disaster/central_img.png'
+    bgImage.src = '/disaster/central_img-light.png'
     bgImage.onload = () => {
       bgImageRef.current = bgImage
     }

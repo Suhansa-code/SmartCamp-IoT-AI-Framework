@@ -106,7 +106,7 @@ export default {
     ...parseOrigins(process.env.FRONTEND_URL),
     'http://192.168.4.1:3000',  // RPi production hotspot
     'http://localhost:3000',     // Development
-    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3000'
   ].filter((origin, index, origins) => origins.indexOf(origin) === index),
   ALLOW_VERCEL_PREVIEWS: parseBoolean(process.env.ALLOW_VERCEL_PREVIEWS, true),
 
