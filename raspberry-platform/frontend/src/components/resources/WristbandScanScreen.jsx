@@ -314,8 +314,8 @@ function WristbandScanScreen() {
 
             </motion.div>
           )}
+        </AnimatePresence>
       </div>
-    </div>
   );
 }
 

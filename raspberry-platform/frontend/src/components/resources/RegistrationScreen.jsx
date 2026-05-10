@@ -322,9 +322,10 @@ function RegistrationScreen() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </motion.div>
         </div>
       </div>
-    </div>
+    
   );
 }
 
