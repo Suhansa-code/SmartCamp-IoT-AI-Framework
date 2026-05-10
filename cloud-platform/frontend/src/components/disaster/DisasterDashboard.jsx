@@ -57,6 +57,16 @@ function compactStatusLabel(status) {
 
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
 
+function formatSriLankaTime(date = new Date()) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Colombo',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
 export default function DisasterDashboard() {
   const router = useRouter()
   const [mode, setMode] = useState('dark')
@@ -71,8 +81,9 @@ export default function DisasterDashboard() {
   const theme = mode === 'dark' ? DARK : LIGHT
 
   useEffect(() => {
+    setUtc(formatSriLankaTime())
     const id = setInterval(() => {
-      setUtc(new Date().toUTCString().slice(17, 25))
+      setUtc(formatSriLankaTime())
       setTick((value) => value + 1)
     }, 1000)
     return () => clearInterval(id)
@@ -198,7 +209,7 @@ export default function DisasterDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ color: tick % 2 === 0 ? theme.t1 : theme.t3 }}>●</span>
-              LIVE UTC {utc}
+              LIVE LK {utc}
             </div>
             <ThemeToggle mode={mode} onToggle={() => setMode((value) => value === 'dark' ? 'light' : 'dark')} theme={theme} />
           </div>

@@ -63,6 +63,16 @@ function Row({ label, value, tone, theme }) {
 
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
 
+function formatSriLankaTime(date = new Date()) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Colombo',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
 function getPredictionTone(probability, theme) {
   if (probability >= 0.7) return theme.red
   if (probability >= 0.4) return theme.orange
@@ -83,8 +93,9 @@ export default function DisasterCampDetailPage() {
   const theme = mode === 'dark' ? DARK : LIGHT
 
   useEffect(() => {
+    setUtc(formatSriLankaTime())
     const id = setInterval(() => {
-      setUtc(new Date().toUTCString().slice(17, 25))
+      setUtc(formatSriLankaTime())
       setTick((value) => value + 1)
     }, 1000)
     return () => clearInterval(id)
@@ -133,6 +144,7 @@ export default function DisasterCampDetailPage() {
   const prediction = camp?.prediction || null
   const predictionError = camp?.prediction_error || ''
   const occupancy = camp ? Math.round((camp.displaced / camp.capacity) * 100) : 0
+  const campElevation = Number.isFinite(Number(detail?.elev)) ? `${Math.round(Number(detail.elev))} m` : 'N/A'
   const waterTone = detail ? (detail.wl > detail.alertL ? theme.red : detail.wl > 0 ? theme.yellow : theme.cyan) : theme.cyan
   const predictionTone = prediction ? getPredictionTone(prediction.probability, theme) : theme.t2
 
@@ -236,7 +248,7 @@ export default function DisasterCampDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ color: tick % 2 === 0 ? theme.t1 : theme.t2 }}>●</span>
-            LIVE {utc}
+            LIVE LK {utc}
           </div>
           <button onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: `1px solid ${theme.border}`, borderRadius: 999, background: theme.surface, fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: theme.t1, letterSpacing: '0.1em', cursor: 'pointer', transition: 'all 0.2s' }}>
             <span style={{ fontSize: 12 }}>{mode === 'dark' ? '☀' : '🌙'}</span>
@@ -294,6 +306,7 @@ export default function DisasterCampDetailPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <Row label="Camp code" value={camp.code} tone={theme.t0} theme={theme} />
                     <Row label="Disaster type" value={camp.type} tone={theme.t0} theme={theme} />
+                    <Row label="Camp elevation" value={campElevation} tone={theme.cyan} theme={theme} />
                     <Row label="Workers" value={camp.workers} tone={theme.cyan} theme={theme} />
                     <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={theme.t0} theme={theme} />
                   </div>
