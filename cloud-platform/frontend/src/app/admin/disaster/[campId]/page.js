@@ -34,12 +34,27 @@ const LIGHT = {
   green: '#16a34a',
 }
 
-function InfoCard({ label, value, tone, theme }) {
-  return <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, background: theme.surface, padding: 12, minHeight: 84, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}><div style={{ fontSize: 9, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{label}</div><div style={{ fontSize: 20, fontWeight: 800, color: tone || theme.t0, lineHeight: 1.08 }}>{value}</div></div>
+function InfoCard({ label, value, tone, theme, style, compact }) {
+  const labelSize = compact ? 8 : 9
+  const valueSize = compact ? 16 : 20
+  const minH = compact ? 72 : 84
+  return (
+    <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, background: theme.surface, padding: 12, minHeight: minH, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', ...style }}>
+      <div style={{ fontSize: labelSize, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: valueSize, fontWeight: 800, color: tone || theme.t0, lineHeight: 1.08 }}>{value}</div>
+    </div>
+  )
 }
 
-function Section({ title, children, theme }) {
-  return <section style={{ border: `1px solid ${theme.border}`, borderRadius: 16, background: theme.surface, padding: 14 }}><div style={{ fontSize: 9, color: theme.t2, letterSpacing: '0.16em', marginBottom: 10, textTransform: 'uppercase', fontWeight: 800 }}>{title}</div>{children}</section>
+function Section({ title, children, theme, compact }) {
+  const padding = compact ? 10 : 14
+  const titleSize = compact ? 8 : 9
+  return (
+    <section style={{ border: `1px solid ${theme.border}`, borderRadius: 16, background: theme.surface, padding, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ fontSize: titleSize, color: theme.t2, letterSpacing: '0.16em', marginBottom: compact ? 8 : 10, textTransform: 'uppercase', fontWeight: 800 }}>{title}</div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
+    </section>
+  )
 }
 
 function Row({ label, value, tone, theme }) {
@@ -373,44 +388,60 @@ export default function DisasterCampDetailPage() {
               ))}
             </div>
 
-            <Section title="Overview" theme={theme}><Row label="Status" value={STATUS_META[camp.status].label} tone={statusColor(camp.status, theme)} theme={theme} /><Row label="Camp code" value={camp.code} tone={theme.t1} theme={theme} /><Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={theme.t0} theme={theme} /></Section>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'stretch' }}>
+              <Section title="Hydrology details" theme={theme} compact>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, height: '100%' }}>
+                  <InfoCard label="Gauge lat" value={`${detail.gauLat.toFixed(4)}°`} tone={theme.cyan} theme={theme} style={{ height: '100%' }} />
+                  <InfoCard label="Gauge lng" value={`${detail.gauLng.toFixed(4)}°`} tone={theme.cyan} theme={theme} style={{ height: '100%' }} />
+                  <InfoCard label="Upstream" value={`${detail.upDist.toFixed(0)} m`} tone={theme.t0} theme={theme} style={{ height: '100%' }} />
+                  <InfoCard label="Minor flood" value={`${detail.minorL} m`} tone={theme.orange} theme={theme} style={{ height: '100%' }} />
+                </div>
+              </Section>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 14 }}>
-              <Section title="Hydrology details" theme={theme}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}><InfoCard label="Gauge lat" value={`${detail.gauLat.toFixed(4)}°`} tone={theme.cyan} theme={theme} /><InfoCard label="Gauge lng" value={`${detail.gauLng.toFixed(4)}°`} tone={theme.cyan} theme={theme} /><InfoCard label="Upstream" value={`${detail.upDist.toFixed(0)} m`} tone={theme.t0} theme={theme} /><InfoCard label="Minor flood" value={`${detail.minorL} m`} tone={theme.orange} theme={theme} /></div></Section>
-            </div>
+              <Section title="Operational summary" theme={theme} compact>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, height: '100%' }}>
+                  <InfoCard label="Precip (24h)" value={`${detail.precip.toFixed(1)} mm`} tone={theme.orange} theme={theme} compact style={{ height: '100%', padding: 16 }} />
+                  <InfoCard label="Peak hour" value={`${detail.maxHrPrec} mm`} tone={theme.yellow} theme={theme} compact style={{ height: '100%', padding: 16 }} />
+                  <InfoCard label="Max wind" value={`${detail.maxWind} km/h`} tone={theme.t0} theme={theme} compact style={{ height: '100%', padding: 16 }} />
+                  <InfoCard label="Cloud cover" value={`${detail.cloud}%`} tone={theme.t1} theme={theme} compact style={{ height: '100%', padding: 16 }} />
+                </div>
+              </Section>
 
-            <Section title="Operational summary" theme={theme}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}><InfoCard label="Precip 24h" value={`${detail.precip.toFixed(1)} mm`} tone={theme.orange} theme={theme} /><InfoCard label="Peak hour" value={`${detail.maxHrPrec} mm`} tone={theme.yellow} theme={theme} /><InfoCard label="Max wind" value={`${detail.maxWind} km/h`} tone={theme.t0} theme={theme} /><InfoCard label="Cloud cover" value={`${detail.cloud}%`} tone={theme.t1} theme={theme} /></div></Section>
-
-            <Section title="Model output" theme={theme}>
+              <Section title="Model output" theme={theme} compact>
               {prediction ? (
-                <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                    <InfoCard label="Flood risk" value={prediction.flood_possibility} tone={predictionTone} theme={theme} />
-                    <InfoCard label="Category" value={prediction.category} tone={predictionTone} theme={theme} />
-                    <InfoCard label="Probability" value={`${Math.round(prediction.probability * 100)}%`} tone={predictionTone} theme={theme} />
+                    <InfoCard label="Flood risk" value={prediction.flood_possibility} tone={predictionTone} theme={theme} style={{ height: '100%' }} />
+                    <InfoCard label="Category" value={prediction.category} tone={predictionTone} theme={theme} style={{ height: '100%' }} />
+                    <InfoCard label="Probability" value={`${Math.round(prediction.probability * 100)}%`} tone={predictionTone} theme={theme} style={{ height: '100%' }} />
                   </div>
-                  <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, padding: 12, background: theme.mode === 'dark' ? '#07121d' : '#f5f9fc' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-                      <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Future forecast</div>
-                      <div style={{ fontSize: 8, color: predictionTone, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{prediction.future_forecast?.category || 'UNKNOWN'}</div>
+                  <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, padding: 12, background: theme.mode === 'dark' ? '#07121d' : '#f5f9fc', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+                        <div style={{ fontSize: 9, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Future forecast</div>
+                        <div style={{ fontSize: 9, color: predictionTone, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{prediction.future_forecast?.category || 'UNKNOWN'}</div>
+                      </div>
+                      <div style={{ height: 10, borderRadius: 999, background: `${theme.border}44`, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.round((prediction.future_forecast?.probability || 0) * 100)}%`, height: '100%', background: predictionTone }} />
+                      </div>
                     </div>
-                    <div style={{ height: 8, borderRadius: 999, background: `${theme.border}44`, overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.round((prediction.future_forecast?.probability || 0) * 100)}%`, height: '100%', background: predictionTone }} />
-                    </div>
-                    <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 10, color: theme.t1 }}>
+                    <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: theme.t1 }}>
                       <span>Forecast chance</span>
                       <strong style={{ color: predictionTone }}>{Math.round((prediction.future_forecast?.probability || 0) * 100)}%</strong>
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 10, color: theme.t2, lineHeight: 1.6 }}>Source: {prediction.source}</div>
+                    <div style={{ marginTop: 8, fontSize: 11, color: theme.t2, lineHeight: 1.6 }}>Source: {prediction.source}</div>
                   </div>
                 </div>
               ) : (
-                <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, padding: 12, background: theme.mode === 'dark' ? '#07121d' : '#f5f9fc', color: theme.t2, fontSize: 11, lineHeight: 1.6 }}>
-                  Model output is unavailable for this camp.
-                  {predictionError ? <div style={{ marginTop: 6, color: theme.orange }}>{predictionError}</div> : null}
+                <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, padding: 12, background: theme.mode === 'dark' ? '#07121d' : '#f5f9fc', color: theme.t2, fontSize: 11, lineHeight: 1.6, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div>
+                    <div>Model output is unavailable for this camp.</div>
+                    {predictionError ? <div style={{ marginTop: 6, color: theme.orange }}>{predictionError}</div> : null}
+                  </div>
                 </div>
               )}
-            </Section>
+              </Section>
+            </div>
           </div>
         </div>
 
