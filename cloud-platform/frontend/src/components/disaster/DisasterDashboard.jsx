@@ -63,6 +63,7 @@ export default function DisasterDashboard() {
   const [selected, setSelected] = useState(null)
   const [overview, setOverview] = useState(null)
   const [selectedDetail, setSelectedDetail] = useState(null)
+  const [selectedDetailLoading, setSelectedDetailLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [utc, setUtc] = useState('')
@@ -111,8 +112,13 @@ export default function DisasterDashboard() {
     async function loadSelectedDetail() {
       if (!selected) {
         setSelectedDetail(null)
+        setSelectedDetailLoading(false)
         return
       }
+
+      // show loading state for the selected camp card
+      setSelectedDetail(null)
+      setSelectedDetailLoading(true)
 
       try {
         const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${selected}`)
@@ -122,6 +128,8 @@ export default function DisasterDashboard() {
       } catch {
         if (!active) return
         setSelectedDetail(null)
+      } finally {
+        if (active) setSelectedDetailLoading(false)
       }
     }
 
@@ -160,6 +168,7 @@ export default function DisasterDashboard() {
           ::-webkit-scrollbar-track { background: ${theme.bg}; }
           ::-webkit-scrollbar-thumb { background: ${theme.border}; border-radius: 9999px; }
           button:hover { opacity: 0.9; }
+          @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
 
         <header style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, padding: '12px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
@@ -221,19 +230,34 @@ export default function DisasterDashboard() {
 
             <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>SELECTED CAMP</div>
-              {selectedCamp && selectedDetail ? <DisasterCampSummaryPanel camp={selectedCamp} detail={selectedDetail} theme={theme} onNavigate={handleNavigate} /> : loading ? (
-                <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
-                  LOADING CAMP DATA
-                </div>
-              ) : error ? (
-                <div style={{ textAlign: 'center', color: theme.red, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
-                  {error}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
-                  SELECT A CAMP<br />TO VIEW DETAILS
-                </div>
-              )}
+                {selectedCamp ? (
+                  selectedDetailLoading ? (
+                    <div style={{ textAlign: 'center', color: theme.t3, fontSize: 12, lineHeight: 1.6, letterSpacing: '0.04em', padding: '18px 0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 36, height: 36, border: `4px solid ${theme.border}`, borderTop: `4px solid ${theme.cyan}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                        <div style={{ fontSize: 12, color: theme.t2, fontWeight: 700 }}>Loading camp details…</div>
+                      </div>
+                    </div>
+                  ) : selectedDetail ? (
+                    <DisasterCampSummaryPanel camp={selectedCamp} detail={selectedDetail} theme={theme} onNavigate={handleNavigate} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                      NO CAMP DETAILS
+                    </div>
+                  )
+                ) : loading ? (
+                  <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                    LOADING CAMP DATA
+                  </div>
+                ) : error ? (
+                  <div style={{ textAlign: 'center', color: theme.red, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                    {error}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                    SELECT A CAMP<br />TO VIEW DETAILS
+                  </div>
+                )}
             </div>
 
             <div style={{ padding: 16, flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

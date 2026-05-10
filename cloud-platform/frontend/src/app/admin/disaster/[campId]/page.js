@@ -162,6 +162,37 @@ export default function DisasterCampDetailPage() {
     }
   }, [camp, campId])
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: theme.bg, display: 'grid', placeItems: 'center', color: theme.t0, fontFamily: "'Inter','Segoe UI',sans-serif", padding: 24, transition: 'background 0.3s' }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ maxWidth: 560, width: '100%', border: `1px solid ${theme.border}`, borderRadius: 20, padding: 28, background: theme.surface, textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 48, height: 48, border: `4px solid ${theme.border}`, borderTop: `4px solid ${theme.cyan}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Loading camp details…</div>
+            <div style={{ color: theme.t2, lineHeight: 1.6, marginBottom: 8, fontSize: 13 }}>Fetching latest camp data for {campId}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: theme.bg, display: 'grid', placeItems: 'center', color: theme.t0, fontFamily: "'Inter','Segoe UI',sans-serif", padding: 24, transition: 'background 0.3s' }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ maxWidth: 560, width: '100%', border: `1px solid ${theme.border}`, borderRadius: 20, padding: 28, background: theme.surface, textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, border: `5px solid ${theme.border}`, borderTop: `5px solid ${theme.cyan}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <div style={{ fontSize: 18, fontWeight: 800 }}>Loading camp details…</div>
+            <div style={{ color: theme.t2, lineHeight: 1.7, marginTop: 8, fontSize: 14 }}>Fetching latest camp data before showing details.</div>
+            <button onClick={() => router.push('/admin/disaster')} style={{ marginTop: 12, border: 'none', borderRadius: 8, padding: '10px 18px', background: `linear-gradient(135deg, ${theme.cyan}, ${theme.green})`, color: '#07111b', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Back to disaster dashboard</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!camp) {
     return <div style={{ minHeight: '100vh', background: theme.bg, display: 'grid', placeItems: 'center', color: theme.t0, fontFamily: "'Inter','Segoe UI',sans-serif", padding: 24, transition: 'background 0.3s' }}><div style={{ maxWidth: 560, width: '100%', border: `1px solid ${theme.border}`, borderRadius: 20, padding: 28, background: theme.surface, textAlign: 'center' }}><div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Camp not found</div><div style={{ color: theme.t2, lineHeight: 1.7, marginBottom: 18, fontSize: 14 }}>The selected camp id is not available in the disaster dashboard data set.</div><button onClick={() => router.push('/admin/disaster')} style={{ border: 'none', borderRadius: 8, padding: '11px 20px', background: `linear-gradient(135deg, ${theme.cyan}, ${theme.green})`, color: '#07111b', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Back to disaster dashboard</button></div></div>
   }
@@ -269,35 +300,22 @@ export default function DisasterCampDetailPage() {
           {/* Right Column */}
           <div style={{ display: 'grid', gap: 14 }}>
             <div style={{ position: 'relative', minHeight: 232, borderRadius: 18, overflow: 'hidden', border: `1px solid ${theme.border}`, background: theme.surface, boxShadow: mode === 'dark' ? '0 18px 42px rgba(0,0,0,0.22)' : '0 18px 42px rgba(19,47,74,0.08)' }}>
-              <img src="/disaster/terrain-topography.jpg" alt="Terrain reference" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <img src={mode === 'light' ? '/disaster/terrain-topography-light.png' : '/disaster/terrain-topography.jpg'} alt="Terrain reference" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(3,8,15,0.86) 0%, rgba(3,8,15,0.56) 50%, rgba(3,8,15,0.12) 100%)' }} />
               <div style={{ position: 'absolute', inset: 0, padding: '16px 18px', display: 'grid', gridTemplateColumns: '1fr 328px', gap: 14, alignItems: 'stretch' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div>
                     <div style={{ fontSize: 9, color: theme.cyan, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 700 }}>Terrain reference</div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: '#f4fbff', lineHeight: 1.06 }}>Relief Operations Grid</div>
                     <div style={{ marginTop: 5, fontSize: 10, color: '#cfe7f5', letterSpacing: '0.06em', maxWidth: 290 }}>Terrain-topography alignment for the selected camp and live operational data.</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ padding: '4px 9px', borderRadius: 999, background: `${theme.bg}cc`, border: `1px solid ${theme.border}`, color: theme.t0, fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{camp.code}</span>
-                    <span style={{ padding: '4px 9px', borderRadius: 999, background: `${statusColor(camp.status, theme)}20`, border: `1px solid ${statusColor(camp.status, theme)}55`, color: statusColor(camp.status, theme), fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{STATUS_META[camp.status].label}</span>
+                    <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ padding: '4px 9px', borderRadius: 999, background: `${theme.bg}cc`, border: `1px solid ${theme.border}`, color: theme.t0, fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{camp.code}</span>
+                      <span style={{ padding: '4px 9px', borderRadius: 999, background: `${statusColor(camp.status, theme)}20`, border: `1px solid ${statusColor(camp.status, theme)}55`, color: statusColor(camp.status, theme), fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{STATUS_META[camp.status].label}</span>
+                    </div>
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gap: 8, alignContent: 'end' }}>
-                  <div style={{ padding: '10px 12px', borderRadius: 16, background: 'rgba(7,14,25,0.72)', border: `1px solid ${theme.border}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-                      <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Water network</div>
-                      <div style={{ fontSize: 8, color: theme.cyan, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{detail.station}</div>
-                    </div>
-                    <div style={{ display: 'grid', gap: 6, fontSize: 10, color: '#e7f4fb' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>Path</span><strong style={{ color: theme.cyan }}>{detail.waterPath}</strong></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>River</span><strong>{detail.river}</strong></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>Distance</span><strong>{(detail.stDist / 1000).toFixed(2)} km</strong></div>
-                    </div>
-                  </div>
-
-
                   <div style={{ padding: '10px 12px', borderRadius: 16, background: 'rgba(7,14,25,0.72)', border: `1px solid ${theme.border}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
                       <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Alert profile</div>
@@ -310,6 +328,32 @@ export default function DisasterCampDetailPage() {
                       <div style={{ padding: '7px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Major flood</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.majorL} m</div></div>
                     </div>
                   </div>
+                </div>
+              </div>
+              {/* Positioned water network (top-right) and weather snapshot (bottom-left) inside terrain card */}
+              <div style={{ position: 'absolute', right: 18, top: 18, width: 300, maxWidth: 320, padding: '10px 12px', borderRadius: 12, background: 'rgba(7,14,25,0.88)', border: `1px solid ${theme.border}`, boxShadow: '0 8px 20px rgba(0,0,0,0.35)', zIndex: 9 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+                  <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Water network</div>
+                  <div style={{ fontSize: 8, color: theme.cyan, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{detail.station}</div>
+                </div>
+                <div style={{ display: 'grid', gap: 6, fontSize: 10, color: '#e7f4fb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>Path</span><strong style={{ color: theme.cyan }}>{detail.waterPath}</strong></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>River</span><strong>{detail.river}</strong></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>Distance</span><strong>{(detail.stDist / 1000).toFixed(2)} km</strong></div>
+                </div>
+              </div>
+
+              {/* Positioned weather snapshot inside terrain card (bottom-left) */}
+              <div style={{ position: 'absolute', left: 18, bottom: 18, width: 260, padding: '10px 12px', borderRadius: 12, background: 'rgba(7,14,25,0.88)', border: `1px solid ${theme.border}`, boxShadow: '0 8px 20px rgba(0,0,0,0.35)', zIndex: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+                  <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Weather snapshot</div>
+                  <div style={{ fontSize: 8, color: theme.orange, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{detail.rain} mm rain</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 6, fontSize: 10, color: '#e7f4fb' }}>
+                  <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Min</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.minT}°</div></div>
+                  <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Max</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.maxT}°</div></div>
+                  <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Humidity</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.hum}%</div></div>
+                  <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pressure</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.pres}hPa</div></div>
                 </div>
               </div>
             </div>
@@ -376,19 +420,7 @@ export default function DisasterCampDetailPage() {
         </div>
       </div>
 
-      {/* Docked Weather snapshot card - bottom left */}
-      <div style={{ position: 'fixed', bottom: 20, left: 20, width: 280, padding: '10px 12px', borderRadius: 16, background: 'rgba(7,14,25,0.92)', border: `1px solid ${theme.border}`, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', zIndex: 100 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-          <div style={{ fontSize: 8, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Weather snapshot</div>
-          <div style={{ fontSize: 8, color: theme.orange, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{detail.rain} mm rain</div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 6, fontSize: 10, color: '#e7f4fb' }}>
-          <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Min</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.minT}°</div></div>
-          <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Max</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.maxT}°</div></div>
-          <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Humidity</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.hum}%</div></div>
-          <div style={{ padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.border}` }}><div style={{ color: theme.t2, fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pressure</div><div style={{ marginTop: 2, fontWeight: 800, fontSize: 11 }}>{detail.pres}hPa</div></div>
-        </div>
-      </div>
+      {/* weather snapshot moved into terrain card */}
     </div>
   )
 }

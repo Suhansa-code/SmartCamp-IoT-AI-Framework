@@ -42,9 +42,9 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
     const observer = new ResizeObserver(resize)
     observer.observe(canvas.parentElement)
 
-    // Load background image
+    // Load background image (switch between light/dark variants)
     const bgImage = new Image()
-    bgImage.src = '/disaster/central_img-light.png'
+    bgImage.src = theme.mode === 'light' ? '/disaster/central_img-light.png' : '/disaster/central_img.png'
     bgImage.onload = () => {
       bgImageRef.current = bgImage
     }
