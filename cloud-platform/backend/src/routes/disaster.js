@@ -74,6 +74,12 @@ export default function disasterRoutes() {
     try {
       const hours = Number(req.query.hours || 8)
       const history = await getWaterLevelHistoryForCamp(camp, { hours })
+      
+       // Sort newest -> oldest
+      history.points.sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+      )
+      
       return res.json({
         camp_id: camp.id,
         station: history.station,
