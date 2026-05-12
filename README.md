@@ -46,33 +46,38 @@
 
 # 📁 Integrated Repository Structure
 
-# Plaintext
-
-# /sdrc-box-root
-
-# ├── apps/
-
-# │   ├── admin-dashboard/     # Next.js (Management of Pillars 1 \& 2)
-
-# │   ├── web-portal/          # Localized Web Server for Pillar 3 (Pi-hosted)
-
-# │   └── backend-api/         # Central Node.js API (MERN Stack)
-
-# ├── firmware/
-
-# │   ├── sensor-nodes/        # ESP32 code for Flood Monitoring
-
-# │   └── disaster-box-pi/     # Raspberry Pi Gateway \& Local Services
-
-# ├── ml-engine/
-
-# │   ├── models/              # Prediction models (Flood \& Resource Trends)
-
-# │   └── api/                 # FastAPI for serving model inferences
-
-# ├── docs/                    # System Architecture \& Research Papers
-
-# └── docker-compose.yml       # One-click deployment for the full stack
+SmartCamp-IoT-AI-Framework/
+├── cloud-platform/
+│   ├── backend/
+│   │   ├── pages-backend/
+│   │   ├── pages-flask/
+│   │   └── src/
+│   ├── frontend/
+│   │   ├── public/
+│   │   └── src/
+│   └── prediction-models/
+│       ├── data/
+│       ├── models/
+│       ├── notebooks/
+│       ├── scripts/
+│       └── src/
+├── edge-gateway/
+│   ├── prediction-models/
+│   ├── scripts/
+│   │   ├── Altitude and GPS Details Request Model/
+│   │   ├── gps_module/
+│   │   └── OpenStreet API/
+│   └── src/
+├── raspberry-platform/
+│   ├── backend/
+│   │   └── res-mng_backend/
+│   └── frontend/
+│       └── src/
+├── sensor-node/
+├── .github/workflows/
+├── Credentials.md
+├── network_simulation_log.csv
+└── README.md
 
 # 🛠 Strategic Architecture Guidelines
 
