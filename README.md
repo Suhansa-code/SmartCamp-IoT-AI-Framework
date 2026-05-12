@@ -27,6 +27,12 @@
 # Tech: Centralized Admin Dashboard (Next.js) with real-time stock alerts and QR-based tracking to prevent resource wastage or hoarding.
 
 # 
+# SAAMP — Semantic-Aware Adaptive Message Prioritization
+# The core research novelty. Addresses the gap confirmed by Zhang et al. (2022) that joint optimisation of delay and packet loss under uncertain network conditions remains unsolved. Three combined    elements:
+
+# Semantic Classification —> auto-assigns CRITICAL/HIGH/MEDIUM/LOW priority from message source and action; no manual configuration
+# Predictive QoS —> Random Forest model forecasts network degradation 60 seconds ahead using passive MQTT monitoring (no ping packets); <5ms inference on Pi 5
+# Priority-Ordered Recovery —> offline SQLite buffer flushes CRITICAL → HIGH → MEDIUM → LOW on reconnection
 
 # 3\. Educational \& Psychology Module
 
