@@ -82,7 +82,7 @@ async function startSession(req, res, next) {
 // POST /api/session/task-complete
 async function taskComplete(req, res, next) {
   try {
-    const { child_id, session_id, taskMetrics, passiveSignals } = req.body;
+    const { child_id, session_id, attempt = 1, taskMetrics, passiveSignals } = req.body;
   
         // Verify session exists
         const sessionRows = sqliteRetrieve(
@@ -94,23 +94,6 @@ async function taskComplete(req, res, next) {
         const session = sessionRows[0];
         if (!session) return next(createError(404, `Session not found: ${session_id}`));
     
-        //Create Sample taskmetrics and passiveSignals - #Delete when implementing
-        // const taskMetricsSample = {
-        //   accuracyRate: 0.8,
-        //   falseTapRate: 0.1,
-        //   avgReactionTime: 500,
-        //   reactionVariance: 100,
-        // };
-        // const passiveSignalsSample = {
-        //   idleTimeRatio: 0.2,
-        //   rapidClickCount: 2,
-        //   timeToFirstMs: 300,
-        //   completionRatio: 0.9,
-        // };
-
-        // taskMetrics = taskMetricsSample;
-        // passiveSignals = passiveSignalsSample;
-
         // 1. Get score from Flask (or fallback)
         const scoring = await scoringService.getScore(
           child_id, session_id, taskMetrics, passiveSignals
@@ -120,10 +103,21 @@ async function taskComplete(req, res, next) {
         const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
     
 
-        // 2. Apply first gate
-        const gateDecision = applyFirstGate(compositeScore);
-        const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_FIRST;
-        logger.info(`[GATING] First gate decision for session ${session_id}: ${gateDecision}`);
+        // 2. Apply appropriate gate based on attempt number
+        // Attempt 1: first gate (PASS/FAIL_FIRST)
+        // Attempt 2+: second gate (PASS_RECOVERED/FAIL_CONFIRMED)
+        let gateDecision;
+        let sessionAnomalyFlag;
+        
+        if (parseInt(attempt, 10) >= 2) {
+          gateDecision = applySecondGate(compositeScore);
+          sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
+        } else {
+          gateDecision = applyFirstGate(compositeScore);
+          sessionAnomalyFlag = gateDecision === C.GATE.FAIL_FIRST;
+        }
+        
+        logger.info(`[GATING] Decision for session ${session_id} (attempt ${attempt}): ${gateDecision}`);
     
         // 3. Write signals + update session + gate decision — all in one transaction
         const signalId   = newId();
@@ -168,7 +162,17 @@ async function taskComplete(req, res, next) {
           
           logger.info(`[DB] Inserted behavioral signals for session ${session_id} with signal_id ${signalId}`);
           
-          // Update session with scores + gate decision
+          // Get current child record to increment total_sessions
+          const childRows = sqliteRetrieve(
+            'pages_children',
+            'total_sessions',
+            'child_id = ?',
+            [child_id]
+          );
+          const currentChild = childRows[0];
+          const newTotalSessions = (currentChild?.total_sessions || 0) + 1;
+          
+          // Update session with scores + gate decision + mark as complete
           sqliteUpdate("pages_sessions", {
             composite_score: compositeScore,
             task_score: taskScore,
@@ -176,26 +180,56 @@ async function taskComplete(req, res, next) {
             gate_decision: gateDecision,
             anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
             z_score: zScore || null,
-            if_score: ifScore || null
+            if_score: ifScore || null,
+            session_complete: 1
           }, 'session_id = ?', [session_id]);
 
-          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`);
+          // Update child's total_sessions counter
+          sqliteUpdate("pages_children", {
+            total_sessions: newTotalSessions
+          }, 'child_id = ?', [child_id]);
 
-          // Write gate decision record (attempt 1)
+          logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`);
+          logger.info(`[DB] Incremented child ${child_id} total_sessions to ${newTotalSessions}`);
+
+          // Write gate decision record
           sqliteInsert("pages_gate_decisions", {
             decision_id: decisionId,
             session_id: session_id,
             child_id: child_id,
-            attempt_number: 1,
+            attempt_number: parseInt(attempt, 10) || 1,
             composite_score: compositeScore,
             decision: gateDecision
           });
           
           logger.info(`[DB] Inserted gate decision for session ${session_id} with decision_id ${decisionId}`);
 
+          // If attempt >= 2 and FAIL_CONFIRMED — increment consecutive_low
+          if (parseInt(attempt, 10) >= 2 && gateDecision === C.GATE.FAIL_CONFIRMED) {
+            const childRows = sqliteRetrieve(
+              'pages_children',
+              'consecutive_low',
+              'child_id = ?',
+              [child_id]
+            );
+            const currentChild = childRows[0];
+            const newConsecutiveeLow = (Number(currentChild?.consecutive_low) || 0) + 1;
+            
+            sqliteUpdate(
+              'pages_children',
+              { consecutive_low: newConsecutiveeLow },
+              'child_id = ?',
+              [child_id]
+            );
+            
+            logger.info(`[DB] Incremented consecutive_low for child ${child_id} to ${newConsecutiveeLow}`);
+          }
+
           // Enqueue signals for sync
           enqueue('pages_behavioral_signals', signalId, 'INSERT');
           enqueue('pages_gate_decisions', decisionId, 'INSERT');
+          enqueue('pages_sessions', session_id, 'UPDATE');
+          enqueue('pages_children', child_id, 'UPDATE');
 
           logger.info(`[ENQUEUE] Enqueued behavioral_signals (${signalId}) and gate_decisions (${decisionId}) for session ${session_id}`);
 
@@ -267,6 +301,16 @@ async function secondGate(req, res, next) {
     const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
  
     const decisionId = newId();
+      
+      // Check if this session already marked as complete (from first gate)
+      const sessionCheck = sqliteRetrieve(
+        'pages_sessions',
+        'session_complete',
+        'session_id = ?',
+        [session_id]
+      );
+      const alreadyComplete = sessionCheck[0]?.session_complete === 1;
+      
       // Update session
       sqliteUpdate(
         'pages_sessions',
@@ -279,10 +323,32 @@ async function secondGate(req, res, next) {
           anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
           z_score: zScore ?? null,
           if_score: ifScore ?? null,
+          session_complete: 1
         },
         'session_id = ?',
         [session_id]
       );
+
+      // Only increment total_sessions if this is the first time marking complete
+      if (!alreadyComplete) {
+        const childRows = sqliteRetrieve(
+          'pages_children',
+          'total_sessions',
+          'child_id = ?',
+          [child_id]
+        );
+        const currentChild = childRows[0];
+        const newTotalSessions = (currentChild?.total_sessions || 0) + 1;
+        
+        sqliteUpdate(
+          'pages_children',
+          { total_sessions: newTotalSessions },
+          'child_id = ?',
+          [child_id]
+        );
+        
+        logger.info(`[DB] Incremented child ${child_id} total_sessions to ${newTotalSessions}`);
+      }
 
       // Write gate decision (attempt 2)
       sqliteInsert('pages_gate_decisions', {
@@ -309,6 +375,7 @@ async function secondGate(req, res, next) {
  
       enqueue('pages_gate_decisions', decisionId, 'INSERT');
       enqueue('pages_sessions', session_id, 'UPDATE');
+      enqueue('pages_children', child_id, 'UPDATE');
 
  
     logger.info(

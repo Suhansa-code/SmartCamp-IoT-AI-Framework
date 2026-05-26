@@ -153,7 +153,7 @@ export default function AnimalGame({ onComplete }) {
   const { lang }     = useLang()
   const isEnglish = lang === 'en'
 
-  const [sessionId, setSessionId] = useState(searchParams?.get('session') ?? 'offline')
+  const [sessionId, setSessionId] = useState(searchParams?.get('session') || '')
   const [childId, setChildId] = useState('')
   const [attempt, setAttempt] = useState(Math.max(1, Number(searchParams?.get('attempt') ?? 1) || 1))
   const [isStarting, setIsStarting] = useState(false)
@@ -171,25 +171,33 @@ export default function AnimalGame({ onComplete }) {
     setIsStarting(true)
 
     try {
-      if (!childId) {
-        throw new Error('No child ID selected')
-      }
+      // For attempt >= 2, create a NEW session
+      if (attempt >= 2) {
+        if (!childId) {
+          throw new Error('Child ID is missing for new session')
+        }
+        
+        const response = await fetch(`${API_BASE}/api/session/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ child_id: childId }),
+        })
 
-      const response = await fetch(`${API_BASE}/api/session/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ child_id: childId }),
-      })
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok || !payload.session_id) {
+          throw new Error(payload.message || 'Failed to create new session')
+        }
 
-      console.log('Start session response:', response)
-
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok || !payload.session_id) {
-        throw new Error(payload.message || 'Failed to start session')
+        setSessionId(payload.session_id)
+        console.log('[GAME] Created new session for attempt', attempt, ':', payload.session_id)
+      } else {
+        // For attempt 1, session already created in /child/page.js
+        if (!sessionId) {
+          throw new Error('Session ID is missing')
+        }
       }
 
       const now = Date.now()
-      setSessionId(payload.session_id)
       gameStartAt.current = now
       lastClickAt.current = now
       idleMs.current = 0
@@ -198,7 +206,7 @@ export default function AnimalGame({ onComplete }) {
       shownAt.current = now
       tapped.current = false
     } catch (err) {
-      console.error('Failed to start session:', err)
+      console.error('Failed to start game:', err)
     } finally {
       setIsStarting(false)
     }
@@ -341,6 +349,7 @@ export default function AnimalGame({ onComplete }) {
       session_id: sessionId,
       child_id: storedChildId,
       lang,
+      attempt: attempt,
       taskMetrics: {
         accuracyRate: metrics.accuracyRate,
         falseTapRate: metrics.falseTapRate,
@@ -360,8 +369,8 @@ export default function AnimalGame({ onComplete }) {
     if (!storedChildId) console.error('[GAME] ERROR: storedChildId is missing!')
     if (payload.taskMetrics.accuracyRate == null) console.error('[GAME] ERROR: taskMetrics invalid!')
     
-    console.log('[GAME] Final payload child_id:', payload.child_id, 'session_id:', payload.session_id)
-    const gatePath = parseInt(attempt, 10) >= 2 ? '/api/session/second-gate' : '/api/session/task-complete'
+    console.log('[GAME] Final payload child_id:', payload.child_id, 'session_id:', payload.session_id, 'attempt:', attempt)
+    const gatePath = '/api/session/task-complete'
     let gateDecision = null
 
     try {
