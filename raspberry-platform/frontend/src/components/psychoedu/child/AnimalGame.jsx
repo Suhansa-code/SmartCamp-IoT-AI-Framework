@@ -28,7 +28,7 @@ const SHOW_MS       = 1500
 const BLANK_MS      = 500   
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_BASE = 'http://localhost:3002'
 const IDLE_THRESHOLD_MS = 1000
 const RAPID_CLICK_THRESHOLD_MS = 450
 

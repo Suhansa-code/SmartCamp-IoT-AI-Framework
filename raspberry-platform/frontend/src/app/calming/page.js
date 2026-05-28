@@ -1,9 +1,5 @@
 'use client'
 
-// app/child/calming/page.jsx
-// Mounts BreathingCircle and routes to content when done.
-// Language carried via context — no extra props needed.
-
 import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLang }   from '@/components/psychoedu/context/LanguageContext'

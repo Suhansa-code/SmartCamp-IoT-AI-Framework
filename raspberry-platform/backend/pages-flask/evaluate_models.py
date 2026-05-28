@@ -1,30 +1,4 @@
 #!/usr/bin/env python3
-"""
-evaluate_models.py  —  PAGES Isolation Forest Accuracy Report
-──────────────────────────────────────────────────────────────
-Run this from pages-flask/ after training your models.
-
-  python evaluate_models.py
-
-Produces:
-  • Console table — LOO consistency, anomaly rate, score range per child
-  • evaluation_report.txt — plain text report you can show the panel
-  • evaluation_report.csv — spreadsheet-friendly version
-
-What each metric means (for panel questions):
-  LOO consistency  — Leave-One-Out stability. For each session we remove
-                     it, retrain the model, then check if the classification
-                     is the same. 92.7% average means the model gives the
-                     same answer 9 times out of 10 regardless of which
-                     session is held out. This is the primary accuracy proxy
-                     for unsupervised anomaly detection.
-  Anomaly rate     — What fraction of sessions were flagged. Set by the
-                     contamination parameter (10%). Healthy range: 5-25%.
-  Score range      — Gap between the most normal and most anomalous score.
-                     Larger range means the model separates normal from
-                     anomalous sessions more confidently.
-"""
-
 import json, pickle, math, csv as csv_mod
 from pathlib import Path
 from datetime import datetime
