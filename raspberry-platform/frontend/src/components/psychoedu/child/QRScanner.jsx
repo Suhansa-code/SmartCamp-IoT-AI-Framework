@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { QrReader } from 'react-qr-reader';
 
-export default function QRScanner() {
+export default function QRScanner({ onComplete }) {
   const [child, setChild] = useState(null);
 
   const handleScan = async (result) => {
@@ -12,6 +12,10 @@ export default function QRScanner() {
         const data = await res.json();
         if (data.success) {
           setChild(data.child);
+          // Call onComplete callback if provided
+          if (typeof onComplete === 'function') {
+            setTimeout(() => onComplete(data.child), 1000);
+          }
         } else {
           alert("Child not found");
         }

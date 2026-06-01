@@ -1,7 +1,4 @@
-'use client'
-
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import { t }       from '@/components/psychoedu/lib/translations'
 import { startSession, saveLanguagePreference } from '@/components/psychoedu/lib/api'
@@ -83,8 +80,7 @@ function CameraView({ videoRef, onCancel, lang }) {
 }
 
 // Main 
-export default function ChildWelcomePage() {
-  const router            = useRouter()
+export default function ChildWelcomePage({ onNavigate }) {
   const { lang, setLang } = useLang()
 
   const [screen,    setScreen]   = useState('language')  // language|camera|loading|welcome
@@ -233,7 +229,9 @@ async function handleQR(childId, selectedLang = lang) {
 
   if (!effectiveChildId) {
     setSessionId(sid);
-    router.push(`/child/task?session=${encodeURIComponent(sid)}&lang=${encodeURIComponent(selectedLang)}`);
+    if (typeof onNavigate === 'function') {
+      onNavigate({ session: sid, lang: selectedLang });
+    }
     return;
   }
 
@@ -241,7 +239,11 @@ async function handleQR(childId, selectedLang = lang) {
     const payload = await startSession(effectiveChildId);
     sid = payload?.sessionId ?? payload?.session_id ?? 'offline';
   } catch (err) {
-    console.error("Session start failed:", err);
+    // Fallback to offline mode if session creation fails
+    // This is expected for test child IDs that don't exist in the backend
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DEV] Session creation failed, using offline mode:', err?.message);
+    }
     sid = 'offline';
   }
 
@@ -252,8 +254,10 @@ async function handleQR(childId, selectedLang = lang) {
     localStorage.setItem('preferredLanguage', selectedLang);
   }
 
-  // Redirect directly to task (skip instruction page as AnimalGame has built-in instructions)
-  router.push(`/child/task?session=${encodeURIComponent(sid)}&child=${encodeURIComponent(effectiveChildId)}&lang=${encodeURIComponent(selectedLang)}`);
+  // Navigate to task screen with session, child, and language
+  if (typeof onNavigate === 'function') {
+    onNavigate({ session: sid, child: effectiveChildId, lang: selectedLang });
+  }
 }
 
   function handleLanguageSelect(code) {

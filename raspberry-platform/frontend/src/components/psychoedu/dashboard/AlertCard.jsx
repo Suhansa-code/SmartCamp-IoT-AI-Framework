@@ -1,5 +1,3 @@
-'use client'
-
 import { useState } from 'react'
 import AlertBadge from '@/components/psychoedu/ui/AlertBadge'
 

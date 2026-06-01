@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useEffect } from 'react'
 import { LANGUAGES } from '@/components/psychoedu/lib/translations'
 import Eli from './Eli'
@@ -177,7 +175,11 @@ export default function LanguagePicker({ sessionId, onSelect }) {
     setTimeout(() => {
       setEliMood('star')
       setConfirmed(true)
-      setTimeout(() => onSelect(code), 700)
+      setTimeout(() => {
+        if (typeof onSelect === 'function') {
+          onSelect(code)
+        }
+      }, 700)
     }, 600)
   }
 

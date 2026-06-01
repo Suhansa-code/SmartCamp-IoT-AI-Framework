@@ -33,4 +33,10 @@ router.get('/content/:childId', ctrl.getContentSession);
 // GET /api/session/recent/:childId
 router.get('/recent/:childId', ctrl.getRecentSessions);
 
+// DEBUG: GET /api/session/debug/signals/:sessionId
+router.get('/debug/signals/:sessionId', ctrl.getSignalsDebug);
+
+// DEBUG: POST /api/session/debug/test-signal-insert
+router.post('/debug/test-signal-insert', ctrl.testSignalInsert);
+
 export default router;

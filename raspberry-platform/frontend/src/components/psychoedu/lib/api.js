@@ -3,8 +3,7 @@
 // Includes offline-safe wrappers with fallback behaviour
 
 const BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  process.env.REACT_APP_API_BASE_URL ??
+  import.meta.env.VITE_API_URL ||
   'http://localhost:3001'
 
 async function apiFetch(path, options = {}) {
@@ -17,7 +16,7 @@ async function apiFetch(path, options = {}) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }))
-    throw new Error(err.message ?? 'API error')
+    throw new Error(err.message ?? `API error: ${res.status}`)
   }
   return res.json()
 }

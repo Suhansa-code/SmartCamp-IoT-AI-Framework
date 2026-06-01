@@ -1,5 +1,3 @@
-'use client'
-
 // Cloud SVG 
 function Cloud({ style, animClass = 'cloud-1', opacity = 1 }) {
   return (

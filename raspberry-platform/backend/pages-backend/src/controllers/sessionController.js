@@ -144,35 +144,81 @@ async function taskComplete(req, res, next) {
           // );
 
           console.log('Inserting behavioral signals for session_id:', session_id, 'child_id:', child_id, 'signal_id:', signalId);
-          
-          // Insert behavioral signals into SQLite
-          sqliteInsert("pages_behavioral_signals", {
+          console.log('[SIGNALS] Data to insert:', {
             signal_id: signalId,
             session_id: session_id,
             child_id: child_id,
-            accuracy_rate: taskMetrics.accuracyRate,
-            false_tap_rate: taskMetrics.falseTapRate,
-            avg_reaction_time: taskMetrics.avgReactionTime,
-            reaction_variance: taskMetrics.reactionVariance,
-            idle_time_ratio: passiveSignals.idleTimeRatio,
-            rapid_click_count: passiveSignals.rapidClickCount,
-            time_to_first_ms: passiveSignals.timeToFirstMs,
-            completion_ratio: passiveSignals.completionRatio,
+            taskMetrics,
+            passiveSignals
           });
           
-          logger.info(`[DB] Inserted behavioral signals for session ${session_id} with signal_id ${signalId}`);
+          // Validate and normalize all values before insertion
+          if (!taskMetrics || !passiveSignals) {
+            throw new Error('Missing taskMetrics or passiveSignals in request body');
+          }
           
-          // Get current child record to increment total_sessions
-          const childRows = sqliteRetrieve(
-            'pages_children',
-            'total_sessions',
-            'child_id = ?',
-            [child_id]
-          );
-          const currentChild = childRows[0];
-          const newTotalSessions = (currentChild?.total_sessions || 0) + 1;
+          // Normalize numeric values and clamp rate values to [0, 1]
+          const normalizeRate = (val, fieldName) => {
+            const num = Number(val);
+            if (isNaN(num)) {
+              throw new Error(`Invalid ${fieldName}: ${val} (not a number)`);
+            }
+            // Clamp to [0, 1] for rate fields
+            return Math.max(0, Math.min(1, num));
+          };
           
-          // Update session with scores + gate decision + mark as complete
+          const normalizeNum = (val, fieldName) => {
+            const num = Number(val);
+            if (isNaN(num)) {
+              throw new Error(`Invalid ${fieldName}: ${val} (not a number)`);
+            }
+            return Math.max(0, num); // Ensure non-negative
+          };
+          
+          const accuracyRate      = normalizeRate(taskMetrics.accuracyRate, 'accuracyRate');
+          const falseTapRate      = normalizeRate(taskMetrics.falseTapRate, 'falseTapRate');
+          const idleTimeRatio     = normalizeRate(passiveSignals.idleTimeRatio, 'idleTimeRatio');
+          const completionRatio   = normalizeRate(passiveSignals.completionRatio, 'completionRatio');
+          const avgReactionTime   = normalizeNum(taskMetrics.avgReactionTime, 'avgReactionTime');
+          const reactionVariance  = normalizeNum(taskMetrics.reactionVariance, 'reactionVariance');
+          const rapidClickCount   = Math.floor(Math.max(0, passiveSignals.rapidClickCount ?? 0));
+          const timeToFirstMs     = normalizeNum(passiveSignals.timeToFirstMs, 'timeToFirstMs');
+          
+          console.log('[SIGNALS] Normalized values before insert:');
+          console.log(`  accuracyRate=${accuracyRate}, falseTapRate=${falseTapRate}`);
+          console.log(`  avgReactionTime=${avgReactionTime}, reactionVariance=${reactionVariance}`);
+          console.log(`  idleTimeRatio=${idleTimeRatio}, rapidClickCount=${rapidClickCount}`);
+          console.log(`  timeToFirstMs=${timeToFirstMs}, completionRatio=${completionRatio}`);
+          
+          // Insert behavioral signals into SQLite
+          try {
+            const result = sqliteInsert("pages_behavioral_signals", {
+              signal_id: signalId,
+              session_id: session_id,
+              child_id: child_id,
+              accuracy_rate: accuracyRate,
+              false_tap_rate: falseTapRate,
+              avg_reaction_time: avgReactionTime,
+              reaction_variance: reactionVariance,
+              idle_time_ratio: idleTimeRatio,
+              rapid_click_count: rapidClickCount,
+              time_to_first_ms: timeToFirstMs,
+              completion_ratio: completionRatio,
+            });
+            
+            if (!result || !result.success) {
+              throw new Error(`sqliteInsert returned non-success: ${JSON.stringify(result)}`);
+            }
+            
+            logger.info(`[DB] Successfully inserted behavioral signals for session ${session_id} with signal_id ${signalId}`);
+          } catch (insertErr) {
+            logger.error(`[DB] Failed to insert behavioral signals: ${insertErr.message}`);
+            logger.error(`[DB] Stack trace: ${insertErr.stack}`);
+            throw insertErr;
+          }
+          
+          // Update session with scores + gate decision
+          // NOTE: DO NOT set session_complete here — only set it in completeSession after cognitive session
           sqliteUpdate("pages_sessions", {
             composite_score: compositeScore,
             task_score: taskScore,
@@ -180,17 +226,10 @@ async function taskComplete(req, res, next) {
             gate_decision: gateDecision,
             anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
             z_score: zScore || null,
-            if_score: ifScore || null,
-            session_complete: 1
+            if_score: ifScore || null
           }, 'session_id = ?', [session_id]);
 
-          // Update child's total_sessions counter
-          sqliteUpdate("pages_children", {
-            total_sessions: newTotalSessions
-          }, 'child_id = ?', [child_id]);
-
           logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`);
-          logger.info(`[DB] Incremented child ${child_id} total_sessions to ${newTotalSessions}`);
 
           // Write gate decision record
           sqliteInsert("pages_gate_decisions", {
@@ -302,16 +341,9 @@ async function secondGate(req, res, next) {
  
     const decisionId = newId();
       
-      // Check if this session already marked as complete (from first gate)
-      const sessionCheck = sqliteRetrieve(
-        'pages_sessions',
-        'session_complete',
-        'session_id = ?',
-        [session_id]
-      );
-      const alreadyComplete = sessionCheck[0]?.session_complete === 1;
-      
-      // Update session
+      // Update session with second gate scores
+      // NOTE: DO NOT set session_complete here — only set it in completeSession after cognitive session
+      // For FAIL_CONFIRMED, session_complete will remain 0 (session never reached cognitive stage)
       sqliteUpdate(
         'pages_sessions',
         {
@@ -322,33 +354,11 @@ async function secondGate(req, res, next) {
           gate_decision: gateDecision,
           anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
           z_score: zScore ?? null,
-          if_score: ifScore ?? null,
-          session_complete: 1
+          if_score: ifScore ?? null
         },
         'session_id = ?',
         [session_id]
       );
-
-      // Only increment total_sessions if this is the first time marking complete
-      if (!alreadyComplete) {
-        const childRows = sqliteRetrieve(
-          'pages_children',
-          'total_sessions',
-          'child_id = ?',
-          [child_id]
-        );
-        const currentChild = childRows[0];
-        const newTotalSessions = (currentChild?.total_sessions || 0) + 1;
-        
-        sqliteUpdate(
-          'pages_children',
-          { total_sessions: newTotalSessions },
-          'child_id = ?',
-          [child_id]
-        );
-        
-        logger.info(`[DB] Incremented child ${child_id} total_sessions to ${newTotalSessions}`);
-      }
 
       // Write gate decision (attempt 2)
       sqliteInsert('pages_gate_decisions', {
@@ -360,8 +370,8 @@ async function secondGate(req, res, next) {
         decision: gateDecision,
         decided_at: nowISO(),
       });
- 
-      // If FAIL_CONFIRMED — increment consecutive_low
+
+      // Only increment consecutive_low if FAIL_CONFIRMED
       if (gateDecision === C.GATE.FAIL_CONFIRMED) {
         sqliteUpdate(
           'pages_children',
@@ -369,13 +379,12 @@ async function secondGate(req, res, next) {
           'child_id = ?',
           [child_id]
         );
-
+        enqueue('pages_children', child_id, 'UPDATE');
         checkAndCreateAlert(child_id, session_id);
       }
  
       enqueue('pages_gate_decisions', decisionId, 'INSERT');
       enqueue('pages_sessions', session_id, 'UPDATE');
-      enqueue('pages_children', child_id, 'UPDATE');
 
  
     logger.info(
@@ -404,22 +413,32 @@ async function completeSession(req, res, next) {
       contentResponses = [],
       contentSessionId = null,
     } = req.body;
- 
-    // Fetch session for its composite_score (needed for baseline update)
-    // const session = db.prepare(`
-    //   SELECT session_id, composite_score FROM pages_sessions WHERE session_id = ?
-    // `).get(session_id);
-    // if (!session) return next(createError(404, `Session not found: ${session_id}`));
 
+    logger.info(`[SESSION COMPLETE] Received: session_id=${session_id}, child_id=${child_id}, cognitiveScore=${cognitiveScore}, contentSessionId=${contentSessionId}`);
 
-    //Turso get session record - #delete when implementing
-    const sessionRows = await sqliteRetrieve(
-      'pages_sessions',undefined,
+    // Validate required fields
+    if (!session_id || !child_id) {
+      logger.error(`[SESSION COMPLETE] Missing required fields: session_id=${session_id}, child_id=${child_id}`);
+      return next(createError(400, 'Missing session_id or child_id'));
+    }
+
+    if (cognitiveScore === undefined || cognitiveScore === null || isNaN(Number(cognitiveScore))) {
+      logger.error(`[SESSION COMPLETE] Invalid cognitiveScore: ${cognitiveScore}`);
+      return next(createError(400, 'Invalid or missing cognitiveScore'));
+    }
+
+    // Fetch session record
+    const sessionRows = sqliteRetrieve(
+      'pages_sessions',
+      undefined,
       'session_id = ?',
       [session_id]
     )
     const session = sessionRows[0]
-    if (!session) return next(createError(404, `Session not found: ${session_id}`));
+    if (!session) {
+      logger.error(`[SESSION COMPLETE] Session not found: ${session_id}`);
+      return next(createError(404, `Session not found: ${session_id}`));
+    }
  
     // Fetch current baseline
     // const child = db.prepare(`
@@ -467,14 +486,8 @@ async function completeSession(req, res, next) {
       }
  
       // 2. Mark session complete
-      // db.prepare(`
-      //   UPDATE pages_sessions
-      //   SET cognitive_score    = ?,
-      //       session_complete   = 1
-      //   WHERE session_id = ?
-      // `).run(Number(cognitiveScore), session_id);
-
-      // Mark session complete
+      logger.info(`[SESSION COMPLETE] Updating session ${session_id} with cognitive_score=${cognitiveScore}, content_session_id=${contentSessionId}, session_complete=1`);
+      
       sqliteUpdate(
         'pages_sessions',
         {
@@ -486,15 +499,11 @@ async function completeSession(req, res, next) {
         [session_id]
       );
       enqueue('pages_sessions', session_id, 'UPDATE');
+      logger.info(`[SESSION COMPLETE] ✅ Session ${session_id} marked as complete`);
 
       // 3. Update child baseline + total sessions
-      // db.prepare(`
-      //   UPDATE pages_children
-      //   SET baseline_score   = ?,
-      //       total_sessions   = total_sessions + 1,
-      //       consecutive_low  = CASE WHEN ? >= ? THEN 0 ELSE consecutive_low END
-      //   WHERE child_id = ?
-      // Update child baseline + total sessions
+      logger.info(`[SESSION COMPLETE] Updating child ${child_id}: baseline=${newBaseline}, total_sessions=${child.total_sessions + 1}`);
+      
       sqliteUpdate(
         'pages_children',
         {
@@ -510,6 +519,7 @@ async function completeSession(req, res, next) {
       // 4. Enqueue session + children for sync
       enqueue('pages_sessions',  session_id, 'UPDATE');
       enqueue('pages_children',  child_id,   'UPDATE');
+      logger.info(`[SESSION COMPLETE] ✅ Child ${child_id} updated`);
  
     logger.info(
       `[SESSION] Complete: session=${session_id}, cognitive=${cognitiveScore}, ` +
@@ -571,14 +581,11 @@ async function getRecentSessions(req, res, next) {
 async function getContentSession(req, res, next) {
   try {
     const { childId } = req.params;
+    const { lang } = req.query; // Get language from query parameter
+    
+    console.log('[CONTENT] Fetching content session for childId:', childId, 'lang:', lang)
  
-    // Get child grade
-    // const child = db.prepare(`
-    //   SELECT child_id, grade FROM pages_children WHERE child_id = ?
-    // `).get(childId);
-    // if (!child) return next(createError(404, `Child not found: ${childId}`));
-
-    // Get Turso child record - #delete when implementing
+    // Get Turso child record
     const childRows = sqliteRetrieve(
       'pages_children',
       undefined,
@@ -587,19 +594,8 @@ async function getContentSession(req, res, next) {
     );
     const child = childRows[0];
     if (!child) return next(createError(404, `Child not found: ${childId}`));
-
-
- 
+    
     // Get last 3 content_session_ids used by this child (to avoid repetition)
-    // const recentlyUsed = db.prepare(`
-    //   SELECT DISTINCT content_session_id
-    //   FROM   pages_sessions
-    //   WHERE  child_id = ? AND content_session_id IS NOT NULL
-    //   ORDER  BY created_at DESC
-    //   LIMIT  3
-    // `).all(childId).map(r => r.content_session_id);
-
-    // Get recently used content sessions
     const recentlyUsedRows = sqliteRetrieve(
       'pages_sessions',
       'DISTINCT content_session_id',
@@ -608,33 +604,60 @@ async function getContentSession(req, res, next) {
     );
     const recentlyUsed = recentlyUsedRows.map(r => r.content_session_id);
     
-    // Get all approved sessions for this grade, excluding recently used
-    const placeholders = recentlyUsed.map(() => '?').join(',') || '\'__NONE__\'';
-    const available = sqliteRetrieve(
-      'content_sessions',
-      'content_session_id',
-      `grade_level = ? AND zeo_approved = 1 AND content_session_id NOT IN (${placeholders})`,
-      [child.grade, ...recentlyUsed]
-    );
+    // Map language to session label patterns
+    // Assumption: Sessions A,B,C are for si; D,E,F for ta; G,H,I,J,K for en
+    const languageSessionMap = {
+      'si': ['A', 'B', 'C'],
+      'ta': ['D', 'E', 'F'],
+      'en': ['G', 'H', 'I', 'J', 'K']
+    };
+    
+    const sessionsForLang = languageSessionMap[lang] || languageSessionMap['en'];
+    console.log('[CONTENT] Sessions mapped for language', lang, ':', sessionsForLang)
+    
+    // Get all approved sessions for this grade and language, excluding recently used
+    let available = [];
+    if (sessionsForLang.length > 0) {
+      const placeholdersLabel = sessionsForLang.map(() => '?').join(',');
+      const placeholdersExclude = recentlyUsed.map(() => '?').join(',') || "'__NONE__'";
+      let whereClause = `grade_level = ? AND zeo_approved = 1 AND session_label IN (${placeholdersLabel})`;
+      let params = [child.grade, ...sessionsForLang];
+      
+      if (recentlyUsed.length > 0) {
+        whereClause += ` AND content_session_id NOT IN (${placeholdersExclude})`;
+        params.push(...recentlyUsed);
+      }
+      
+      available = sqliteRetrieve(
+        'content_sessions',
+        'content_session_id',
+        whereClause,
+        params
+      );
+    }
  
-    // If all sessions have been used recently, fall back to all approved
-    const pool = available.length > 0
-      ? available
-      : sqliteRetrieve(
-          'content_sessions',
-          'content_session_id',
-          'grade_level = ? AND zeo_approved = 1',
-          [child.grade]
-        );
+    // If all sessions for this language have been used recently, fall back to all approved for language
+    let pool = available;
+    if (pool.length === 0) {
+      const placeholdersLabel = sessionsForLang.map(() => '?').join(',');
+      pool = sqliteRetrieve(
+        'content_sessions',
+        'content_session_id',
+        `grade_level = ? AND zeo_approved = 1 AND session_label IN (${placeholdersLabel})`,
+        [child.grade, ...sessionsForLang]
+      );
+    }
       
  
     if (pool.length === 0) {
-      return next(createError(404, `No approved content sessions for grade ${child.grade}`));
+      return next(createError(404, `No approved content sessions for grade ${child.grade} and language ${lang}`));
     }
  
     // Pick randomly
     const chosen = pool[Math.floor(Math.random() * pool.length)];
     const contentSessionId = chosen.content_session_id;
+ 
+    console.log('[CONTENT] Selected session:', contentSessionId, 'for language:', lang)
  
     // Get tasks — NOTE: correct_answer is excluded from response
     // const tasks = db.prepare(`
@@ -651,7 +674,7 @@ async function getContentSession(req, res, next) {
     //turso - Get tasks for content session - #delete when implementing
     const tasks = await sqliteRetrieve(
       'content_tasks',
-      'task_id, task_order, subject, task_type, question_text, question_image, option_a, option_b, option_c, grade_level',
+      'task_id, task_order, subject, task_type, question_text, question_image, option_a, option_b, option_c, correct_answer, grade_level',
       'content_session_id = ? ORDER BY task_order ASC',
       [contentSessionId]
     );  
@@ -668,6 +691,7 @@ async function getContentSession(req, res, next) {
       success:             true,
       content_session_id:  contentSessionId,
       grade:               child.grade,
+      language:            lang,
       tasks,
     });
  
@@ -733,6 +757,128 @@ async function testDBUpdate(){
     }
   }
 
+// DEBUG: GET /api/session/debug/signals/:sessionId
+async function getSignalsDebug(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    
+    console.log(`[DEBUG] Fetching behavioral signals for session: ${sessionId}`);
+    
+    // Retrieve behavioral signals from database
+    const signals = sqliteRetrieve(
+      'pages_behavioral_signals',
+      '*',
+      'session_id = ?',
+      [sessionId]
+    );
+    
+    console.log(`[DEBUG] Query result:`, signals);
+    
+    if (!signals || signals.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No behavioral signals found for session ${sessionId}`,
+        sessionId: sessionId,
+        recordCount: 0
+      });
+    }
+    
+    return res.json({
+      success: true,
+      sessionId: sessionId,
+      recordCount: signals.length,
+      signals: signals
+    });
+    
+  } catch (err) {
+    logger.error(`[DEBUG] Error fetching signals: ${err.message}`);
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+}
+
+// DEBUG: POST /api/session/debug/test-signal-insert
+async function testSignalInsert(req, res, next) {
+  try {
+    console.log('[DEBUG] Test signal insert endpoint called');
+    
+    // Create a test child and session first
+    const testChildId = 'TEST-CHILD-' + Date.now();
+    const testSessionId = 'TEST-SESSION-' + Date.now();
+    
+    // Create child
+    console.log(`[DEBUG] Creating test child: ${testChildId}`);
+    sqliteInsert('pages_children', {
+      child_id: testChildId,
+      res_id: 'TEST-RES-001',
+      grade: 3,
+      camp_id: 'TEST-CAMP',
+      language: 'en',
+    });
+    
+    // Create session
+    console.log(`[DEBUG] Creating test session: ${testSessionId}`);
+    sqliteInsert('pages_sessions', {
+      session_id: testSessionId,
+      child_id: testChildId,
+      session_date: new Date().toISOString().split('T')[0],
+      session_time: new Date().toTimeString().split(' ')[0],
+      condition_label: 'A',
+      baseline_score_used: 60.0,
+    });
+    
+    // Insert test behavioral signals
+    console.log(`[DEBUG] Inserting test behavioral signals`);
+    const testSignalId = 'TEST-SIGNAL-' + Date.now();
+    const insertResult = sqliteInsert('pages_behavioral_signals', {
+      signal_id: testSignalId,
+      session_id: testSessionId,
+      child_id: testChildId,
+      accuracy_rate: 0.85,
+      false_tap_rate: 0.15,
+      avg_reaction_time: 450,
+      reaction_variance: 50,
+      idle_time_ratio: 0.1,
+      rapid_click_count: 2,
+      time_to_first_ms: 200,
+      completion_ratio: 0.85,
+    });
+    
+    console.log(`[DEBUG] Insert result:`, insertResult);
+    
+    // Verify it was inserted
+    const signals = sqliteRetrieve(
+      'pages_behavioral_signals',
+      '*',
+      'signal_id = ?',
+      [testSignalId]
+    );
+    
+    console.log(`[DEBUG] Verification query result:`, signals);
+    
+    return res.json({
+      success: true,
+      message: 'Test signal inserted successfully',
+      testSignalId: testSignalId,
+      testSessionId: testSessionId,
+      testChildId: testChildId,
+      insertResult: insertResult,
+      verificationResult: signals
+    });
+    
+  } catch (err) {
+    logger.error(`[DEBUG] Test insert failed: ${err.message}`);
+    logger.error(`[DEBUG] Stack: ${err.stack}`);
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+      stack: err.stack
+    });
+  }
+}
+
 export {
   startSession,
   taskComplete,
@@ -740,5 +886,7 @@ export {
   completeSession,
   getContentSession,
   testDBUpdate,
-  getRecentSessions
+  getRecentSessions,
+  getSignalsDebug,
+  testSignalInsert
 };

@@ -207,12 +207,40 @@ function sqliteInsert(table, data) {
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`;
   
   try {
+    logger.debug(`[SQLite] Attempting INSERT into ${table}:`);
+    logger.debug(`  SQL: ${sql}`);
+    logger.debug(`  Values: ${JSON.stringify(values)}`);
+    
     const stmt = db.prepare(sql);
     const result = stmt.run(...values);
-    logger.info(`[SQLite] Inserted into ${table}: ${JSON.stringify(data)}`);
+    logger.info(`[SQLite] Inserted into ${table}: changes=${result.changes}`);
     return { success: true, changes: result.changes };
   } catch (err) {
-    logger.error(`[SQLite] Insert into ${table} failed: ${err.message}`);
+    logger.error(`[SQLite] Insert into ${table} failed!`);
+    logger.error(`  Table: ${table}`);
+    logger.error(`  Columns: ${columns.join(', ')}`);
+    logger.error(`  Values: ${JSON.stringify(values)}`);
+    logger.error(`  Error: ${err.message}`);
+    logger.error(`  Code: ${err.code}`);
+    
+    // Check for specific constraint violations
+    if (err.message.includes('FOREIGN KEY constraint failed')) {
+      logger.error(`[SQLite] ⚠️ FOREIGN KEY constraint violation!`);
+      if (columns.includes('session_id')) {
+        logger.error(`  → Check that session_id exists in pages_sessions`);
+      }
+      if (columns.includes('child_id')) {
+        logger.error(`  → Check that child_id exists in pages_children`);
+      }
+    }
+    if (err.message.includes('CHECK constraint failed')) {
+      logger.error(`[SQLite] ⚠️ CHECK constraint violation!`);
+      logger.error(`  → One or more values violate table CHECK constraints`);
+      for (let i = 0; i < columns.length; i++) {
+        logger.error(`  → ${columns[i]} = ${values[i]} (type: ${typeof values[i]})`);
+      }
+    }
+    
     throw err;
   }
 }

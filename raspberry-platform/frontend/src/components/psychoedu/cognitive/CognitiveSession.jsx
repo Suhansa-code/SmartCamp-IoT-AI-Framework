@@ -1,8 +1,6 @@
-'use client'
-
 import { useState, useEffect } from 'react'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
-import { SUBJECT_COLORS, TASK_TYPE_LABELS } from '@/components/psychoedu/lib/sessions'
+import { SESSIONS, SUBJECT_COLORS, TASK_TYPE_LABELS } from '@/components/psychoedu/lib/sessions'
 import TaskRenderer  from './TaskRenderer'
 import Eli           from '@/components/psychoedu/child/Eli'
 
@@ -203,8 +201,9 @@ function DoneScreen({ score, total, results, lang, onDone }) {
 }
 
 // Main component
-export default function CognitiveSession({ session, onComplete }) {
-  const { lang } = useLang()
+export default function CognitiveSession({ session, childId, lang = 'en', onComplete, sessionId = null }) {
+  const { lang: contextLang } = useLang()
+  const displayLang = lang || contextLang // Use passed lang or fall back to context
   const [taskIdx,     setTaskIdx]     = useState(0)
   const [phase,       setPhase]       = useState('task')  // task|cheer|done
   const [results,     setResults]     = useState([])
@@ -212,8 +211,100 @@ export default function CognitiveSession({ session, onComplete }) {
   const [lastCorrect, setLastCorrect] = useState(null)
   const [confetti,    setConfetti]    = useState(false)
   const [eliCheer,    setEliCheer]    = useState(false)
+  const [tasks,       setTasks]       = useState(session?.tasks || [])
+  const [loading,     setLoading]     = useState(!session)
+  const [selectedSession, setSelectedSession] = useState(null)
 
-  const tasks = session.tasks
+  // Fetch tasks if not provided in session prop
+  useEffect(() => {
+    if (session?.tasks) {
+      setTasks(session.tasks)
+      setSelectedSession(session)
+      setLoading(false)
+      return
+    }
+    
+    // Map language to session IDs
+    const languageSessionMap = {
+      'si': ['A', 'B', 'C'],
+      'ta': ['D', 'E', 'F'],
+      'en': ['G', 'H', 'I', 'J']
+    }
+    
+    const sessionsForLang = languageSessionMap[displayLang] || languageSessionMap['en']
+    console.log('[COGNITIVE] Selecting session for language:', displayLang, 'available:', sessionsForLang)
+    
+    // Get all sessions for this language
+    const availableSessions = SESSIONS.filter(s => sessionsForLang.includes(s.id))
+    
+    if (availableSessions.length === 0) {
+      console.warn('[COGNITIVE] No sessions found for language:', displayLang)
+      setTasks([])
+      setLoading(false)
+      return
+    }
+    
+    // Pick a random session from available sessions
+    const chosen = availableSessions[Math.floor(Math.random() * availableSessions.length)]
+    console.log('[COGNITIVE] Selected session:', chosen.id, 'with', chosen.tasks.length, 'tasks')
+    
+    setTasks(chosen.tasks)
+    setSelectedSession(chosen)
+    setLoading(false)
+  }, [displayLang])
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100svh',
+        background: 'linear-gradient(160deg, #F0F9FF 0%, #E0F7FF 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <Eli size={120} mood="happy" />
+          <p style={{
+            fontFamily: "'Baloo 2', cursive",
+            fontSize: 'clamp(1.2rem, 4vw, 1.6rem)',
+            fontWeight: 900,
+            color: '#1E3A5F',
+            marginTop: '1rem',
+          }}>
+            {displayLang === 'si' ? 'පැටවිම...' : displayLang === 'ta' ? 'ஏற்றුகிறது...' : 'Loading...'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!tasks || tasks.length === 0) {
+    return (
+      <div style={{
+        minHeight: '100svh',
+        background: 'linear-gradient(160deg, #F0F9FF 0%, #E0F7FF 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        textAlign: 'center',
+      }}>
+        <div>
+          <Eli size={120} mood="sad" />
+          <p style={{
+            fontFamily: "'Baloo 2', cursive",
+            fontSize: 'clamp(1.2rem, 4vw, 1.6rem)',
+            fontWeight: 900,
+            color: '#1E3A5F',
+            marginTop: '1rem',
+          }}>
+            {displayLang === 'si' ? 'කරුණු සොයාගත නොහැක' : displayLang === 'ta' ? 'பணிகள் கிடைக்கவில்லை' : 'No tasks available'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const task  = tasks[taskIdx]
   const total = tasks.length
 
@@ -248,8 +339,48 @@ export default function CognitiveSession({ session, onComplete }) {
     setLastCorrect(null)
   }
 
+  const handleDoneClick = async () => {
+    // Prepare content responses
+    const contentResponses = results.map((r) => ({
+      taskId: r.taskId,
+      answer: String(r.selectedAnswer ?? ''),
+      isCorrect: !!r.correct,
+      timeTakenMs: 0,
+    }))
+
+    // Use passed sessionId if available, otherwise generate from childId + timestamp
+    const finalSessionId = sessionId && sessionId !== 'offline' ? sessionId : `${childId}-${Date.now()}`
+    const contentSessionId = selectedSession?.id ? `SESSION-${selectedSession.id}` : null
+
+    try {
+      // Call backend to complete the session and save scores
+      const response = await fetch('http://localhost:3001/api/session/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: finalSessionId,
+          child_id: childId,
+          cognitiveScore: score,
+          contentResponses,
+          contentSessionId,
+        }),
+      })
+
+      if (!response.ok) {
+        console.error('[COGNITIVE] Error completing session:', response.statusText)
+      } else {
+        console.log('[COGNITIVE] Session completed successfully')
+      }
+    } catch (err) {
+      console.error('[COGNITIVE] Error calling complete endpoint:', err)
+    }
+
+    // Call the parent callback regardless of API result
+    onComplete?.({ score, total, results })
+  }
+
   if (phase === 'done') {
-    return <DoneScreen score={score} total={total} results={results} lang={lang} onDone={() => onComplete?.({ score, total, results })} />
+    return <DoneScreen score={score} total={total} results={results} lang={lang} onDone={handleDoneClick} />
   }
 
   const subjStyle  = SUBJECT_COLORS[task?.subject] ?? SUBJECT_COLORS.mathematics

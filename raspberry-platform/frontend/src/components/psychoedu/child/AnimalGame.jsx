@@ -1,7 +1,4 @@
-'use client'
-
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
 import { useLang }  from '@/components/psychoedu/context/LanguageContext'
 import { t }        from '@/components/psychoedu/lib/translations'
 
@@ -28,7 +25,7 @@ const SHOW_MS       = 1500
 const BLANK_MS      = 500   
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
-const API_BASE = 'http://localhost:3002'
+const API_BASE = 'http://localhost:3001'
 const IDLE_THRESHOLD_MS = 1000
 const RAPID_CLICK_THRESHOLD_MS = 450
 
@@ -147,24 +144,21 @@ function DoneScreen({ lang }) {
 }
 
 // Main component
-export default function AnimalGame({ onComplete }) {
-  const searchParams = useSearchParams()
-  const router       = useRouter()
+export default function AnimalGame({ onComplete, sessionId = '', childId = '', attempt = 1 }) {
   const { lang }     = useLang()
   const isEnglish = lang === 'en'
-
-  const [sessionId, setSessionId] = useState(searchParams?.get('session') || '')
-  const [childId, setChildId] = useState('')
-  const [attempt, setAttempt] = useState(Math.max(1, Number(searchParams?.get('attempt') ?? 1) || 1))
   const [isStarting, setIsStarting] = useState(false)
+  const [currentSessionId, setSessionId] = useState(sessionId) // Make sessionId a state variable
 
+  // If childId is empty, try to get it from sessionStorage
   useEffect(() => {
-    const urlChildId = searchParams?.get('child') ?? ''
-    const storedChildId = typeof window !== 'undefined'
-      ? (sessionStorage.getItem('selectedChildId') ?? '')
-      : ''
-    setChildId(urlChildId || storedChildId)
-  }, [searchParams])
+    if (!childId && typeof window !== 'undefined') {
+      const storedChildId = sessionStorage.getItem('selectedChildId') ?? ''
+      if (storedChildId) {
+        // Silently use the stored ID, no state update needed since it's a prop
+      }
+    }
+  }, [])
 
   async function handleStartSession() {
     if (isStarting) return
@@ -192,7 +186,7 @@ export default function AnimalGame({ onComplete }) {
         console.log('[GAME] Created new session for attempt', attempt, ':', payload.session_id)
       } else {
         // For attempt 1, session already created in /child/page.js
-        if (!sessionId) {
+        if (!currentSessionId) {
           throw new Error('Session ID is missing')
         }
       }
@@ -346,7 +340,7 @@ export default function AnimalGame({ onComplete }) {
       reactionTimeVariance:   Math.round(variance(rts)),
     }
     const payload = {
-      session_id: sessionId,
+      session_id: currentSessionId,
       child_id: storedChildId,
       lang,
       attempt: attempt,
@@ -365,7 +359,7 @@ export default function AnimalGame({ onComplete }) {
     }
     
     // Validate required fields
-    if (!sessionId) console.error('[GAME] ERROR: sessionId is missing!')
+    if (!currentSessionId) console.error('[GAME] ERROR: sessionId is missing!')
     if (!storedChildId) console.error('[GAME] ERROR: storedChildId is missing!')
     if (payload.taskMetrics.accuracyRate == null) console.error('[GAME] ERROR: taskMetrics invalid!')
     
@@ -394,43 +388,32 @@ export default function AnimalGame({ onComplete }) {
       console.error('[GAME] Fetch error:', err)
     }
 
-    if (onComplete) {
-      onComplete(metrics)
+    // Determine next route based on gating decision
+    let nextRoute = '/child/calming' // Default fallback
+    
+    if (gateDecision === 'PASS' || gateDecision === 'PASS_RECOVERED') {
+      nextRoute = '/child/cognitive'
+      console.log('[GAME] PASS result → routing to cognitive session')
+    } else if (gateDecision === 'FAIL_CONFIRMED' || gateDecision === 'FAIL_FIRST') {
+      nextRoute = '/child/calming'
+      console.log(`[GAME] ${gateDecision} result → routing to breathing activity`)
     } else {
-      const langParam = `lang=${encodeURIComponent(lang)}`
-      const baseParams = `session=${encodeURIComponent(sessionId)}&child=${encodeURIComponent(childId)}&attempt=${attempt}&${langParam}`
-
-      if (gateDecision === 'PASS' || gateDecision === 'PASS_RECOVERED') {
-        setTimeout(() =>
-          router.push(`/child/cognitive?${baseParams}`),
-        1600)
-      } else if (gateDecision === 'FAIL_CONFIRMED') {
-        setTimeout(() =>
-          router.push(`/child/play?${baseParams}`),
-        1600)
-      } else if (gateDecision === 'FAIL_FIRST') {
-        setTimeout(() =>
-          router.push(`/child/calming?${baseParams}`),
-        1600)
+      // Fallback if backend is unavailable
+      const isGate1Pass = metrics.accuracyRate >= 0.5 && metrics.falseTapRate <= 0.6
+      if (isGate1Pass) {
+        nextRoute = '/child/cognitive'
+        console.log('[GAME] Fallback: metrics indicate pass → routing to cognitive')
       } else {
-        // Fallback if backend is unavailable: preserve previous UX behavior.
-        const isGate1Pass = metrics.accuracyRate >= 0.5 && metrics.falseTapRate <= 0.6
-        if (isGate1Pass) {
-          setTimeout(() =>
-            router.push(`/child/cognitive?${baseParams}`),
-          1600)
-          return
-        }
-        if (attempt >= 2) {
-          setTimeout(() =>
-            router.push(`/child/play?${baseParams}`),
-          1600)
-          return
-        }
-        setTimeout(() =>
-          router.push(`/child/calming?${baseParams}`),
-        1600)
+        nextRoute = '/child/calming'
+        console.log('[GAME] Fallback: metrics indicate fail → routing to breathing')
       }
+    }
+
+    // Call the parent callback with routing information
+    if (onComplete) {
+      setTimeout(() =>
+        onComplete?.({ metrics, nextRoute, sessionId: currentSessionId, childId, attempt, gateDecision }),
+      1600)
     }
   }
 

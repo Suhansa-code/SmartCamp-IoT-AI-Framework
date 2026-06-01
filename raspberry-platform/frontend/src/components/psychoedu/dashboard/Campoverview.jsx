@@ -1,10 +1,7 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import AlertBadge from '@/components/psychoedu/ui/AlertBadge'
 
-export default function CampOverview({ camp }) {
-  const router = useRouter()
+export default function CampOverview({ camp, onCampClick }) {
   const alertCount = camp.alerts?.length ?? 0
   const status = alertCount === 0 ? 'clear' : alertCount <= 2 ? 'watch' : 'urgent'
 
@@ -18,7 +15,7 @@ export default function CampOverview({ camp }) {
   return (
     <div
       className="card-soft flex flex-col gap-4 cursor-pointer hover:shadow-xl transition-shadow duration-200 active:scale-[0.98]"
-      onClick={() => router.push(`/admin/alert?camp=${camp.id}`)}
+      onClick={() => onCampClick?.(camp.id)}
     >
       {/* Camp header */}
       <div className="flex items-start justify-between">

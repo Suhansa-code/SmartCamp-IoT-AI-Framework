@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useEffect, useRef } from 'react'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import Eli from './Eli'
@@ -51,7 +49,6 @@ export default function CalmBubblePlayground({ onComplete }) {
         if (prev <= 1) {
           clearInterval(countdownTimer.current)
           clearInterval(spawnTimer.current)
-          onComplete?.()
           return 0
         }
         return prev - 1
@@ -59,7 +56,14 @@ export default function CalmBubblePlayground({ onComplete }) {
     }, 1000)
 
     return () => clearInterval(countdownTimer.current)
-  }, [onComplete])
+  }, [])
+
+  // 🏁 Call onComplete when time reaches 0
+  useEffect(() => {
+    if (timeLeft === 0) {
+      onComplete?.()
+    }
+  }, [timeLeft, onComplete])
 
   // 🫧 Pop bubble
   function popBubble(id) {

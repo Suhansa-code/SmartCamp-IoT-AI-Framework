@@ -105,8 +105,10 @@ export default {
     ...parseOrigins(process.env.CORS_ORIGINS),
     ...parseOrigins(process.env.FRONTEND_URL),
     'http://192.168.4.1:3000',  // RPi production hotspot
-    'http://localhost:3000',     // Development
+    'http://localhost:3000',     // Next.js development
+    'http://localhost:5173',     // Vite development
     'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',     // Vite development (127.0.0.1)
   ].filter((origin, index, origins) => origins.indexOf(origin) === index),
   ALLOW_VERCEL_PREVIEWS: parseBoolean(process.env.ALLOW_VERCEL_PREVIEWS, true),
 

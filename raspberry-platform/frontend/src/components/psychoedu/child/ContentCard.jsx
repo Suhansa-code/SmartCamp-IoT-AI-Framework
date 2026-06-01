@@ -1,7 +1,4 @@
-'use client'
-
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
 import { t }       from '@/components/psychoedu/lib/translations'
 
@@ -12,17 +9,11 @@ const CARDS = [
   { emoji:'🌈', titleKey:'content.card_4.title', bodyKey:'content.card_4.body', color:'#BAE6FD' },
 ]
 
-export default function ContentCard() {
-  const router     = useRouter()
-  const searchParams = useSearchParams()
+export default function ContentCard({ onComplete, sessionId = 'offline', childId = '', attempt = 1 }) {
   const { lang }   = useLang()
   const [idx, setIdx]   = useState(0)
   const [done, setDone] = useState(false)
   const [dir, setDir]   = useState(1)  // 1 forward, -1 back (for animation hint)
-
-  const sessionId = searchParams?.get('session') ?? 'offline'
-  const childId = searchParams?.get('child') ?? ''
-  const attempt = Number(searchParams?.get('attempt') ?? '1')
 
   const card = CARDS[idx]
 
@@ -30,9 +21,8 @@ export default function ContentCard() {
     if (idx + 1 >= CARDS.length) {
       setDone(true)
       setTimeout(() => {
-        router.push(
-          `/child/task?session=${encodeURIComponent(sessionId)}&child=${encodeURIComponent(childId)}&attempt=${attempt + 1}&lang=${encodeURIComponent(lang)}`
-        )
+        // Callback to parent component to handle next screen (usually back to animal game for retry)
+        onComplete?.({ sessionId, childId, nextAttempt: attempt + 1 })
       }, 2000)
     } else {
       setDir(1)
