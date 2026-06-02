@@ -19,12 +19,8 @@ async function startSession(req, res, next) {
       child_id,
       condition_label = 'A',
     } = req.body;
- 
-    // Verify Flask is healthy before allowing session start
-    // const flaskHealthy = await scoringService.checkFlaskHealth();
-    // if (!flaskHealthy) {
-    //   return next(createError(503, 'Flask ML service is unavailable — cannot start session'));
-    // }
+
+    logger.info(`[SESSION START] Attempting to create session for child_id: ${child_id}`);
  
     // Get child record from SQLite
     const childRows = sqliteRetrieve(
@@ -35,7 +31,13 @@ async function startSession(req, res, next) {
     );
     const child = childRows[0];
 
-    if (!child) return next(createError(404, `Child not found: ${child_id}`));
+    if (!child) {
+      logger.error(`[SESSION START] Child not found in database: ${child_id}`);
+      logger.info(`[SESSION START] To use a child ID, first seed it with: node database/seed-test-children.js`);
+      return next(createError(404, `Child not found: ${child_id}`));
+    }
+
+    logger.info(`[SESSION START] Child found: ${child_id} (Grade ${child.grade}, Language: ${child.language})`);
  
     const sessionId     = newId();
     const sessionNumber = child.total_sessions + 1;
@@ -538,37 +540,35 @@ async function completeSession(req, res, next) {
 }
  
 // GET /api/session/recent/:childId
-// Returns last 3 sessions with their condition_label to avoid repetition
+// Returns last 3 completed sessions with their cognitive session labels to avoid repetition
 
 async function getRecentSessions(req, res, next) {
   try {
     const { childId } = req.params;
 
-    // const recent = db.prepare(`
-    //   SELECT session_id, condition_label, session_date, created_at
-    //   FROM   pages_sessions
-    //   WHERE  child_id = ?
-    //   ORDER  BY created_at DESC
-    //   LIMIT  3
-    // `).all(childId);
-
-    // Get recent sessions for child
+    // Get recent COMPLETED sessions (where cognitive session was done)
+    // Returns content_session_id which will be SESSION-A through SESSION-J
     const recent = sqliteRetrieve(
       'pages_sessions',
-      'session_id, condition_label, session_date, created_at',
-      'child_id = ? ORDER BY created_at DESC LIMIT 3',
+      'session_id, content_session_id, session_date, created_at',
+      'child_id = ? AND session_complete = 1 ORDER BY created_at DESC LIMIT 3',
       [childId]
     );
 
+    // Extract just the session IDs (A, B, C, etc.) from SESSION-X format
+    const recentLabels = recent
+      .filter(r => r.content_session_id)  // Only include completed sessions with cognitive content
+      .map(r => r.content_session_id.replace('SESSION-', ''));  // Convert SESSION-A to A
+
     logger.info(
-      `[SESSION] Recent sessions retrieved for child ${childId}: ` +
-      `${recent.map(r => r.condition_label).join(',')}`
+      `[SESSION] Recent completed sessions for child ${childId}: ` +
+      `${recentLabels.join(',') || 'none'}`
     );
 
     return res.json({
       success:          true,
       recent_sessions:  recent,
-      recent_labels:    recent.map(r => r.condition_label),
+      recent_labels:    recentLabels,  // E.g., ['A', 'B', 'C']
     });
 
   } catch (err) {
@@ -879,6 +879,43 @@ async function testSignalInsert(req, res, next) {
   }
 }
 
+// DEBUG: List available test children
+async function getAvailableTestChildren(req, res, next) {
+  try {
+    logger.info('[DEBUG] Fetching available test children...');
+    
+    const children = sqliteRetrieve(
+      'pages_children',
+      ['child_id', 'grade', 'language', 'baseline_score', 'total_sessions'],
+      'child_id LIKE "TEST-%"',
+      [],
+      'child_id ASC'
+    );
+
+    const byLang = {
+      si: children.filter(c => c.language === 'si'),
+      ta: children.filter(c => c.language === 'ta'),
+      en: children.filter(c => c.language === 'en'),
+    };
+
+    logger.info(`[DEBUG] Found ${children.length} test children`);
+
+    return res.status(200).json({
+      success: true,
+      total_count: children.length,
+      by_language: {
+        sinhala: byLang.si,
+        tamil: byLang.ta,
+        english: byLang.en,
+      },
+      all: children,
+      note: 'Use any child_id from above for /api/session/start requests'
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export {
   startSession,
   taskComplete,
@@ -888,5 +925,6 @@ export {
   testDBUpdate,
   getRecentSessions,
   getSignalsDebug,
-  testSignalInsert
+  testSignalInsert,
+  getAvailableTestChildren
 };

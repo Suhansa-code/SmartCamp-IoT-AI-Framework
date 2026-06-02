@@ -39,4 +39,7 @@ router.get('/debug/signals/:sessionId', ctrl.getSignalsDebug);
 // DEBUG: POST /api/session/debug/test-signal-insert
 router.post('/debug/test-signal-insert', ctrl.testSignalInsert);
 
+// DEBUG: GET /api/session/debug/available-children
+router.get('/debug/available-children', ctrl.getAvailableTestChildren);
+
 export default router;

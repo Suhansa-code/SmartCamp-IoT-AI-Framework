@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
-import { SESSIONS, SUBJECT_COLORS, TASK_TYPE_LABELS } from '@/components/psychoedu/lib/sessions'
+import { SESSIONS, SUBJECT_COLORS, TASK_TYPE_LABELS, getRandomSession } from '@/components/psychoedu/lib/sessions'
 import TaskRenderer  from './TaskRenderer'
 import Eli           from '@/components/psychoedu/child/Eli'
 
@@ -224,34 +224,23 @@ export default function CognitiveSession({ session, childId, lang = 'en', onComp
       return
     }
     
-    // Map language to session IDs
-    const languageSessionMap = {
-      'si': ['A', 'B', 'C'],
-      'ta': ['D', 'E', 'F'],
-      'en': ['G', 'H', 'I', 'J']
-    }
+    // Fallback: Pick a random session from A-K (all sessions are trilingual)
+    // In normal flow, the session is passed as prop from /app/cognitive/page.js
+    // which already uses getRandomSessionExcluding to avoid recent sessions
+    const chosen = getRandomSession()
+    console.log('[COGNITIVE] Fallback: Selected random session:', chosen.id, 'with', chosen.tasks.length, 'tasks')
     
-    const sessionsForLang = languageSessionMap[displayLang] || languageSessionMap['en']
-    console.log('[COGNITIVE] Selecting session for language:', displayLang, 'available:', sessionsForLang)
-    
-    // Get all sessions for this language
-    const availableSessions = SESSIONS.filter(s => sessionsForLang.includes(s.id))
-    
-    if (availableSessions.length === 0) {
-      console.warn('[COGNITIVE] No sessions found for language:', displayLang)
+    if (!chosen || !chosen.tasks) {
+      console.warn('[COGNITIVE] Failed to select a session')
       setTasks([])
       setLoading(false)
       return
     }
     
-    // Pick a random session from available sessions
-    const chosen = availableSessions[Math.floor(Math.random() * availableSessions.length)]
-    console.log('[COGNITIVE] Selected session:', chosen.id, 'with', chosen.tasks.length, 'tasks')
-    
     setTasks(chosen.tasks)
     setSelectedSession(chosen)
     setLoading(false)
-  }, [displayLang])
+  }, [displayLang, session])
 
   if (loading) {
     return (
