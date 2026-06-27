@@ -1,7 +1,7 @@
 from geopy.distance import geodesic
 from shapely.geometry import LineString, Point
 
-from providers.overpass_client import query_overpass
+from .overpass_client import query_overpass
 
 
 def _nearest_point_on_river(query_lat: float, query_lon: float, geometry: list[dict]):

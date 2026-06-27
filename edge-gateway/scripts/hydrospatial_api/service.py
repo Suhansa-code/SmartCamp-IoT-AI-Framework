@@ -1,6 +1,6 @@
-from providers.gauging_station import get_nearest_waterlevel_station
-from providers.river_lookup import get_nearest_named_river
-from providers.river_shapefile import (
+from .providers.gauging_station import get_nearest_waterlevel_station
+from .providers.river_lookup import get_nearest_named_river
+from .providers.river_shapefile import (
     load_river_data,
     load_gauging_station_data,
     build_river_graph,

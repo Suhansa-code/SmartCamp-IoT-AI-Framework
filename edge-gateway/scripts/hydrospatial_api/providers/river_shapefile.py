@@ -6,7 +6,7 @@ import geopandas as gpd
 import networkx as nx
 from shapely.geometry import Point
 from shapely.ops import nearest_points
-from providers.river_lookup import get_nearest_named_river
+from .river_lookup import get_nearest_named_river
 
 
 # Configuration for shapefile reading - ensure .shx files are found

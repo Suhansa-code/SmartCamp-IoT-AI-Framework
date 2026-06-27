@@ -70,6 +70,7 @@ def fetch_forecast_location(latitude: float, longitude: float, timeout_s: int = 
     return result, None
 
 
+# If needed to run seperate, below main block can be used to test the function with sample coordinates.
 if __name__ == "__main__":
     sample_lat = 7.507
     sample_lon = 80.945

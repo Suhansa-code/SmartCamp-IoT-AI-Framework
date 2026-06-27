@@ -1,6 +1,6 @@
 from geopy.distance import geodesic
 
-from providers.overpass_client import query_overpass
+from .overpass_client import query_overpass
 
 
 def _build_station_query(latitude: float, longitude: float, radius_m: int):
