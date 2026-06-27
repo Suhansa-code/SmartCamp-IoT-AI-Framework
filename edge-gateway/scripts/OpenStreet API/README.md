@@ -47,6 +47,32 @@ It uses OpenStreetMap Overpass API data.
 - Shared Overpass HTTP client used by provider modules.
 - Adds simple retry and fallback endpoint behavior to reduce temporary 504/timeout failures.
 
+### providers/live_water_level_api
+- Fetches real-time river gauge data from ArcGIS REST FeatureServer API
+- Uses HTTP GET requests via requests with query parameters for filtering station data
+- Supports two modes: full historical scan (get_gauge_data) and optimized latest record fetch (get_latest_gauge_data)
+- Sorts results using EditDate to ensure most recent readings are identified
+- Extracts water level, rainfall, alert threshold, minor flood level, and major flood level
+- Optionally includes spatial coordinates (latitude, longitude) from geometry field
+- Uses resultRecordCount=1 in optimized function to minimize bandwidth usage
+- Handles missing data gracefully by returning None when no features are found
+
+### Providers/river Shapefile.py
+- Loads river geometries from OSM shapefiles and filters only river features
+- Loads gauging station data from CSV and converts it into geospatial points
+- Reprojects all spatial data to a consistent coordinate system (EPSG:32644) for accurate distance calculations
+- Builds a directed river graph where river flow is modeled from start node to end node of each line segment
+- Finds nearest river using both semantic matching (river name lookup) and fallback spatial proximity
+- Snaps user location onto river geometry to improve graph accuracy
+- Identifies closest graph node to both user and station locations for network-based analysis
+- Builds mapping between gauging stations and nearest graph nodes for efficient lookup
+- Computes upstream river traversal using reversed graph and shortest path distances
+- Detects upstream gauging stations relative to user position along river network
+- Falls back to nearest station by Euclidean distance if no upstream station is found
+- Calculates multiple hydrological distances including station distance, river distance, and upstream path cost
+- Uses river name matching to improve station filtering accuracy when available
+- Designed for hydrological modeling, flood prediction systems, and disaster early warning applications
+
 ### main.py
 - Standalone local test script (not the Flask server).
 - Uses a fixed sample location and calls `service.py`.

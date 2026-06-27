@@ -2,28 +2,15 @@ import argparse
 import json
 import os
 import sys
-
-# Imports that may require heavy third-party deps (geopy/requests) are kept inside functions
-# so `--help` and GPS-only usage can run even if those deps are missing.
-
-
-
-# ---- GPS integration (optional) ----
-# This script lives in: edge-gateway/scripts/OpenStreet API/
-# gps_reader.py lives in: edge-gateway/scripts/gps_module/
-# We add that folder to sys.path so we can import GPSReader reliably.
-
-_GPS_MODULE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "gps_module"))
-if _GPS_MODULE_DIR not in sys.path:
-    sys.path.insert(0, _GPS_MODULE_DIR)
-
-from gps_reader import GPSReader
-
+from gps_module.gps_reader import GPSReader
+from providers.river_lookup import get_nearest_named_river
+from providers.river_lookup import find_nearest_gauging_station_detailed
+from providers.river_lookup import get_latest_gauge_data
+from providers.weather_forecast_location import fetch_forecast_location
 
 DEFAULT_LATITUDE = 7.507
 DEFAULT_LONGITUDE = 80.945
 DEFAULT_ALTITUDE = 10.0
-
 
 
 def _safe_average(values):
