@@ -1,3 +1,217 @@
+import { spawnSync } from 'child_process'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const DEFAULT_PYTHON_PATH = path.resolve(
+  __dirname,
+  '../../../../edge-gateway/scripts/OpenStreet API/.venv/Scripts/python.exe',
+)
+const DEFAULT_GPS_SCRIPT_PATH = path.resolve(
+  __dirname,
+  '../../../../edge-gateway/scripts/gps_module/main.py',
+)
+const DEFAULT_OPENSTREET_SCRIPT_PATH = path.resolve(
+  __dirname,
+  '../../../../edge-gateway/scripts/OpenStreet API/main.py',
+)
+
+function nmeaToDecimal(rawValue, hemisphere, isLatitude) {
+  if (!rawValue) return null
+
+  const degreesLength = isLatitude ? 2 : 3
+  const degrees = Number(rawValue.slice(0, degreesLength))
+  const minutes = Number(rawValue.slice(degreesLength))
+
+  if (!Number.isFinite(degrees) || !Number.isFinite(minutes)) {
+    return null
+  }
+
+  let decimal = degrees + minutes / 60
+  if (hemisphere === 'S' || hemisphere === 'W') {
+    decimal *= -1
+  }
+
+  return decimal
+}
+
+function parseGpsOutput(output) {
+  for (const line of output.split(/\r?\n/)) {
+    const trimmed = line.trim()
+
+    if (!trimmed.startsWith('{')) {
+      continue
+    }
+
+    try {
+      const payload = JSON.parse(trimmed)
+      const latitude = Number(payload.latitude ?? payload.lat)
+      const longitude = Number(payload.longitude ?? payload.lng ?? payload.lon)
+      const altitude = Number(payload.altitude ?? payload.alt ?? 0)
+
+      if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+        return { latitude, longitude, altitude: Number.isFinite(altitude) ? altitude : 0 }
+      }
+    } catch {
+      continue
+    }
+  }
+
+  const latitudeMatch = output.match(/Latitude:\s*([-+]?\d+(?:\.\d+)?)/i)
+  const longitudeMatch = output.match(/Longitude:\s*([-+]?\d+(?:\.\d+)?)/i)
+
+  if (latitudeMatch && longitudeMatch) {
+    const latitude = Number(latitudeMatch[1])
+    const longitude = Number(longitudeMatch[1])
+
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return { latitude, longitude }
+    }
+  }
+
+  const lines = output.split(/\r?\n/)
+
+  for (const line of lines) {
+    if (!line.includes('$GPGGA') && !line.includes('$GNGGA')) {
+      continue
+    }
+
+    const parts = line.trim().split(',')
+    const latitude = nmeaToDecimal(parts[2], parts[3], true)
+    const longitude = nmeaToDecimal(parts[4], parts[5], false)
+
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return { latitude, longitude }
+    }
+  }
+
+  return null
+}
+
+function readLiveGpsLocation() {
+  const pythonExecutable = process.env.DISASTER_PYTHON_EXECUTABLE || DEFAULT_PYTHON_PATH
+  const scriptPath = process.env.DISASTER_GPS_SCRIPT || DEFAULT_GPS_SCRIPT_PATH
+  const timeoutMs = Number(process.env.DISASTER_GPS_TIMEOUT_MS || 12000)
+
+  const child = spawnSync(pythonExecutable, [scriptPath], {
+    encoding: 'utf8',
+    maxBuffer: 10 * 1024 * 1024,
+    timeout: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 12000,
+    windowsHide: true,
+  })
+
+  if (child.error && child.error.code !== 'ETIMEDOUT') {
+    return null
+  }
+
+  return parseGpsOutput(`${child.stdout || ''}\n${child.stderr || ''}`.trim())
+}
+
+function readLiveOpenStreetPayload(latitude, longitude, altitude) {
+  const pythonExecutable = process.env.DISASTER_PYTHON_EXECUTABLE || DEFAULT_PYTHON_PATH
+  const scriptPath = process.env.DISASTER_OPENSTREET_SCRIPT || DEFAULT_OPENSTREET_SCRIPT_PATH
+  const timeoutMs = Number(process.env.DISASTER_OPENSTREET_TIMEOUT_MS || 60000)
+
+  const child = spawnSync(
+    pythonExecutable,
+    [
+      scriptPath,
+      '--json',
+      '--lat',
+      String(latitude),
+      '--lon',
+      String(longitude),
+      '--alt',
+      String(altitude ?? 0),
+    ],
+    {
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024,
+      timeout: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60000,
+      windowsHide: true,
+    }
+  )
+
+  if (child.error && child.error.code !== 'ETIMEDOUT') {
+    return null
+  }
+
+  const output = (child.stdout || '').trim()
+  if (!output) {
+    return null
+  }
+
+  try {
+    return JSON.parse(output)
+  } catch {
+    return null
+  }
+}
+
+function toNumber(value, fallback = null) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function resolveLiveCampDetail(baseDetail, payload, gpsLocation) {
+  const nearestRiver = payload?.nearest_river || {}
+  const gaugingStation = payload?.gauging_station || {}
+  const liveGaugeData = payload?.live_gauge_data || {}
+  const forecastLocation = payload?.forecast?.forecast_location || {}
+  const forecastSummary = payload?.forecast_summary || {}
+
+  return {
+    ...baseDetail,
+    waterPath: nearestRiver.name || baseDetail.waterPath,
+    river: gaugingStation.river_name || gaugingStation.river || liveGaugeData.basin || baseDetail.river,
+    station: gaugingStation.station_name || liveGaugeData.gauge || baseDetail.station,
+    stDist: toNumber(gaugingStation.distance_to_station_meters ?? gaugingStation.distance_meters, baseDetail.stDist),
+    upDist: toNumber(gaugingStation.distance_to_river_meters, baseDetail.upDist),
+    wl: toNumber(liveGaugeData.water_level, baseDetail.wl),
+    rain: toNumber(liveGaugeData.rainfall, baseDetail.rain),
+    alertL: toNumber(liveGaugeData.alert_level ?? gaugingStation.alert_level, baseDetail.alertL),
+    minorL: toNumber(liveGaugeData.minor_flood_level ?? gaugingStation.minor_flood_level, baseDetail.minorL),
+    majorL: toNumber(liveGaugeData.major_flood_level ?? gaugingStation.major_flood_level, baseDetail.majorL),
+    gauLat: toNumber(liveGaugeData.latitude, baseDetail.gauLat),
+    gauLng: toNumber(liveGaugeData.longitude, baseDetail.gauLng),
+    fcLat: toNumber(forecastLocation.lat, baseDetail.fcLat),
+    fcLng: toNumber(forecastLocation.lon, baseDetail.fcLng),
+    elev: toNumber(forecastLocation.elevation, baseDetail.elev),
+    minT: toNumber(forecastSummary.min_temp, baseDetail.minT),
+    maxT: toNumber(forecastSummary.max_temp, baseDetail.maxT),
+    hum: toNumber(forecastSummary.avg_humidity, baseDetail.hum),
+    precip: toNumber(forecastSummary.total_precipitation, baseDetail.precip),
+    maxHrPrec: toNumber(forecastSummary.max_hourly_precipitation, baseDetail.maxHrPrec),
+    maxWind: toNumber(forecastSummary.max_wind_speed, baseDetail.maxWind),
+    avgWind: toNumber(forecastSummary.avg_wind_speed, baseDetail.avgWind),
+    soil: toNumber(forecastSummary.surface_soil_moisture, baseDetail.soil),
+    pres: toNumber(forecastSummary.avg_pressure, baseDetail.pres),
+    cloud: toNumber(forecastSummary.max_cloud_cover, baseDetail.cloud),
+    live_query_lat: gpsLocation.latitude,
+    live_query_lng: gpsLocation.longitude,
+  }
+}
+
+function buildResolvedCampRegistry() {
+  const liveLocation = readLiveGpsLocation()
+  const livePayload = liveLocation
+    ? readLiveOpenStreetPayload(liveLocation.latitude, liveLocation.longitude, liveLocation.altitude)
+    : null
+
+  return DISASTER_CAMPS.map((camp) => {
+    if (camp.id.toLowerCase() !== 'live' || !liveLocation) {
+      return camp
+    }
+
+    return {
+      ...camp,
+      lat: liveLocation.latitude,
+      lng: liveLocation.longitude,
+      detail: resolveLiveCampDetail(camp.detail, livePayload, liveLocation),
+    }
+  })
+}
+
 const DISASTER_CAMPS = [
   {
     id: 'galle',
@@ -179,43 +393,67 @@ const DISASTER_CAMPS = [
       waterPath: 'Walawe Ganga', river: 'Walawe River', station: 'Embilipitiya', stDist: 18000, upDist: 2100, wl: -0.30, rain: 8, alertL: 3.5, minorL: 4.5, majorL: 6.0, gauLat: 6.15, gauLng: 81.10, fcLat: 6.12, fcLng: 81.12, elev: 12, minT: 28.0, maxT: 34.5, hum: 78, precip: 8.0, maxHrPrec: 2.0, maxWind: 16, avgWind: 6, soil: 0.22, pres: 1010, cloud: 55,
     },
   },
+  {
+    id: 'LIVE',
+    code: 'LIVE',
+    name: 'LIVE Flood Relief',
+    district: 'Live Test Camp',
+    region: 'Live Region',
+    lat: 6.68,
+    lng: 80.40,
+    status: 'high',
+    displaced: 1190,
+    capacity: 1500,
+    aid: 58,
+    type: 'FLOOD',
+    workers: 49,
+    detail: {
+      waterPath: 'Kalu Ganga', river: 'Kalu Ganga', station: 'Ratnapura', stDist: 9400, upDist: 780, wl: 0.85, rain: 22, alertL: 4.2, minorL: 5.2, majorL: 6.8, gauLat: 6.69, gauLng: 80.39, fcLat: 6.68, fcLng: 80.40, elev: 31, minT: 25.6, maxT: 31.4, hum: 91, precip: 22.6, maxHrPrec: 4.6, maxWind: 19, avgWind: 8, soil: 0.41, pres: 1007, cloud: 88,
+    },
+  },
 ]
 
+function resolveCampLocation(camp) {
+  return camp
+}
+
 function toSummary(camp) {
-  const { detail, ...summary } = camp
+  const { detail, ...summary } = resolveCampLocation(camp)
   return summary
 }
 
 function toMapNode(camp) {
+  const liveCamp = resolveCampLocation(camp)
+
   return {
-    id: camp.id,
-    code: camp.code,
-    name: camp.name,
-    district: camp.district,
-    region: camp.region,
-    lat: camp.lat,
-    lng: camp.lng,
-    status: camp.status,
-    type: camp.type,
+    id: liveCamp.id,
+    code: liveCamp.code,
+    name: liveCamp.name,
+    district: liveCamp.district,
+    region: liveCamp.region,
+    lat: liveCamp.lat,
+    lng: liveCamp.lng,
+    status: liveCamp.status,
+    type: liveCamp.type,
   }
 }
 
 export function getDisasterCampSummaries() {
-  return DISASTER_CAMPS.map(toSummary)
+  return buildResolvedCampRegistry().map(toSummary)
 }
 
 export function getDisasterMapNodes() {
-  return DISASTER_CAMPS.map(toMapNode)
+  return buildResolvedCampRegistry().map(toMapNode)
 }
 
 export function getDisasterCampById(campId) {
   if (!campId) return null
   const normalized = String(campId).toLowerCase()
-  return DISASTER_CAMPS.find((camp) => camp.id === normalized) || null
+  return buildResolvedCampRegistry().find((camp) => camp.id.toLowerCase() === normalized) || null
 }
 
 export function getDisasterDashboardSummary() {
-  const camps = getDisasterCampSummaries()
+  const camps = buildResolvedCampRegistry().map(toSummary)
   const statusCounts = camps.reduce((accumulator, camp) => {
     accumulator[camp.status] = (accumulator[camp.status] || 0) + 1
     return accumulator
@@ -231,6 +469,6 @@ export function getDisasterDashboardSummary() {
     critical_camps: camps.filter((camp) => camp.status === 'critical').length,
     status_counts: statusCounts,
     camps,
-    map_nodes: getDisasterMapNodes(),
+    map_nodes: camps.map(toMapNode),
   }
 }

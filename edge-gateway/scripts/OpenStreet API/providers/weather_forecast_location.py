@@ -1,4 +1,4 @@
-import requests
+import requests  # type: ignore
 
 FORECAST_ENDPOINT = "https://api.open-meteo.com/v1/forecast"
 REQUEST_HEADERS = {"User-Agent": "OpenStreet-API-Script/1.0"}

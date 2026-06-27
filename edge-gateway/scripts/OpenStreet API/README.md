@@ -47,9 +47,6 @@ It uses OpenStreetMap Overpass API data.
 - Shared Overpass HTTP client used by provider modules.
 - Adds simple retry and fallback endpoint behavior to reduce temporary 504/timeout failures.
 
-### providers/__init__.py
-- Marks `providers` as a Python package.
-
 ### main.py
 - Standalone local test script (not the Flask server).
 - Uses a fixed sample location and calls `service.py`.
@@ -58,32 +55,3 @@ It uses OpenStreetMap Overpass API data.
   - nearest gauging station
 - Useful for quick terminal verification of the same flow used by `api.py`.
 
-## Quick Run
-
-Install dependencies (inside your active environment):
-
-```bash
-pip install -r requirements.txt
-```
-
-Run API server:
-
-```bash
-python api.py
-```
-
-Test endpoint example:
-
-```bash
-curl "http://127.0.0.1:5000/nearest-river-gauging-station?lat=6.501&lon=81.398"
-```
-
-## Activate Venv (PowerShell)
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-
-## River Gauging Station Gauge measure Site Link
-https://www.arcgis.com/apps/dashboards/2cffe83c9ff5497d97375498bdf3ff38

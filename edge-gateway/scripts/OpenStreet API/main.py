@@ -1,119 +1,212 @@
-from service import find_nearest_gauging_station_detailed
-from providers.river_lookup import get_nearest_named_river
-from providers.weather_forecast_location import fetch_forecast_location
-from providers.live_water_level_api import get_latest_gauge_data
+import argparse
+import json
+import os
+import sys
 
-# Camp GPS location
-LATITUDE = 7.507
-LONGITUDE = 80.945
-ALTITUDE = 10.0  # meters above sea level (if available)
+# Imports that may require heavy third-party deps (geopy/requests) are kept inside functions
+# so `--help` and GPS-only usage can run even if those deps are missing.
 
 
-if __name__ == "__main__":
-    print("=" * 60)
-    print("SMART CAMP - WATER LEVEL MONITORING")
-    print("=" * 60)
-    print(f"\nQuery Location: Lat {LATITUDE}, Lon {LONGITUDE}, Alt {ALTITUDE}")
-    print("-" * 60)
 
-    # Get nearest named river and detailed gauging station information
-    nearest_river, river_error = get_nearest_named_river(LATITUDE, LONGITUDE)
-    detailed_result, detailed_error = find_nearest_gauging_station_detailed(LATITUDE, LONGITUDE)
+# ---- GPS integration (optional) ----
+# This script lives in: edge-gateway/scripts/OpenStreet API/
+# gps_reader.py lives in: edge-gateway/scripts/gps_module/
+# We add that folder to sys.path so we can import GPSReader reliably.
 
+_GPS_MODULE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "gps_module"))
+if _GPS_MODULE_DIR not in sys.path:
+    sys.path.insert(0, _GPS_MODULE_DIR)
+
+from gps_reader import GPSReader
+
+
+DEFAULT_LATITUDE = 7.507
+DEFAULT_LONGITUDE = 80.945
+DEFAULT_ALTITUDE = 10.0
+
+
+
+def _safe_average(values):
+    cleaned = [value for value in values if value is not None]
+    if not cleaned:
+        return None
+    return sum(cleaned) / len(cleaned)
+
+
+def _summarize_forecast(forecast_data):
+    hourly = forecast_data.get('weather_forecast_parameters', {}).get('hourly', {})
+
+    temperatures = hourly.get('temperature_2m', [])
+    humidity = hourly.get('relative_humidity_2m', [])
+    precipitation = hourly.get('precipitation', [])
+    rain = hourly.get('rain', [])
+    wind_speed = hourly.get('wind_speed_10m', [])
+    soil_0_10 = hourly.get('soil_moisture_0_to_10cm', [])
+    soil_10_35 = hourly.get('soil_moisture_10_to_35cm', [])
+    pressure = hourly.get('surface_pressure', [])
+    cloud_cover = hourly.get('cloud_cover', [])
+
+    return {
+        'min_temp': min(temperatures) if temperatures else None,
+        'max_temp': max(temperatures) if temperatures else None,
+        'avg_humidity': _safe_average(humidity),
+        'total_precipitation': sum(precipitation) if precipitation else None,
+        'total_rain': sum(rain) if rain else None,
+        'max_hourly_precipitation': max(precipitation) if precipitation else None,
+        'max_wind_speed': max(wind_speed) if wind_speed else None,
+        'avg_wind_speed': _safe_average(wind_speed),
+        'surface_soil_moisture': next((value for value in soil_0_10 if value is not None), None),
+        'deep_soil_moisture': next((value for value in soil_10_35 if value is not None), None),
+        'avg_pressure': _safe_average(pressure),
+        'max_cloud_cover': max(cloud_cover) if cloud_cover else None,
+    }
+
+
+def build_live_payload(latitude, longitude, altitude):
+    payload = {
+        'query_location': {
+            'lat': latitude,
+            'lon': longitude,
+            'alt': altitude,
+        },
+        'nearest_river': None,
+        'gauging_station': None,
+        'live_gauge_data': None,
+        'forecast': None,
+        'forecast_summary': None,
+        'errors': {},
+    }
+
+    nearest_river, river_error = get_nearest_named_river(latitude, longitude)
     if river_error:
-        print(f"❌ River lookup failed: {river_error}")
-        raise SystemExit(1)
-
-    if detailed_error:
-        print(f"❌ Lookup failed: {detailed_error}")
-        raise SystemExit(1)
-
-    if nearest_river:
-        print(f"Nearest water path name: {nearest_river.get('name', 'N/A')}")
-
-    if detailed_result:
-        print(f"Nearest River (CSV): {detailed_result.get('river_name') or detailed_result.get('river', 'N/A')}")
-        print("\n📍 GAUGING STATION DETAILS:")
-        print(f"   Station Name: {detailed_result.get('station_name', 'N/A')}")
-        print(f"   Station River: {detailed_result.get('river_name') or detailed_result.get('river', 'N/A')}")
-        print(f"   Distance to Gauging Station: {detailed_result.get('distance_to_station_meters', detailed_result.get('distance_meters', 'N/A'))} meters")
-        print(f"   Distance to Upstream River: {detailed_result.get('distance_to_river_meters', 'N/A')} meters")
-        print(f"   Type: {detailed_result.get('type', 'N/A')}")
-
-        # Flood level information
-        alert_level = detailed_result.get('alert_level')
-        minor_flood = detailed_result.get('minor_flood_level')
-        major_flood = detailed_result.get('major_flood_level')
-
-        
-        # Get live water level data from API
-        gauge_data = get_latest_gauge_data(detailed_result.get('station_name', ''), include_geometry=True)
-        if gauge_data:
-            print("\n💧 LIVE WATER LEVEL DATA:")
-            print(f"   Current Water Level: {gauge_data.get('water_level', 'N/A')} m")
-            print(f"   Rainfall: {gauge_data.get('rainfall', 'N/A')} mm")
-            print(f"   Alert Level: {gauge_data.get('alert_level', 'N/A')} m")
-            print(f"   Minor Flood Level: {gauge_data.get('minor_flood_level', 'N/A')} m")
-            print(f"   Major Flood Level: {gauge_data.get('major_flood_level', 'N/A')} m")
-            if gauge_data.get('latitude') and gauge_data.get('longitude'):
-                print(f"   Gauge Location: Lat {gauge_data['latitude']:.4f}, Lon {gauge_data['longitude']:.4f}")
-
-        # Fetch weather forecast for the location
-        forecast_data, forecast_error = fetch_forecast_location(LATITUDE, LONGITUDE)
-        if forecast_error:
-            print(f"\n❌ Weather forecast lookup failed: {forecast_error}")
-        else:
-            print("\n🌤️ WEATHER FORECAST LOCATION:")
-            print(f"   Forecast Location: Lat {forecast_data['forecast_location']['lat']}, Lon {forecast_data['forecast_location']['lon']}")
-            print(f"   Elevation: {forecast_data['forecast_location'].get('elevation', 'N/A')} m")
-            
-            # Display hourly forecast parameters for flood prediction
-            hourly_data = forecast_data.get('weather_forecast_parameters', {}).get('hourly', {})
-            hourly_units = forecast_data.get('weather_forecast_parameters', {}).get('hourly_units', {})
-            
-            if hourly_data and hourly_data.get('time'):
-                print("\n📊 HOURLY WEATHER FORECAST FOR FLOOD PREDICTION:")
-                times = hourly_data.get('time', [])
-                print(f"   Forecast Period: {times[0] if times else 'N/A'} to {times[-1] if times else 'N/A'} ({len(times)} hours)")
-                
-                # Get first and last hour data for summary
-                if len(times) > 0:
-                    print("\n   🌡️ Temperature & Humidity:")
-                    temps = hourly_data.get('temperature_2m', [])
-                    humidity = hourly_data.get('relative_humidity_2m', [])
-                    print(f"      Min Temp: {min(temps) if temps else 'N/A'}°C, Max Temp: {max(temps) if temps else 'N/A'}°C")
-                    print(f"      Avg Humidity: {sum(humidity)//len(humidity) if humidity else 'N/A'}%")
-                    
-                    print("\n   💧 Precipitation & Rainfall:")
-                    precip = hourly_data.get('precipitation', [])
-                    rain = hourly_data.get('rain', [])
-                    total_precip = sum(precip) if precip else 0
-                    total_rain = sum(rain) if rain else 0
-                    print(f"      Total Precipitation (24h): {total_precip} {hourly_units.get('precipitation', 'mm')}")
-                    print(f"      Total Rain (24h): {total_rain} {hourly_units.get('rain', 'mm')}")
-                    print(f"      Max Hourly Precipitation: {max(precip) if precip else 'N/A'} mm")
-                    
-                    print("\n   🌪️ Wind Conditions:")
-                    wind_speed = hourly_data.get('wind_speed_10m', [])
-                    wind_dir = hourly_data.get('wind_direction_10m', [])
-                    print(f"      Max Wind Speed: {max(wind_speed) if wind_speed else 'N/A'} {hourly_units.get('wind_speed_10m', 'km/h')}")
-                    print(f"      Avg Wind Speed: {sum(wind_speed)//len(wind_speed) if wind_speed else 'N/A'} {hourly_units.get('wind_speed_10m', 'km/h')}")
-                    
-                    print("\n   🌱 Soil Moisture:")
-                    soil_0_10 = hourly_data.get('soil_moisture_0_to_10cm', [])
-                    soil_10_35 = hourly_data.get('soil_moisture_10_to_35cm', [])
-                    valid_soil_0_10 = [x for x in soil_0_10 if x is not None]
-                    print(f"      Surface Soil (0-10cm): {valid_soil_0_10[0] if valid_soil_0_10 else 'N/A'} {hourly_units.get('soil_moisture_0_to_10cm', 'm³/m³')}")
-                    if soil_10_35 and any(soil_10_35):
-                        valid_soil_10_35 = [x for x in soil_10_35 if x is not None]
-                        print(f"      Deep Soil (10-35cm): {valid_soil_10_35[0] if valid_soil_10_35 else 'N/A'} {hourly_units.get('soil_moisture_10_to_35cm', 'm³/m³')}")
-                    
-                    print("\n   🔽 Atmospheric Pressure & Cloud Cover:")
-                    pressure = hourly_data.get('surface_pressure', [])
-                    cloud_cover = hourly_data.get('cloud_cover', [])
-                    print(f"      Avg Pressure: {sum(pressure)//len(pressure) if pressure else 'N/A'} {hourly_units.get('surface_pressure', 'hPa')}")
-                    print(f"      Max Cloud Cover: {max(cloud_cover) if cloud_cover else 'N/A'}%")
+        payload['errors']['river_lookup'] = river_error
     else:
-        print("No gauging station found")
+        payload['nearest_river'] = nearest_river
 
-    print("\n" + "=" * 60)
+    detailed_result, detailed_error = find_nearest_gauging_station_detailed(latitude, longitude)
+    if detailed_error:
+        payload['errors']['gauging_station'] = detailed_error
+    else:
+        payload['gauging_station'] = detailed_result
+
+    station_name = detailed_result.get('station_name') if detailed_result else ''
+    if station_name:
+        try:
+            payload['live_gauge_data'] = get_latest_gauge_data(station_name, include_geometry=True)
+        except Exception as exc:
+            payload['errors']['live_gauge_data'] = str(exc)
+
+    try:
+        forecast_data, forecast_error = fetch_forecast_location(latitude, longitude)
+        if forecast_error:
+            payload['errors']['forecast'] = forecast_error
+        else:
+            payload['forecast'] = forecast_data
+            payload['forecast_summary'] = _summarize_forecast(forecast_data)
+    except Exception as exc:
+        payload['errors']['forecast'] = {'error': str(exc)}
+
+    return payload
+
+
+def print_human(payload):
+    print('=' * 60)
+    print('SMART CAMP - WATER LEVEL MONITORING')
+    print('=' * 60)
+    location = payload['query_location']
+    print(f"\nQuery Location: Lat {location['lat']}, Lon {location['lon']}, Alt {location['alt']}")
+    print('-' * 60)
+
+    river = payload.get('nearest_river')
+    if river:
+        print(f"Nearest water path name: {river.get('name', 'N/A')}")
+
+    station = payload.get('gauging_station')
+    if station:
+        print(f"Nearest River (CSV): {station.get('river_name') or station.get('river', 'N/A')}")
+        print('\n📍 GAUGING STATION DETAILS:')
+        print(f"   Station Name: {station.get('station_name', 'N/A')}")
+        print(f"   Station River: {station.get('river_name') or station.get('river', 'N/A')}")
+        print(f"   Distance to Gauging Station: {station.get('distance_to_station_meters', station.get('distance_meters', 'N/A'))} meters")
+        print(f"   Distance to Upstream River: {station.get('distance_to_river_meters', 'N/A')} meters")
+        print(f"   Type: {station.get('type', 'N/A')}")
+
+    gauge = payload.get('live_gauge_data')
+    if gauge:
+        print('\n💧 LIVE WATER LEVEL DATA:')
+        print(f"   Current Water Level: {gauge.get('water_level', 'N/A')} m")
+        print(f"   Rainfall: {gauge.get('rainfall', 'N/A')} mm")
+        print(f"   Alert Level: {gauge.get('alert_level', 'N/A')} m")
+        print(f"   Minor Flood Level: {gauge.get('minor_flood_level', 'N/A')} m")
+        print(f"   Major Flood Level: {gauge.get('major_flood_level', 'N/A')} m")
+        if gauge.get('latitude') and gauge.get('longitude'):
+            print(f"   Gauge Location: Lat {gauge['latitude']:.4f}, Lon {gauge['longitude']:.4f}")
+
+    forecast = payload.get('forecast')
+    if forecast:
+        print('\n🌤️ WEATHER FORECAST LOCATION:')
+        forecast_location = forecast.get('forecast_location', {})
+        print(f"   Forecast Location: Lat {forecast_location.get('lat')}, Lon {forecast_location.get('lon')}")
+        print(f"   Elevation: {forecast_location.get('elevation', 'N/A')} m")
+
+
+        summary = payload.get('forecast_summary', {})
+        print('\n📊 HOURLY WEATHER FORECAST FOR FLOOD PREDICTION:')
+        print(f"   Min Temp: {summary.get('min_temp', 'N/A')}°C, Max Temp: {summary.get('max_temp', 'N/A')}°C")
+        print(f"   Avg Humidity: {summary.get('avg_humidity', 'N/A')}%")
+        print(f"   Total Precipitation (24h): {summary.get('total_precipitation', 'N/A')} mm")
+        print(f"   Total Rain (24h): {summary.get('total_rain', 'N/A')} mm")
+        print(f"   Max Hourly Precipitation: {summary.get('max_hourly_precipitation', 'N/A')} mm")
+        print(f"   Max Wind Speed: {summary.get('max_wind_speed', 'N/A')}")
+        print(f"   Avg Wind Speed: {summary.get('avg_wind_speed', 'N/A')}")
+        print(f"   Surface Soil (0-10cm): {summary.get('surface_soil_moisture', 'N/A')}")
+        print(f"   Deep Soil (10-35cm): {summary.get('deep_soil_moisture', 'N/A')}")
+        print(f"   Avg Pressure: {summary.get('avg_pressure', 'N/A')}")
+        print(f"   Max Cloud Cover: {summary.get('max_cloud_cover', 'N/A')}%")
+
+    if payload.get('errors'):
+        print('\n⚠️ Some live lookups failed:')
+        for key, error in payload['errors'].items():
+            print(f"   {key}: {error}")
+
+    print('\n' + '=' * 60)
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Smart Camp OpenStreet live lookup')
+    parser.add_argument('--lat', type=float, default=DEFAULT_LATITUDE)
+    parser.add_argument('--lon', type=float, default=DEFAULT_LONGITUDE)
+    parser.add_argument('--alt', type=float, default=DEFAULT_ALTITUDE)
+    parser.add_argument('--json', action='store_true', help='Print JSON instead of human-readable output')
+
+    # GPS mode
+    parser.add_argument('--use-gps', action='store_true', help='Read latitude/longitude/altitude from GPSReader')
+    parser.add_argument('--gps-port', type=str, default='COM7', help='Serial port for GPS (e.g., COM7)')
+    parser.add_argument('--gps-baudrate', type=int, default=9600, help='Serial baudrate for GPS')
+
+    args = parser.parse_args()
+
+    if args.use_gps:
+        gps = GPSReader(port=args.gps_port, baudrate=args.gps_baudrate).get_gps_data()
+        latitude = float(gps['latitude'])
+        longitude = float(gps['longitude'])
+        altitude = float(gps['altitude'])
+    else:
+        latitude = args.lat
+        longitude = args.lon
+        altitude = args.alt
+
+
+
+    payload = build_live_payload(latitude, longitude, altitude)
+
+    if args.json:
+
+        print(json.dumps(payload, ensure_ascii=True, default=str))
+        return
+
+    print_human(payload)
+
+
+if __name__ == '__main__':
+    main()

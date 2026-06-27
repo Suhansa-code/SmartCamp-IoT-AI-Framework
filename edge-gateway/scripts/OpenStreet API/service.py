@@ -13,6 +13,8 @@ def find_nearest_gauging_station_detailed(latitude: float, longitude: float):
     Return detailed gauging station info with flood levels using shapefile data.
     Includes alert levels, minor/major flood levels, and upstream station preference.
     """
+
+    
     try:
         # Load geospatial data
         rivers = load_river_data()

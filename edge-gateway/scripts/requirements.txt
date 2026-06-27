@@ -1,0 +1,6 @@
+requests
+pyserial
+flask
+requests
+geopy
+shapely

@@ -1,6 +1,6 @@
+import json
 import time
-
-import requests
+from urllib import error, parse, request
 
 OVERPASS_ENDPOINTS = (
     "https://overpass-api.de/api/interpreter",
@@ -17,28 +17,34 @@ def query_overpass(query: str, timeout_s: int = 90, retries_per_endpoint: int = 
     for endpoint in OVERPASS_ENDPOINTS:
         for attempt in range(retries_per_endpoint):
             try:
-                response = requests.get(
-                    endpoint,
-                    params={"data": query},
-                    headers=REQUEST_HEADERS,
-                    timeout=timeout_s,
-                )
-                response.raise_for_status()
+                url = f"{endpoint}?{parse.urlencode({'data': query})}"
+                req = request.Request(url, headers=REQUEST_HEADERS, method="GET")
+                with request.urlopen(req, timeout=timeout_s) as response:
+                    status = response.status
+                    content_type = response.headers.get("Content-Type", "")
+                    body = response.read().decode("utf-8", errors="replace")
 
-                content_type = response.headers.get("Content-Type", "")
+                if status >= 400:
+                    last_error = {
+                        "error": f"Overpass request failed with status {status}.",
+                        "status": status,
+                        "endpoint": endpoint,
+                    }
+                    continue
+
                 if "json" not in content_type.lower():
                     last_error = {
                         "error": "Overpass response was not JSON.",
-                        "status": response.status_code,
+                        "status": status,
                         "content_type": content_type,
-                        "body_preview": response.text[:500],
+                        "body_preview": body[:500],
                         "endpoint": endpoint,
                     }
                     break
 
-                return response.json(), None
+                return json.loads(body), None
 
-            except requests.exceptions.RequestException as exc:
+            except error.URLError as exc:
                 last_error = {
                     "error": f"Request failed: {exc}",
                     "endpoint": endpoint,
