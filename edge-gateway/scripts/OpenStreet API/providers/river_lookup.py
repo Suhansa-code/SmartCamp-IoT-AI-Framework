@@ -27,7 +27,7 @@ def _nearest_point_on_river(query_lat: float, query_lon: float, geometry: list[d
     return nearest_point.y, nearest_point.x
 
 
-def get_nearest_named_river(latitude: float, longitude: float, radius_m: int = 5000):
+def get_nearest_named_river(latitude: float, longitude: float, radius_m: int = 50000):
     """Return nearest named river/stream to the given coordinate."""
     query = f"""
     [out:json][timeout:60];
@@ -66,7 +66,6 @@ def get_nearest_named_river(latitude: float, longitude: float, radius_m: int = 5
                 "osm_type": element.get("type"),
             }
             min_distance_km = distance_km
-
     if nearest_river is None:
         return None, {"error": "No named rivers/streams found in the selected radius."}
 

@@ -179,10 +179,10 @@ def find_upstream_gauging_station(
 
     nearest_river = None
 
+
     # Try to match by name if shapefile has name column and river lookup succeeded
     if named_river and "name" in named_river and "name" in rivers.columns:
         river_name = named_river["name"]
-
         # Try to find matching river geometries by name in the shapefile
         candidates = rivers[
             rivers["name"].astype(str).str.lower()
@@ -199,6 +199,7 @@ def find_upstream_gauging_station(
         nearest_river = find_nearest_river(user_point, rivers)
 
     river_geometry = nearest_river.geometry
+    distance_to_river_meters = float(round(user_point.distance(river_geometry), 2))
 
 
     # Snap user to river
@@ -224,11 +225,13 @@ def find_upstream_gauging_station(
     # Filter stations on same river (optional)
     filtered_stations = stations
 
-    if "river" in stations.columns and "name" in nearest_river.index:
+    station_river_column = "river_name" if "river_name" in stations.columns else "river"
+
+    if station_river_column in stations.columns and "name" in nearest_river.index:
         river_name = nearest_river["name"]
 
         same_river_stations = stations[
-            stations["river"].astype(str).str.lower()
+            stations[station_river_column].astype(str).str.lower()
             == str(river_name).lower()
         ]
 
@@ -255,12 +258,18 @@ def find_upstream_gauging_station(
 
     # Return upstream station if found
     if nearest_upstream_station is not None:
+        station_geometry = nearest_upstream_station.geometry
+        distance_to_station_meters = float(round(user_point.distance(station_geometry), 2))
 
         return {
             "type": "UPSTREAM_STATION",
             "station_name": nearest_upstream_station.get("station_name"),
-            "river": nearest_upstream_station.get("river") or nearest_upstream_station.get("river_name"),
+            "river": nearest_upstream_station.get("river_name") or nearest_upstream_station.get("river"),
+            "river_name": nearest_upstream_station.get("river_name") or nearest_upstream_station.get("river"),
             "distance_meters": float(round(nearest_upstream_distance, 2)),
+            "distance_to_station_meters": distance_to_station_meters,
+            "distance_to_river_meters": distance_to_river_meters,
+            "nearest_river_name": nearest_river.get("name"),
             "alert_level": float(nearest_upstream_station.get("alert_level"))
             if pd.notnull(nearest_upstream_station.get("alert_level"))
             else None,
@@ -278,12 +287,17 @@ def find_upstream_gauging_station(
     nearest_station = stations_copy.loc[
         stations_copy["distance"].idxmin()
     ]
+    distance_to_station_meters = float(round(nearest_station["distance"], 2))
 
     return {
         "type": "NEAREST_STATION",
         "station_name": nearest_station["station_name"],
-        "river": nearest_station.get("river"),
-        "distance_meters": round(nearest_station["distance"], 2),
+        "river": nearest_station.get("river_name") or nearest_station.get("river"),
+        "river_name": nearest_station.get("river_name") or nearest_station.get("river"),
+        "distance_meters": distance_to_station_meters,
+        "distance_to_station_meters": distance_to_station_meters,
+        "distance_to_river_meters": distance_to_river_meters,
+        "nearest_river_name": nearest_river.get("name"),
         "alert_level": nearest_station.get("alert_level"),
         "minor_flood_level": nearest_station.get("minor_flood"),
         "major_flood_level": nearest_station.get("major_flood"),
@@ -291,37 +305,4 @@ def find_upstream_gauging_station(
 
 
 
-# Execution Function
-if __name__ == "__main__":
-
-    # Load datasets
-    rivers = load_river_data()
-    stations = load_gauging_station_data()
-
-    # Build graph
-    river_graph = build_river_graph(rivers)
-
-    # Precompute station graph nodes
-    station_graph_nodes = get_station_graph_nodes(
-        stations,
-        river_graph.nodes
-    )
-
-    # Example location
-    latitude = 6.9147
-    longitude = 79.9733
-
-    # Find station
-    result = find_upstream_gauging_station(
-        latitude=latitude,
-        longitude=longitude,
-        rivers=rivers,
-        stations=stations,
-        graph=river_graph,
-        station_node_mapping=station_graph_nodes
-    )
-
-    # Output
-    print("\n========== RESULT ==========")
-    print(result)
 
