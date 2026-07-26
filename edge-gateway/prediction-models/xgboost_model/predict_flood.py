@@ -6,6 +6,7 @@ from pathlib import Path
 
 import joblib
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from xgboost_model import LocationAwareFloodXGBoostModel, MODEL_SAVE_PATH
 
 
@@ -13,7 +14,7 @@ def load_model() -> LocationAwareFloodXGBoostModel:
     model = LocationAwareFloodXGBoostModel()
 
     if MODEL_SAVE_PATH.exists():
-        model.model = joblib.load(MODEL_SAVE_PATH)
+        model._estimator = joblib.load(MODEL_SAVE_PATH)
         model._is_trained = True
         return model
 

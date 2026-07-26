@@ -14,7 +14,7 @@
     --warning: #fbbf24; --border: #334155;
   }
   body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
-  
+
   /* Sidebar */
   .sidebar { width: 260px; background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 16px; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 10; }
   .sidebar h1 { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
@@ -36,6 +36,7 @@
   .section h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
   .section h2 .badge { font-size: 12px; background: var(--bg3); color: var(--text2); padding: 2px 10px; border-radius: 12px; font-weight: 400; }
   .section h3 { font-size: 16px; font-weight: 600; margin: 16px 0 8px; color: var(--accent); }
+  .section h4 { font-size: 14px; font-weight: 600; margin: 12px 0 6px; color: var(--accent2); }
   .section p, .section li { font-size: 14px; line-height: 1.6; color: var(--text2); }
 
   /* Cards */
@@ -102,12 +103,34 @@
   .flow-box .fl2 { color: var(--text2); font-size: 10px; }
   .flow-arrow { color: var(--text2); font-size: 18px; }
 
+  /* Process block */
+  .process-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .process-col { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .process-col h4 { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+  .process-col ul { list-style: none; }
+  .process-col li { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; color: var(--text2); display: flex; gap: 8px; }
+  .process-col li:last-child { border-bottom: none; }
+  .process-col li .arrow { color: var(--accent2); flex-shrink: 0; }
+  .process-col li strong { color: var(--text); }
+  .platform-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .platform-header .icon { font-size: 24px; }
+  .platform-header h3 { margin: 0; color: var(--text); }
+  .platform-header .tag { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: var(--bg3); }
+
+  /* Process flow within card */
+  .proc-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 12px 0; }
+  .proc-step { background: var(--bg3); border-radius: 6px; padding: 4px 10px; font-size: 11px; text-align: center; }
+  .proc-step .ps1 { color: var(--text); font-weight: 600; }
+  .proc-step .ps2 { color: var(--text2); font-size: 10px; }
+  .proc-arrow { color: var(--text2); font-size: 14px; }
+
   /* Responsive */
   @media (max-width: 768px) {
     .sidebar { width: 100%; position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
     .main { margin-left: 0; padding: 16px; }
     .chart-grid { grid-template-columns: 1fr; }
     .stats { grid-template-columns: repeat(2, 1fr); }
+    .process-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -118,6 +141,8 @@
   <div class="subtitle">Smart Camp IoT-AI Framework</div>
   <ul class="nav">
     <li><a href="#overview" class="active"><span class="dot blue"></span>Overview</a></li>
+    <li><a href="#platforms"><span class="dot purple"></span>Platform Processes</a></li>
+    <li><a href="#integration"><span class="dot green"></span>Integration</a></li>
     <li><a href="#architecture"><span class="dot purple"></span>Architecture</a></li>
     <li><a href="#tree"><span class="dot green"></span>File Map</a></li>
     <li><a href="#flows"><span class="dot blue"></span>Data Flows</a></li>
@@ -127,7 +152,7 @@
     <li><a href="#suggestions"><span class="dot purple"></span>Suggestions</a></li>
   </ul>
   <div style="margin-top: auto; padding-top: 20px; font-size: 11px; color: var(--text2);">
-    Generated: 2026-07-22
+    Generated: 2026-07-26
   </div>
 </nav>
 
@@ -138,9 +163,9 @@
   <h2>Project Overview <span class="badge">v1.0</span></h2>
   <div class="stats">
     <div class="stat"><div class="num" style="color:var(--accent)">4</div><div class="label">Platform Tiers</div></div>
-    <div class="stat"><div class="num" style="color:var(--accent2)">217</div><div class="label">Source Files</div></div>
+    <div class="stat"><div class="num" style="color:var(--accent2)">280+</div><div class="label">Source Files</div></div>
     <div class="stat"><div class="num" style="color:var(--accent3)">3</div><div class="label">Languages</div></div>
-    <div class="stat"><div class="num" style="color:var(--warning)">5</div><div class="label">ML Models</div></div>
+    <div class="stat"><div class="num" style="color:var(--warning)">7</div><div class="label">ML Models</div></div>
     <div class="stat"><div class="num" style="color:var(--danger)">16</div><div class="label">Unused Assets</div></div>
     <div class="stat"><div class="num" style="color:var(--danger)">12</div><div class="label">Issues (Critical+)</div></div>
   </div>
@@ -162,18 +187,282 @@
 
   <div class="card">
     <h4>What is SDRC-Box?</h4>
-    <p>An integrated IoT + AI framework for rapid deployment in disaster-stricken areas. It connects <strong>ESP32 sensor nodes</strong> to an <strong>edge gateway</strong> (Intel NUC) for flood prediction, a <strong>Raspberry Pi 5</strong> for camp management, and an <strong>AWS cloud platform</strong> for centralized admin dashboards and psycho-educational support. The research novelty is <strong>SAAMP</strong> (Semantic-Aware Adaptive Message Prioritization) for reliable IoT communication under degraded network conditions.</p>
+    <p>An integrated IoT + AI framework for rapid deployment in disaster-stricken areas. It connects <strong>ESP32 sensor nodes</strong> to an <strong>edge gateway</strong> (Intel NUC) for flood prediction, a <strong>Raspberry Pi 5</strong> for camp management + PAGES psycho-educational system, and an <strong>AWS cloud platform</strong> for centralized admin dashboards. The research novelty is <strong>SAAMP</strong> (Semantic-Aware Adaptive Message Prioritization) for reliable IoT communication under degraded network conditions.</p>
   </div>
 
   <div class="card">
     <h4>Tech Stack</h4>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;font-size:13px;">
       <div><strong style="color:var(--accent)">Edge/Middleware:</strong> Python 3.11, FastAPI, Flask, GeoPandas, NetworkX</div>
-      <div><strong style="color:var(--accent)">ML/AI:</strong> XGBoost, scikit-learn, LightGBM, Isolation Forest, Joblib</div>
+      <div><strong style="color:var(--accent)">ML/AI:</strong> XGBoost, scikit-learn, LightGBM, Isolation Forest, Ridge, Joblib</div>
       <div><strong style="color:var(--accent2)">Camp Server:</strong> Node.js, Express, React 18 + Vite, SQLite (better-sqlite3)</div>
       <div><strong style="color:var(--accent2)">Cloud:</strong> Next.js 16, React 19, Express, Turso/libSQL, Recharts</div>
       <div><strong style="color:var(--accent3)">IoT:</strong> MQTT (EMQX Serverless), ESP32 (Arduino/C++, planned)</div>
       <div><strong style="color:var(--accent3)">Infra:</strong> GitHub Actions, Tailwind CSS 4, Framer Motion</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PLATFORM PROCESSES ==================== -->
+<section id="platforms" class="section">
+  <h2>Platform Processes <span class="badge">3 tiers</span></h2>
+  <p style="margin-bottom:20px;">Each platform's frontend and backend processes, showing how data flows through the system.</p>
+
+  <!-- ─────── CLOUD PLATFORM ─────── -->
+  <div class="card" style="border-left:4px solid #f87171;">
+    <div class="platform-header">
+      <span class="icon">&#127754;</span>
+      <h3>Cloud Platform</h3>
+      <span class="tag" style="background:#7f1d1d;color:#fca5a5;">AWS VM</span>
+    </div>
+
+    <div class="process-grid">
+      <div class="process-col">
+        <h4>&#127760; Frontend <span style="font-size:11px;color:var(--text2);font-weight:400;">Next.js 16 + React 19 + Tailwind 4</span></h4>
+        <ul>
+          <li><span class="arrow">&#8594;</span> <strong>Landing Page</strong> — Enrollment & welcome (<span class="path">page.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Admin Dashboard</strong> — Main admin panel (<span class="path">admin/page.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Disaster Dashboard</strong> — Flood maps, camp summaries, water levels (<span class="path">components/disaster/</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Resource Panel</strong> — Camp resource overview (<span class="path">components/resources/OverviewPanel.jsx</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>MQTT Network UI</strong> — 6 components for network monitoring (<span class="path">components/mqtt-manager/</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Welfare Dashboard</strong> — Behavioral anomaly alerts per camp (<span class="path">admin/welfare/page.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>PAGES Dashboards</strong> — Educational scoring & alerts (<span class="path">components/psychoedu/dashboard/</span>)</li>
+        </ul>
+      </div>
+      <div class="process-col">
+        <h4>&#128295; Backend <span style="font-size:11px;color:var(--text2);font-weight:400;">Express :3001 + Microservices</span></h4>
+        <ul>
+          <li><span class="arrow">&#8594;</span> <strong>server.js</strong> — Express entry, MQTT init, mounts routes</li>
+          <li><span class="arrow">&#8594;</span> <strong>MQTT Client</strong> — Subscribes to <code>smartcamp/#</code> topics (<span class="path">services/mqtt.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Camp Data Service</strong> — In-memory camp state from EMQX events (<span class="path">services/campDataService.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Network Monitor</strong> — Real-time QoS monitoring + metrics (<span class="path">services/networkMonitor.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Simulation</strong> — Network simulation for testing (<span class="path">services/simulation.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Flood Prediction</strong> — Integrates edge flood alerts (<span class="path">services/floodPredictionService.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Resource Prediction</strong> — Weighted linear regression for demand (<span class="path">services/predictionService.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Water Level History</strong> — Stores & serves water level data (<span class="path">services/waterLevelHistoryService.js</span>)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;padding:12px;background:var(--bg3);border-radius:8px;">
+      <h4 style="color:var(--accent3);margin-bottom:6px;">&#129520; ML Pipeline (Cloud Prediction Models)</h4>
+      <div class="proc-flow">
+        <div class="proc-step"><span class="ps1">Resource Predictor</span><span class="ps2">food/water/shelter/staff</span></div>
+        <span class="proc-arrow">&#8594;</span>
+        <div class="proc-step"><span class="ps1">Network Predictor</span><span class="ps2">RTT + state (RF/Ridge)</span></div>
+        <span class="proc-arrow">&#8594;</span>
+        <div class="proc-step"><span class="ps1">Data Generator</span><span class="ps2">synthetic QoS data</span></div>
+        <span class="proc-arrow">&#8594;</span>
+        <div class="proc-step"><span class="ps1">4 Jupyter Notebooks</span><span class="ps2">explore → train → validate</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;font-size:12px;color:var(--text2);">
+      <strong>Routes:</strong> <code>GET /api/network</code> — network metrics &middot; <code>GET /api/resources</code> — camp data &middot; <code>GET /api/disaster</code> — flood alerts &middot; <code>GET /api/admin/welfare</code> — welfare anomalies
+    </div>
+  </div>
+
+  <!-- ─────── EDGE GATEWAY ─────── -->
+  <div class="card" style="border-left:4px solid #38bdf8;">
+    <div class="platform-header">
+      <span class="icon">&#128421;</span>
+      <h3>Edge Gateway</h3>
+      <span class="tag" style="background:#1e3a5f;color:#93c5fd;">Intel NUC</span>
+    </div>
+
+    <div class="process-grid">
+      <div class="process-col">
+        <h4>&#128200; Hydrospatial API <span style="font-size:11px;color:var(--text2);font-weight:400;">FastAPI :8000</span></h4>
+        <ul>
+          <li><span class="arrow">&#8594;</span> <strong>FastAPI Entry</strong> — Main API gateway (<span class="path">api.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Hydrospatial Router</strong> — River/station endpoints (<span class="path">hydrospatial_api/api.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Overpass Client</strong> — OpenStreetMap Overpass API (<span class="path">providers/overpass_client.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>River Lookup</strong> — Nearest named river to GPS coords (<span class="path">providers/river_lookup.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Gauging Station</strong> — Nearest gauging station (<span class="path">providers/gauging_station.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Water Levels</strong> — Real-time ArcGIS REST API (<span class="path">providers/live_water_level_api.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Weather Forecast</strong> — 7-day via Open-Meteo (<span class="path">providers/weather_forecast_location.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>River Shapefile</strong> — NetworkX graph analysis (<span class="path">providers/river_shapefile.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Digital Elevation</strong> — Elevation calculation + Open-Elevation API (<span class="path">digital_elevation_model/</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>GPS Module</strong> — Serial NMEA GPS reader (<span class="path">gps_module/</span>)</li>
+        </ul>
+      </div>
+      <div class="process-col">
+        <h4>&#129302; Flood ML Pipeline <span style="font-size:11px;color:var(--text2);font-weight:400;">XGBoost ★ Production</span></h4>
+        <ul>
+          <li><span class="arrow">&#8594;</span> <strong>XGBoost Model</strong> — Training + prediction, F1=0.91 (<span class="path">xgboost_model/xgboost_model.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Predict Flood CLI</strong> — Flood risk from coords + rainfall (<span class="path">xgboost_model/predict_flood.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Random Forest</strong> — Training script, F1=0.89 (<span class="path">random_forest_model.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Decision Tree</strong> — Training script, F1=0.82 (<span class="path">decision_tree_model.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Logistic Regression</strong> — Training script, F1=0.78 (<span class="path">logistic_regression_model.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Model Comparison</strong> — Unified eval of all 4 models (<span class="path">model_comparison.py</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>4 .pkl Models</strong> — Trained model artifacts</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;font-size:12px;color:var(--text2);">
+      <strong>Data sources:</strong> <span class="path">resources/</span> — gauging_stations.csv &middot; gis_osm_waterways_free_1.shp &middot; sri_lanka_flood_risk_dataset_25000.csv
+    </div>
+  </div>
+
+  <!-- ─────── RASPBERRY PLATFORM ─────── -->
+  <div class="card" style="border-left:4px solid #a78bfa;">
+    <div class="platform-header">
+      <span class="icon">&#128187;</span>
+      <h3>Raspberry Platform</h3>
+      <span class="tag" style="background:#3b1f6e;color:#c4b5fd;">RPi 5 Camp Server</span>
+    </div>
+
+    <div class="process-grid">
+      <div class="process-col">
+        <h4>&#127760; Frontend <span style="font-size:11px;color:var(--text2);font-weight:400;">React 18 + Vite + Tailwind 4</span></h4>
+        <ul>
+          <li><span class="arrow">&#8594;</span> <strong>App.jsx</strong> — Root: 5-tab nav (PAGES, Registration, Wristband, Prediction, Network)</li>
+          <li><span class="arrow">&#8594;</span> <strong>RegistrationScreen</strong> — Fingerprint + wristband enrollment UI (<span class="path">components/resources/RegistrationScreen.jsx</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>WristbandScanScreen</strong> — QR wristband scanner for distribution (<span class="path">components/resources/WristbandScanScreen.jsx</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>PredictionScreen</strong> — AI resource forecast display (<span class="path">components/resources/PredictionScreen.jsx</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>NetworkScreen</strong> — SAAMP QoS status, adaptive decisions, buffer view (<span class="path">components/resources/NetworkScreen.jsx</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>PAGES Child Mode</strong> — QR scan → Language picker → Eli welcome → Go/No-Go game → Cognitive/Calming → Scoring (<span class="path">app/page.jsx + components/psychoedu/</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>PAGES Games</strong> — AnimalGame, CognitiveSession, BreathingCircle, BubblePlayground, ContentCard</li>
+        </ul>
+        <div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;">
+          <strong style="color:var(--accent2);">PAGES Flow:</strong> Welcome → Scan QR → Animal Game (Go/No-Go) → PASS? → Cognitive Session : FAIL? → Breathing → Content Cards → Retry → Bubble Playground
+        </div>
+      </div>
+      <div class="process-col">
+        <h4>&#128295; Backend Services</h4>
+        <ul>
+          <li><span class="arrow">&#8594;</span> <strong>Express API (:5000)</strong> — Resource management server (<span class="path">res-mng_backend/services/resserver.js</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>Register</strong> — POST: person + fingerprint registration</li>
+          <li><span class="arrow">&#8594;</span> <strong>Fingerprint</strong> — GET/POST: enrollment & lookup</li>
+          <li><span class="arrow">&#8594;</strong> <strong>Check-in</strong> — POST: camp check-in/out tracking</li>
+          <li><span class="arrow">&#8594;</span> <strong>Wristband</strong> — POST: QR wristband linked to person</li>
+          <li><span class="arrow">&#8594;</span> <strong>Distribute</strong> — POST: record resource distribution</li>
+          <li><span class="arrow">&#8594;</span> <strong>Network</strong> — GET/POST: network state + MQTT buffer flush</li>
+          <li><span class="arrow">&#8594;</span> <strong>Prediction</strong> — POST: resource forecast to cloud</li>
+          <li><span class="arrow">&#8594;</span> <strong>Stats</strong> — GET: camp statistics</li>
+          <li><span class="arrow">&#8594;</span> <strong>SAAMP MQTT</strong> — SACS classification, adaptive QoS, offline buffer <span class="tag purple">★ NOVELTY</span></li>
+          <li><span class="arrow">&#8594;</span> <strong>EMQX Manager</strong> — REST API: creates per-person MQTT clients</li>
+          <li><span class="arrow">&#8594;</span> <strong>SQLite DB</strong> — persons, checkins, wristbands, distributions, mqtt_buffer</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;padding:12px;background:var(--bg3);border-radius:8px;">
+      <h4 style="color:var(--accent2);margin-bottom:6px;">&#127891; PAGES Education System</h4>
+      <div class="proc-flow">
+        <div class="proc-step"><span class="ps1">PAGES Backend</span><span class="ps2">Express + Turso/SQLite :3001</span></div>
+        <span class="proc-arrow">&#8594;</span>
+        <div class="proc-step"><span class="ps1">Flask ML</span><span class="ps2">Z-score + IsoForest :5001</span></div>
+        <span class="proc-arrow">&#8594;</span>
+        <div class="proc-step"><span class="ps1">Gate Decision</span><span class="ps2">PASS / FAIL_FIRST</span></div>
+        <span class="proc-arrow">&#8594;</span>
+        <div class="proc-step"><span class="ps1">Alert Service</span><span class="ps2">Welfare anomalies</span></div>
+        <span class="proc-arrow">&#8594;</span>
+        <div class="proc-step"><span class="ps1">Sync Service</span><span class="ps2">Offline→Cloud sync</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== INTEGRATION ==================== -->
+<section id="integration" class="section">
+  <h2>Integration <span class="badge">3 pathways</span></h2>
+  <p style="margin-bottom:20px;">How the three platforms connect, communicate, and share data across the SDRC-Box system.</p>
+
+  <div class="card" style="border-left:4px solid #34d399;">
+    <h4>1. Edge Gateway &#8594; Cloud Platform (MQTT + REST)</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;">
+        <strong style="color:var(--accent3);">Integration Prompt</strong>
+        <p style="margin-top:6px;color:var(--text2);line-height:1.5;">
+          The Edge Gateway (Intel NUC) runs the FastAPI hydrospatial service on <code>:8000</code> and the XGBoost flood prediction model. 
+          Environmental sensor data (rainfall, water level, GPS coordinates) is collected locally. 
+          Flood risk predictions are published as MQTT messages (QoS 2, CRITICAL priority) to the EMQX broker under <code>smartcamp/flood/</code>. 
+          The Cloud Platform subscribes to this topic via its MQTT client (<span class="path">services/mqtt.js</span>) and surfaces alerts in the Disaster Dashboard.
+        </p>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;">
+        <strong style="color:var(--accent2);">Integration Points</strong>
+        <ul style="margin-top:6px;list-style:none;color:var(--text2);line-height:1.8;">
+          <li>&#8226; <strong>MQTT Topic:</strong> <code>smartcamp/flood/#</code></li>
+          <li>&#8226; <strong>Protocol:</strong> MQTTS :8883 via EMQX Serverless</li>
+          <li>&#8226; <strong>QoS:</strong> 2 (CRITICAL flood alerts)</li>
+          <li>&#8226; <strong>Consumer:</strong> <span class="path">floodPredictionService.js</span></li>
+          <li>&#8226; <strong>REST Alternative:</strong> Edge hydrospatial API at <code>:8000</code> for on-demand river/station/weather data</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid #a78bfa;">
+    <h4>2. Raspberry Platform &#8594; Cloud Platform (SAAMP MQTT + REST)</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;">
+        <strong style="color:var(--accent3);">Integration Prompt</strong>
+        <p style="margin-top:6px;color:var(--text2);line-height:1.5;">
+          The Raspberry Pi runs two Express servers: <strong>res-mng_backend (:5000)</strong> for camp operations and <strong>pages-backend (:3001)</strong> for education.
+          All camp events (registration, check-in, distribution, wristband issuance) are published through the <strong>SAAMP MQTT layer</strong> (<span class="path">saampMqtt.js</span>) which classifies messages by semantic priority, adapts QoS based on network state, and buffers offline. 
+          The Cloud Platform's <span class="path">campDataService.js</span> subscribes to <code>smartcamp/#</code> and maintains the in-memory camp state.
+          Resource forecast requests go via REST: RPi &#8594; <code>POST /api/predict</code> &#8594; Cloud prediction service.
+        </p>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;">
+        <strong style="color:var(--accent2);">Integration Points</strong>
+        <ul style="margin-top:6px;list-style:none;color:var(--text2);line-height:1.8;">
+          <li>&#8226; <strong>MQTT Topics:</strong> <code>smartcamp/{registration,checkin,distribution,wristband,network,prediction}/#</code></li>
+          <li>&#8226; <strong>SAAMP Priorities:</strong> CRITICAL (QoS 2) / HIGH (QoS 1-2) / MEDIUM (QoS 1) / LOW (QoS 0)</li>
+          <li>&#8226; <strong>Offline Buffer:</strong> SQLite <code>mqtt_buffer</code> table, flushed on reconnect</li>
+          <li>&#8226; <strong>REST APIs:</strong> RPi <code>:5000/api/prediction</code> &#8594; Cloud <code>:3001/api/predict</code></li>
+          <li>&#8226; <strong>EMQX Manager:</strong> <span class="path">emqxManager.js</span> creates per-person MQTT credentials via EMQX REST API</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid #38bdf8;">
+    <h4>3. Raspberry Platform (Internal) — PAGES Edu System Integration</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;">
+        <strong style="color:var(--accent3);">Integration Prompt</strong>
+        <p style="margin-top:6px;color:var(--text2);line-height:1.5;">
+          The PAGES system is fully contained on the Raspberry Pi. The <strong>React frontend</strong> communicates with the <strong>PAGES Express backend (:3001)</strong> via REST for session creation, child lookup, and scoring. 
+          The backend stores session data in SQLite/Turso and calls the <strong>Flask ML service (:5001)</strong> for Z-score + Isolation Forest anomaly detection after each game session. 
+          The gate decision (PASS/FAIL_FIRST/FAILED_CONFIRMED) determines the child's next activity. 
+          Welfare anomaly alerts generated by the <span class="path">alertService.js</span> are synced to the Cloud Platform for the admin welfare dashboard.
+        </p>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;">
+        <strong style="color:var(--accent2);">Integration Points</strong>
+        <ul style="margin-top:6px;list-style:none;color:var(--text2);line-height:1.8;">
+          <li>&#8226; <strong>Frontend &#8594; Backend:</strong> REST <code>/api/child</code>, <code>/api/session</code>, <code>/api/dashboard</code></li>
+          <li>&#8226; <strong>Backend &#8594; Flask ML:</strong> <code>POST :5001/score</code> for anomaly detection</li>
+          <li>&#8226; <strong>Database:</strong> Local Turso/SQLite (<span class="path">pages.db</span>)</li>
+          <li>&#8226; <strong>Cloud Sync:</strong> <span class="path">syncService.js</span> forwards welfare alerts to Cloud Platform</li>
+          <li>&#8226; <strong>Offline Mode:</strong> Sessions stored locally, synced when connectivity available</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border:2px solid var(--border);background:var(--bg3);">
+    <h4 style="color:var(--warning);">Full System Integration Summary</h4>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:13px;margin-top:8px;">
+      <div style="text-align:center;padding:8px;background:var(--bg2);border-radius:8px;">
+        <strong style="color:var(--accent);">Sensors &#8594; Edge</strong>
+        <p style="color:var(--text2);font-size:11px;margin-top:4px;">Serial/UART &#8594; FastAPI &#8594; XGBoost</p>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--bg2);border-radius:8px;">
+        <strong style="color:var(--accent2);">Edge &#8594; RPi &#8594; Cloud</strong>
+        <p style="color:var(--text2);font-size:11px;margin-top:4px;">MQTTS :8883 via EMQX Serverless Broker</p>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--bg2);border-radius:8px;">
+        <strong style="color:var(--accent3);">RPi Internal</strong>
+        <p style="color:var(--text2);font-size:11px;margin-top:4px;">Frontend &#8594; Express &#8594; Flask ML &#8594; SQLite</p>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:8px;font-size:12px;color:var(--text2);">
+      <strong style="color:var(--text);">MQTT Topic Tree:</strong> <code>smartcamp/{flood,registration,checkin,distribution,wristband,network,prediction}</code> &mdash; All platforms publish/subscribe via EMQX. The SAAMP layer adds semantic priority metadata to every message payload.
     </div>
   </div>
 </section>
@@ -190,12 +479,12 @@
     </div>
     <div class="arch-tier">
       <div class="icon">&#128421;</div>
-      <div class="info"><strong>Edge Gateway</strong><span>Intel NUC — Flood prediction (XGBoost), hydrospatial API, GPS/DEM</span></div>
+      <div class="info"><strong>Edge Gateway</strong><span>Intel NUC — Hydrospatial API (FastAPI :8000), XGBoost flood prediction (F1=0.91), GPS/DEM</span></div>
       <span class="tag">edge-gateway/</span>
     </div>
     <div class="arch-tier">
       <div class="icon">&#128187;</div>
-      <div class="info"><strong>Raspberry Pi 5</strong><span>Camp local server — Registration, wristbands, distribution, SAAMP MQTT</span></div>
+      <div class="info"><strong>Raspberry Pi 5</strong><span>Camp server — Registration, wristbands, distribution, SAAMP MQTT + PAGES educational system (backend + Flask ML + frontend)</span></div>
       <span class="tag">raspberry-platform/</span>
     </div>
     <div class="arch-tier">
@@ -205,14 +494,14 @@
     </div>
     <div class="arch-tier">
       <div class="icon">&#127754;</div>
-      <div class="info"><strong>Cloud VM (AWS)</strong><span>Admin dashboard (Next.js), PAGES edu system, ML scoring, resource prediction</span></div>
+      <div class="info"><strong>Cloud VM (AWS)</strong><span>Admin dashboard (Next.js 16), disaster monitoring, MQTT network UI, welfare anomalies, resource prediction, network prediction</span></div>
       <span class="tag">cloud-platform/</span>
     </div>
   </div>
 
   <div class="card">
     <h4>Communication Protocol</h4>
-    <p>Sensors &#8594; Serial/UART &#8594; Edge Gateway &#8594; <strong>MQTTS :8883</strong> &#8594; EMQX Broker &#8594; RPi &amp; Cloud VM. The RPi uses the <strong>SAAMP</strong> protocol layer for adaptive QoS and offline buffering. Cloud-to-cloud communication uses HTTPS (REST).</p>
+    <p>Sensors &#8594; Serial/UART &#8594; Edge Gateway &#8594; <strong>MQTTS :8883</strong> &#8594; EMQX Broker &#8594; RPi &amp; Cloud VM. The RPi uses the <strong>SAAMP</strong> protocol layer for adaptive QoS and offline buffering. Cloud-to-cloud communication uses HTTPS (REST). The PAGES system runs locally on the RPi with the Flask ML service for anomaly detection.</p>
   </div>
 </section>
 
@@ -235,6 +524,7 @@
 
 <details>
 <summary>prediction-models/ <span class="tag purple">Flood ML</span></summary>
+<div class="file"><span class="fn">base_model.py</span> <span class="tag green">NEW</span> <span class="desc">— Shared base class: FloodPrediction dataclass, train/save/predict, charting, probability adjustment. All 4 models subclass this.</span></div>
 <div class="file"><span class="fn">model_comparison.py</span> <span class="desc">— Unified evaluation of all 4 flood models</span></div>
 <div class="file"><span class="fn">comparison_results/model_comparison_summary.csv</span> <span class="desc">— Cross-model metric comparison table</span></div>
 <div class="file"><span class="fn">comparison_results/model_comparison_summary.json</span> <span class="desc">— Same data in JSON format</span></div>
@@ -249,20 +539,20 @@
 
 <details>
 <summary>xgboost_model/ <span class="tag green">★ PRODUCTION</span></summary>
-<div class="file"><span class="fn">xgboost_model.py</span> <span class="desc">— XGBoost training + prediction pipeline</span></div>
+<div class="file"><span class="fn">xgboost_model.py</span> <span class="desc">— XGBoost model (~50 lines, extends BaseFloodModel with XGBClassifier + scale_pos_weight)</span></div>
 <div class="file"><span class="fn">predict_flood.py</span> <span class="desc">— CLI tool: predict flood risk from coordinates + rainfall</span></div>
 </details>
 <details>
 <summary>random_forest_model/</summary>
-<div class="file"><span class="fn">random_forest_model.py</span> <span class="desc">— Random forest training script</span></div>
+<div class="file"><span class="fn">random_forest_model.py</span> <span class="desc">— Random forest (~48 lines, extends BaseFloodModel with RF Pipeline)</span></div>
 </details>
 <details>
 <summary>decision_tree_model/</summary>
-<div class="file"><span class="fn">decision_tree_model.py</span> <span class="desc">— Decision tree training script</span></div>
+<div class="file"><span class="fn">decision_tree_model.py</span> <span class="desc">— Decision tree (~44 lines, extends BaseFloodModel with DT Pipeline)</span></div>
 </details>
 <details>
 <summary>logistic_regression_model/</summary>
-<div class="file"><span class="fn">logistic_regression_model.py</span> <span class="desc">— Logistic regression training script</span></div>
+<div class="file"><span class="fn">logistic_regression_model.py</span> <span class="desc">— Logistic regression (~46 lines, extends BaseFloodModel with LR Pipeline)</span></div>
 </details>
 </details>
 
@@ -337,14 +627,102 @@
 </details>
 
 <details>
-<summary>frontend/ <span class="tag">React + Vite</span></summary>
-<div class="file"><span class="fn">package.json</span> <span class="desc">— React 18, Vite 5, Framer Motion 11, Tailwind 4</span></div>
-<div class="file"><span class="fn">src/App.jsx</span> <span class="desc">— Root component with tab navigation (Registration, Scan, Prediction)</span></div>
+<summary>backend/pages-backend/ <span class="tag purple">★ PAGES Edu System <span class="tag yellow">migrated from cloud-platform</span></span></summary>
+<div class="file"><span class="fn">package.json</span> <span class="desc">— Express + Turso/SQLite + JWT + QRCode</span></div>
+<div class="file"><span class="fn">.env.example</span> <span class="desc">— Environment template</span></div>
+<div class="file"><span class="fn">.gitignore</span> <span class="desc">— Ignore node_modules, .env, *.db</span></div>
+<div class="file"><span class="fn">database/pages.db</span> <span class="tag yellow">TRACKED IN GIT</span></div>
+<div class="file"><span class="fn">database/schema.sql</span> <span class="desc">— DB schema definition</span></div>
+<div class="file"><span class="fn">database/seed-tasks.js</span> <span class="desc">— Task seeding script</span></div>
+<div class="file"><span class="fn">database/seed-test-children.js</span> <span class="desc">— Seed test child records</span></div>
+<div class="file"><span class="fn">database/check_tables.py</span> <span class="desc">— Python check tables utility</span></div>
+<div class="file"><span class="fn">database/export_sessions.py</span> <span class="desc">— Session export utility</span></div>
+<div class="file"><span class="fn">models/train_model.py</span> <span class="desc">— ML model training for gating</span></div>
+<div class="file"><span class="fn">models/update_if_scores.py</span> <span class="desc">— Update Isolation Forest scores</span></div>
+<div class="file"><span class="fn">scripts/InsertTestChildren.js</span> <span class="desc">— Test data insertion</span></div>
+<details>
+<summary>src/</summary>
+<div class="file"><span class="fn">app.js</span> <span class="desc">— Express app setup</span></div>
+<div class="file"><span class="fn">server.js</span> <span class="desc">— Server entry</span></div>
+<div class="file"><span class="fn">config/constants.js</span> <span class="desc">— App constants</span></div>
+<div class="file"><span class="fn">config/database.js</span> <span class="desc">— SQLite/Turso DB config</span></div>
+<div class="file"><span class="fn">config/tursoConfig.js</span> <span class="desc">— Turso-specific config</span></div>
+<div class="file"><span class="fn">middleware/auth.js</span> <span class="desc">— JWT auth middleware</span></div>
+<div class="file"><span class="fn">middleware/errorHandler.js</span> <span class="desc">— Error handler</span></div>
+<div class="file"><span class="fn">middleware/validate.js</span> <span class="desc">— Request validation</span></div>
+<div class="file"><span class="fn">routes/child.js</span> <span class="desc">— Child CRUD routes</span></div>
+<div class="file"><span class="fn">routes/session.js</span> <span class="desc">— Session management routes</span></div>
+<div class="file"><span class="fn">routes/dashboard.js</span> <span class="desc">— Dashboard data routes</span></div>
+<div class="file"><span class="fn">routes/sync.js</span> <span class="desc">— Offline sync routes</span></div>
+<div class="file"><span class="fn">controllers/childController.js</span> <span class="desc">— Child logic</span></div>
+<div class="file"><span class="fn">controllers/sessionController.js</span> <span class="desc">— Session logic (930 lines)</span></div>
+<div class="file"><span class="fn">controllers/dashboardController.js</span> <span class="desc">— Dashboard logic</span></div>
+<div class="file"><span class="fn">controllers/syncController.js</span> <span class="desc">— Sync logic</span></div>
+<div class="file"><span class="fn">services/scoringService.js</span> <span class="desc">— Scoring calculation</span></div>
+<div class="file"><span class="fn">services/gatingService.js</span> <span class="desc">— PASS/FAIL gating logic</span></div>
+<div class="file"><span class="fn">services/alertService.js</span> <span class="desc">— Welfare anomaly alerts</span></div>
+<div class="file"><span class="fn">services/connectivityService.js</span> <span class="desc">— Offline connectivity</span></div>
+<div class="file"><span class="fn">services/syncService.js</span> <span class="desc">— Cloud sync service</span></div>
+<div class="file"><span class="fn">services/qrCodeService.js</span> <span class="desc">— QR code generation</span></div>
+<div class="file"><span class="fn">utils/helpers.js</span> <span class="desc">— Utility functions</span></div>
+<div class="file"><span class="fn">utils/logger.js</span> <span class="desc">— Logging utility</span></div>
+</details>
+</details>
+
+<details>
+<summary>backend/pages-flask/ <span class="tag">ML Scoring Service <span class="tag yellow">migrated from cloud-platform</span></span></summary>
+<div class="file"><span class="fn">app.py</span> <span class="desc">— Flask (:5001): Z-score + Isolation Forest scoring</span></div>
+<div class="file"><span class="fn">train_model.py</span> <span class="desc">— Train per-child Isolation Forest models</span></div>
+<div class="file"><span class="fn">evaluate_models.py</span> <span class="desc">— Model evaluation scripts</span></div>
+<div class="file"><span class="fn">full_validation.py</span> <span class="desc">— Full validation pipeline</span></div>
+<div class="file"><span class="fn">requirements.txt</span> <span class="desc">— Flask + numpy + scikit-learn</span></div>
+<div class="file"><span class="fn">evaluation_report.csv</span> <span class="desc">— Evaluation metrics</span></div>
+<div class="file"><span class="fn">evaluation_report.txt</span> <span class="desc">— Evaluation report</span></div>
+<div class="file"><span class="fn">data/pages_sessions.csv</span> <span class="desc">— Session data for training</span></div>
+<div class="file"><span class="fn">data/session_history.json</span> <span class="desc">— Session history cache</span></div>
+</details>
+
+<details>
+<summary>frontend/ <span class="tag">React 18 + Vite + PAGES</span></summary>
+<div class="file"><span class="fn">package.json</span> <span class="desc">— React 18, Vite 5, Framer Motion 11, Tailwind 4, jsQR</span></div>
+<div class="file"><span class="fn">vite.config.mjs</span> <span class="desc">— Vite config with @ alias</span></div>
+<div class="file"><span class="fn">src/App.jsx</span> <span class="desc">— Root with tab navigation (PAGES, Registration, Wristband, Prediction, Network)</span></div>
 <details>
 <summary>src/components/resources/</summary>
 <div class="file"><span class="fn">RegistrationScreen.jsx</span> <span class="desc">— Fingerprint + wristband enrollment UI</span></div>
 <div class="file"><span class="fn">WristbandScanScreen.jsx</span> <span class="desc">— QR wristband scanner for distribution</span></div>
 <div class="file"><span class="fn">PredictionScreen.jsx</span> <span class="desc">— AI resource forecast display</span></div>
+<div class="file"><span class="fn">NetworkScreen.jsx</span> <span class="tag green">NEW</span> <span class="desc">— SAAMP QoS network state display with adaptive QoS table, metrics, buffer status</span></div>
+</details>
+<details>
+<summary>src/app/ <span class="tag purple">PAGES Child Mode <span class="tag yellow">migrated from cloud-platform</span></span></summary>
+<div class="file"><span class="fn">page.jsx</span> <span class="desc">— Child welcome: language picker → QR scan → Eli greeting → game routing</span></div>
+<div class="file"><span class="fn">play/page.js</span> <span class="desc">— BubblePlayground game page</span></div>
+<div class="file"><span class="fn">calming/page.js</span> <span class="desc">— BreathingCircle calming page</span></div>
+<div class="file"><span class="fn">cognitive/page.js</span> <span class="desc">— Cognitive session page</span></div>
+<div class="file"><span class="fn">content/page.js</span> <span class="desc">— Content card page</span></div>
+<div class="file"><span class="fn">task/page.js</span> <span class="desc">— Task page</span></div>
+</details>
+<details>
+<summary>src/components/psychoedu/ <span class="tag purple">PAGES UI</span></summary>
+<div class="file"><span class="fn">child/AnimalGame.jsx</span> <span class="desc">— Go/No-Go cognitive assessment game</span></div>
+<div class="file"><span class="fn">child/BreathingCircle.jsx</span> <span class="desc">— Breathing exercise for calming</span></div>
+<div class="file"><span class="fn">child/BubblePlayground.jsx</span> <span class="desc">— Bubble play for decompression</span></div>
+<div class="file"><span class="fn">child/ContentCard.jsx</span> <span class="desc">— Educational content cards</span></div>
+<div class="file"><span class="fn">child/Eli.jsx</span> <span class="desc">— Eli mascot character component</span></div>
+<div class="file"><span class="fn">child/QRScanner.jsx</span> <span class="tag green">NEW</span> <span class="desc">— QR code scanner for child check-in</span></div>
+<div class="file"><span class="fn">child/SceneBackground.jsx</span> <span class="desc">— Animated scene backgrounds</span></div>
+<div class="file"><span class="fn">child/LanguagePicker.jsx</span> <span class="desc">— Language selection (SI/TA/EN)</span></div>
+<div class="file"><span class="fn">cognitive/CognitiveSession.jsx</span> <span class="desc">— Advanced cognitive training</span></div>
+<div class="file"><span class="fn">cognitive/TaskRenderer.jsx</span> <span class="desc">— Task rendering engine</span></div>
+<div class="file"><span class="fn">dashboard/AlertCard.jsx</span> <span class="desc">— Welfare alert card</span></div>
+<div class="file"><span class="fn">dashboard/Campoverview.jsx</span> <span class="desc">— Camp overview</span></div>
+<div class="file"><span class="fn">dashboard/ScoreChart.jsx</span> <span class="desc">— Scoring charts</span></div>
+<div class="file"><span class="fn">lib/api.js</span> <span class="desc">— PAGES API client</span></div>
+<div class="file"><span class="fn">lib/translations.js</span> <span class="desc">— Multi-lang translations</span></div>
+<div class="file"><span class="fn">lib/sessions.js</span> <span class="desc">— Session management lib</span></div>
+<div class="file"><span class="fn">lib/scoring.js</span> <span class="desc">— Scoring utilities</span></div>
+<div class="file"><span class="fn">ui/Button.jsx, Card.jsx, ProgressBar.jsx, AlertBadge.jsx</span> <span class="desc">— Reusable UI components</span></div>
 </details>
 </details>
 </details>
@@ -378,20 +756,6 @@
 <summary>disaster-management/</summary>
 <div class="file"><span class="fn">disasterData.js</span> <span class="tag yellow">UNUSED</span> <span class="desc">— Stale copy; frontend version is the one in use</span></div>
 </details>
-
-<details>
-<summary>pages-backend/ <span class="tag purple">★ PAGES Edu System</span></summary>
-<div class="file"><span class="fn">package.json</span> <span class="desc">— Express + Turso/SQLite + JWT + QRCode</span></div>
-<div class="file"><span class="fn">.env</span> <span class="tag red">COMMITTED SECRETS</span> <span class="desc">— Live Turso auth token, JWT config</span></div>
-<div class="file"><span class="fn">database/pages.db</span> <span class="tag yellow">TRACKED IN GIT</span></div>
-</details>
-
-<details>
-<summary>pages-flask/ <span class="tag">ML Scoring Service</span></summary>
-<div class="file"><span class="fn">app.py</span> <span class="desc">— Flask (:5001): Z-score + Isolation Forest scoring</span></div>
-<div class="file"><span class="fn">train_model.py</span> <span class="desc">— Train per-child Isolation Forest models</span></div>
-<div class="file"><span class="fn">requirements.txt</span> <span class="tag yellow">Unicode corruption in comments</span></div>
-</details>
 </details>
 
 <details>
@@ -402,8 +766,7 @@
 <summary>src/app/</summary>
 <div class="file"><span class="fn">layout.js</span> <span class="desc">— Root layout with metadata</span></div>
 <div class="file"><span class="fn">page.js</span> <span class="desc">— Landing page with enrollment</span></div>
-<div class="file"><span class="fn">admin/</span> <span class="desc">— Admin dashboard pages</span></div>
-<div class="file"><span class="fn">child/</span> <span class="desc">— Child education pages</span></div>
+<div class="file"><span class="fn">admin/</span> <span class="desc">— Admin dashboard pages (dashboard, network, welfare)</span></div>
 </details>
 <details>
 <summary>src/components/</summary>
@@ -413,8 +776,9 @@
 <div class="file"><span class="fn">disaster/DisasterVisuals.jsx</span> <span class="desc">— Charts &amp; metrics visuals</span></div>
 <div class="file"><span class="fn">disaster/disasterData.js</span> <span class="desc">— Frontend disaster dataset (active)</span></div>
 <div class="file"><span class="fn">resources/OverviewPanel.jsx</span> <span class="desc">— Resource management panel</span></div>
+<div class="file"><span class="fn">resources/registration.jsx</span> <span class="desc">— Registration page</span></div>
 <div class="file"><span class="fn">mqtt-manager/</span> <span class="desc">— 6 files: network monitoring UI (Header, BottomBar, MessageLog, NetworkPanel, StatCards, StatsPanel)</span></div>
-<div class="file"><span class="fn">psychoedu/</span> <span class="desc">— Education dashboards, games, cognitive components</span></div>
+<div class="file"><span class="fn">psychoedu/</span> <span class="desc">— Education dashboards, games, cognitive components (mostly migrated to RPi)</span></div>
 </details>
 </details>
 
@@ -422,21 +786,50 @@
 <summary>prediction-models/ <span class="tag purple">ML Training Pipeline</span></summary>
 <div class="file"><span class="fn">requirements.txt</span> <span class="desc">— numpy, pandas, sklearn, xgboost, lightgbm, matplotlib</span></div>
 <details>
+<summary>scripts/ <span class="tag green">NEW network prediction</span></summary>
+<div class="file"><span class="fn">network_monitor_service.py</span> <span class="desc">— Live network monitor service for QoS data</span></div>
+<div class="file"><span class="fn">network_simulator.py</span> <span class="desc">— Network simulation for training data</span></div>
+<div class="file"><span class="fn">test_buffer_flow.sh</span> <span class="desc">— Test script for SAAMP buffer flow</span></div>
+<div class="file"><span class="fn">network_simulation_log.csv</span> <span class="desc">— Simulation output log</span></div>
+</details>
+<details>
 <summary>src/</summary>
 <div class="file"><span class="fn">resource_predictor.py</span> <span class="desc">— Predicts food/water/shelter/staff demand from camp demographics</span></div>
-<div class="file"><span class="fn">network_predictor.py</span> <span class="tag yellow">EMPTY FILE</span></div>
-<div class="file"><span class="fn">data_generator.py</span> <span class="tag yellow">EMPTY FILE</span></div>
-<div class="file"><span class="fn">feature_extraction.py</span> <span class="tag yellow">EMPTY FILE</span></div>
+<div class="file"><span class="fn">network_predictor.py</span> <span class="tag green">NOW IMPLEMENTED</span> <span class="desc">— Network state predictor (RTT, loss, state classification)</span></div>
+<div class="file"><span class="fn">data_generator.py</span> <span class="tag green">NOW IMPLEMENTED</span> <span class="desc">— Synthetic QoS data generator</span></div>
+<div class="file"><span class="fn">feature_extraction.py</span> <span class="tag green">NOW IMPLEMENTED</span> <span class="desc">— Feature engineering for network models</span></div>
 <div class="file"><span class="fn">predict_manual.py</span> <span class="desc">— CLI tool for manual predictions</span></div>
+</details>
+<details>
+<summary>data/</summary>
+<div class="file"><span class="fn">network_qos_dataset.csv</span> <span class="tag green">NEW</span> <span class="desc">— 20K-row network QoS dataset</span></div>
+<div class="file"><span class="fn">network_qos_dataset_sample.csv</span> <span class="tag green">NEW</span> <span class="desc">— 2K-row sample</span></div>
+<div class="file"><span class="fn">raw/.gitkeep</span> <span class="desc">— Raw data placeholder</span></div>
+<div class="file"><span class="fn">processed/camp_features.csv</span> <span class="desc">— Processed camp features</span></div>
+</details>
+<details>
+<summary>models/</summary>
+<div class="file"><span class="fn">network_model_meta.json</span> <span class="tag green">NEW</span> <span class="desc">— Network model metadata</span></div>
+<div class="file"><span class="fn">resource_models_meta.json</span> <span class="desc">— Resource model metadata</span></div>
 </details>
 <details>
 <summary>notebooks/ <span class="tag">4 Jupyter notebooks</span></summary>
 <div class="file"><span class="fn">01_explore_kaggle_data.ipynb</span></div>
 <div class="file"><span class="fn">02_resource_prediction_model.ipynb</span></div>
-<div class="file"><span class="fn">03_network_prediction_model.ipynb</span></div>
+<div class="file"><span class="fn">03_network_prediction_model.ipynb</span> <span class="tag green">UPDATED</span></div>
 <div class="file"><span class="fn">04_validate_with_real_data.ipynb</span></div>
 </details>
 </details>
+</details>
+
+<details>
+<summary><span style="color:var(--warning)">Root / Config files</span></summary>
+<div class="file"><span class="fn">GUIDE.md</span> <span class="tag green">NEW</span> <span class="desc">— Comprehensive project guide with architecture, flows, schema, ML models</span></div>
+<div class="file"><span class="fn">network_simulation_log.csv</span> <span class="tag green">NEW</span> <span class="desc">— Root-level simulation log</span></div>
+<div class="file"><span class="fn">Flood_Prediction_Model_Analysis.docx</span> <span class="tag green">NEW</span> <span class="desc">— Flood model analysis document</span></div>
+<div class="file"><span class="fn">README.md</span> <span class="desc">— Project readme</span></div>
+<div class="file"><span class="fn">.gitignore</span> <span class="desc">— Updated with new ignore rules</span></div>
+<div class="file"><span class="fn">project-map.html</span> <span class="desc">— This file</span></div>
 </details>
 
 </details>
@@ -446,7 +839,7 @@
 
 <!-- ==================== DATA FLOWS ==================== -->
 <section id="flows" class="section">
-  <h2>Data Flows <span class="badge">4 key paths</span></h2>
+  <h2>Data Flows <span class="badge">6 key paths</span></h2>
 
   <div class="card">
     <h4>1. Registration &amp; Resource Distribution Flow</h4>
@@ -504,22 +897,54 @@
   <div class="card">
     <h4>4. PAGES Educational Scoring Flow</h4>
     <div class="flow">
-      <div class="flow-box"><span class="fl">Child</span><span class="fl2">Plays Go/No-Go</span></div>
+      <div class="flow-box"><span class="fl">Child</span><span class="fl2">QR scan → Language</span></div>
       <span class="flow-arrow">&#8594;</span>
-      <div class="flow-box"><span class="fl">Next.js Frontend</span><span class="fl2">Game UI</span></div>
+      <div class="flow-box"><span class="fl">RPi Frontend</span><span class="fl2">Animal Game UI</span></div>
       <span class="flow-arrow">&#8594;</span>
-      <div class="flow-box"><span class="fl">Node.js Backend</span><span class="fl2">Store session</span></div>
+      <div class="flow-box"><span class="fl">PAGES Backend</span><span class="fl2">Store session</span></div>
       <span class="flow-arrow">&#8594;</span>
       <div class="flow-box"><span class="fl">Flask ML</span><span class="fl2">:5001</span></div>
       <span class="flow-arrow">&#8594;</span>
-      <div class="flow-box"><span class="fl">Gate Decision</span><span class="fl2">PASS/FAIL</span></div>
+      <div class="flow-box"><span class="fl">Gate Decision</span><span class="fl2">PASS / FAIL_FIRST / FAILED_CONFIRMED</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>5. Network State Prediction &amp; Adaptive QoS Flow <span class="tag green">NEW</span></h4>
+    <div class="flow">
+      <div class="flow-box"><span class="fl">Network Monitor</span><span class="fl2">RPi metrics</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">ML Predictor</span><span class="fl2">Random Forest</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">Network State</span><span class="fl2">STABLE/DEGRADED/CRITICAL</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">SAAMP QoS</span><span class="fl2">Adaptive adjustment</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">RPi Frontend</span><span class="fl2">NetworkScreen</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">Cloud Dashboard</span><span class="fl2">MQTT Network UI</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>6. Welfare Anomaly Detection Flow <span class="tag green">NEW</span></h4>
+    <div class="flow">
+      <div class="flow-box"><span class="fl">Child</span><span class="fl2">Game sessions</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">PAGES Backend</span><span class="fl2">Session DB</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">Alert Service</span><span class="fl2">Z-score anomaly</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">Cloud Backend</span><span class="fl2">Welfare API</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-box"><span class="fl">Admin Dashboard</span><span class="fl2">Welfare page</span></div>
     </div>
   </div>
 </section>
 
 <!-- ==================== DUPLICATES ==================== -->
 <section id="duplicates" class="section">
-  <h2>Duplicate &amp; Similar Files <span class="badge">10 findings</span></h2>
+  <h2>Duplicate &amp; Similar Files <span class="badge">9 findings</span></h2>
 
   <div class="chart-grid">
     <div class="chart-box">
@@ -533,10 +958,10 @@
   </div>
 
   <div class="card">
-    <h4>High Concern: ML Model Training Scripts (90% Identical)</h4>
+    <h4>ML Model Training Scripts <span class="tag green">FIXED — Refactored into base_model.py</span></h4>
     <ul class="dup-list">
-      <li><span class="path">edge-gateway/prediction-models/{decision_tree,logistic_regression,random_forest,xgboost}_model/</span><br>
-      All 4 files share identical <code>FloodPrediction</code> dataclass, <code>predict_one()</code>, <code>predict_batch()</code>, <code>_save_accuracy_charts()</code>, <code>save()</code> methods, <code>MODEL_FEATURES</code> list. Only the model class, hyperparameters, and source string differ. <strong>~1170 lines of duplicated code</strong> that could be a shared base class.</li>
+      <li><span class="path">edge-gateway/prediction-models/base_model.py</span> + <span class="path">*/{xgboost,random_forest,decision_tree,logistic_regression}_model/*.py</span><br>
+      Extracted shared <code>FloodPrediction</code> dataclass, <code>predict_one()</code>, <code>predict_batch()</code>, <code>_save_charts()</code>, <code>save()</code>, <code>_category_from_probability()</code>, <code>_adjust_probability()</code>, and <code>MODEL_FEATURES</code> into <span class="path">base_model.py</span>. Each model now provides only its estimator config, <code>_build_estimator()</code>, <code>_fit()</code> (XGBoost overrides for <code>scale_pos_weight</code>), and <code>_extract_feature_importance()</code>. <strong>Saved ~940 lines of duplication.</strong></li>
     </ul>
   </div>
 
@@ -552,7 +977,7 @@
     <h4>Near-Identical: postcss.config.mjs</h4>
     <ul class="dup-list">
       <li><span class="path">cloud-platform/frontend/postcss.config.mjs</span> (94B) vs <span class="path">raspberry-platform/frontend/postcss.config.mjs</span> (74B)<br>
-      Same Tailwind PostCSS plugin config; only export syntax differs (<code>const config = ...; export default config</code> vs <code>export default {...}</code>)</li>
+      Same Tailwind PostCSS plugin config; only export syntax differs</li>
     </ul>
   </div>
 
@@ -575,11 +1000,11 @@
   </div>
 
   <div class="card">
-    <h4>Empty stub files (0 bytes)</h4>
+    <h4>Empty stub files (now implemented)</h4>
     <ul class="dup-list">
-      <li><span class="path">cloud-platform/prediction-models/src/data_generator.py</span></li>
-      <li><span class="path">cloud-platform/prediction-models/src/feature_extraction.py</span></li>
-      <li><span class="path">cloud-platform/prediction-models/src/network_predictor.py</span></li>
+      <li><span class="path">cloud-platform/prediction-models/src/data_generator.py</span> <span class="tag green">FIXED</span> — Now 232 lines</li>
+      <li><span class="path">cloud-platform/prediction-models/src/feature_extraction.py</span> <span class="tag green">FIXED</span> — Now 46 lines</li>
+      <li><span class="path">cloud-platform/prediction-models/src/network_predictor.py</span> <span class="tag green">FIXED</span> — Now 133 lines</li>
     </ul>
   </div>
 </section>
@@ -620,8 +1045,8 @@
     <ul class="issue-list">
       <li><strong>.next/ build cache</strong> — 27 files (~1GB) in <span class="path">cloud-platform/frontend/.next/</span><br>Webpack cache, build manifests, and traces tracked despite .gitignore rule.</li>
       <li><strong>__pycache__/</strong> — 15 .pyc bytecode files across edge-gateway scripts</li>
-      <li><strong>node_modules/</strong> — 2,111 tracked files across 3 locations (backend, pages-backend, frontend)</li>
-      <li><strong>SQLite DB files</strong> — 6 files: pages.db, smartcamp.db + .db-shm + .db-wal (WAL &amp; shared memory)</li>
+      <li><strong>node_modules/</strong> — 2,111+ tracked files across 3+ locations (backend, pages-backend, frontend)</li>
+      <li><strong>SQLite DB files</strong> — pages.db, smartcamp.db + .db-shm + .db-wal (WAL &amp; shared memory)</li>
       <li><strong>.venv/</strong> — Full Python virtual environment in <span class="path">edge-gateway/scripts/.venv/</span></li>
     </ul>
   </div>
@@ -654,7 +1079,7 @@
   <h3>Critical</h3>
   <ul class="issue-list">
     <li><span class="sev critical">CRITICAL</span> <span class="path">Credentials.md</span> — Contains LIVE Turso JWT auth token (full read-write access), Turso DB URL, login email + password, and AWS root passwords. <strong>Rotate all tokens immediately.</strong></li>
-    <li><span class="sev critical">CRITICAL</span> <span class="path">cloud-platform/backend/pages-backend/.env</span> — Tracked in git with live Turso auth token. <code>.env</code> files must be gitignored.</li>
+    <li><span class="sev critical">CRITICAL</span> <span class="path">cloud-platform/backend/pages-backend/.env</span> — Tracked in git with live Turso auth token (file still exists in old location).</li>
     <li><span class="sev critical">CRITICAL</span> <span class="path">cloud-platform/backend/.env</span> — Tracked in git with EMQX production credentials (host, username, password).</li>
     <li><span class="sev critical">CRITICAL</span> <span class="path">cloud-platform/frontend/.env</span> — Tracked in git with API base URL config.</li>
   </ul>
@@ -664,7 +1089,7 @@
     <li><span class="sev high">HIGH</span> <span class="path">saampMqtt.js:15-18</span> — Hardcoded production EMQX credentials as default fallbacks (<code>admin</code>/<code>public</code>). Missing .env on RPi means production broker is exposed.</li>
     <li><span class="sev high">HIGH</span> <span class="path">saampMqtt.js:252</span> — <code>rejectUnauthorized: false</code> when CA cert missing. TLS bypass defeats MQTTS security.</li>
     <li><span class="sev high">HIGH</span> <span class="path">emqxManager.js:37</span> — Same TLS bypass; API key/secret have empty fallbacks.</li>
-    <li><span class="sev high">HIGH</span> Port conflict — Both cloud backend (<span class="path">server.js</span>) and pages-backend use port <strong>3001</strong>. Cannot run both simultaneously.</li>
+    <li><span class="sev high">HIGH</span> Port conflict — Both cloud backend (<span class="path">server.js</span>) and pages-backend use port <strong>3001</strong>. Cannot run both simultaneously. PAGES now on RPi, but if run together on cloud still conflicts.</li>
     <li><span class="sev high">HIGH</span> <span class="path">edge-gateway/scripts/requirements.txt</span> — Lists <code>flask</code> instead of <code>fastapi</code>/<code>uvicorn</code>. The FastAPI entry point cannot run with this file.</li>
     <li><span class="sev high">HIGH</span> No global error middleware in either Express server (<span class="path">resserver.js</span>, <span class="path">server.js</span>). Uncaught exceptions crash the process.</li>
   </ul>
@@ -687,7 +1112,7 @@
   <ul class="issue-list">
     <li><span class="sev low">LOW</span> Duplicate <code>requests</code> entry in <span class="path">edge-gateway/scripts/requirements.txt</span></li>
     <li><span class="sev low">LOW</span> Pages Backend <code>.env</code> has <code>NEXT_PUBLIC_API_URL=http://localhost:3000</code> (frontend, should be 3001).</li>
-    <li><span class="sev low">LOW</span> Railway deployment URL (<code>smartcamp-iot-ai-framework-production-be4f.up.railway.app</code>) exposed in commented-out code.</li>
+    <li><span class="sev low">LOW</span> Railway deployment URL exposed in commented-out code.</li>
     <li><span class="sev low">LOW</span> Inconsistent naming conventions (<code>snake_case</code> JSON keys vs <code>camelCase</code> JS variables).</li>
     <li><span class="sev low">LOW</span> <code>publishAsClient</code> creates one-shot MQTT connection per event — excessive TLS handshakes.</li>
     <li><span class="sev low">LOW</span> Flask ML binds to <code>127.0.0.1</code> only — unreachable from containerized Node.js backend.</li>
@@ -703,8 +1128,8 @@
   <div class="card">
     <h4>Security (Must Do Immediately)</h4>
     <ul class="suggestion-list">
-      <li><strong>1. Rotate ALL exposed credentials</strong> — Revoke the Turso JWT token (<code>eyJhbGciOiJFZERTQS...</code>), Turso password (<code>Pasi@1225</code>), and AWS passwords (<code>rooT@123$</code>, <code>root@123$</code>) immediately. They are in public git history.</li>
-      <li><strong>2. Remove sensitive files from git</strong> — Run <code>git rm --cached Credentials.md</code> and all <code>.env</code> files. Use <code>git-filter-repo</code> to purge them from history entirely.</li>
+      <li><strong>1. Rotate ALL exposed credentials</strong> — Revoke the Turso JWT token, Turso password, and AWS passwords immediately. They are in public git history.</li>
+      <li><strong>2. Remove sensitive files from git</strong> — Run <code>git rm --cached</code> on all <code>.env</code> files and <code>Credentials.md</code>. Use <code>git-filter-repo</code> to purge them from history entirely.</li>
       <li><strong>3. Enforce .gitignore rules</strong> — <code>.env</code> files are tracked despite the <code>.env*</code> rule. Add <code>.env</code> to a pre-commit hook or use <code>git update-index --assume-unchanged</code>.</li>
       <li><strong>4. NEVER hardcode production credentials</strong> — Remove default EMQX credentials from source code. Fail loudly if .env is missing instead of using insecure defaults.</li>
       <li><strong>5. Fix TLS security</strong> — Always validate the CA certificate. Never set <code>rejectUnauthorized: false</code> in production.</li>
@@ -714,22 +1139,22 @@
   <div class="card">
     <h4>Code Quality &amp; Architecture</h4>
     <ul class="suggestion-list">
-      <li><strong>6. Refactor ML model scripts</strong> — Extract the shared code from the 4 model scripts into a <code>base_model.py</code> base class. Save ~900 lines of duplicated code and make adding new models trivial.</li>
+      <li><strong>6. Refactor ML model scripts</strong> <span class="tag green">DONE</span> — Extracted shared code into <code>base_model.py</code>. Each model now ~45-55 lines. Saved ~940 lines.</li>
       <li><strong>7. Fix edge gateway requirements.txt</strong> — Replace <code>flask</code> with <code>fastapi</code>, add <code>uvicorn</code>, remove duplicate <code>requests</code>.</li>
       <li><strong>8. Resolve port conflict</strong> — Change pages-backend to port <strong>3002</strong> or merge it into the cloud backend as a sub-route.</li>
-      <li><strong>9. Add structured logging</strong> — Replace all <code>console.log</code>/<code>console.error</code> with <code>winston</code> (Node.js) and <code>structlog</code> (Python). Add log levels and file rotation.</li>
-      <li><strong>10. Add input validation</strong> — Use <code>zod</code> for all Express request body schemas. This also auto-generates TypeScript types and OpenAPI docs.</li>
-      <li><strong>11. Add global error middleware</strong> — Create a centralized Express error handler to prevent crashes from uncaught route exceptions.</li>
+      <li><strong>9. Add structured logging</strong> — Replace all <code>console.log</code>/<code>console.error</code> with <code>winston</code> (Node.js) and <code>structlog</code> (Python).</li>
+      <li><strong>10. Add input validation</strong> — Use <code>zod</code> for all Express request body schemas.</li>
+      <li><strong>11. Add global error middleware</strong> — Create a centralized Express error handler.</li>
     </ul>
   </div>
 
   <div class="card">
     <h4>Infrastructure &amp; DevOps</h4>
     <ul class="suggestion-list">
-      <li><strong>12. Add Docker Compose</strong> — Create a <code>docker-compose.yml</code> with 5 services: edge-fastapi, rpi-express, cloud-express, cloud-nextjs, flask-ml. Use <code>depends_on</code> for startup ordering. This would replace the current manual startup process.</li>
-      <li><strong>13. Clean up git bloat</strong> — Run <code>git rm --cached</code> on all <code>.next/</code>, <code>node_modules/</code>, <code>__pycache__/</code>, <code>*.db</code>, and <code>.venv/</code> files. Add explicit rules to .gitignore. Estimated savings: <strong>1.5GB+</strong>.</li>
-      <li><strong>14. Add CI quality gates</strong> — Update <code>.github/workflows/auto-pr.yml</code> to run <code>npm run lint</code>, <code>npm test</code>, a security scan (e.g., <code>trivy</code>), and a build check before creating the PR.</li>
-      <li><strong>15. Implement ESP32 firmware</strong> — The sensor node is the only gap in the end-to-end pipeline. Build the Arduino/C++ firmware for water level and rain gauge sensors with serial/UART output to the edge gateway.</li>
+      <li><strong>12. Add Docker Compose</strong> — Create a <code>docker-compose.yml</code> with 5 services: edge-fastapi, rpi-express, cloud-express, cloud-nextjs, flask-ml.</li>
+      <li><strong>13. Clean up git bloat</strong> — Run <code>git rm --cached</code> on all <code>.next/</code>, <code>node_modules/</code>, <code>__pycache__/</code>, <code>*.db</code>, and <code>.venv/</code> files. Estimated savings: <strong>1.5GB+</strong>.</li>
+      <li><strong>14. Add CI quality gates</strong> — Update <code>.github/workflows/auto-pr.yml</code> to run lint, test, security scan, and build checks.</li>
+      <li><strong>15. Implement ESP32 firmware</strong> — The sensor node is the only gap in the end-to-end pipeline. Build the Arduino/C++ firmware.</li>
     </ul>
   </div>
 
@@ -738,7 +1163,6 @@
     <ul class="suggestion-list">
       <li><strong>16 animal SVGs + images</strong> — Either wire them into the child education feature or remove them from the repo.</li>
       <li><strong>Orphaned <span class="path">disaster-management/disasterData.js</span></strong> — Delete the backend copy if the frontend version is canonical.</li>
-      <li><strong>3 empty Python stubs</strong> — Either implement or remove <code>data_generator.py</code>, <code>feature_extraction.py</code>, <code>network_predictor.py</code>.</li>
     </ul>
   </div>
 </section>
@@ -752,7 +1176,7 @@ new Chart(document.getElementById('chartPlatform'), {
   data: {
     labels: ['cloud-platform', 'edge-gateway', 'raspberry-platform', 'sensor-node', 'Config/Root'],
     datasets: [{
-      data: [128, 52, 28, 1, 8],
+      data: [140, 52, 82, 1, 10],
       backgroundColor: ['#f87171', '#38bdf8', '#a78bfa', '#34d399', '#fbbf24'],
       borderWidth: 0
     }]
@@ -766,7 +1190,7 @@ new Chart(document.getElementById('chartType'), {
   data: {
     labels: ['JavaScript/JSX', 'Python', 'Config/JSON', 'Documentation', 'Assets (SVG/PNG)', 'Other'],
     datasets: [{
-      data: [65, 55, 42, 18, 22, 15],
+      data: [90, 65, 50, 22, 22, 20],
       backgroundColor: ['#fbbf24', '#38bdf8', '#a78bfa', '#34d399', '#f87171', '#94a3b8'],
       borderWidth: 0
     }]
@@ -841,9 +1265,9 @@ new Chart(document.getElementById('chartCopyPaste'), {
 new Chart(document.getElementById('chartUnused'), {
   type: 'doughnut',
   data: {
-    labels: ['Animal SVGs', 'Disaster Images', 'Logo SVG', 'Orphaned JS Data', 'Empty Stubs', 'Placeholder .gitkeep'],
+    labels: ['Animal SVGs', 'Disaster Images', 'Logo SVG', 'Orphaned JS Data', 'Implemented Stubs', 'Placeholder .gitkeep'],
     datasets: [{
-      data: [10, 5, 1, 1, 3, 7],
+      data: [10, 5, 1, 1, 0, 7],
       backgroundColor: ['#f87171', '#fb923c', '#fbbf24', '#a78bfa', '#38bdf8', '#34d399'],
       borderWidth: 0
     }]
@@ -857,7 +1281,7 @@ new Chart(document.getElementById('chartBloat'), {
   data: {
     labels: ['node_modules/', '.next/ build', 'SQLite .db', '__pycache__/', '.venv/', 'Other tracked artifacts'],
     datasets: [{
-      data: [2111, 27, 6, 15, 1, 47],
+      data: [2500, 27, 8, 15, 1, 47],
       backgroundColor: ['#f87171', '#fb923c', '#fbbf24', '#a78bfa', '#38bdf8', '#34d399'],
       borderWidth: 0
     }]

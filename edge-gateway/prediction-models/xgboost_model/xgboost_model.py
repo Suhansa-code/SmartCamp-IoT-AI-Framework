@@ -1,59 +1,23 @@
-from dataclasses import dataclass
+import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
-import joblib
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from sklearn.metrics import (
-    classification_report,
-    confusion_matrix,
-    precision_recall_curve,
-    roc_auc_score,
-    roc_curve,
-)
-from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
 
-DATASET_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "resources"
-    / "sri_lanka_flood_risk_dataset_25000.csv"
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from base_model import BaseFloodModel, FloodPrediction, MODEL_FEATURES, MODELS_DIR, DATASET_PATH  # noqa: E402
 
-MODEL_FEATURES = [
-    "rainfall_7d_mm",
-    "longitude",
-    "latitude",
-    "elevation_m",
-    "distance_to_river_m",
-]
 
-CHARTS_OUTPUT_DIR = Path(__file__).resolve().parent / "artifacts"
-
-# Centralized model storage
-MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
-MODELS_DIR.mkdir(exist_ok=True)
 MODEL_SAVE_PATH = MODELS_DIR / "xgboost_model.pkl"
 
 
-@dataclass
-class FloodPrediction:
-    flood_possibility: str
-    category: str
-    future_forecast: Dict[str, object]
-    probability: float
-    source: str
+class LocationAwareFloodXGBoostModel(BaseFloodModel):
+    def __init__(self):
+        super().__init__(model_name="xgboost_model", source="xgboost_baseline_v1")
 
-
-class LocationAwareFloodXGBoostModel:
-    """
-    Baseline location-aware flood predictor using XGBoost.
-    """
-
-    def __init__(self) -> None:
-        self.model = XGBClassifier(
+    def _build_estimator(self):
+        return XGBClassifier(
             n_estimators=300,
             max_depth=6,
             learning_rate=0.05,
@@ -64,222 +28,31 @@ class LocationAwareFloodXGBoostModel:
             random_state=42,
             n_jobs=-1,
         )
-        self._is_trained = False
-        self.metrics_: Dict[str, object] = {}
 
-    def train(self, dataset_path: Optional[Path] = None, test_size: float = 0.2) -> Dict[str, object]:
-        data = pd.read_csv(dataset_path or DATASET_PATH)
-
-        target = data["flood_occurrence_current_event"].map({"Yes": 1, "No": 0})
-        if target.isna().any():
-            raise ValueError("Target column 'flood_occurrence_current_event' contains unexpected values.")
-
-        features = data[MODEL_FEATURES].copy()
-        features = features.fillna(features.median(numeric_only=True))
-
-        x_train, x_test, y_train, y_test = train_test_split(
-            features,
-            target.astype(int),
-            test_size=test_size,
-            random_state=42,
-            stratify=target.astype(int),
-        )
-
-        # Class imbalance handling
+    def _fit(self, estimator, x_train, y_train):
         positives = int((y_train == 1).sum())
         negatives = int((y_train == 0).sum())
-        self.model.set_params(scale_pos_weight=(negatives / positives) if positives > 0 else 1.0)
+        estimator.set_params(scale_pos_weight=(negatives / positives) if positives > 0 else 1.0)
+        estimator.fit(x_train, y_train)
 
-        self.model.fit(x_train, y_train)
-        self._is_trained = True
-
-        probabilities = self.model.predict_proba(x_test)[:, 1]
-        predicted_labels = (probabilities >= 0.5).astype(int)
-        self._save_accuracy_charts(y_test.to_numpy(), probabilities, predicted_labels)
-
-        self.metrics_ = {
-            "roc_auc": float(roc_auc_score(y_test, probabilities)),
-            "classification_report": classification_report(y_test, predicted_labels, output_dict=True),
-            "confusion_matrix": confusion_matrix(y_test, predicted_labels).tolist(),
-            "feature_importance": {
-                feature: float(importance)
-                for feature, importance in zip(MODEL_FEATURES, self.model.feature_importances_)
-            },
-            "train_size": int(len(x_train)),
-            "test_size": int(len(x_test)),
-            "charts_output_dir": str(CHARTS_OUTPUT_DIR),
+    def _extract_feature_importance(self, estimator) -> Optional[Dict[str, float]]:
+        return {
+            feature: float(importance)
+            for feature, importance in zip(MODEL_FEATURES, estimator.feature_importances_)
         }
-        
-        # Save trained model to centralized models folder
-        self.save()
-        
-        return self.metrics_
-
-    def _save_accuracy_charts(
-        self,
-        y_true: np.ndarray,
-        y_prob: np.ndarray,
-        y_pred: np.ndarray,
-        output_dir: Optional[Path] = None,
-    ) -> None:
-        chart_dir = output_dir or CHARTS_OUTPUT_DIR
-        chart_dir.mkdir(parents=True, exist_ok=True)
-
-        fpr, tpr, _ = roc_curve(y_true, y_prob)
-        roc_auc = roc_auc_score(y_true, y_prob)
-        plt.figure(figsize=(7, 5))
-        plt.plot(fpr, tpr, label=f"ROC AUC = {roc_auc:.3f}", linewidth=2)
-        plt.plot([0, 1], [0, 1], linestyle="--", color="gray")
-        plt.xlabel("False Positive Rate")
-        plt.ylabel("True Positive Rate")
-        plt.title("ROC Curve - XGBoost Flood Classification")
-        plt.legend(loc="lower right")
-        plt.tight_layout()
-        plt.savefig(chart_dir / "roc_curve.png", dpi=150)
-        plt.close()
-
-        precision, recall, _ = precision_recall_curve(y_true, y_prob)
-        plt.figure(figsize=(7, 5))
-        plt.plot(recall, precision, linewidth=2)
-        plt.xlabel("Recall")
-        plt.ylabel("Precision")
-        plt.title("Precision-Recall Curve - XGBoost Flood Classification")
-        plt.tight_layout()
-        plt.savefig(chart_dir / "precision_recall_curve.png", dpi=150)
-        plt.close()
-
-        cm = confusion_matrix(y_true, y_pred)
-        plt.figure(figsize=(6, 5))
-        plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-        plt.title("Confusion Matrix - XGBoost Flood Classification")
-        plt.colorbar()
-        tick_marks = np.arange(2)
-        plt.xticks(tick_marks, ["No Flood", "Flood"])
-        plt.yticks(tick_marks, ["No Flood", "Flood"])
-        plt.ylabel("True label")
-        plt.xlabel("Predicted label")
-        for i in range(cm.shape[0]):
-            for j in range(cm.shape[1]):
-                plt.text(j, i, str(cm[i, j]), ha="center", va="center", color="black")
-        plt.tight_layout()
-        plt.savefig(chart_dir / "confusion_matrix.png", dpi=150)
-        plt.close()
-
-    def save(self, output_path: Optional[Path] = None) -> str:
-        """Save trained model to centralized models folder"""
-        if not self._is_trained:
-            raise RuntimeError("Cannot save untrained model. Call train() first.")
-        
-        save_path = output_path or MODEL_SAVE_PATH
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        joblib.dump(self.model, save_path)
-        print(f"✓ Model saved to: {save_path}")
-        return str(save_path)
-    
-    def _require_trained(self) -> None:
-        if not self._is_trained:
-            raise RuntimeError("Model is not trained. Call train() before prediction.")
-
-    @staticmethod
-    def _category_from_probability(probability: float) -> str:
-        if probability >= 0.70:
-            return "High"
-        if probability >= 0.40:
-            return "Medium"
-        return "Low"
-
-    @staticmethod
-    def _adjust_probability(base_probability: float, gauging_station_current_water_level_m: float) -> float:
-        correction = np.clip((gauging_station_current_water_level_m - 2.0) * 0.05, -0.12, 0.25)
-        return float(np.clip(base_probability + correction, 0.0, 1.0))
-
-    def predict_one(
-        self,
-        rainfall_mm: float,
-        longitude: float,
-        latitude: float,
-        altitude_m: float,
-        dem_elevation_m: Optional[float],
-        nearest_river_m: float,
-        gauging_station_current_water_level_m: float,
-        is_forecast: bool,
-    ) -> FloodPrediction:
-        self._require_trained()
-
-        effective_elevation = dem_elevation_m if dem_elevation_m is not None else altitude_m
-        row = pd.DataFrame(
-            [
-                {
-                    "rainfall_7d_mm": rainfall_mm,
-                    "longitude": longitude,
-                    "latitude": latitude,
-                    "elevation_m": effective_elevation,
-                    "distance_to_river_m": nearest_river_m,
-                }
-            ]
-        )
-
-        base_probability = float(self.model.predict_proba(row)[0, 1])
-        adjusted_probability = self._adjust_probability(base_probability, gauging_station_current_water_level_m)
-        forecast_probability = (
-            float(np.clip(adjusted_probability * 1.10 + 0.03, 0.0, 1.0)) if is_forecast else adjusted_probability
-        )
-
-        return FloodPrediction(
-            flood_possibility="Likely" if adjusted_probability >= 0.50 else "Unlikely",
-            category=self._category_from_probability(adjusted_probability),
-            future_forecast={
-                "enabled": bool(is_forecast),
-                "probability": forecast_probability,
-                "category": self._category_from_probability(forecast_probability),
-            },
-            probability=adjusted_probability,
-            source="xgboost_baseline_v1",
-        )
-
-    def predict_batch(self, inputs: List[Dict[str, object]]) -> List[Dict[str, object]]:
-        predictions: List[Dict[str, object]] = []
-        for item in inputs:
-            prediction = self.predict_one(
-                rainfall_mm=float(item["rainfall_mm"]),
-                longitude=float(item["longitude"]),
-                latitude=float(item["latitude"]),
-                altitude_m=float(item["altitude_m"]),
-                dem_elevation_m=None if item.get("dem_elevation_m") is None else float(item["dem_elevation_m"]),
-                nearest_river_m=float(item["nearest_river_m"]),
-                gauging_station_current_water_level_m=float(item["gauging_station_current_water_level_m"]),
-                is_forecast=bool(item["is_forecast"]),
-            )
-            predictions.append(
-                {
-                    "input": item,
-                    "flood_possibility": prediction.flood_possibility,
-                    "category": prediction.category,
-                    "future_forecast": prediction.future_forecast,
-                    "probability": prediction.probability,
-                    "source": prediction.source,
-                }
-            )
-        return predictions
 
 
 if __name__ == "__main__":
     model = LocationAwareFloodXGBoostModel()
     metrics = model.train()
-    print(f"\n📊 Training Complete")
+    print(f"\nTraining Complete")
     print(f"   AUC Score: {round(metrics['roc_auc'], 4)}")
     print(f"   Charts saved to: {metrics['charts_output_dir']}")
     print(f"   Model saved to: {MODEL_SAVE_PATH}")
 
     sample = model.predict_one(
-        rainfall_mm=160.0,
-        longitude=80.945,
-        latitude=7.507,
-        altitude_m=88.0,
-        dem_elevation_m=81.0,
-        nearest_river_m=350.0,
-        gauging_station_current_water_level_m=2.3,
-        is_forecast=True,
+        rainfall_mm=160.0, longitude=80.945, latitude=7.507,
+        altitude_m=88.0, dem_elevation_m=81.0, nearest_river_m=350.0,
+        gauging_station_current_water_level_m=2.3, is_forecast=True,
     )
     print(sample)
