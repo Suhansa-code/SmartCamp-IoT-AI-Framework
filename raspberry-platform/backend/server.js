@@ -1,0 +1,116 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import C from './config/constants.js';
+import logger from './utils/logger.js';
+import { initializeCampDb } from './config/database.js';
+import { connect as mqttConnect } from './services/saamp-mqtt.js';
+import { startConnectivityWatcher } from './services/connectivity.js';
+import { checkFlaskHealth } from './services/scoring.js';
+import { notFound, errorHandler } from './middleware/error-handler.js';
+
+// Camp routes
+import fingerprintRoute from './routes/camp/fingerprint.js';
+import checkinRoute from './routes/camp/checkin.js';
+import registerRoute from './routes/camp/register.js';
+import wristbandRoute from './routes/camp/wristband.js';
+import distributeRoute from './routes/camp/distribute.js';
+import networkRoute from './routes/camp/network.js';
+import statsRoute from './routes/camp/stats.js';
+import predictionRoute from './routes/camp/prediction.js';
+import disasterRoute from './routes/camp/disaster.js';
+
+// Education routes
+import childRoute from './routes/education/child.js';
+import sessionRoute from './routes/education/session.js';
+import dashboardRoute from './routes/education/dashboard.js';
+import syncRoute from './routes/education/sync.js';
+
+const app = express();
+const PORT = C.PORT;
+
+// Security headers
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// CORS
+const isAllowedOrigin = (origin) => {
+  if (C.CORS_ORIGINS.includes(origin)) return true;
+  if (!C.ALLOW_VERCEL_PREVIEWS) return false;
+  try {
+    const parsedOrigin = new URL(origin);
+    return parsedOrigin.protocol === 'https:' && /(^|\.)vercel\.app$/i.test(parsedOrigin.hostname);
+  } catch { return false; }
+};
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    logger.warn(`[CORS] Blocked origin: ${origin}`);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false }));
+
+app.use((req, _res, next) => {
+  logger.debug(`→ ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Initialize camp database
+initializeCampDb();
+
+// Connect to MQTT broker
+mqttConnect();
+
+// Check Flask health at startup
+checkFlaskHealth().then(healthy => {
+  if (healthy) logger.info(`[FLASK] Connected to ${C.FLASK_URL}`);
+  else logger.warn(`[FLASK] ${C.FLASK_URL} is unreachable — fallback scoring will be used`);
+}).catch(() => {});
+
+// Start connectivity watcher
+startConnectivityWatcher();
+
+// ── Unified Health Check ─────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'smartcamp-backend', device: C.DEVICE_ID, camp: C.CAMP_ID });
+});
+
+// ── Camp Operations Routes ───────────────────────────────────
+app.use('/api/fingerprint', fingerprintRoute);
+app.use('/api/checkin', checkinRoute);
+app.use('/api/register', registerRoute);
+app.use('/api/wristband', wristbandRoute);
+app.use('/api/distribute', distributeRoute);
+app.use('/api/network', networkRoute);
+app.use('/api/stats', statsRoute);
+app.use('/api/prediction', predictionRoute);
+app.use('/api/disaster', disasterRoute);
+
+// ── PAGES Education Routes ──────────────────────────────────
+app.use('/api/child', childRoute);
+app.use('/api/session', sessionRoute);
+app.use('/api', dashboardRoute);
+app.use('/api/sync', syncRoute);
+
+// ── Error Handling ──────────────────────────────────────────
+app.use(notFound);
+app.use(errorHandler);
+
+// ── Start Server ────────────────────────────────────────────
+app.listen(PORT, () => {
+  logger.info('════════════════════════════════════════════');
+  logger.info('  SmartCamp Unified Backend');
+  logger.info(`  Device:  ${C.DEVICE_ID}`);
+  logger.info(`  Camp:    ${C.CAMP_ID}`);
+  logger.info(`  Port:    ${PORT}`);
+  logger.info(`  Env:     ${C.NODE_ENV}`);
+  logger.info('════════════════════════════════════════════');
+});

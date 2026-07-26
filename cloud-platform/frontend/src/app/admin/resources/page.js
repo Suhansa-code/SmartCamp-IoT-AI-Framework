@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import OverviewPanel from '@/components/resources/OverviewPanel'
 
 // Cloud-side admin resources page.
-// Registration and wristband scanning run on the Pi at the camp (res-mng_backend, port 5000).
+// Registration and wristband scanning run on the Pi at the camp (raspberry-platform/backend/server.js, port 5000).
 // This page shows the cloud dashboard: live camp stats + resource prediction.
 // Data arrives via EMQX → CampDataService → /api/resources/overview
 

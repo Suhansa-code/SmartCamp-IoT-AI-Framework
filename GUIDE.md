@@ -45,24 +45,60 @@ SmartCamp-IoT-AI-Framework/
 │               └── weather_forecast_location.py # Open-Meteo
 │
 ├── raspberry-platform/                     # [RPi 5] Camp local server
-│   ├── backend/
-│   │   └── res-mng_backend/                # Resource management backend
-│   │       ├── package.json                # Express + MQTT + SQLite
-│   │       ├── db/
-│   │       │   └── database.js             # SQLite schema init
-│   │       ├── services/
-│   │       │   ├── resserver.js            # Express server (:5000)
-│   │       │   ├── saampMqtt.js            # ★ SAAMP: adaptive MQTT
-│   │       │   └── emqxManager.js          # EMQX REST client manager
-│   │       └── src/routes/
-│   │           ├── register.js             # Person registration
-│   │           ├── fingerprint.js          # Fingerprint ops
-│   │           ├── checkin.js              # Camp check-in/out
-│   │           ├── wristband.js            # QR wristband management
-│   │           ├── distribute.js           # Resource distribution
-│   │           ├── network.js              # Network state
-│   │           ├── prediction.js           # Resource forecast
-│   │           └── stats.js                # Statistics
+│   ├── backend/                            # ★ UNIFIED SERVER (merged res-mng + PAGES + Flask)
+│   │   ├── package.json                    # Express + MQTT + SQLite + JWT + QR
+│   │   ├── server.js                       # Single entry point (:5000)
+│   │   ├── config/
+│   │   │   ├── constants.js                # Unified app constants
+│   │   │   └── database.js                 # Dual DB: camp.db + pages.db
+│   │   ├── middleware/
+│   │   │   ├── auth.js                     # JWT admin middleware
+│   │   │   ├── validate.js                 # Request validation
+│   │   │   └── error-handler.js            # Central error handler
+│   │   ├── routes/
+│   │   │   ├── camp/                       # Camp operations
+│   │   │   │   ├── register.js
+│   │   │   │   ├── fingerprint.js
+│   │   │   │   ├── checkin.js
+│   │   │   │   ├── wristband.js
+│   │   │   │   ├── distribute.js
+│   │   │   │   ├── network.js
+│   │   │   │   ├── stats.js
+│   │   │   │   ├── prediction.js
+│   │   │   │   └── disaster.js
+│   │   │   └── education/                  # PAGES edu system
+│   │   │       ├── child.js
+│   │   │       ├── session.js
+│   │   │       ├── dashboard.js
+│   │   │       └── sync.js
+│   │   ├── controllers/                    # Education controllers
+│   │   │   ├── child.js
+│   │   │   ├── session.js
+│   │   │   ├── dashboard.js
+│   │   │   └── sync.js
+│   │   ├── services/
+│   │   │   ├── saamp-mqtt.js               # ★ SAAMP: adaptive MQTT
+│   │   │   ├── emqx-manager.js             # EMQX REST client manager
+│   │   │   ├── scoring.js                  # ML scoring (Flask proxy + fallback)
+│   │   │   ├── gating.js                   # PASS/FAIL gate decisions
+│   │   │   ├── alert.js                    # Anomaly alerts
+│   │   │   ├── connectivity.js             # PG connectivity watcher
+│   │   │   ├── qr-code.js                  # QR generation
+│   │   │   └── sync.js                     # Cloud sync service
+│   │   ├── utils/
+│   │   │   ├── logger.js                   # Timestamped SLT logger
+│   │   │   └── helpers.js                  # SLT helpers, ID gen
+│   │   ├── db/
+│   │   │   ├── pages-schema.sql            # PAGES schema DDL
+│   │   │   └── seed/tasks.js               # 110 content tasks
+│   │   ├── python/                         # Flask ML scoring service
+│   │   │   ├── app.py                      # Flask (:5001)
+│   │   │   ├── train-model.py
+│   │   │   ├── evaluate-models.py
+│   │   │   ├── full-validation.py
+│   │   │   ├── requirements.txt
+│   │   │   └── data/session-history.json
+│   │   └── scripts/                        # Utility scripts
 │   │
 │   └── frontend/                           # Camp local UI
 │       ├── package.json                    # React 18 + Vite + Tailwind
@@ -93,13 +129,13 @@ SmartCamp-IoT-AI-Framework/
 │   │   │       └── waterLevelHistoryService.js
 │   │   │
 │   │   ├── disaster-management/            # Disaster data
-│   │   ├── pages-backend/                  # ★ PAGES edu system
+│   │   ├── pages-backend/                  # ★ PAGES edu system (legacy; migrated to RPi)
 │   │   │   ├── package.json                # Express + Turso/SQLite + JWT
 │   │   │   ├── database/
 │   │   │   ├── models/
 │   │   │   └── src/
 │   │   │
-│   │   └── pages-flask/                    # PAGES ML scoring
+│   │   └── pages-flask/                    # PAGES ML scoring (moved to RPi; removed from cloud)
 │   │       ├── app.py                      # Flask (:5001)
 │   │       ├── requirements.txt            # Flask + numpy + sklearn
 │   │       ├── train_model.py
