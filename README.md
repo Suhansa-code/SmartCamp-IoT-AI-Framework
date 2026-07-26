@@ -1,105 +1,95 @@
 # Smart Disaster Relief Camp Box (SDRC-Box)
 
-# 📌 Project Vision
+An integrated IoT + AI framework for rapid deployment in disaster-stricken areas. It serves as a localized intelligence hub for environmental monitoring, camp resource logistics, and psycho-educational support for displaced individuals.
 
-# The SDRC-Box is an integrated hardware and software solution designed for rapid deployment in disaster-stricken areas. It serves as a localized intelligence hub, balancing environmental safety, efficient resource logistics, and the mental well-being of displaced individuals.
+## Architecture Overview
 
-# 
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐     ┌──────────────────────┐
+│   SENSOR NODE   │     │   EDGE GATEWAY    │     │  RASPBERRY PI 5  │     │     CLOUD VM (AWS)   │
+│    (ESP32)      │────▶│   (Intel NUC)     │────▶│  (Camp Server)   │────▶│  (Admin Dashboard)  │
+│  Water Level    │     │  Flood Prediction │     │  MQTT Gateway    │     │  Next.js + Express  │
+│  Rain Gauge     │     │  Hydrospatial API │     │  SQLite DB       │     │  ML Inference       │
+│  GPS            │     │  DEM / GPS Module │     │  SAAMP Protocol  │     │  PAGES Edu System   │
+└─────────────────┘     └──────────────────┘     └─────────────────┘     └──────────────────────┘
+                                │                         │                         │
+                                └──────────── MQTT/TLS ────┴───────── HTTPS ────────┘
+```
 
-# 🏗 The Three Core Pillars
+## Tech Stack
 
-# 1\. Smart Environmental Risk Monitoring \& Flood Prediction
+| Layer | Stack |
+|-------|-------|
+| **Edge** | Python 3.11+, FastAPI, XGBoost, GeoPandas, NetworkX |
+| **RPi Local** | Node.js, Express, React 18 + Vite, SQLite, Tailwind CSS |
+| **Cloud** | Next.js 16, React 19, Express, Turso/SQLite, PostgreSQL |
+| **IoT** | MQTT (EMQX Serverless), ESP32 (Arduino/C++) |
+| **ML/AI** | XGBoost, scikit-learn, LightGBM, Isolation Forest |
 
-# Purpose: Real-time safety auditing of the camp's physical location.
+## Repository Structure
 
-# 
+```
+SmartCamp-IoT-AI-Framework/
+├── sensor-node/         # ESP32 sensor firmware (placeholder)
+├── edge-gateway/        # Intel NUC: flood prediction + spatial APIs
+│   ├── prediction-models/   # XGBoost, Random Forest flood models
+│   └── scripts/             # FastAPI, hydrospatial, GPS, DEM services
+├── raspberry-platform/  # Raspberry Pi 5: camp management server
+│   ├── backend/             # Express API + SQLite + MQTT (SAAMP)
+│   └── frontend/            # Vite + React local UI
+└── cloud-platform/      # AWS cloud: admin dashboard + ML + education
+    ├── backend/             # Express API + PAGES edu system
+    ├── frontend/            # Next.js admin dashboard
+    └── prediction-models/   # Resource & network ML models
+```
 
-# Tech: ESP32 sensors (water level, rain), Raspberry Pi Gateway, and Location-Aware AI (LSTM/TFLite) to predict flood risks before they occur.
+## Key Features
 
-# 
+- **Flood Prediction** - XGBoost model (F1=0.91) using rainfall, elevation, river proximity
+- **Camp Resource Management** - QR wristband distribution, registration, check-in/out
+- **SAAMP Protocol** - Semantic-Aware Adaptive Message Prioritization (Novelty)
+- **PAGES Edu System** - Psycho-Attentional Gated Educational System with cognitive games
+- **Real-time Monitoring** - MQTT-based with adaptive QoS and offline buffering
+- **Disaster Dashboard** - Geo-maps, water levels, camp summaries
 
-# 2\. Camp Resource Management
+## Getting Started
 
-# Purpose: Digital inventory and distribution tracking for food, medicine, and water.
+### Prerequisites
+- Node.js >= 20, Python 3.11+, EMQX broker (cloud or local)
 
-# 
+### Raspberry Pi (Local Camp Server)
+```bash
+cd raspberry-platform/backend/res-mng_backend
+npm install && npm start
+```
+Frontend: `cd raspberry-platform/frontend && npm install && npm run dev`
 
-# Tech: Centralized Admin Dashboard (Next.js) with real-time stock alerts and QR-based tracking to prevent resource wastage or hoarding.
+### Cloud Deployment
+```bash
+cd cloud-platform/backend && npm install && node src/server.js
+cd cloud-platform/frontend && npm install && npm run dev
+```
 
-# 
+### Edge Gateway
+```bash
+cd edge-gateway/scripts && pip install -r requirements.txt
+python api.py  # FastAPI on :8000
+```
 
-# 3\. Educational \& Psychology Module
+## Ports
 
-# Purpose: Providing offline access to educational content and psychological support tools.
+| Service | Port |
+|---------|------|
+| Edge FastAPI | 8000 |
+| RPi Backend | 5000 |
+| Cloud Backend | 3001 |
+| Cloud Frontend | 3000 |
+| Flask ML Scoring | 5001 |
+| EMQX MQTTS | 8883 |
 
-# 
+## Research Novelty
 
-# Tech: A "Captive Portal" or local web server hosted on the Raspberry Pi, offering interactive learning and guided trauma-relief exercises without needing an active internet connection.
-
-# 
-
-# 📁 Integrated Repository Structure
-
-# Plaintext
-
-# /sdrc-box-root
-
-# ├── apps/
-
-# │   ├── admin-dashboard/     # Next.js (Management of Pillars 1 \& 2)
-
-# │   ├── web-portal/          # Localized Web Server for Pillar 3 (Pi-hosted)
-
-# │   └── backend-api/         # Central Node.js API (MERN Stack)
-
-# ├── firmware/
-
-# │   ├── sensor-nodes/        # ESP32 code for Flood Monitoring
-
-# │   └── disaster-box-pi/     # Raspberry Pi Gateway \& Local Services
-
-# ├── ml-engine/
-
-# │   ├── models/              # Prediction models (Flood \& Resource Trends)
-
-# │   └── api/                 # FastAPI for serving model inferences
-
-# ├── docs/                    # System Architecture \& Research Papers
-
-# └── docker-compose.yml       # One-click deployment for the full stack
-
-# 🛠 Strategic Architecture Guidelines
-
-# Offline-First Strategy: Since Pillar 3 (Psychology/Education) must work during disasters, the Raspberry Pi should act as a Local Wi-Fi Hotspot. Users connect their phones to the "SDRC-BOX" Wi-Fi to access the educational module without internet.
-
-# 
-
-# Unified Data Schema: Ensure your database (PostgreSQL/MongoDB) links "Environmental Risk" levels to "Resource Management." (e.g., If a flood is predicted, the system automatically alerts managers to move food resources to higher ground).
-
-# 
-
-# Modular Deployment: Each of the 3 components should be able to run independently. If the sensors fail, the Resource Management and Psychology modules must remain functional.
-
-# 
-
-# 📊 Technical Standards
-
-# UI/UX: High-end, luxury aesthetic for the Admin Dashboard to ensure clarity during high-stress disaster scenarios.
-
-# 
-
-# Communication: MQTT for sensor-to-Pi, REST/WebSockets for Pi-to-Cloud.
-
-# 
-
-# AI: Use TensorFlow Lite for edge prediction to minimize latency.
-
-
-
-
-
-<!-- ❯ Can you go though my model and create what are the inputs do i need in my prediction frontend frontend path is  
-  /home/suhansa-kashmira/Documents/SmartCamp-IoT-AI-Framework/raspberry-platform/frontend/src/components/resources    and backend is in           
-  rassberrypie and need to create buffer for sync during the low network the registration data and other model need data need to be get from the  
-  locl env (rassberry pie) and then it go to the brocker and then go to the cloud vm in there is my prediction dydtem is deployed inside the      
-  container and predicted  result need to be showd in admin dashboard   -->
+**SAAMP** - Semantic-Aware Adaptive Message Prioritization for IoT in disaster scenarios:
+- Source-Action Semantic Classification (SACS): CRITICAL/HIGH/MEDIUM/LOW priority
+- Predictive network-state QoS adjustment (STABLE/DEGRADED/CRITICAL)
+- Priority-ordered offline message buffering with flush on reconnect
