@@ -805,6 +805,7 @@
 <div class="file"><span class="fn">network_qos_dataset.csv</span> <span class="tag green">NEW</span> <span class="desc">— 20K-row network QoS dataset</span></div>
 <div class="file"><span class="fn">network_qos_dataset_sample.csv</span> <span class="tag green">NEW</span> <span class="desc">— 2K-row sample</span></div>
 <div class="file"><span class="fn">raw/.gitkeep</span> <span class="desc">— Raw data placeholder</span></div>
+<div class="file"><span class="fn">raw/README.md</span> <span class="desc">— Instructions for downloading Kaggle CSVs</span></div>
 <div class="file"><span class="fn">processed/camp_features.csv</span> <span class="desc">— Processed camp features</span></div>
 </details>
 <details>
@@ -957,47 +958,12 @@
     </div>
   </div>
 
-  <div class="card">
-    <h4>ML Model Training Scripts <span class="tag green">FIXED — Refactored into base_model.py</span></h4>
-    <ul class="dup-list">
-      <li><span class="path">edge-gateway/prediction-models/base_model.py</span> + <span class="path">*/{xgboost,random_forest,decision_tree,logistic_regression}_model/*.py</span><br>
-      Extracted shared <code>FloodPrediction</code> dataclass, <code>predict_one()</code>, <code>predict_batch()</code>, <code>_save_charts()</code>, <code>save()</code>, <code>_category_from_probability()</code>, <code>_adjust_probability()</code>, and <code>MODEL_FEATURES</code> into <span class="path">base_model.py</span>. Each model now provides only its estimator config, <code>_build_estimator()</code>, <code>_fit()</code> (XGBoost overrides for <code>scale_pos_weight</code>), and <code>_extract_feature_importance()</code>. <strong>Saved ~940 lines of duplication.</strong></li>
-    </ul>
-  </div>
 
-  <div class="card">
-    <h4>Copy-Paste: README files</h4>
-    <ul class="dup-list">
-      <li><span class="path">edge-gateway/scripts/README.md</span> and <span class="path">edge-gateway/scripts/hydrospatial_api/README.md</span><br>
-      Share identical first paragraph describing "which finds the nearest named river/stream..."</li>
-    </ul>
-  </div>
 
-  <div class="card">
-    <h4>Near-Identical: postcss.config.mjs</h4>
-    <ul class="dup-list">
-      <li><span class="path">cloud-platform/frontend/postcss.config.mjs</span> (94B) vs <span class="path">raspberry-platform/frontend/postcss.config.mjs</span> (74B)<br>
-      Same Tailwind PostCSS plugin config; only export syntax differs</li>
-    </ul>
-  </div>
 
-  <div class="card">
-    <h4>Related but Different: disasterData.js</h4>
-    <ul class="dup-list">
-      <li><span class="path">cloud-platform/backend/disaster-management/disasterData.js</span> (16.7KB, 474 lines)<br>
-      Backend copy with live GPS parsing, OSM integration, rich hydrology. <strong>Not imported anywhere.</strong></li>
-      <li><span class="path">cloud-platform/frontend/src/components/disaster/disasterData.js</span> (8.9KB, 62 lines)<br>
-      Frontend copy with simplified static dataset. <strong>This one is actually used.</strong></li>
-    </ul>
-  </div>
 
-  <div class="card">
-    <h4>Non-standard .gitkeep files (contain data, not empty)</h4>
-    <ul class="dup-list">
-      <li><span class="path">cloud-platform/prediction-models/.gitkeep</span> — 148 bytes (not empty)</li>
-      <li><span class="path">cloud-platform/prediction-models/data/raw/.gitkeep</span> — 399 bytes (not empty)</li>
-    </ul>
-  </div>
+
+
 
   <div class="card">
     <h4>Empty stub files (now implemented)</h4>
