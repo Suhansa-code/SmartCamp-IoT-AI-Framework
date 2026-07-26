@@ -126,6 +126,7 @@ export default function AdminPage() {
           {[
             { label:'All Camps', path:'/admin', active: true },
             { label:'Alerts',    path:'/admin/alert', active: false },
+            { label:'Welfare',   path:'/admin/welfare', active: false },
             { label:'Analytics', path:'/admin/analytics', active: false },
             { label:'Network',   path:'/admin/network', active: false },
           ].map(tab => (

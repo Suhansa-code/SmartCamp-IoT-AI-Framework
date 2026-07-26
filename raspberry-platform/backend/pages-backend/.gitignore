@@ -1,0 +1,57 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python environment
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Flask models
+cloud-platform/backend/pages-flask/models/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+pages.db
+pages.db-shm
+pages.db-wal
+database/pages.db
+database/pages.db-shm
+database/pages.db-wal
+
+# Node
+node_modules/
+dist/
+.npm
+*.tgz
+
+# Build outputs
+.next/
+.turbo/
+build/
+
+# Testing
+.coverage
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# OS
+.DS_Store
+*.log
+Thumbs.db

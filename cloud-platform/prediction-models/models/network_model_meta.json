@@ -1,0 +1,62 @@
+{
+  "model_type": "RandomForestClassifier",
+  "features": [
+    "rtt_avg",
+    "rtt_max",
+    "packet_loss",
+    "jitter",
+    "queue_depth",
+    "queue_delta",
+    "throughput",
+    "bandwidth",
+    "drop_rate",
+    "bridge_alive",
+    "clients",
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "priority_scaled",
+    "bw_rtt_ratio",
+    "loss_rtt_product"
+  ],
+  "accuracy": 1.0,
+  "classification_report": {
+    "STABLE": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2567.0
+    },
+    "DEGRADED": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 730.0
+    },
+    "CRITICAL": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 703.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    }
+  },
+  "state_map": {
+    "STABLE": 0,
+    "DEGRADED": 1,
+    "CRITICAL": 2
+  }
+}
