@@ -98,7 +98,7 @@ export default function NetworkScreen() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
           <span className="font-bold">Backend unreachable:</span> {error}.
           Start with <code className="bg-red-100 px-1 rounded">npm start</code> in{' '}
-          <code className="bg-red-100 px-1 rounded">raspberry-platform/backend/res-mng_backend</code>.
+           <code className="bg-red-100 px-1 rounded">raspberry-platform/backend</code>.
         </div>
       )}
       {!error && state === 'UNKNOWN' && (
