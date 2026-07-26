@@ -2,6 +2,7 @@ import React from 'react'
 import { Routes, Route, useRouter } from './lib/router'
 import { AuthProvider } from './lib/AuthContext'
 import DashboardPage from './components/resources/DashboardPage'
+import DisasterMonitorPage from './components/resources/DisasterMonitorPage'
 import RegistrationScreen from './components/resources/RegistrationScreen'
 import WristbandScanScreen from './components/resources/WristbandScanScreen'
 import PredictionScreen from './components/resources/PredictionScreen'
@@ -27,6 +28,7 @@ function AdminRoutes() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/disaster" element={<DisasterMonitorPage />} />
           <Route path="/registration" element={<RegistrationScreen />} />
           <Route path="/wristband" element={<WristbandScanScreen />} />
           <Route path="/prediction" element={<PredictionScreen />} />

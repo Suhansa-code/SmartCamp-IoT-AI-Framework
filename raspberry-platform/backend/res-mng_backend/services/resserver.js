@@ -18,6 +18,7 @@ const distributeRoute = require('../src/routes/distribute');
 const networkRoute    = require('../src/routes/network');
 const statsRoute      = require('../src/routes/stats');
 const predictionRoute = require('../src/routes/prediction');
+const disasterRoute   = require('../src/routes/disaster');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,6 +41,7 @@ app.use('/api/distribute', distributeRoute);
 app.use('/api/network',     networkRoute);
 app.use('/api/stats',      statsRoute);
 app.use('/api/prediction', predictionRoute);
+app.use('/api/disaster',   disasterRoute);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'smartcamp-backend' });
