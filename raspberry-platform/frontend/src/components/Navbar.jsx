@@ -3,6 +3,7 @@ import { Link, useRouter } from '../lib/router'
 import { useAuth } from '../lib/AuthContext'
 
 const tabs = [
+  { id: 'dashboard', label: 'Dashboard', path: '/' },
   { id: 'registration', label: 'Registration', path: '/registration' },
   { id: 'wristband', label: 'Wristband Distribution', path: '/wristband' },
   { id: 'prediction', label: 'AI Predictions', path: '/prediction' },
@@ -14,40 +15,46 @@ function Navbar() {
   const { isAuthenticated } = useAuth()
 
   return (
-    <nav className="bg-white shadow-lg">
-      <div className="max-w-5xl mx-auto px-6">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-gray-900">SmartCamp</span>
+    <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-6xl mx-auto px-5">
+        <div className="flex items-center justify-between h-14">
+          <div className="flex items-center gap-1">
+            <span className="text-base font-bold text-gray-900 tracking-tight">SmartCamp</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.id}
-                to={tab.path}
-                className={`px-4 py-2 rounded-xl font-semibold transition-all duration-200
-                  ${path === tab.path
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
+          <div className="flex items-center gap-1">
+            {tabs.map((tab) => {
+              const active = path === tab.path
+              return (
+                <Link
+                  key={tab.id}
+                  to={tab.path}
+                  className={`relative px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200
+                    ${active
+                      ? 'text-blue-700 bg-blue-50'
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                    }`}
+                >
+                  {tab.label}
+                  {active && (
+                    <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-full" />
+                  )}
+                </Link>
+              )
+            })}
 
-            <div className="w-px h-8 bg-gray-300" />
+            <div className="w-px h-5 mx-2 bg-gray-200" />
 
             <Link
               to="/authorize"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-semibold transition-all duration-200 border-2
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-200
                 ${isAuthenticated
-                  ? 'border-green-400 text-green-700 bg-green-50 hover:bg-green-100'
-                  : 'border-red-300 text-red-600 bg-red-50 hover:bg-red-100'
+                  ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
                 }`}
             >
-              <span className="text-lg">{isAuthenticated ? '\u{1F510}' : '\u{1F512}'}</span>
-              <span className="text-sm">{isAuthenticated ? 'Authorized' : 'Authorize'}</span>
+              <span className="text-sm">{isAuthenticated ? '\u{1F510}' : '\u{1F512}'}</span>
+              <span>{isAuthenticated ? 'Authorized' : 'Authorize'}</span>
             </Link>
           </div>
         </div>
