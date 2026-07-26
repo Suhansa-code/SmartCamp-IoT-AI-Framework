@@ -317,16 +317,16 @@
       <div class="process-col">
         <h4>&#127760; Frontend <span style="font-size:11px;color:var(--text2);font-weight:400;">React 18 + Vite + Tailwind 4</span></h4>
         <ul>
-          <li><span class="arrow">&#8594;</span> <strong>App.jsx</strong> — Root: 5-tab nav (PAGES, Registration, Wristband, Prediction, Network)</li>
+          <li><span class="arrow">&#8594;</span> <strong>App.jsx</strong> — Root: URL-routed (/, /registration, /wristband, /prediction, /network, /child, /authorize). Admin routes guarded by <strong>ProtectedRoute</strong>; unauthenticated users redirected to /authorize</li>
           <li><span class="arrow">&#8594;</span> <strong>RegistrationScreen</strong> — Fingerprint + wristband enrollment UI (<span class="path">components/resources/RegistrationScreen.jsx</span>)</li>
           <li><span class="arrow">&#8594;</span> <strong>WristbandScanScreen</strong> — QR wristband scanner for distribution (<span class="path">components/resources/WristbandScanScreen.jsx</span>)</li>
           <li><span class="arrow">&#8594;</span> <strong>PredictionScreen</strong> — AI resource forecast display (<span class="path">components/resources/PredictionScreen.jsx</span>)</li>
           <li><span class="arrow">&#8594;</span> <strong>NetworkScreen</strong> — SAAMP QoS status, adaptive decisions, buffer view (<span class="path">components/resources/NetworkScreen.jsx</span>)</li>
-          <li><span class="arrow">&#8594;</span> <strong>PAGES Child Mode</strong> — QR scan → Language picker → Eli welcome → Go/No-Go game → Cognitive/Calming → Scoring (<span class="path">app/page.jsx + components/psychoedu/</span>)</li>
+          <li><span class="arrow">&#8594;</span> <strong>PAGES Child Mode</strong> — `/child` route: hardcoded QR → Language picker → Eli welcome → Go/No-Go game → Cognitive/Calming → Scoring (<span class="path">ChildFlow.jsx + app/page.jsx + components/psychoedu/</span>)</li>
           <li><span class="arrow">&#8594;</span> <strong>PAGES Games</strong> — AnimalGame, CognitiveSession, BreathingCircle, BubblePlayground, ContentCard</li>
         </ul>
         <div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;">
-          <strong style="color:var(--accent2);">PAGES Flow:</strong> Welcome → Scan QR → Animal Game (Go/No-Go) → PASS? → Cognitive Session : FAIL? → Breathing → Content Cards → Retry → Bubble Playground
+          <strong style="color:var(--accent2);">PAGES Flow (/child route):</strong> Hardcoded QR (auto-skip scan) → Animal Game (Go/No-Go) → PASS? → Cognitive Session : FAIL? → Breathing → Content Cards → Retry → Bubble Playground
         </div>
       </div>
       <div class="process-col">
@@ -684,15 +684,27 @@
 
 <details>
 <summary>frontend/ <span class="tag">React 18 + Vite + PAGES</span></summary>
-<div class="file"><span class="fn">package.json</span> <span class="desc">— React 18, Vite 5, Framer Motion 11, Tailwind 4, jsQR</span></div>
+<div class="file"><span class="fn">package.json</span> <span class="desc">— React 18, Vite 5, Framer Motion 11, Tailwind 4, jsQR, react-router-dom</span></div>
 <div class="file"><span class="fn">vite.config.mjs</span> <span class="desc">— Vite config with @ alias</span></div>
-<div class="file"><span class="fn">src/App.jsx</span> <span class="desc">— Root with tab navigation (PAGES, Registration, Wristband, Prediction, Network)</span></div>
+<div class="file"><span class="fn">src/App.jsx</span> <span class="desc">— Root: URL-routed (/, /registration, /wristband, /prediction, /network, /child) via custom router</span></div>
+<details>
+<summary>src/lib/ <span class="tag blue">Custom Router</span></summary>
+<div class="file"><span class="fn">router.jsx</span> <span class="tag green">NEW</span> <span class="desc">— Lightweight custom router: RouterProvider, Routes, Route, Link, useRouter hooks (History API-based, no dependency needed)</span></div>
+<div class="file"><span class="fn">AuthContext.jsx</span> <span class="tag green">NEW</span> <span class="desc">— Auth context: 6-digit code login, JWT-like token stored in localStorage with 4h expiry, auto-poll every 30s</span></div>
+</details>
 <details>
 <summary>src/components/resources/</summary>
 <div class="file"><span class="fn">RegistrationScreen.jsx</span> <span class="desc">— Fingerprint + wristband enrollment UI</span></div>
 <div class="file"><span class="fn">WristbandScanScreen.jsx</span> <span class="desc">— QR wristband scanner for distribution</span></div>
 <div class="file"><span class="fn">PredictionScreen.jsx</span> <span class="desc">— AI resource forecast display</span></div>
 <div class="file"><span class="fn">NetworkScreen.jsx</span> <span class="tag green">NEW</span> <span class="desc">— SAAMP QoS network state display with adaptive QoS table, metrics, buffer status</span></div>
+</details>
+<details>
+<summary>src/components/ <span class="tag blue">Shared Components</span></summary>
+<div class="file"><span class="fn">Navbar.jsx</span> <span class="desc">— Route-aware nav bar: Links to /registration, /wristband, /prediction, /network; hidden on /child route; auth button (lock/unlock icon) linking to /authorize</span></div>
+<div class="file"><span class="fn">AuthorizePage.jsx</span> <span class="tag green">NEW</span> <span class="desc">— 6-digit code entry page at /authorize: 6 individual digit inputs, error state, shows deauthorize option when already authenticated</span></div>
+<div class="file"><span class="fn">ProtectedRoute.jsx</span> <span class="tag green">NEW</span> <span class="desc">— Route guard: redirects to /authorize if not authenticated; wraps all admin routes</span></div>
+<div class="file"><span class="fn">ChildFlow.jsx</span> <span class="tag green">NEW</span> <span class="desc">— Standalone child activity flow at /child: hardcoded QR child ID, no navbar, wraps PAGES flow (welcome → game → cognitive/calming)</span></div>
 </details>
 <details>
 <summary>src/app/ <span class="tag purple">PAGES Child Mode <span class="tag yellow">migrated from cloud-platform</span></span></summary>

@@ -261,13 +261,10 @@ async function handleQR(childId, selectedLang = lang) {
 }
 
   function handleLanguageSelect(code) {
-    // Save language preference
     setLang(code)
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferredLanguage', code)
     }
-    // Transition to welcome screen (with Eli + QR scan button)
-    // User will scan QR to get child ID, then proceed to game
     setScreen('welcome')
   }
 
