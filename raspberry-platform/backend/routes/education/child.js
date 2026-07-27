@@ -1,6 +1,6 @@
 import express from 'express';
 import { validateEnrol } from '../../middleware/validate.js';
-import { enrolChild, getChild, testChildIdGeneration } from '../../controllers/child.js';
+import { enrolChild, getChild, testChildIdGeneration } from '../../controllers/education/child.js';
 
 const router = express.Router();
 

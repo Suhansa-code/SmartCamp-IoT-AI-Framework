@@ -3,7 +3,7 @@ import { validateSessionStart, validateTaskPayload, validateSessionComplete } fr
 import {
   startSession, taskComplete, secondGate, completeSession,
   getRecentSessions, getContentSession,
-} from '../../controllers/session.js';
+} from '../../controllers/education/session.js';
 
 const router = express.Router();
 

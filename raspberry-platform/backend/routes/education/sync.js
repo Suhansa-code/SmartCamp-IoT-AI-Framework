@@ -1,5 +1,5 @@
 import express from 'express';
-import { triggerSync, getSyncStatus } from '../../controllers/sync.js';
+import { triggerSync, getSyncStatus } from '../../controllers/education/sync.js';
 
 const router = express.Router();
 

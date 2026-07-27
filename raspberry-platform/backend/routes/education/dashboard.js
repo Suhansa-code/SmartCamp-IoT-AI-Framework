@@ -1,7 +1,7 @@
 import express from 'express';
 import { validateAdminLogin } from '../../middleware/validate.js';
 import { requireAdmin } from '../../middleware/auth.js';
-import { adminLogin, getDashboardStats, getChildDetails } from '../../controllers/dashboard.js';
+import { adminLogin, getDashboardStats, getChildDetails } from '../../controllers/education/dashboard.js';
 
 const router = express.Router();
 

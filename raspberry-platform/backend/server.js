@@ -5,21 +5,21 @@ import helmet from 'helmet';
 import C from './config/constants.js';
 import logger from './utils/logger.js';
 import { initializeCampDb } from './config/database.js';
-import { connect as mqttConnect } from './services/saamp-mqtt.js';
-import { startConnectivityWatcher } from './services/connectivity.js';
-import { checkFlaskHealth } from './services/scoring.js';
+import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
+import { startConnectivityWatcher } from './services/network/connectivity.js';
+import { checkFlaskHealth } from './services/education/scoring.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
-import fingerprintRoute from './routes/camp/fingerprint.js';
-import checkinRoute from './routes/camp/checkin.js';
-import registerRoute from './routes/camp/register.js';
-import wristbandRoute from './routes/camp/wristband.js';
-import distributeRoute from './routes/camp/distribute.js';
-import networkRoute from './routes/camp/network.js';
-import statsRoute from './routes/camp/stats.js';
-import predictionRoute from './routes/camp/prediction.js';
-import disasterRoute from './routes/camp/disaster.js';
+import fingerprintRoute from './routes/resource/fingerprint.js';
+import checkinRoute from './routes/resource/checkin.js';
+import registerRoute from './routes/resource/register.js';
+import wristbandRoute from './routes/resource/wristband.js';
+import distributeRoute from './routes/resource/distribute.js';
+import networkRoute from './routes/network/network.js';
+import statsRoute from './routes/resource/stats.js';
+import predictionRoute from './routes/resource/prediction.js';
+import disasterRoute from './routes/disaster/disaster.js';
 
 // Education routes
 import childRoute from './routes/education/child.js';
