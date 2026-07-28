@@ -230,4 +230,120 @@ function resolveAlert(alertId, notes) {
   return true;
 }
 
-export { checkAndCreateAlert, getAlerts, resolveAlert };
+/**
+ * Publish alert to MQTT cloud platform for syncing
+ * Called after alert is created in the database
+ *
+ * @param {Object} alertData
+ * @param {Object} mqttClient - MQTT client instance
+ */
+function publishAlertToCloud(alertData, mqttClient) {
+  if (!mqttClient) {
+    logger.warn('[ALERT] MQTT client not available, alert not published to cloud');
+    return;
+  }
+
+  try {
+    const topic = 'smartcamp/alerts/generated';
+    const payload = {
+      alert_id: alertData.alert_id,
+      child_id: alertData.child_id,
+      res_id: alertData.res_id,
+      camp_id: alertData.camp_id,
+      alert_type: alertData.alert_type,
+      trigger_detail: alertData.trigger_detail,
+      triggered_at: alertData.triggered_at
+    };
+
+    mqttClient.publish(topic, JSON.stringify(payload), { qos: 1, retain: false }, (err) => {
+      if (err) {
+        logger.error(`[ALERT] Failed to publish alert to cloud: ${err.message}`);
+      } else {
+        logger.info(`[ALERT] ✅ Published alert ${alertData.alert_id} to cloud via MQTT`);
+      }
+    });
+  } catch (err) {
+    logger.error(`[ALERT] Error publishing alert to cloud: ${err.message}`);
+  }
+}
+
+/**
+ * Sync child data to cloud platform
+ * Should be called periodically to keep cloud platform updated
+ *
+ * @param {Object} mqttClient
+ */
+function syncChildrenToCloud(mqttClient) {
+  if (!mqttClient) {
+    logger.warn('[ALERT] MQTT client not available, children not synced to cloud');
+    return;
+  }
+
+  try {
+    const children = db.prepare(`
+      SELECT child_id, res_id, camp_id, grade, language, baseline_score
+      FROM pages_children
+      LIMIT 1000
+    `).all();
+
+    if (children.length === 0) return;
+
+    const topic = 'smartcamp/data/children/sync';
+    const payload = { children };
+
+    mqttClient.publish(topic, JSON.stringify(payload), { qos: 1, retain: false }, (err) => {
+      if (err) {
+        logger.error(`[ALERT] Failed to sync children to cloud: ${err.message}`);
+      } else {
+        logger.info(`[ALERT] ✅ Synced ${children.length} children to cloud`);
+      }
+    });
+  } catch (err) {
+    logger.error(`[ALERT] Error syncing children to cloud: ${err.message}`);
+  }
+}
+
+/**
+ * Sync recent sessions to cloud platform for alert context
+ *
+ * @param {Object} mqttClient
+ */
+function syncSessionsToCloud(mqttClient) {
+  if (!mqttClient) {
+    logger.warn('[ALERT] MQTT client not available, sessions not synced to cloud');
+    return;
+  }
+
+  try {
+    const sessions = db.prepare(`
+      SELECT session_id, child_id, composite_score, anomaly_flagged, alert_triggered, created_at
+      FROM pages_sessions
+      ORDER BY created_at DESC
+      LIMIT 5000
+    `).all();
+
+    if (sessions.length === 0) return;
+
+    const topic = 'smartcamp/data/sessions/sync';
+    const payload = { sessions };
+
+    mqttClient.publish(topic, JSON.stringify(payload), { qos: 1, retain: false }, (err) => {
+      if (err) {
+        logger.error(`[ALERT] Failed to sync sessions to cloud: ${err.message}`);
+      } else {
+        logger.info(`[ALERT] ✅ Synced ${sessions.length} sessions to cloud`);
+      }
+    });
+  } catch (err) {
+    logger.error(`[ALERT] Error syncing sessions to cloud: ${err.message}`);
+  }
+}
+
+export { 
+  checkAndCreateAlert, 
+  getAlerts, 
+  resolveAlert,
+  publishAlertToCloud,
+  syncChildrenToCloud,
+  syncSessionsToCloud
+};

@@ -113,11 +113,15 @@ async function taskComplete(req, res, next) {
         
         if (parseInt(attempt, 10) >= 2) {
           gateDecision = applySecondGate(compositeScore);
-          sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
         } else {
           gateDecision = applyFirstGate(compositeScore);
-          sessionAnomalyFlag = gateDecision === C.GATE.FAIL_FIRST;
         }
+
+        const anomalyByGate = gateDecision === C.GATE.FAIL_FIRST
+                   || gateDecision === C.GATE.FAIL_CONFIRMED;
+        const anomalyByZ    = zScore  != null && zScore  < -2.0;
+        const anomalyByIF   = ifScore != null && ifScore < -0.5878;
+        sessionAnomalyFlag  = anomalyByGate || anomalyByZ || anomalyByIF;
         
         logger.info(`[GATING] Decision for session ${session_id} (attempt ${attempt}): ${gateDecision}`);
     
@@ -125,25 +129,6 @@ async function taskComplete(req, res, next) {
         const signalId   = newId();
         const decisionId = newId();
     
-
-          // Save behavioral signals
-          // db.prepare(`
-          //   INSERT INTO pages_behavioral_signals
-          //     (signal_id, session_id, child_id,
-          //     accuracy_rate, false_tap_rate, avg_reaction_time, reaction_variance,
-          //     idle_time_ratio, rapid_click_count, time_to_first_ms, completion_ratio)
-          //   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          // `).run(
-          //   signalId, session_id, child_id,
-          //   taskMetrics.accuracyRate,
-          //   taskMetrics.falseTapRate,
-          //   taskMetrics.avgReactionTime,
-          //   taskMetrics.reactionVariance,
-          //   passiveSignals.idleTimeRatio,
-          //   passiveSignals.rapidClickCount,
-          //   passiveSignals.timeToFirstMs,
-          //   passiveSignals.completionRatio,
-          // );
 
           console.log('Inserting behavioral signals for session_id:', session_id, 'child_id:', child_id, 'signal_id:', signalId);
           console.log('[SIGNALS] Data to insert:', {
@@ -228,7 +213,7 @@ async function taskComplete(req, res, next) {
             gate_decision: gateDecision,
             anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
             z_score: zScore || null,
-            if_score: ifScore || null
+            if_score: ifScore ?? null
           }, 'session_id = ?', [session_id]);
 
           logger.info(`[DB] Updated session ${session_id} with scores and gate decision: composite=${compositeScore}, gate=${gateDecision}, anomaly=${sessionAnomalyFlag}`);
@@ -338,8 +323,11 @@ async function secondGate(req, res, next) {
     const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
  
     // 2. Apply second gate
-    const gateDecision = applySecondGate(compositeScore);
-    const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
+    const gateDecision  = applySecondGate(compositeScore);
+    const anomalyByGate = gateDecision === C.GATE.FAIL_CONFIRMED;
+    const anomalyByZ    = zScore  != null && zScore  < -2.0;
+    const anomalyByIF   = ifScore != null && ifScore < -0.5878;
+    const sessionAnomalyFlag = anomalyByGate || anomalyByZ || anomalyByIF;
  
     const decisionId = newId();
       
@@ -373,8 +361,7 @@ async function secondGate(req, res, next) {
         decided_at: nowISO(),
       });
 
-      // Only increment consecutive_low if FAIL_CONFIRMED
-      if (gateDecision === C.GATE.FAIL_CONFIRMED) {
+      if (sessionAnomalyFlag) {
         sqliteUpdate(
           'pages_children',
           { consecutive_low: (Number(child?.consecutive_low) || 0) + 1 },
@@ -441,12 +428,6 @@ async function completeSession(req, res, next) {
       logger.error(`[SESSION COMPLETE] Session not found: ${session_id}`);
       return next(createError(404, `Session not found: ${session_id}`));
     }
- 
-    // Fetch current baseline
-    // const child = db.prepare(`
-    //   SELECT child_id, baseline_score FROM pages_children WHERE child_id = ?
-    // `).get(child_id);
-    // if (!child) return next(createError(404, `Child not found: ${child_id}`));
 
     // Get Turso child record    
     const childRows = sqliteRetrieve(
@@ -463,12 +444,6 @@ async function completeSession(req, res, next) {
     const newBaseline    = updateBaseline(child.baseline_score, compositeScore);
     const contentRowsToSync = [];
  
-      // 1. Save content responses
-      // const insertResponse = db.prepare(`
-      //   INSERT INTO pages_content_responses
-      //     (response_id, session_id, child_id, task_id, selected_answer, is_correct, time_taken_ms,responded_at)
-      //   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      // `);
 
       for (const r of contentResponses) {
         const responseId = newId();

@@ -209,10 +209,32 @@ function AlertCard({ alert, onAction }) {
   async function doAction(action) {
     setActionLoading(action)
     try {
-      await fetch(`/api/alerts/${alert.id}/${action}`, { method: 'POST' })
-      onAction(alert.id, action)
-    } catch { /* offline */ }
-    finally { setActionLoading(null) }
+      let endpoint = `/api/alerts/${alert.id}/resolve`
+      let method = 'POST'
+      let body = {}
+      
+      if (action === 'review') {
+        // Mark as resolved
+        body = { notes: 'Reviewed by admin' }
+      } else if (action === 'escalate') {
+        // Escalate - for future implementation
+        body = { notes: 'Escalated by admin' }
+      }
+      
+      const res = await fetch(`http://localhost:3001${endpoint}`, { 
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      
+      if (res.ok) {
+        onAction(alert.id, action)
+      }
+    } catch (err) {
+      console.error('Action failed:', err)
+    } finally {
+      setActionLoading(null)
+    }
   }
 
   const statusLabel = {
@@ -427,19 +449,35 @@ export default function AdminAlertsPage() {
   const fetchAlerts = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/alerts')
+      const res = await fetch(`http://localhost:3001/api/alerts?status=${filter === 'all' ? '' : filter}&camp=${selectedCamp === 'all' ? '' : selectedCamp}`)
       if (res.ok) {
-        setAlerts(await res.json())
+        const data = await res.json()
+        // Transform API response to UI format
+        const transformed = data.alerts.map(a => ({
+          id: a.alert_id,
+          childId: a.child_id.replace(/TEST-CHILD-/, '').replace(/CHILD-/, ''),
+          campId: a.camp_id?.toLowerCase() ?? 'unknown',
+          campName: a.camp_id ?? 'Unknown Camp',
+          alertType: a.alert_type ?? 'Unknown Alert',
+          severity: a.alert_type?.includes('Low') || a.alert_type?.includes('low') ? 'low'
+            : a.alert_type?.includes('High') || a.alert_type?.includes('high') ? 'high'
+            : 'medium',
+          status: a.status === 'pending' ? 'pending' : 'resolved',
+          triggeredAt: new Date(a.triggered_at).getTime(),
+          scores: (a.recent_scores || []).map((score, idx) => ({ session: idx + 1, score })),
+        }))
+        setAlerts(transformed)
       } else {
         throw new Error('API error')
       }
-    } catch {
+    } catch (err) {
+      console.log('Fetching real alerts failed, using mock data:', err.message)
       // Use mock data in dev / offline
       setAlerts(mockAlerts())
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filter, selectedCamp])
 
   useEffect(() => { fetchAlerts() }, [fetchAlerts])
 

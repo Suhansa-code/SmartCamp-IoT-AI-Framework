@@ -203,106 +203,105 @@ def compute_z_score(child_id: str,
     return round(z, 4)
 
 
-def train_if_model(child_id: str) -> bool:
+def _session_to_feature_vector(session: dict) -> list[float]:
+    """Map a saved session into IF feature vector format."""
+    return [
+        float(session.get('composite', 0)),
+        float(session.get('task', 0)),
+        float(session.get('passive', 0)),
+    ]
+
+
+def train_if_model(child_id: str, include_current: list[float] | None = None):
 
     if not NUMPY_AVAILABLE or not SKLEARN_AVAILABLE:
-        logger.warning(f'[IF] Cannot train model: numpy/sklearn not installed')
-        return False
-    
+        logger.warning('[IF] Cannot train model: numpy/sklearn not installed')
+        return None
+
     history = session_history.get(child_id, [])
-    
-    # Need at least IF_MIN_SESSIONS for training
-    if len(history) < IF_MIN_SESSIONS:
-        logger.info(f'[IF] {child_id}: Need {IF_MIN_SESSIONS} sessions for training, have {len(history)}')
-        return False
-    
+    features = [_session_to_feature_vector(session) for session in history]
+
+    if include_current is not None:
+        features.append(include_current)
+
+    if len(features) < IF_MIN_SESSIONS:
+        logger.info(
+            f'[IF] {child_id}: Need {IF_MIN_SESSIONS} sessions for training, have {len(features)}'
+        )
+        return None
+
+    # Keep the latest 50 sessions for model freshness and bounded training cost.
+    features = features[-50:]
+
     try:
-        # Extract features: [composite, task, passive] from first 8 sessions
-        features = []
-        for session in history[:IF_MIN_SESSIONS]:
-            features.append([
-                session.get('composite', 0),
-                session.get('task', 0),
-                session.get('passive', 0),
-            ])
-        
         X = np.array(features)
         logger.info(f'[IF] {child_id}: Training on {X.shape[0]} sessions with features shape {X.shape}')
-        
-        # Train Isolation Forest with conservative settings
+
         model = IsolationForest(
-            contamination=0.1,  # Expect ~10% anomalies
-            random_state=42,    # Reproducible
+            contamination=0.1,
+            random_state=42,
             n_estimators=100,
         )
         model.fit(X)
-        
-        # Save model to disk
+
         model_path = MODELS_DIR / f'{child_id}.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model, f)
-        
-        logger.info(f'[IF] ✓ {child_id}: Model trained and saved to {model_path}')
-        return True
-        
+
+        logger.info(f'[IF] ✓ {child_id}: Model trained/updated at {model_path}')
+        return model
+
     except Exception as e:
         logger.error(f'[IF] ❌ {child_id}: Training failed: {e}')
-        return False
+        return None
 
 
-def compute_if_score(child_id: str, task_metrics: dict, passive_signals: dict) -> float | None:
+def compute_if_score(child_id: str,
+                     current_composite: float,
+                     current_task: float,
+                     current_passive: float) -> float | None:
 
-    history = session_history.get(child_id, [])
-    
-    # Phase 2 requires at least IF_MIN_SESSIONS (default 8)
-    if len(history) < IF_MIN_SESSIONS:
-        return None  # Not enough sessions yet
-    
     if not NUMPY_AVAILABLE or not SKLEARN_AVAILABLE:
         logger.debug(f'[IF] {child_id}: numpy/sklearn not available')
         return None
-    
+
+    history = session_history.get(child_id, [])
+    total_sessions_after_current = len(history) + 1
+
+    if total_sessions_after_current < IF_MIN_SESSIONS:
+        return None
+
+    current_feature = [
+        float(current_composite),
+        float(current_task),
+        float(current_passive),
+    ]
+
     model_path = MODELS_DIR / f'{child_id}.pkl'
-    
-    # If model doesn't exist yet, train it on first 8 sessions
-    if not model_path.exists():
-        logger.info(f'[IF] {child_id}: Reached {len(history)} sessions - Training model...')
-        train_success = train_if_model(child_id)
-        if not train_success:
-            logger.warning(f'[IF] {child_id}: Model training failed')
+    model = None
+
+    # Ensure the model is created at session 8 and updated automatically on later sessions.
+    if total_sessions_after_current >= IF_MIN_SESSIONS:
+        model = train_if_model(child_id, include_current=current_feature)
+
+    # Fallback: if training failed but existing model exists, keep serving scores.
+    if model is None and model_path.exists():
+        try:
+            with open(model_path, 'rb') as f:
+                model = pickle.load(f)
+            logger.warning(f'[IF] {child_id}: Using existing model after retrain failure')
+        except Exception as e:
+            logger.error(f'[IF] ❌ {child_id}: Could not load existing model: {e}')
             return None
-        # For session 8 (first scoring after training), return None to indicate model just initialized
-        # Session 9+ will use the trained model
-        if len(history) == IF_MIN_SESSIONS:
-            logger.info(f'[IF] {child_id}: Model ready, will use from next session')
-            return None
-    
-    # Model exists - use it to score current session
+
+    if model is None:
+        return None
+
     try:
-        with open(model_path, 'rb') as f:
-            model = pickle.load(f)
-        
-        # Build feature vector: [composite, task, passive]
-        # Must match the features used during training
-        current_composite = (
-            compute_task_score(task_metrics) * COMPOSITE_TASK_W +
-            compute_passive_score(passive_signals) * COMPOSITE_PASSIVE_W
-        )
-        current_task = compute_task_score(task_metrics)
-        current_passive = compute_passive_score(passive_signals)
-        
-        feature_vector = np.array([[
-            current_composite,
-            current_task,
-            current_passive,
-        ]])
-        
-        # score_samples returns negative values; more negative = more anomalous
+        feature_vector = np.array([current_feature])
         if_score = float(model.score_samples(feature_vector)[0])
-        
         logger.info(f'[IF] {child_id}: ✓ IF score computed = {if_score:.4f}')
         return round(if_score, 4)
-        
     except Exception as e:
         logger.error(f'[IF] ❌ {child_id}: Could not compute IF score: {e}')
         return None
@@ -390,8 +389,8 @@ def score():
     # 2. Z-score (from session 3 onwards)
     z_score = compute_z_score(child_id, composite)
 
-    # 3. Isolation Forest score (from session 8 onwards, if model exists)
-    if_score = compute_if_score(child_id, task_metrics, passive_signals)
+    # 3. Isolation Forest score (from session 8 onwards, model auto-created/updated)
+    if_score = compute_if_score(child_id, composite, task_score, passive_score)
 
     # 4. Anomaly detection
     anomaly_by_z  = z_score  is not None and z_score  < ZSCORE_THRESHOLD
