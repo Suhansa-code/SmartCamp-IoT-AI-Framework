@@ -60,7 +60,7 @@ export function connect() {
   client.on('error', (err) => console.error('[MQTT] Error:', err.message));
 }
 
-function classifyMessage(source, action) {
+export function classifyMessage(source, action) {
   const rules = {
     'fingerprint_scanner|new_registration': { priority: 'CRITICAL', qos: 2 },
     'fingerprint_scanner|checkin': { priority: 'CRITICAL', qos: 2 },
@@ -83,7 +83,7 @@ export function getNetworkState() {
   return predictedNetworkState;
 }
 
-function decideAdaptiveQoS(priority, baseQos, networkState) {
+export function decideAdaptiveQoS(priority, baseQos, networkState) {
   if (networkState === 'CRITICAL') {
     if (priority === 'CRITICAL') return { qos: 1, action: 'publish' };
     return { qos: baseQos, action: 'buffer' };

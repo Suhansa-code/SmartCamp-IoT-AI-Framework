@@ -36,7 +36,7 @@ export async function getScore(childId, sessionId, taskMetrics, passiveSignals, 
   }
 }
 
-function fallbackScore(taskMetrics, passiveSignals, baselineOverride = null) {
+export function fallbackScore(taskMetrics, passiveSignals, baselineOverride = null) {
   try {
     const taskScore = computeTaskScore(taskMetrics);
     const passiveScore = computePassiveScore(passiveSignals);
@@ -63,7 +63,7 @@ function fallbackScore(taskMetrics, passiveSignals, baselineOverride = null) {
   }
 }
 
-function computeTaskScore(taskMetrics) {
+export function computeTaskScore(taskMetrics) {
   const accuracyRate = taskMetrics.accuracyRate ?? 0;
   const falseTapRate = taskMetrics.falseTapRate ?? 0;
   const avgReactionTime = taskMetrics.avgReactionTime ?? 800;
@@ -77,7 +77,7 @@ function computeTaskScore(taskMetrics) {
   );
 }
 
-function computePassiveScore(passiveSignals) {
+export function computePassiveScore(passiveSignals) {
   const idleTimeRatio = passiveSignals.idleTimeRatio ?? 0;
   const rapidClickCount = passiveSignals.rapidClickCount ?? 0;
   const completionRatio = passiveSignals.completionRatio ?? 1;
