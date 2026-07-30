@@ -6,13 +6,13 @@ Potential enhancements identified across the raspberry-platform codebase, ordere
 
 ## 1. Testing & Quality Assurance
 
-| Gap | Enhancement |
-|-----|-------------|
-| **No test files** | Add unit tests for services (Jest/Vitest) — `services/education/scoring.js` fallback logic, `services/resource/register.js` business rules, SAAMP message classification. |
-| **No integration tests** | API-level tests with supertest — validate each route against known DB fixtures. |
-| **No frontend tests** | Component tests (React Testing Library) for dashboard, registration screen, wristband scan flow. |
-| **E2E missing** | Playwright or Cypress for full registration → wristband → distribution flow. |
-| **No CI test runner** | `.github/workflows/` runs auto-PR only — add `npm test` and `npm run lint` gate. |
+| Gap | Status | Enhancement |
+|-----|--------|-------------|
+| **No test files** | **DONE** — 39 backend unit tests, all passing | Add unit tests for services (Jest/Vitest) — `services/education/scoring.js` fallback logic, `services/resource/register.js` business rules, SAAMP message classification. |
+| **No integration tests** | **DONE** — 9 API integration tests, all passing | API-level tests with supertest — validate each route against known DB fixtures. |
+| **No frontend tests** | **DONE** — 17 component tests, all passing | Component tests (React Testing Library) for dashboard, registration screen, wristband scan flow. |
+| **E2E missing** | **DONE** — Playwright E2E with API route interception | Playwright for full registration → wristband → distribution flow. |
+| **No CI test runner** | `.github/workflows/` runs auto-PR only — add `npm test`, `npm run lint`, and Playwright gate. |
 
 **Target:** `npm test` passes before any merge.
 

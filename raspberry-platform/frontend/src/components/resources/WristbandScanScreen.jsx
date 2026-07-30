@@ -245,12 +245,20 @@ function WristbandScanScreen() {
                   </div>
                 </div>
 
-                {statusMessage && statusType === 'success' && (
+                {(statusMessage && statusType === 'success') && (
                   <motion.div 
                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
                     className="absolute top-4 right-4 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-sm font-bold border border-emerald-200 flex items-center gap-2 shadow-sm"
                   >
                     <Check className="w-4 h-4" /> {statusMessage}
+                  </motion.div>
+                )}
+                {(statusMessage && statusType === 'error') && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                    className="absolute top-4 right-4 bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-sm font-bold border border-rose-200 flex items-center gap-2 shadow-sm"
+                  >
+                    <AlertCircle className="w-4 h-4" /> {statusMessage}
                   </motion.div>
                 )}
               </div>
