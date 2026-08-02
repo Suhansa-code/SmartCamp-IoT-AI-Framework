@@ -411,7 +411,7 @@ export default function AdminWelfarePage() {
         </header>
 
         {/* Main layout */}
-        <div style={{ display: 'flex', width: '100%', marginTop: 60 }}>
+        <div style={{ display: 'flex', width: '100%', maxWidth: 1280, margin: '60px auto 0' }}>
           {/* Sidebar */}
           <Sidebar camps={MOCK_CAMPS} selectedCamp={selectedCamp} onSelect={setSelectedCamp} />
 

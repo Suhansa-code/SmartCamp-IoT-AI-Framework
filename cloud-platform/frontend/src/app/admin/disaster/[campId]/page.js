@@ -358,7 +358,7 @@ export default function DisasterCampDetailPage() {
       </header>
 
       {/* Main Content */}
-      <div style={{ maxWidth: 1560, margin: '0 auto', padding: 18 }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: 18 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 16, alignItems: 'stretch' }}>
           {/* Left Column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%' }}>

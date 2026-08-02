@@ -11,3 +11,13 @@ export async function register(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
+
+export async function getAllPersons(req, res) {
+  try {
+    const { q, person_type, sort, order } = req.query;
+    const result = registerService.getAllPersons({ q, person_type, sort, order });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}

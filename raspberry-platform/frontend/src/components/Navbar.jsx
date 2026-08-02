@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Menu,
   X,
+  ScanLine,
 } from 'lucide-react'
 
 const tabs = [
@@ -31,16 +32,16 @@ function NavLink({ tab, active }) {
       to={tab.path}
       aria-label={`Navigate to ${tab.label}`}
       className={`relative flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg outline-none transition-all duration-200
-        ${active ? 'text-blue-700' : 'text-slate-500 hover:text-slate-800'}`}
+        ${active ? 'text-teal-700' : 'text-slate-500 hover:text-slate-800'}`}
     >
       {active && (
         <motion.span
           layoutId="nav-pill"
-          className="absolute inset-0 bg-blue-50 rounded-lg"
+          className="absolute inset-0 bg-teal-50 rounded-lg shadow-[0_0_0_1px_rgba(13,148,136,0.08)]"
           transition={{ type: 'spring', stiffness: 380, damping: 30 }}
         />
       )}
-      <Icon className="w-4 h-4 relative z-10" />
+      <Icon className={`w-4 h-4 relative z-10 ${active ? 'text-teal-600' : ''}`} />
       <span className="relative z-10">{tab.label}</span>
     </Link>
   )
@@ -56,11 +57,11 @@ function MobileNavLink({ tab, active, onClick }) {
         aria-label={`Navigate to ${tab.label}`}
         className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 outline-none
           ${active
-            ? 'bg-blue-50 text-blue-700'
+            ? 'bg-teal-50 text-teal-700 shadow-[0_0_0_1px_rgba(13,148,136,0.08)]'
             : 'text-slate-500 hover:text-slate-800'
           }`}
       >
-        <Icon className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-slate-400'}`} />
+        <Icon className={`w-4 h-4 ${active ? 'text-teal-600' : 'text-slate-400'}`} />
         {tab.label}
       </Link>
     </motion.div>
@@ -101,7 +102,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full">
       <nav
-        className="bg-white/70 backdrop-blur-xl border-b border-slate-200/60 shadow-[0_1px_4px_0_rgba(0,0,0,0.04)]"
+        className="bg-white/80 backdrop-blur-xl border-b border-slate-200/70 shadow-[0_1px_4px_0_rgba(0,0,0,0.04)]"
         aria-label="Main navigation"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -112,8 +113,8 @@ export default function Navbar() {
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="flex items-center gap-2.5"
             >
-              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-500/20">
-                <span className="text-white text-xs font-black tracking-tight">SC</span>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-md shadow-teal-500/25">
+                <ScanLine className="w-4 h-4 text-white" />
               </div>
               <span className="text-sm font-semibold text-slate-800 tracking-tight">SmartCamp</span>
             </motion.div>
@@ -135,7 +136,7 @@ export default function Navbar() {
                     onClick={() => { logout(); navigate('/authorize') }}
                     aria-label="Deauthorize session"
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg outline-none transition-all duration-200
-                      text-emerald-600 hover:text-emerald-700"
+                      text-teal-600 hover:text-teal-700"
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Authorized</span>
@@ -206,7 +207,7 @@ export default function Navbar() {
                       <button
                         onClick={() => { logout(); navigate('/authorize'); setMobileOpen(false) }}
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
-                          text-emerald-600 hover:text-emerald-700"
+                          text-teal-600 hover:text-teal-700"
                       >
                         <ShieldCheck className="w-4 h-4" />
                         <span>Authorized Session</span>

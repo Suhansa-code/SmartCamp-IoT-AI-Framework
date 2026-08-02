@@ -117,7 +117,7 @@ export default function NetworkPage() {
 
         {/* SAAMP Network Monitor Content */}
         <div className={isDarkMode ? 'dark' : ''}>
-          <div className="min-h-[calc(100svh-72px)] p-6 sm:p-8 lg:p-10 transition-colors duration-500 bg-slate-50 dark:bg-[#0d1520] text-slate-800 dark:text-slate-200 relative overflow-hidden z-0">
+          <div className="min-h-[calc(100svh-72px)] p-6 sm:p-8 lg:p-10 transition-colors duration-500 bg-slate-50 dark:bg-[#0d1520] text-slate-800 dark:text-slate-200 relative overflow-hidden z-0 max-w-7xl mx-auto">
             {/* Dynamic Background Blurs for Light Mode */}
             {!isDarkMode && (
               <>

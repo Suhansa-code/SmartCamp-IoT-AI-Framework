@@ -574,7 +574,7 @@ export default function AdminAlertsPage() {
         </header>
 
         {/* ══ Body: sidebar + main ═════════════════════════════════════════════ */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
 
           {/* ── Sidebar ── */}
           <Sidebar

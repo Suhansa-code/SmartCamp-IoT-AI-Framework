@@ -68,6 +68,9 @@ beforeAll(async () => {
   const { default: statsRoute } = await import('../../routes/resource/stats.js');
   app.use('/api/stats', statsRoute);
 
+  const { default: fingerprintRoute } = await import('../../routes/resource/fingerprint.js');
+  app.use('/api/fingerprint', fingerprintRoute);
+
   // 404 + error handler
   const { notFound, errorHandler } = await import('../../middleware/error-handler.js');
   app.use(notFound);
@@ -139,6 +142,36 @@ describe('GET /api/stats/distribution-history', () => {
     const res = await request(app).get('/api/stats/distribution-history?days=100');
     expect(res.status).toBe(200);
     expect(res.body.days).toBe(30);
+  });
+});
+
+describe('GET /api/fingerprint/search', () => {
+  it('returns 200 with results array when a query is provided', async () => {
+    const res = await request(app).get('/api/fingerprint/search?q=Kasun');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.results)).toBe(true);
+  });
+
+  it('returns 200 with empty results for an empty query', async () => {
+    const res = await request(app).get('/api/fingerprint/search?q=');
+    expect(res.status).toBe(200);
+    expect(res.body.results).toEqual([]);
+  });
+});
+
+describe('POST /api/fingerprint/link', () => {
+  it('returns 400 when person_id is missing', async () => {
+    const res = await request(app).post('/api/fingerprint/link').send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('person_id');
+  });
+
+  it('returns 200 with re-enrolled person on success', async () => {
+    const res = await request(app).post('/api/fingerprint/link').send({ person_id: 99 });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.person).toBeDefined();
+    expect(res.body.person.fingerprint_id).toMatch(/^FP_\d+$/);
   });
 });
 
