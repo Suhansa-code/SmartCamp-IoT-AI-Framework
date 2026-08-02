@@ -1,13 +1,10 @@
 import { campDb as db } from '../../config/database.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import * as emqx from '../network/emqx-manager.js';
+import { genPassword, genId } from '../../utils/crypto.js';
 
 const VALID_GENDERS = ['M', 'F', 'O'];
 const VALID_TYPES = ['refugee', 'asylum_seeker', 'idp', 'returned_refugee', 'returned_idp', 'stateless', 'ooc'];
-
-function genPassword() {
-  return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
-}
 
 function validatePerson(data, { partial = false } = {}) {
   const errors = {};
@@ -25,7 +22,7 @@ function validatePerson(data, { partial = false } = {}) {
     if (gender && !VALID_GENDERS.includes(gender)) errors.gender = `Gender must be one of: ${VALID_GENDERS.join(', ')}`;
   }
   if (!partial || person_type !== undefined) {
-    if (person_type && !VALID_TYPES.includes(person_type)) errors.person_type = `Invalid person type`;
+    if (person_type && !VALID_TYPES.includes(person_type)) errors.person_type = 'Invalid person type';
   }
   if (!partial || family_size !== undefined) {
     const fs = Number(family_size);
@@ -118,7 +115,7 @@ export function getCheckinsByPersonId(id) {
   return { checkins, total: checkins.length };
 }
 
-// ── Register ────────────────────────────────────────────────
+// ── Register (transactional) ────────────────────────────────
 export async function registerPerson(data) {
   const { full_name, age, gender, person_type, family_size, is_pregnant, has_chronic_illness, medical_notes } = data;
   validatePerson(data);
@@ -133,36 +130,47 @@ export async function registerPerson(data) {
     throw err;
   }
 
-  const fpId = `FP_${Date.now()}`;
-  const familyUnitId = `FAM_${Date.now()}`;
+  const fpId = genId('FP');
+  const familyUnitId = genId('FAM');
 
-  const result = db.prepare(`
-    INSERT INTO persons (fingerprint_id, full_name, age, gender, person_type, family_unit_id, family_size,
-      is_pregnant, has_chronic_illness, medical_notes, pre_registered)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-  `).run(fpId, String(full_name).trim(), parseInt(age), gender || 'M', person_type || 'refugee', familyUnitId,
-    parseInt(family_size) || 1, is_pregnant || 0, has_chronic_illness || 0, medical_notes || '');
+  const insertDb = db.transaction(() => {
+    const result = db.prepare(`
+      INSERT INTO persons (fingerprint_id, full_name, age, gender, person_type, family_unit_id, family_size,
+        is_pregnant, has_chronic_illness, medical_notes, pre_registered)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(fpId, String(full_name).trim(), parseInt(age), gender || 'M', person_type || 'refugee', familyUnitId,
+      parseInt(family_size) || 1, is_pregnant || 0, has_chronic_illness || 0, medical_notes || '');
 
-  const personId = result.lastInsertRowid;
+    const personId = result.lastInsertRowid;
+    db.prepare('INSERT INTO camp_checkins (person_id, camp_day, is_new_arrival) VALUES (?, 1, 1)').run(personId);
 
-  db.prepare('INSERT INTO camp_checkins (person_id, camp_day, is_new_arrival) VALUES (?, 1, 1)').run(personId);
+    const barcode = `WB${String(personId).padStart(6, '0')}`;
+    db.prepare('INSERT INTO wristbands (person_id, barcode) VALUES (?, ?)').run(personId, barcode);
 
-  const barcode = `WB${String(personId).padStart(6, '0')}`;
-  db.prepare('INSERT INTO wristbands (person_id, barcode) VALUES (?, ?)').run(personId, barcode);
+    return { personId, barcode };
+  });
 
-  const clientId = `sc-person-${personId}`;
-  const password = genPassword();
-  await emqx.createMqttUser(clientId, password);
-  db.prepare('UPDATE persons SET mqtt_client_id = ?, mqtt_password = ? WHERE id = ?').run(clientId, password, personId);
+  const { personId, barcode } = insertDb();
+
+  let mqttResult = null;
+  try {
+    const clientId = `sc-person-${personId}`;
+    const password = genPassword();
+    await emqx.createMqttUser(clientId, password);
+    db.prepare('UPDATE persons SET mqtt_client_id = ?, mqtt_password = ? WHERE id = ?').run(clientId, password, personId);
+
+    const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(personId);
+    mqttResult = await saamp.publishAsClient(
+      'smartcamp/registration/new',
+      { event: 'new_registration', person, wristband_barcode: barcode, timestamp: new Date().toISOString() },
+      clientId, password, 'fingerprint_scanner', 'new_registration'
+    );
+  } catch (mqttErr) {
+    // MQTT failure is non-fatal — person is registered, wristband issued
+    mqttResult = { error: mqttErr.message };
+  }
 
   const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(personId);
-
-  const mqttResult = await saamp.publishAsClient(
-    'smartcamp/registration/new',
-    { event: 'new_registration', person, wristband_barcode: barcode, timestamp: new Date().toISOString() },
-    clientId, password, 'fingerprint_scanner', 'new_registration'
-  );
-
   return { person, wristband_barcode: barcode, mqtt: mqttResult };
 }
 

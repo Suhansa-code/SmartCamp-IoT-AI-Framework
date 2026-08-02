@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Fingerprint,
@@ -20,11 +20,13 @@ import {
   UserCheck,
   Link2,
   List,
+  RefreshCw,
 } from "lucide-react";
 import Button from "../ui/Button";
 import DataTable from "../ui/DataTable";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import PersonProfileScreen from "./PersonProfileScreen";
-import { ToastProvider, useToast } from "../ui/Toast";
+import { useToast } from "../ui/Toast";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -565,7 +567,7 @@ function ReturningSearch({ query, setQuery, results, onSearch, onSelect, searchi
   );
 }
 
-function RegistrationScreenInner() {
+function RegistrationScreen() {
   const { addToast } = useToast();
   const [scanState, setScanState] = useState("idle");
   const [notFoundView, setNotFoundView] = useState("decision");
@@ -595,17 +597,33 @@ function RegistrationScreenInner() {
 
   const [persons, setPersons] = useState([]);
   const [personsLoading, setPersonsLoading] = useState(true);
+  const [personsError, setPersonsError] = useState("");
   const [viewingPersonId, setViewingPersonId] = useState(null);
+  const [showReenrollConfirm, setShowReenrollConfirm] = useState(false);
+  const abortRef = useRef(null);
 
   const fetchPersons = useCallback(() => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setPersonsLoading(true);
-    fetch(`${API}/api/register`)
-      .then((r) => r.json())
+    setPersonsError("");
+    fetch(`${API}/api/register`, { signal: controller.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load");
+        return r.json();
+      })
       .then((data) => {
         setPersons(data.persons || []);
         setPersonsLoading(false);
       })
-      .catch(() => setPersonsLoading(false));
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setPersonsError(err.message || "Failed to load registrations");
+          setPersonsLoading(false);
+        }
+      });
   }, []);
 
   useEffect(() => {
@@ -620,6 +638,7 @@ function RegistrationScreenInner() {
       const res = await fetch(`${API}/api/fingerprint/scan`, {
         method: "POST",
       });
+      if (!res.ok) throw new Error("Scanner service unavailable");
       const data = await res.json();
 
       setTimeout(() => {
@@ -691,6 +710,7 @@ function RegistrationScreenInner() {
       setScanState("found");
     } catch (err) {
       setStatusMessage("Re-enroll failed: " + err.message);
+      addToast("Re-enroll failed: " + err.message, "error");
     } finally {
       setSubmitting(false);
     }
@@ -704,6 +724,10 @@ function RegistrationScreenInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ person_id: profile.id }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Check-in failed");
+      }
       const data = await res.json();
       setQosInfo(data.mqtt);
       setWristband(data.wristband_barcode || "");
@@ -837,7 +861,7 @@ function RegistrationScreenInner() {
                 Initiate Scan
               </Button>
             )}
-            {scanState === "idle" && (
+            {scanState === "idle" && import.meta.env.DEV && (
               <Button
                 variant="secondary"
                 size="lg"
@@ -1071,7 +1095,7 @@ function RegistrationScreenInner() {
                       </div>
 
                       <Button
-                        onClick={handleReenroll}
+                        onClick={() => setShowReenrollConfirm(true)}
                         loading={submitting}
                         loadingText="Re-enrolling fingerprint…"
                         className="w-full"
@@ -1169,6 +1193,16 @@ function RegistrationScreenInner() {
                   <span className="sm:hidden text-[11px]">↻</span>
                 </Button>
               </div>
+
+              {personsError && (
+                <div className="flex items-center gap-2 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 mb-3">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="flex-1">{personsError}</span>
+                  <Button variant="secondary" size="sm" onClick={fetchPersons}>
+                    <RefreshCw className="w-3 h-3" /> Retry
+                  </Button>
+                </div>
+              )}
 
               <DataTable
                 columns={[
@@ -1283,15 +1317,19 @@ function RegistrationScreenInner() {
             </>
           )}
         </motion.div>
+
+        <ConfirmDialog
+          isOpen={showReenrollConfirm}
+          onClose={() => setShowReenrollConfirm(false)}
+          onConfirm={() => { setShowReenrollConfirm(false); handleReenroll(); }}
+          title="Re-enroll Fingerprint?"
+          message="This will overwrite the existing fingerprint link for this person."
+          confirmText="Re-enroll"
+          variant="warning"
+        />
       </div>
     </div>
   );
 }
 
-export default function RegistrationScreen() {
-  return (
-    <ToastProvider>
-      <RegistrationScreenInner />
-    </ToastProvider>
-  );
-}
+export default RegistrationScreen;

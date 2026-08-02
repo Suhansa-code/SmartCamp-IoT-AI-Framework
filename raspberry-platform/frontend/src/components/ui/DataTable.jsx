@@ -1,17 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ChevronUp, ChevronDown, ChevronsUpDown,
-  ChevronLeft, ChevronRight, Inbox, MoreVertical,
+  ChevronLeft, ChevronRight, Inbox,
 } from "lucide-react";
-
-function debounce(fn, ms) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), ms);
-  };
-}
 
 function SortIcon({ direction }) {
   if (!direction) return <ChevronsUpDown className="w-3 h-3 text-slate-300" />;
@@ -84,7 +76,7 @@ function EmptyState({ message, mobile }) {
   );
 }
 
-function Pagination({ page, totalPages, total, filteredLength, setPage }) {
+function Pagination({ page, totalPages, filteredLength, setPage }) {
   if (totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-between pt-1">
@@ -142,6 +134,15 @@ export default function DataTable({
     Object.fromEntries(filters.map((f) => [f.key, ""]))
   );
 
+  const timerRef = useRef(null);
+  const handleSearch = useCallback((val) => {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setSearch(val);
+      setPage(0);
+    }, 250);
+  }, []);
+
   const handleSort = (key) => {
     if (sortKey === key) {
       if (sortDir === "asc") setSortDir("desc");
@@ -152,11 +153,6 @@ export default function DataTable({
     }
     setPage(0);
   };
-
-  const handleSearch = debounce((val) => {
-    setSearch(val);
-    setPage(0);
-  }, 250);
 
   const filtered = useMemo(() => {
     let result = data;
@@ -193,7 +189,6 @@ export default function DataTable({
 
   return (
     <div className="space-y-3">
-      {/* ── Search & Filters ── */}
       {(searchKeys.length > 0 || filters.length > 0) && (
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
           {searchKeys.length > 0 && (
@@ -229,7 +224,6 @@ export default function DataTable({
         </div>
       )}
 
-      {/* ── Mobile Card View ── */}
       {mobileCard ? (
         <div className="sm:hidden">
           {loading ? (
@@ -255,12 +249,11 @@ export default function DataTable({
             </div>
           )}
           <div className="mt-3">
-            <Pagination page={page} totalPages={totalPages} total={data.length} filteredLength={filtered.length} setPage={setPage} />
+            <Pagination page={page} totalPages={totalPages} filteredLength={filtered.length} setPage={setPage} />
           </div>
         </div>
       ) : null}
 
-      {/* ── Desktop Table View ── */}
       <div className={`${mobileCard ? "hidden sm:block" : ""} overflow-x-auto`}>
         <table className="w-full text-sm">
           <thead>
@@ -310,9 +303,8 @@ export default function DataTable({
         </table>
       </div>
 
-      {/* ── Desktop Pagination ── */}
       <div className={`${mobileCard ? "hidden sm:block" : ""}`}>
-        <Pagination page={page} totalPages={totalPages} total={data.length} filteredLength={filtered.length} setPage={setPage} />
+        <Pagination page={page} totalPages={totalPages} filteredLength={filtered.length} setPage={setPage} />
       </div>
     </div>
   );

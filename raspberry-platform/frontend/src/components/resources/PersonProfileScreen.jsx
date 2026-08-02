@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Users, CalendarDays, BadgeCheck, Waves, AlertTriangle,
-  ClipboardCheck, Utensils, Loader2, Edit2, Trash2, Check, X, Save,
+  ClipboardCheck, Utensils, Loader2, Edit2, Trash2, X, Save, RefreshCw,
 } from "lucide-react";
 import Button from "../ui/Button";
 import ConfirmDialog from "../ui/ConfirmDialog";
@@ -37,6 +37,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   const [checkins, setCheckins] = useState([]);
   const [distributions, setDistributions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [activeTab, setActiveTab] = useState("details");
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
@@ -47,9 +48,16 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
 
   const fetchProfile = () => {
     setLoading(true);
+    setFetchError("");
     Promise.all([
-      fetch(`${API}/api/register/${personId}`).then((r) => r.json()),
-      fetch(`${API}/api/register/${personId}/checkins`).then((r) => r.json()),
+      fetch(`${API}/api/register/${personId}`).then((r) => {
+        if (!r.ok) throw new Error("Failed to load profile");
+        return r.json();
+      }),
+      fetch(`${API}/api/register/${personId}/checkins`).then((r) => {
+        if (!r.ok) return { checkins: [] };
+        return r.json();
+      }),
     ])
       .then(([personData, checkinData]) => {
         setPerson(personData);
@@ -61,7 +69,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
             .catch(() => setDistributions([]));
         }
       })
-      .catch(() => {})
+      .catch((err) => setFetchError(err.message || "Failed to load profile"))
       .finally(() => setLoading(false));
   };
 
@@ -124,7 +132,12 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await fetch(`${API}/api/register/${personId}`, { method: "DELETE" });
+      const res = await fetch(`${API}/api/register/${personId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        addToast(data.error || "Delete failed", "error");
+        return;
+      }
       addToast("Person deactivated", "success");
       onBack();
       onUpdated?.();
@@ -136,6 +149,17 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
     return (
       <div className="flex items-center justify-center h-48 sm:h-64">
         <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="text-center py-8 sm:py-12 space-y-3">
+        <p className="text-sm text-red-500">{fetchError}</p>
+        <Button variant="secondary" size="sm" onClick={fetchProfile}>
+          <RefreshCw className="w-3.5 h-3.5" /> Retry
+        </Button>
       </div>
     );
   }

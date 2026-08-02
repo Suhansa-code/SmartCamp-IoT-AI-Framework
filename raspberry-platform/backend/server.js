@@ -50,7 +50,7 @@ app.use(cors({
     logger.warn(`[CORS] Blocked origin: ${origin}`);
     callback(new Error(`CORS blocked: ${origin}`));
   },
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
