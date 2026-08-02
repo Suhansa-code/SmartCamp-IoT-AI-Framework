@@ -95,6 +95,7 @@ function initializeCampDb() {
   campDb.exec('CREATE INDEX IF NOT EXISTS idx_persons_type ON persons(person_type)');
   try { campDb.exec('ALTER TABLE persons ADD COLUMN mqtt_client_id TEXT'); } catch (_) {}
   try { campDb.exec('ALTER TABLE persons ADD COLUMN mqtt_password TEXT'); } catch (_) {}
+  try { campDb.exec('ALTER TABLE persons ADD COLUMN is_active INTEGER DEFAULT 1'); } catch (_) {}
   campDb.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_persons_mqtt_client_id
       ON persons(mqtt_client_id) WHERE mqtt_client_id IS NOT NULL

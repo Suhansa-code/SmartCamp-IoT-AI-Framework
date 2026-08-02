@@ -8,7 +8,8 @@ export async function register(req, res) {
     const result = await registerService.registerPerson(req.body);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message, fields: err.fields || undefined });
   }
 }
 
@@ -19,5 +20,45 @@ export async function getAllPersons(req, res) {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getPersonById(req, res) {
+  try {
+    const result = registerService.getPersonById(parseInt(req.params.id));
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message });
+  }
+}
+
+export async function updatePerson(req, res) {
+  try {
+    const result = registerService.updatePerson(parseInt(req.params.id), req.body);
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message, fields: err.fields || undefined });
+  }
+}
+
+export async function deactivatePerson(req, res) {
+  try {
+    const result = registerService.deactivatePerson(parseInt(req.params.id));
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message });
+  }
+}
+
+export async function getCheckinsByPersonId(req, res) {
+  try {
+    const result = registerService.getCheckinsByPersonId(parseInt(req.params.id));
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message });
   }
 }

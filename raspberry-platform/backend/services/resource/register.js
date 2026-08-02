@@ -2,12 +2,47 @@ import { campDb as db } from '../../config/database.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import * as emqx from '../network/emqx-manager.js';
 
+const VALID_GENDERS = ['M', 'F', 'O'];
+const VALID_TYPES = ['refugee', 'asylum_seeker', 'idp', 'returned_refugee', 'returned_idp', 'stateless', 'ooc'];
+
 function genPassword() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
 }
 
+function validatePerson(data, { partial = false } = {}) {
+  const errors = {};
+  const { full_name, age, gender, person_type, family_size } = data;
+
+  if (!partial || full_name !== undefined) {
+    if (!full_name || !String(full_name).trim()) errors.full_name = 'Full name is required';
+  }
+  if (!partial || age !== undefined) {
+    const a = Number(age);
+    if (!age && age !== 0) errors.age = 'Age is required';
+    else if (isNaN(a) || a < 0 || a > 130) errors.age = 'Age must be 0–130';
+  }
+  if (!partial || gender !== undefined) {
+    if (gender && !VALID_GENDERS.includes(gender)) errors.gender = `Gender must be one of: ${VALID_GENDERS.join(', ')}`;
+  }
+  if (!partial || person_type !== undefined) {
+    if (person_type && !VALID_TYPES.includes(person_type)) errors.person_type = `Invalid person type`;
+  }
+  if (!partial || family_size !== undefined) {
+    const fs = Number(family_size);
+    if (family_size !== undefined && (isNaN(fs) || fs < 1 || fs > 20)) errors.family_size = 'Family size must be 1–20';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    const err = new Error('Validation failed');
+    err.status = 400;
+    err.fields = errors;
+    throw err;
+  }
+}
+
+// ── List ────────────────────────────────────────────────────
 export function getAllPersons({ q, person_type, sort = 'created_at', order = 'desc' } = {}) {
-  const conditions = [];
+  const conditions = ['p.is_active = 1'];
   const params = [];
 
   if (q) {
@@ -19,7 +54,7 @@ export function getAllPersons({ q, person_type, sort = 'created_at', order = 'de
     params.push(person_type);
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const where = `WHERE ${conditions.join(' AND ')}`;
   const allowedSorts = ['full_name', 'age', 'created_at', 'person_type'];
   const sortCol = allowedSorts.includes(sort) ? sort : 'created_at';
   const sortOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
@@ -38,8 +73,65 @@ export function getAllPersons({ q, person_type, sort = 'created_at', order = 'de
   return { persons: rows, total: rows.length };
 }
 
+// ── Get by ID ───────────────────────────────────────────────
+export function getPersonById(id) {
+  const person = db.prepare(`
+    SELECT p.*, w.barcode as wristband_barcode
+    FROM persons p
+    LEFT JOIN wristbands w ON w.person_id = p.id AND w.is_active = 1
+    WHERE p.id = ? AND p.is_active = 1
+  `).get(id);
+
+  if (!person) {
+    const err = new Error('Person not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const checkinCount = db.prepare('SELECT COUNT(*) as c FROM camp_checkins WHERE person_id = ?').get(id).c;
+  const lastCheckin = db.prepare('SELECT checkin_time FROM camp_checkins WHERE person_id = ? ORDER BY checkin_time DESC LIMIT 1').get(id);
+
+  return {
+    ...person,
+    checkin_count: checkinCount,
+    last_checkin: lastCheckin?.checkin_time || null,
+  };
+}
+
+// ── Check-in History ────────────────────────────────────────
+export function getCheckinsByPersonId(id) {
+  const person = db.prepare('SELECT id FROM persons WHERE id = ? AND is_active = 1').get(id);
+  if (!person) {
+    const err = new Error('Person not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const checkins = db.prepare(`
+    SELECT c.*, w.barcode as wristband_barcode
+    FROM camp_checkins c
+    LEFT JOIN wristbands w ON w.person_id = c.person_id AND w.is_active = 1
+    WHERE c.person_id = ?
+    ORDER BY c.checkin_time DESC
+  `).all(id);
+
+  return { checkins, total: checkins.length };
+}
+
+// ── Register ────────────────────────────────────────────────
 export async function registerPerson(data) {
   const { full_name, age, gender, person_type, family_size, is_pregnant, has_chronic_illness, medical_notes } = data;
+  validatePerson(data);
+
+  const existing = db.prepare(
+    'SELECT id FROM persons WHERE full_name = ? AND age = ? AND gender = ? AND is_active = 1'
+  ).get(String(full_name).trim(), parseInt(age), gender || 'M');
+  if (existing) {
+    const err = new Error('A person with the same name, age, and gender already exists');
+    err.status = 409;
+    err.fields = { full_name: 'Duplicate registration detected' };
+    throw err;
+  }
 
   const fpId = `FP_${Date.now()}`;
   const familyUnitId = `FAM_${Date.now()}`;
@@ -48,7 +140,7 @@ export async function registerPerson(data) {
     INSERT INTO persons (fingerprint_id, full_name, age, gender, person_type, family_unit_id, family_size,
       is_pregnant, has_chronic_illness, medical_notes, pre_registered)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-  `).run(fpId, full_name, parseInt(age), gender || 'M', person_type || 'refugee', familyUnitId,
+  `).run(fpId, String(full_name).trim(), parseInt(age), gender || 'M', person_type || 'refugee', familyUnitId,
     parseInt(family_size) || 1, is_pregnant || 0, has_chronic_illness || 0, medical_notes || '');
 
   const personId = result.lastInsertRowid;
@@ -72,4 +164,57 @@ export async function registerPerson(data) {
   );
 
   return { person, wristband_barcode: barcode, mqtt: mqttResult };
+}
+
+// ── Update ──────────────────────────────────────────────────
+export function updatePerson(id, data) {
+  const existing = db.prepare('SELECT * FROM persons WHERE id = ? AND is_active = 1').get(id);
+  if (!existing) {
+    const err = new Error('Person not found');
+    err.status = 404;
+    throw err;
+  }
+
+  validatePerson(data, { partial: true });
+
+  const fields = ['full_name', 'age', 'gender', 'person_type', 'family_size', 'is_pregnant', 'has_chronic_illness', 'medical_notes'];
+  const updates = [];
+  const params = [];
+
+  for (const field of fields) {
+    if (data[field] !== undefined) {
+      updates.push(`${field} = ?`);
+      if (field === 'full_name') params.push(String(data[field]).trim());
+      else if (field === 'age') params.push(parseInt(data[field]));
+      else if (field === 'family_size') params.push(parseInt(data[field]) || 1);
+      else if (field === 'is_pregnant' || field === 'has_chronic_illness') params.push(data[field] ? 1 : 0);
+      else params.push(data[field]);
+    }
+  }
+
+  if (updates.length === 0) {
+    const err = new Error('No fields to update');
+    err.status = 400;
+    throw err;
+  }
+
+  params.push(id);
+  db.prepare(`UPDATE persons SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+
+  return getPersonById(id);
+}
+
+// ── Soft Delete ─────────────────────────────────────────────
+export function deactivatePerson(id) {
+  const person = db.prepare('SELECT * FROM persons WHERE id = ? AND is_active = 1').get(id);
+  if (!person) {
+    const err = new Error('Person not found');
+    err.status = 404;
+    throw err;
+  }
+
+  db.prepare('UPDATE persons SET is_active = 0 WHERE id = ?').run(id);
+  db.prepare('UPDATE wristbands SET is_active = 0 WHERE person_id = ?').run(id);
+
+  return { success: true, message: `Person "${person.full_name}" deactivated` };
 }

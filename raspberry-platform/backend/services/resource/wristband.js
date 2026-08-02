@@ -24,3 +24,25 @@ export function getWristbandInfo(barcode) {
     },
   };
 }
+
+export function getDistributionHistory(barcode, { days } = {}) {
+  const wristband = db.prepare('SELECT * FROM wristbands WHERE barcode = ?').get(barcode);
+  if (!wristband) throw Object.assign(new Error('Wristband not found'), { status: 404 });
+
+  let whereClause = 'wristband_barcode = ?';
+  const params = [barcode];
+
+  if (days) {
+    whereClause += ' AND distributed_at >= DATE("now", ? || " days")';
+    params.push(`-${parseInt(days)}`);
+  }
+
+  const rows = db.prepare(`
+    SELECT id, resource_type, quantity, distributed_at
+    FROM distributions
+    WHERE ${whereClause}
+    ORDER BY distributed_at DESC
+  `).all(...params);
+
+  return { barcode, distributions: rows, total: rows.length };
+}
