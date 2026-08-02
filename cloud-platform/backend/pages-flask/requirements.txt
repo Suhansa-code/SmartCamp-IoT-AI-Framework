@@ -4,11 +4,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
 flask==3.0.3
 python-dotenv==1.0.1
+SQLAlchemy==2.0.32
+psycopg2-binary==2.9.9
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ML packages (required for z-score + Isolation Forest)
 # Install with: pip install -r requirements.txt
-# On Raspberry Pi this may take 5-10 minutes on first install
 # ─────────────────────────────────────────────────────────────────────────────
 numpy==1.26.4
 scikit-learn==1.4.2

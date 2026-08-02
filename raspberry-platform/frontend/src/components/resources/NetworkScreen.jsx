@@ -1,55 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Activity, 
-  Wifi, 
-  WifiOff, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Server, 
-  Clock, 
-  ShieldAlert,
-  ArrowDownToLine,
-  Gauge,
-  Box
-} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Activity, Wifi, Layers, Database, RefreshCw, AlertTriangle } from 'lucide-react';
 
-const API = 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const POLL_MS = 10_000;
 
 const STATE_STYLE = {
-  STABLE:   { 
-    badge: 'bg-emerald-100 text-emerald-800 border-emerald-200',  
-    dot: 'bg-emerald-500', 
-    shadow: 'shadow-emerald-500/20',
-    border: 'border-emerald-500/30', 
-    text: 'text-emerald-700',
-    icon: <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-  },
-  DEGRADED: { 
-    badge: 'bg-amber-100 text-amber-800 border-amber-200', 
-    dot: 'bg-amber-500', 
-    shadow: 'shadow-amber-500/20',
-    border: 'border-amber-500/30', 
-    text: 'text-amber-700',
-    icon: <AlertTriangle className="w-6 h-6 text-amber-500" />
-  },
-  CRITICAL: { 
-    badge: 'bg-rose-100 text-rose-800 border-rose-200',      
-    dot: 'bg-rose-500',    
-    shadow: 'shadow-rose-500/20',
-    border: 'border-rose-500/30',   
-    text: 'text-rose-700',
-    icon: <ShieldAlert className="w-6 h-6 text-rose-500" />
-  },
-  UNKNOWN:  { 
-    badge: 'bg-slate-100 text-slate-600 border-slate-200',    
-    dot: 'bg-slate-400',   
-    shadow: 'shadow-slate-400/20',
-    border: 'border-slate-300/50',  
-    text: 'text-slate-600',
-    icon: <Activity className="w-6 h-6 text-slate-500" />
-  },
+  STABLE:   { badge: 'bg-emerald-50 text-emerald-700 border-emerald-100',  dot: 'bg-emerald-500',  border: 'border-emerald-200', text: 'text-emerald-700' },
+  DEGRADED: { badge: 'bg-amber-50 text-amber-700 border-amber-100', dot: 'bg-amber-500', border: 'border-amber-200', text: 'text-amber-700' },
+  CRITICAL: { badge: 'bg-red-50 text-red-700 border-red-100',      dot: 'bg-red-500',    border: 'border-red-200',   text: 'text-red-700' },
+  UNKNOWN:  { badge: 'bg-slate-100 text-slate-500 border-slate-200',    dot: 'bg-slate-400',   border: 'border-slate-200',  text: 'text-slate-500' },
 };
 
 const STATE_DESC = {
@@ -61,17 +21,35 @@ const STATE_DESC = {
 
 // Matches decideAdaptiveQoS in saampMqtt.js
 const QOS_TABLE = [
-  { priority: 'CRITICAL', pColor: 'text-rose-600 bg-rose-50 border-rose-100',    stable: { qos: 2, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: false } },
-  { priority: 'HIGH',     pColor: 'text-amber-600 bg-amber-50 border-amber-100', stable: { qos: 1, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: true  } },
-  { priority: 'MEDIUM',   pColor: 'text-blue-600 bg-blue-50 border-blue-100',   stable: { qos: 1, buf: false }, degraded: { qos: 1, buf: false }, critical: { qos: 1, buf: true  } },
-  { priority: 'LOW',      pColor: 'text-slate-600 bg-slate-50 border-slate-100',   stable: { qos: 0, buf: false }, degraded: { qos: 1, buf: false }, critical: { qos: 0, buf: true  } },
+  { priority: 'CRITICAL', pColor: 'text-red-600',    stable: { qos: 2, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: false } },
+  { priority: 'HIGH',     pColor: 'text-orange-500', stable: { qos: 1, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: true  } },
+  { priority: 'MEDIUM',   pColor: 'text-sky-600',   stable: { qos: 1, buf: false }, degraded: { qos: 1, buf: false }, critical: { qos: 1, buf: true  } },
+  { priority: 'LOW',      pColor: 'text-slate-500',   stable: { qos: 0, buf: false }, degraded: { qos: 1, buf: false }, critical: { qos: 0, buf: true  } },
 ];
 
 function metricColor(value, warn, crit, invert = false) {
   const n = parseFloat(value);
   if (isNaN(n)) return 'text-slate-400';
-  if (invert) return n < crit ? 'text-rose-600' : n < warn ? 'text-amber-600' : 'text-emerald-600';
-  return n > crit ? 'text-rose-600' : n > warn ? 'text-amber-600' : 'text-emerald-600';
+  if (invert) return n < crit ? 'text-red-600' : n < warn ? 'text-amber-600' : 'text-emerald-600';
+  return n > crit ? 'text-red-600' : n > warn ? 'text-amber-600' : 'text-emerald-600';
+}
+
+function card() {
+  return 'bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-6 sm:p-8';
+}
+
+function CardHeader({ icon: Icon, title, subtitle }) {
+  return (
+    <div className="flex items-center gap-2.5 mb-4">
+      <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100 shrink-0">
+        <Icon className="w-4 h-4" />
+      </div>
+      <div>
+        <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  )
 }
 
 const containerVariants = {
@@ -121,254 +99,196 @@ export default function NetworkScreen() {
     : '—';
 
   return (
-    <motion.div 
-      className="max-w-5xl mx-auto space-y-6 pb-12"
-      variants={containerVariants}
-      initial="hidden"
-      animate="show"
-    >
-      {/* ── Header ─────────────────────────────── */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Activity className="w-6 h-6 text-indigo-500" />
-            Network Intelligence
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Real-time QoS adaptation & ML-based state prediction
-          </p>
-        </div>
-        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
-          <div className={`w-2.5 h-2.5 rounded-full ${error ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
-          <span className="text-xs font-medium text-slate-600">
-            {error ? 'Disconnected' : lastAt ? `Polled at ${lastAt.toLocaleTimeString()}` : 'Connecting…'}
-          </span>
-        </div>
-      </motion.div>
+    <div className="min-h-[calc(100svh-3.5rem)] bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-teal-100/40 blur-3xl" />
+        <div className="absolute bottom-0 -left-24 w-72 h-72 rounded-full bg-sky-100/40 blur-3xl" />
+      </div>
 
-      {/* ── Warning banners ──────────────────────────── */}
-      <AnimatePresence>
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 flex items-start gap-3 shadow-sm mb-6">
-              <WifiOff className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
-              <div className="text-sm text-rose-800">
-                <p className="font-semibold text-rose-900 mb-1">Backend unreachable: {error}</p>
-                <p>Start with <code className="bg-rose-100 px-1.5 py-0.5 rounded text-rose-900 font-mono text-xs">npm start</code> in <code className="bg-rose-100 px-1.5 py-0.5 rounded text-rose-900 font-mono text-xs">raspberry-platform/backend/res-mng_backend</code>.</p>
-              </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/25">
+              <Wifi className="w-5 h-5" />
             </div>
-          </motion.div>
-        )}
-        {!error && state === 'UNKNOWN' && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex items-start gap-3 shadow-sm mb-6">
-              <Activity className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
-              <div className="text-sm text-amber-800">
-                <p className="font-semibold text-amber-900 mb-1">No ML prediction received yet.</p>
-                <p>Start the monitor service: <code className="bg-amber-100/50 px-1.5 py-0.5 rounded text-amber-900 font-mono text-xs border border-amber-200/50">python3 scripts/network_monitor_service.py</code></p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* ── Left Column (State & Buffer) ─────────────────────────────── */}
-        <div className="lg:col-span-1 space-y-6">
-          
-          {/* ── State banner ─────────────────────────────── */}
-          <motion.div 
-            variants={itemVariants}
-            className={`relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-sm border ${st.border} transition-colors duration-500`}
-          >
-            <div className="absolute -top-6 -right-6 p-4 opacity-[0.03] scale-150 pointer-events-none">
-              {st.icon}
-            </div>
-            
-            <div className="relative z-10">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-1.5">
-                <Server className="w-3.5 h-3.5" />
-                Network State
-              </p>
-              
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${st.dot} shadow-[0_0_12px_rgba(0,0,0,0.3)] shadow-${st.dot.replace('bg-','')}`} />
-                  <span className={`text-4xl font-black tracking-tight ${st.text}`}>{state}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${st.badge} shadow-sm`}>
-                    Random Forest
-                  </span>
-                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium bg-slate-50 px-2 py-1 rounded-full border border-slate-100">
-                    <Clock className="w-3 h-3" /> {updatedAt}
-                  </span>
-                </div>
-              </div>
-              
-              <p className="text-sm text-slate-600 mt-5 leading-relaxed font-medium">
-                {STATE_DESC[state]}
+            <div>
+              <h1 className="text-lg sm:text-xl font-semibold text-slate-800 tracking-tight">
+                Network Monitor
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500">
+                ML-predicted link health and adaptive QoS decisions
               </p>
             </div>
-          </motion.div>
+          </div>
 
-          {/* ── Buffer status ─────────────────────────────── */}
-          <motion.div 
-            variants={itemVariants}
-            className={`bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-sm border ${buffered > 0 ? 'border-amber-200 ring-2 ring-amber-50' : 'border-slate-200'} transition-all`}
-          >
-            <div className="flex flex-col h-full justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                  <Box className="w-3.5 h-3.5" />
-                  Priority Buffer
-                </p>
-                <p className="text-xs text-slate-500 leading-relaxed pr-4">
-                  Held during outage. Flushed <span className="font-semibold text-slate-700">CRITICAL → LOW</span> on reconnect.
-                </p>
-              </div>
-              <div className="flex items-end justify-between border-t border-slate-100 pt-5 mt-2">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total queued</span>
-                <motion.div 
-                  key={buffered}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className={`text-5xl font-black tracking-tighter ${buffered > 0 ? 'text-amber-500' : 'text-emerald-500'}`}
-                >
-                  {buffered}
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
+          <div className="flex items-center gap-2 text-xs text-slate-500 bg-white/80 border border-slate-200/80 rounded-full px-3.5 py-1.5 w-fit shadow-sm">
+            <RefreshCw className={`w-3.5 h-3.5 text-teal-600 ${lastAt ? '' : 'animate-spin'}`} />
+            <span className="font-medium">Refreshes every {POLL_MS / 1000}s</span>
+          </div>
+        </motion.div>
 
-        </div>
-
-        {/* ── Right Column (Metrics & QoS Table) ─────────────────────────────── */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* ── Live metrics ─────────────────────────────── */}
-          <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-sm border border-slate-200">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                <Gauge className="w-3.5 h-3.5" />
-                Live Telemetry
-              </h2>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-500">Broker:</span>
-                <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border shadow-sm ${m.bridge_alive === true ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : m.bridge_alive === false ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                  {m.bridge_alive === true ? <CheckCircle2 className="w-3 h-3" /> : m.bridge_alive === false ? <WifiOff className="w-3 h-3" /> : <Activity className="w-3 h-3" />}
-                  {m.bridge_alive === true ? 'ALIVE' : m.bridge_alive === false ? 'DOWN' : 'WAITING'}
+        {/* ── State banner ─────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className={`${card()} border-2 ${st.border}`}
+        >
+          <div className="flex items-start justify-between gap-6 flex-wrap">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                ML-Predicted Network State
+              </p>
+              <div className="flex items-center gap-3">
+                <div className={`w-4 h-4 rounded-full ${st.dot} animate-pulse`} />
+                <span className={`text-3xl font-bold ${st.text}`}>{state}</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${st.badge} border`}>
+                  Random Forest
                 </span>
               </div>
+              <p className="text-sm text-slate-500 mt-2">{STATE_DESC[state]}</p>
             </div>
+            <div className="text-right text-xs text-slate-400 space-y-1">
+              <p>Updated {updatedAt}</p>
+              <p>{lastAt ? `Polled ${lastAt.toLocaleTimeString()}` : 'Connecting…'}</p>
+            </div>
+          </div>
+        </motion.div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {[
-                { label: 'Avg RTT',  val: m.rtt_avg,     unit: ' ms',   warn: 200,  crit: 500  },
-                { label: 'Max RTT',  val: m.rtt_max,     unit: ' ms',   warn: 400,  crit: 999  },
-                { label: 'Loss',     val: m.packet_loss, unit: '%',     warn: 5,    crit: 15   },
-                { label: 'Jitter',   val: m.jitter,      unit: ' ms',   warn: 30,   crit: 80   },
-                { label: 'B/width',  val: m.bandwidth,   unit: ' Mbps', warn: 5,    crit: 1,   invert: true },
-                { label: 'Queue',    val: m.queue_depth, unit: '',      warn: 50,   crit: 100  },
-              ].map(({ label, val, unit, warn, crit, invert }) => (
-                <div key={label} className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-colors shadow-sm">
-                  <span className="text-xs font-semibold text-slate-500 block mb-1">{label}</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-2xl font-bold tracking-tight ${val !== undefined ? metricColor(val, warn, crit, invert) : 'text-slate-300'}`}>
-                      {val !== undefined ? val : '—'}
-                    </span>
-                    {val !== undefined && <span className="text-xs font-medium text-slate-400">{unit}</span>}
+        {/* ── Warning banners ──────────────────────────── */}
+        {error && (
+          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-sm text-red-700">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-bold">Backend unreachable:</span> {error}.
+              Start with <code className="bg-red-100 px-1 rounded">npm start</code> in{' '}
+              <code className="bg-red-100 px-1 rounded">raspberry-platform/backend</code>.
+            </div>
+          </div>
+        )}
+        {!error && state === 'UNKNOWN' && (
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm text-amber-800">
+            <Activity className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-bold">No ML prediction received yet.</span> Start the monitor service:
+              <br />
+              <code className="bg-amber-100 px-1 rounded text-xs">
+                python3 scripts/network_monitor_service.py
+              </code>
+            </div>
+          </div>
+        )}
+
+        {/* ── Live metrics ─────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className={card()}
+        >
+          <CardHeader icon={Activity} title="Live Network Metrics" />
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+            {[
+              { label: 'RTT Average',  val: m.rtt_avg,     unit: ' ms',   warn: 200,  crit: 500  },
+              { label: 'RTT Max',      val: m.rtt_max,     unit: ' ms',   warn: 400,  crit: 999  },
+              { label: 'Packet Loss',  val: m.packet_loss, unit: '%',     warn: 5,    crit: 15   },
+              { label: 'Jitter',       val: m.jitter,      unit: ' ms',   warn: 30,   crit: 80   },
+              { label: 'Bandwidth',    val: m.bandwidth,   unit: ' Mbps', warn: 5,    crit: 1,   invert: true },
+              { label: 'Queue Depth',  val: m.queue_depth, unit: '',      warn: 50,   crit: 100  },
+            ].map(({ label, val, unit, warn, crit, invert }) => (
+              <div key={label} className="flex justify-between items-center border-b border-slate-100 pb-2">
+                <span className="text-sm text-slate-500">{label}</span>
+                <span className={`text-sm font-bold ${val !== undefined ? metricColor(val, warn, crit, invert) : 'text-slate-400'}`}>
+                  {val !== undefined ? `${val}${unit}` : '—'}
+                </span>
+              </div>
+            ))}
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+              <span className="text-sm text-slate-500">Broker alive</span>
+              <span className={`text-sm font-bold ${m.bridge_alive === true ? 'text-emerald-600' : m.bridge_alive === false ? 'text-red-600' : 'text-slate-400'}`}>
+                {m.bridge_alive === true ? 'YES' : m.bridge_alive === false ? 'DOWN' : '—'}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── QoS Decision Table ───────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className={card()}
+        >
+          <CardHeader icon={Layers} title="Adaptive QoS Decisions" subtitle="(current state highlighted)" />
+          <div className="grid grid-cols-4 gap-2 text-center text-xs font-medium mb-2">
+            <div />
+            {['STABLE', 'DEGRADED', 'CRITICAL'].map(s => (
+              <div key={s} className={`rounded-lg py-2 ${state === s ? `${STATE_STYLE[s].badge} border ring-2 ring-offset-1 ${STATE_STYLE[s].border.replace('border-', 'ring-')}` : 'bg-slate-100 text-slate-400'}`}>
+                {s}
+              </div>
+            ))}
+          </div>
+          {QOS_TABLE.map(row => (
+            <div key={row.priority} className="grid grid-cols-4 gap-2 text-center text-xs mb-2">
+              <div className={`font-bold text-left flex items-center ${row.pColor}`}>
+                {row.priority}
+              </div>
+              {(['stable', 'degraded', 'critical']).map(col => {
+                const cell = row[col];
+                const colState = col.toUpperCase();
+                const isActive = state === colState;
+                return (
+                  <div key={col} className={`rounded-lg py-2 font-semibold transition-all ${
+                    isActive
+                      ? cell.buf
+                        ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-300'
+                        : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300'
+                      : 'bg-slate-50 text-slate-400'
+                  }`}>
+                    <div>QoS {cell.qos}</div>
+                    {cell.buf && <div className="text-orange-500 font-bold">buffer</div>}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </motion.div>
+          ))}
+        </motion.div>
 
-          {/* ── QoS Decision Table ───────────────────────── */}
-          <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-sm border border-slate-200 overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                <ArrowDownToLine className="w-3.5 h-3.5" />
-                Adaptive QoS Matrix
-              </h2>
-            </div>
-            
-            <div className="overflow-x-auto pb-2 -mx-2 px-2">
-              <div className="min-w-[500px]">
-                <div className="grid grid-cols-4 gap-3 text-center text-[10px] font-bold mb-3 uppercase tracking-wider text-slate-400">
-                  <div className="text-left pl-3">Priority</div>
-                  {['STABLE', 'DEGRADED', 'CRITICAL'].map(s => (
-                    <div key={s} className="relative py-1">
-                      {s}
-                      {state === s && (
-                        <motion.div layoutId="activeCol" className="absolute inset-0 bg-slate-50 rounded-xl -z-10 border border-slate-200 shadow-sm" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="space-y-2.5">
-                  {QOS_TABLE.map(row => (
-                    <div key={row.priority} className="grid grid-cols-4 gap-3 text-center text-xs items-center group">
-                      <div className={`font-bold text-left px-4 py-2.5 rounded-xl border flex items-center justify-center sm:justify-start shadow-sm ${row.pColor}`}>
-                        {row.priority}
-                      </div>
-                      
-                      {(['stable', 'degraded', 'critical']).map(col => {
-                        const cell = row[col];
-                        const colState = col.toUpperCase();
-                        const isActive = state === colState;
-                        const isCurrentCell = isActive;
-                        
-                        return (
-                          <div 
-                            key={col} 
-                            className={`relative rounded-xl py-3 font-semibold transition-all duration-300 border ${
-                              isCurrentCell
-                                ? cell.buf
-                                  ? 'bg-amber-100 text-amber-800 border-amber-200 shadow-md transform scale-105 z-10'
-                                  : 'bg-emerald-100 text-emerald-800 border-emerald-200 shadow-md transform scale-105 z-10'
-                                : 'bg-white text-slate-400 border-slate-100 group-hover:border-slate-200 shadow-sm'
-                            }`}
-                          >
-                            <div className="flex flex-col items-center justify-center gap-0.5">
-                              <span>QoS {cell.qos}</span>
-                              {cell.buf ? (
-                                <span className={`text-[9px] uppercase tracking-wider font-bold ${isCurrentCell ? 'text-amber-600' : 'text-amber-400'}`}>Buffer</span>
-                              ) : (
-                                <span className="text-[9px] uppercase tracking-wider opacity-0">Drop</span> // Invisible spacer
-                              )}
-                            </div>
-                            
-                            {isCurrentCell && (
-                              <motion.div 
-                                layoutId="activeCellRing" 
-                                className="absolute inset-0 rounded-xl ring-2 ring-indigo-500/20 pointer-events-none" 
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
+        {/* ── Buffer status ─────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className={`${card()} border ${buffered > 0 ? 'border-orange-300' : 'border-slate-200'}`}
+        >
+          <div className="flex justify-between items-center gap-6 flex-wrap">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 shrink-0">
+                <Database className={`w-5 h-5 ${buffered > 0 ? 'text-orange-500' : 'text-teal-600'}`} />
+              </div>
+              <div>
+                <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">
+                  Priority Message Buffer
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Held during outage · flushed CRITICAL → HIGH → MEDIUM → LOW on reconnect
+                </p>
               </div>
             </div>
-          </motion.div>
-          
-        </div>
+            <div className="text-right">
+              <p className={`text-4xl font-bold ${buffered > 0 ? 'text-orange-500' : 'text-emerald-600'}`}>
+                {buffered}
+              </p>
+              <p className="text-xs text-slate-400">buffered</p>
+            </div>
+          </div>
+        </motion.div>
+
       </div>
-    </motion.div>
+    </div>
   );
 }

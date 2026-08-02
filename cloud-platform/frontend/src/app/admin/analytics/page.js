@@ -20,7 +20,7 @@ export default function AnalyticsPage() {
 
   return (
     <main className="min-h-screen px-4 py-8" style={{ background: '#F0F9FF' }}>
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <h1
           className="text-3xl font-extrabold mb-2"
           style={{ fontFamily: "'Baloo 2', cursive", color: '#1E3A5F' }}

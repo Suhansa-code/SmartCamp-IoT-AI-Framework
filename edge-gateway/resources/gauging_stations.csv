@@ -1,0 +1,44 @@
+record,station_name,river_name,district_id,Latitude,Longitude,alert_level,minor_flood_level,major_flood_level
+1,Badalgama,Maha Oya,LK-62;LK-61;LK-12,7.293127961,79.97767925,5,6.2,9.6
+2,Baddegama,Gin Ganga,LK-31,6.177477312,80.18051836,3.5,4,5
+3,Deraniyagala,Seethawaka Ganga,LK-92,6.925762947,80.33922404,4.8,5.8,6.4
+4,Dunamale,Attanagalu Oya,LK-12,7.113033306,80.07900097,3.3,4.4,5.5
+5,Ellagawa,Kalu Ganga,LK-91;LK-13,6.730399128,80.21307042,10,10.7,12.2
+6,Galgamuwa,Mee Oya,LK-61,7.968417972,80.26139262,4.84,5.94,8
+7,Giriulla,Maha Oya,LK-61,7.330309412,80.12432087,5.5,6.5,7.5
+8,Glencourse,Kelani Ganga,LK-11;LK-12;LK-92,6.975736673,80.18660712,15,16.5,19
+9,Hanwella,Kelani Ganga,LK-11,6.910489028,80.08133984,7,8,10
+10,Holombuwa,Gurugoda Oya,LK-92,7.1886123,80.27381001,3,3.4,5
+11,Horowpothana,Yan Oya,LK-71,8.577144225,80.88120306,6,7.5,10.5
+12,Kalawellawa,Kuda Ganga,LK-13,6.631507819,80.16073463,5,6.5,8
+13,Katharagama,Menik Ganga,LK-82,6.418350424,81.33162402,4,4.6,6.5
+14,Kithulgala,Kelani Ganga,LK-92,6.98528377,80.42544931,3,4,6
+15,Magura,Maguru Ganga,LK-13,6.513716271,80.24399187,4,6,7.5
+16,Manampitiya,Mahaweli Ganga,LK-72,7.913305747,81.08904162,3,4.3,6
+17,Moragaswewa,Deduru Oya,LK-61,7.731867586,80.24296279,4.75,6,7
+18,Moraketiya,Walawe Ganga,LK-91;LK-82,6.345050408,80.90195373,3,5,7
+19,Nagalagam Street,Kelani Ganga,LK-11;LK-12,6.960272421,79.87858327,1.2192,1.524,2.1336
+20,Nakkala,Kumbukkan Oya,LK-82,6.890291116,81.29789316,5,6,7.5
+21,Nawalapitiya,Mahaweli Ganga,LK-21,7.046038719,80.52624731,3.5,5,6
+22,Norwood,Kelani Ganga,LK-23,6.839557268,80.61239609,1.5,3,4.5
+23,Padiyathalawa,Maduru Oya,LK-81;LK-52,7.382714588,81.19476999,4,4.5,6
+24,Panadugama,Nilwala Ganga,LK-32,6.110054902,80.48065133,5,6,7.5
+25,Peradeniya,Mahaweli Ganga,LK-21,7.264170558,80.59362366,5,7,9
+26,Pitabeddara,Nilwala Ganga,LK-32,6.207129687,80.45044349,4,5,6.5
+27,Putupaula,Kalu Ganga,LK-13,6.611561689,80.05974948,3,4,5
+28,Rathnapura,Kalu Ganga,LK-91,6.689859894,80.38027646,5.2,7.5,9.5
+29,Siyambalanduwa,Heda Oya,LK-82,6.905508688,81.54537666,4.5,6,7
+30,Thaldena,Mahaweli Ganga,LK-81,7.092702894,81.0486541,3,4,5
+31,Thalgahagoda,Nilwala Ganga,LK-32,6.012329836,80.53479709,1.4,1.7,2.8
+32,Thanamalwila,Kirindi Oya,LK-82,6.44280954,81.13889315,4,5,5.5
+33,Thanthirimale,Malwathu Oya,LK-71;LK-43,8.58076325,80.28400552,5,6.8,7.8
+34,Thawalama,Gin Ganga,LK-31;LK-13,6.342938049,80.33185946,4,6,7.5
+35,Urawa,Nilwala Ganga,LK-32,6.236507396,80.56633784,2.5,4,6
+36,Wellawaya,Kirindi Oya,LK-82,6.733186416,81.10987206,4.4,5.4,5.9
+37,Weraganthota,Mahaweli Ganga,LK-21;LK-81,7.32995885,80.98789578,5,6,8
+38,Yaka Wewa,Ma Oya,LK-61,8.72653167,80.67505378,4,5,6
+39,Kalawellawa (Millakanda),Kalu Ganga,-,6.63,80.16,5,6.5,8
+40,Magura,Kalu Ganga,,6.51,80.24,4,6,7.5
+41,Deraniyagala,Kelani Ganga,-,6.93,80.34,4.8,5.8,6.4
+42,Holombuwa,Kelani Ganga,-,7.19,80.27,3,3.4,5
+43,Kuda Oya,Kirindi Oya,LK-82,6.531299779,81.11931312,6.9,8.4,8.8

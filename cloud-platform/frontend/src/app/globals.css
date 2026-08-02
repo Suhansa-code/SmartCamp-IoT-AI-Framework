@@ -101,8 +101,9 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 shadow-lg active:scale-95 transition-transform duration-150
-           min-h-[64px] flex items-center justify-center gap-2;
+    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply shadow-lg active:scale-95 transition-transform duration-150;
+    @apply min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--coral);
     font-size: 1.375rem;
   }
@@ -116,8 +117,9 @@
   }
 
   .btn-teal {
-    @apply font-bold rounded-3xl py-4 px-8 shadow-lg active:scale-95 transition-transform duration-150
-           min-h-[64px] flex items-center justify-center gap-2;
+    @apply font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply shadow-lg active:scale-95 transition-transform duration-150;
+    @apply min-h-[64px] flex items-center justify-center gap-2;
     background-color: var(--teal);
     color: var(--white);
     font-size: 1.375rem;
