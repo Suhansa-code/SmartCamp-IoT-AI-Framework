@@ -4,7 +4,7 @@
 
 const BASE =
   import.meta.env.VITE_API_URL ||
-  'http://localhost:3001'
+  'http://localhost:5000'
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {

@@ -1,405 +1,403 @@
-import { useEffect, useMemo, useState } from 'react'
- 
-import { fetchChildDirectory, fetchChildEducation } from '@/components/psychoedu/lib/api'
- 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
- 
-const badgeClasses = {
-  pending: 'bg-amber-100 text-amber-800 border-amber-300',
-  resolved: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  synced: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  unsynced: 'bg-slate-100 text-slate-700 border-slate-300',
-  active: 'bg-rose-100 text-rose-800 border-rose-300',
-  none: 'bg-slate-100 text-slate-700 border-slate-300',
-}
- 
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  GraduationCap, Search, Users, AlertTriangle, CheckCircle,
+  Clock, Loader2, RefreshCw, ShieldCheck, CalendarDays,
+  Activity, BookOpen, List, ArrowRight, ChevronRight,
+} from "lucide-react";
+import Button from "../ui/Button";
+import DataTable from "../ui/DataTable";
+import { useToast } from "../ui/Toast";
+import { fetchChildDirectory, fetchChildEducation } from "@/components/psychoedu/lib/api";
+
 function formatDate(value) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString()
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
 }
- 
-function SyncBadge({ synced }) {
-  const key = Number(synced) === 1 ? 'synced' : 'unsynced'
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${badgeClasses[key]}`}>
-      <span className="h-2 w-2 rounded-full bg-current" />
-      {Number(synced) === 1 ? 'Synced' : 'Pending Sync'}
-    </span>
-  )
-}
- 
+
 function ChildEducationScreen() {
-  const [childId, setChildId] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [payload, setPayload] = useState(null)
-  const [autoLoaded, setAutoLoaded] = useState(false)
-  const [directory, setDirectory] = useState({ children: [], pagination: null })
-  const [directoryLoading, setDirectoryLoading] = useState(false)
-  const [directoryError, setDirectoryError] = useState('')
-  const [page, setPage] = useState(1)
- 
-  const loadChild = async (value) => {
-    const searchValue = value.trim()
-    if (!searchValue) {
-      setError('Enter a child ID to search.')
-      return
-    }
-    setLoading(true)
-    setError('')
-    try {
-      const data = await fetchChildEducation(searchValue)
-      setPayload(data)
-      setChildId(searchValue)
-    } catch (err) {
-      setPayload(null)
-      setError(err?.message || 'Unable to load child education data.')
-    } finally {
-      setLoading(false)
-    }
-  }
- 
-  const loadDirectory = async (nextPage = 1) => {
-    setDirectoryLoading(true)
-    setDirectoryError('')
-    try {
-      const data = await fetchChildDirectory(nextPage, 5)
-      setDirectory(data)
-      setPage(nextPage)
-    } catch (err) {
-      setDirectory({ children: [], pagination: null })
-      setDirectoryError(err?.message || 'Unable to load child directory.')
-    } finally {
-      setDirectoryLoading(false)
-    }
-  }
- 
+  const { addToast } = useToast();
+  const [childId, setChildId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [payload, setPayload] = useState(null);
+  const [autoLoaded, setAutoLoaded] = useState(false);
+
+  const [children, setChildren] = useState([]);
+  const [childrenLoading, setChildrenLoading] = useState(true);
+  const [childrenError, setChildrenError] = useState("");
+  const abortRef = useRef(null);
+
+  const fetchChildren = useCallback(() => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setChildrenLoading(true);
+    setChildrenError("");
+    fetchChildDirectory(1, 100)
+      .then((data) => {
+        setChildren(data.children || []);
+        setChildrenLoading(false);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setChildrenError(err.message || "Failed to load children");
+          setChildrenLoading(false);
+        }
+      });
+  }, []);
+
   useEffect(() => {
-    loadDirectory(1)
-    if (autoLoaded) return
+    fetchChildren();
+  }, [fetchChildren]);
+
+  const loadChild = async (value) => {
+    const searchValue = (value || childId).trim();
+    if (!searchValue) {
+      setError("Enter a child ID to search.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const data = await fetchChildEducation(searchValue);
+      setPayload(data);
+      setChildId(searchValue);
+    } catch (err) {
+      setPayload(null);
+      setError(err?.message || "Unable to load child education data.");
+      addToast(err?.message || "Failed to load child data", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (autoLoaded) return;
     const cachedChild =
-      localStorage.getItem('selectedChildId') ||
-      sessionStorage.getItem('selectedChildId')
+      localStorage.getItem("selectedChildId") ||
+      sessionStorage.getItem("selectedChildId");
     if (cachedChild) {
-      setChildId(cachedChild)
-      setAutoLoaded(true)
-      loadChild(cachedChild)
+      setChildId(cachedChild);
+      setAutoLoaded(true);
+      loadChild(cachedChild);
     }
-  }, [autoLoaded])
- 
-  const stats = payload?.stats || {}
-  const child = payload?.child || null
-  const sessions = payload?.sessions || []
-  const alerts = payload?.alerts || []
- 
-  const alertSummary = useMemo(() => {
-    return {
-      pending: alerts.filter((alert) => alert.status === 'pending').length,
-      resolved: alerts.filter((alert) => alert.status === 'resolved').length,
-      unsynced: alerts.filter((alert) => Number(alert.synced) !== 1).length,
-    }
-  }, [alerts])
- 
+  }, [autoLoaded]);
+
+  const stats = payload?.stats || {};
+  const child = payload?.child || null;
+  const sessions = payload?.sessions || [];
+  const alerts = payload?.alerts || [];
+
+  const alertSummary = {
+    pending: alerts.filter((a) => a.status === "pending").length,
+    resolved: alerts.filter((a) => a.status === "resolved").length,
+    unsynced: alerts.filter((a) => Number(a.synced) !== 1).length,
+  };
+
   return (
-    <div className="mx-auto max-w-7xl space-y-6 rounded-3xl bg-slate-50 p-6 font-sans text-slate-900 shadow-sm">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="space-y-4">
+      {/* Header + Search */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5 lg:p-6"
+      >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-2xl font-bold uppercase tracking-[0.2em] text-indigo-600">
-              Child Education
-            </p>
-            <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-900">
-              Child session history, alerts, and profile details
-            </h2>
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
+                <GraduationCap className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-xs sm:text-sm font-semibold text-slate-800">
+                  Child Education
+                </h2>
+                <p className="text-[10px] sm:text-[11px] text-slate-400">
+                  Session history, alerts & profile details
+                </p>
+              </div>
+            </div>
           </div>
           <form
-            className="flex w-full max-w-xl flex-col gap-3 sm:flex-row"
-            onSubmit={(event) => {
-              event.preventDefault()
-              loadChild(childId)
+            className="flex w-full max-w-lg flex-col gap-2 sm:flex-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              loadChild(childId);
             }}
           >
-            <input
-              value={childId}
-              onChange={(event) => setChildId(event.target.value)}
-              placeholder="Enter child ID, e.g. CAMP-B-000001"
-              className="min-h-12 flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="min-h-12 rounded-2xl bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? 'Loading...' : 'Search Child'}
-            </button>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                value={childId}
+                onChange={(e) => setChildId(e.target.value)}
+                placeholder="Enter child ID, e.g. CAMP-B-000001"
+                className="w-full min-h-10 pl-9 pr-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
+              />
+            </div>
+            <Button type="submit" loading={loading} size="md">
+              Search
+            </Button>
           </form>
         </div>
- 
-        {error ? (
-          <div className="mt-4 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-            {error}
-          </div>
-        ) : null}
-      </div>
- 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-2xl font-bold uppercase tracking-[0.2em] text-indigo-600">Children Directory</p>
-            <h3 className="mt-1 text-xl font-bold text-slate-900">Children List from PAGES</h3>
-          </div>
-          <div className="text-sm font-medium text-slate-600">
-            {directory?.pagination ? `Page ${directory.pagination.page} of ${directory.pagination.totalPages}` : 'Loading directory...'}
-          </div>
-        </div>
 
-        {directoryError ? (
-          <div className="mt-4 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-            {directoryError}
-          </div>
-        ) : null}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 flex items-center gap-2 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
-        <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-            <thead className="bg-slate-100 text-slate-600">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Child ID</th>
-                <th className="px-4 py-3 font-semibold">Res ID</th>
-                <th className="px-4 py-3 font-semibold">Grade</th>
-                <th className="px-4 py-3 font-semibold">Camp</th>
-                <th className="px-4 py-3 font-semibold">Zone</th>
-                <th className="px-4 py-3 font-semibold">Sessions</th>
-                <th className="px-4 py-3 font-semibold">Alert</th>
-                <th className="px-4 py-3 font-semibold">Sync</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 bg-white">
-              {directoryLoading ? (
-                <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
-                    Loading children...
-                  </td>
-                </tr>
-              ) : directory.children.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
-                    No children found.
-                  </td>
-                </tr>
-              ) : (
-                directory.children.map((childRecord) => (
-                  <tr key={childRecord.child_id} className="align-top hover:bg-slate-50">
-                    <td className="px-4 py-4">
-                      <button
-                        type="button"
-                        onClick={() => loadChild(childRecord.child_id)}
-                        className="font-semibold text-indigo-700 transition hover:text-indigo-500"
-                      >
-                        {childRecord.child_id}
-                      </button>
-                    </td>
-                    <td className="px-4 py-4 text-slate-600">{childRecord.res_id || '-'}</td>
-                    <td className="px-4 py-4 text-slate-600">{childRecord.grade ?? '-'}</td>
-                    <td className="px-4 py-4 text-slate-600">{childRecord.camp_id || '-'}</td>
-                    <td className="px-4 py-4 text-slate-600">{childRecord.zone_id || '-'}</td>
-                    <td className="px-4 py-4 text-slate-600">{childRecord.total_sessions ?? 0}</td>
-                    <td className="px-4 py-4 text-slate-600">{childRecord.alert_status || '-'}</td>
-                    <td className="px-4 py-4">
-                      <SyncBadge synced={childRecord.synced} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {directory?.pagination ? (
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-slate-600">
-              Showing {directory.children.length} of {directory.pagination.total} children
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => loadDirectory(page - 1)}
-                disabled={!directory.pagination.hasPrev || directoryLoading}
-                className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() => loadDirectory(page + 1)}
-                disabled={!directory.pagination.hasNext || directoryLoading}
-                className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
+      {/* Child Profile (when selected) */}
       {child ? (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-4"
+        >
+          {/* Back + Stats */}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setPayload(null);
+                setChildId("");
+              }}
+            >
+              ← Back
+            </Button>
+            <div className="flex-1" />
+            <span className="text-[11px] text-slate-400">
+              {child.child_id}
+            </span>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
             {[
-              { label: 'Total Sessions Completed', value: stats.total_sessions ?? child.total_sessions ?? 0 },
-              { label: 'Pending Alerts', value: alertSummary.pending },
-              { label: 'Unresolved Alerts', value: stats.pending_alerts ?? alertSummary.pending },
-              { label: 'Sync State', value: Number(child.synced) === 1 ? 'Synced' : 'Pending' },
-            ].map((item) => (
-              <div key={item.label} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm font-medium text-slate-500">{item.label}</p>
-                <p className="mt-3 text-3xl font-bold text-slate-900">{item.value}</p>
-              </div>
+              { label: "Total Sessions", value: stats.total_sessions ?? child.total_sessions ?? 0, icon: BookOpen, color: "teal" },
+              { label: "Pending Alerts", value: alertSummary.pending, icon: AlertTriangle, color: "amber" },
+              { label: "Resolved", value: alertSummary.resolved, icon: CheckCircle, color: "sky" },
+              { label: "Sync State", value: Number(child.synced) === 1 ? "Synced" : "Pending", icon: Activity, color: "teal" },
+            ].map((item, i) => (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 * i }}
+                className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl p-4 relative overflow-hidden group hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300"
+              >
+                <div className={`absolute -right-5 -top-5 w-20 h-20 bg-gradient-to-br ${
+                  item.color === "amber" ? "from-amber-500/10 to-orange-500/10" :
+                  item.color === "sky" ? "from-sky-500/10 to-blue-500/10" :
+                  "from-teal-500/10 to-sky-500/10"
+                } rounded-full group-hover:scale-150 transition-transform duration-500`} />
+                <div className="relative">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <item.icon className="w-3.5 h-3.5 text-teal-600" />
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{item.label}</span>
+                  </div>
+                  <span className="text-xl font-bold text-slate-800 font-mono tracking-tight">{item.value}</span>
+                </div>
+              </motion.div>
             ))}
           </div>
- 
-          <div className="grid gap-6 xl:grid-cols-[1.1fr_1.2fr]">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-2xl font-bold uppercase tracking-[0.2em] text-indigo-600">Child Record</p>
-                  <h3 className="mt-1 text-xl font-bold text-slate-900">{child.child_id}</h3>
+
+          {/* Profile + Alerts Grid */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Child Record */}
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-semibold text-slate-800">Child Record</h3>
+                    <p className="text-[10px] sm:text-[11px] text-slate-400">{child.child_id}</p>
+                  </div>
                 </div>
-                <SyncBadge synced={child.synced} />
+                <span className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10px] font-semibold ${
+                  Number(child.synced) === 1
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                    : "bg-slate-50 text-slate-600 border border-slate-200"
+                }`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {Number(child.synced) === 1 ? "Synced" : "Pending"}
+                </span>
               </div>
- 
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+
+              <div className="grid gap-2 sm:grid-cols-2">
                 {[
-                  ['Res ID', child.res_id],
-                  ['Camp ID', child.camp_id],
-                  ['Grade', child.grade],
-                  ['Language', child.language],
-                  ['Zone', child.zone_id || '-'],
-                  ['Enrolled At', formatDate(child.enrolled_at)],
-                  ['Baseline Score', child.baseline_score],
-                  ['Alert Status', child.alert_status],
-                  ['Consecutive Low', child.consecutive_low],
-                  ['SDQ Band', child.sdq_band],
-                  ['QR Available', child.qr_code_data ? 'Yes' : 'No'],
-                  ['Total Sessions completed', child.total_sessions],
+                  ["Res ID", child.res_id],
+                  ["Camp ID", child.camp_id],
+                  ["Grade", child.grade],
+                  ["Language", child.language],
+                  ["Zone", child.zone_id || "-"],
+                  ["Enrolled", formatDate(child.enrolled_at)],
+                  ["Baseline", child.baseline_score],
+                  ["Alert Status", child.alert_status],
+                  ["Consecutive Low", child.consecutive_low],
+                  ["SDQ Band", child.sdq_band],
+                  ["QR Available", child.qr_code_data ? "Yes" : "No"],
+                  ["Sessions Done", child.total_sessions],
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</p>
-                    <p className="mt-2 break-words text-lg font-semibold text-slate-900">{value}</p>
+                  <div key={label} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 px-3 py-2">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{label}</span>
+                    <span className="text-xs font-semibold text-slate-700">{value}</span>
                   </div>
                 ))}
               </div>
-            </section>
- 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-2xl font-bold uppercase tracking-[0.2em] text-indigo-600">Alert Overview</p>
-                  <h3 className="mt-1 text-xl font-bold text-slate-900">Triggered alerts</h3>
+            </div>
+
+            {/* Alert Overview */}
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-semibold text-slate-800">Alert Overview</h3>
+                    <p className="text-[10px] sm:text-[11px] text-slate-400">Triggered alerts</p>
+                  </div>
                 </div>
-                <div className="text-right text-sm font-medium text-slate-600">
+                <div className="text-right text-[10px] font-semibold text-slate-400 space-y-0.5">
                   <div>Pending: {alertSummary.pending}</div>
                   <div>Resolved: {alertSummary.resolved}</div>
-                  <div>Unsynced: {alertSummary.unsynced}</div>
                 </div>
               </div>
- 
-              <div className="mt-5 space-y-4">
+
+              <div className="space-y-2">
                 {alerts.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-                    No alerts found for this child.
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+                    <CheckCircle className="w-5 h-5 text-emerald-400 mx-auto mb-2" />
+                    <p className="text-xs text-slate-500">No alerts for this child</p>
                   </div>
                 ) : (
                   alerts.map((alert) => (
-                    <article key={alert.alert_id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <p className="mt-1 text-sm text-slate-500">{formatDate(alert.triggered_at)}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <span className={`rounded-full border px-3 py-1 text-xs font-semibold capitalize ${badgeClasses[alert.status] || badgeClasses.pending}`}>
+                    <div key={alert.alert_id} className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-slate-400">{alert.alert_id?.slice(0, 12)}...</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border ${
+                            alert.status === "pending" ? "bg-amber-50 text-amber-700 border-amber-100" :
+                            alert.status === "resolved" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                            "bg-slate-50 text-slate-600 border-slate-200"
+                          }`}>
                             {alert.status}
                           </span>
-                          <SyncBadge synced={alert.synced} />
                         </div>
                       </div>
-                      <div className="mt-3 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
-                        <div>
-                          <span className="font-medium text-slate-500">Alert ID:</span> {alert.alert_id}
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-500">Resolved At:</span> {formatDate(alert.resolved_at)}
-                        </div>
-                        <div className="sm:col-span-2">
-                          <span className="font-medium text-slate-500">Resolved Notes:</span> {alert.resolved_notes || '-'}
-                        </div>
+                      <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDate(alert.triggered_at)}
+                        </span>
+                        {alert.resolved_at && (
+                          <span>Resolved: {formatDate(alert.resolved_at)}</span>
+                        )}
                       </div>
-                    </article>
+                    </div>
                   ))
                 )}
               </div>
-            </section>
+            </div>
           </div>
- 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-2xl font-bold uppercase tracking-[0.2em] text-indigo-600">Session History</p>
-                <h3 className="mt-1 text-xl font-bold text-slate-900">All recorded sessions</h3>
-              </div>
-              <div className="text-sm font-medium text-slate-600">
-                {sessions.length} session{sessions.length === 1 ? '' : 's'} loaded
+
+          {/* Session History */}
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
+                  <CalendarDays className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold text-slate-800">Session History</h3>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400">{sessions.length} recorded sessions</p>
+                </div>
               </div>
             </div>
- 
-            <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
-              <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-                <thead className="bg-slate-100 text-slate-600">
+
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="min-w-full divide-y divide-slate-200 text-left text-xs sm:text-sm">
+                <thead className="bg-slate-50 text-slate-500">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Session</th>
-                    <th className="px-4 py-3 font-semibold">Date / Time</th>
-                    <th className="px-4 py-3 font-semibold">Gate</th>
-                    <th className="px-4 py-3 font-semibold">Flags</th>
-                    <th className="px-4 py-3 font-semibold">Sync</th>
+                    <th className="px-3 sm:px-4 py-2.5 font-semibold">Session</th>
+                    <th className="px-3 sm:px-4 py-2.5 font-semibold">Date / Time</th>
+                    <th className="px-3 sm:px-4 py-2.5 font-semibold">Gate</th>
+                    <th className="px-3 sm:px-4 py-2.5 font-semibold">Flags</th>
+                    <th className="px-3 sm:px-4 py-2.5 font-semibold">Sync</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
+                <tbody className="divide-y divide-slate-100 bg-white">
                   {sessions.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-4 py-8 text-center text-slate-500">
+                      <td colSpan="5" className="px-4 py-8 text-center text-xs text-slate-400">
                         No sessions found.
                       </td>
                     </tr>
                   ) : (
-                    sessions.map((session) => (
-                      <tr key={session.session_id} className="align-top hover:bg-slate-50">
-                        <td className="px-4 py-4">
-                          <div className="font-semibold text-slate-900">{session.session_id}</div>
-                          <div className="text-xs text-slate-500">{session.content_session_id || '-'}</div>
+                    sessions.map((s) => (
+                      <tr key={s.session_id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-3 sm:px-4 py-3">
+                          <div className="font-mono text-xs text-slate-700">{s.session_id?.slice(0, 16)}...</div>
+                          <div className="text-[10px] text-slate-400">{s.content_session_id || "-"}</div>
                         </td>
-                        <td className="px-4 py-4 text-slate-600">
-                          <div>{session.session_date || '-'}</div>
-                          <div className="text-xs text-slate-500">{session.session_time || '-'}</div>
+                        <td className="px-3 sm:px-4 py-3 text-slate-600">
+                          <div className="text-xs">{s.session_date || "-"}</div>
+                          <div className="text-[10px] text-slate-400">{s.session_time || "-"}</div>
                         </td>
-                        <td className="px-4 py-4 text-slate-600">
-                          <div className="font-semibold text-slate-900">{session.gate_decision || '-'}</div>
+                        <td className="px-3 sm:px-4 py-3">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-200">
+                            {s.gate_decision || "-"}
+                          </span>
                         </td>
-                        <td className="px-4 py-4">
-                          <div className="flex flex-wrap gap-2">
-                            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${Number(session.anomaly_flagged) === 1 ? 'border-rose-300 bg-rose-100 text-rose-800' : 'border-slate-300 bg-slate-100 text-slate-600'}`}>
-                              {Number(session.anomaly_flagged) === 1 ? 'Anomaly' : 'Normal'}
+                        <td className="px-3 sm:px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border ${
+                              Number(s.anomaly_flagged) === 1
+                                ? "bg-red-50 text-red-700 border-red-100"
+                                : "bg-slate-50 text-slate-500 border-slate-200"
+                            }`}>
+                              {Number(s.anomaly_flagged) === 1 ? "Anomaly" : "Normal"}
                             </span>
-                            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${Number(session.alert_triggered) === 1 ? 'border-amber-300 bg-amber-100 text-amber-800' : 'border-slate-300 bg-slate-100 text-slate-600'}`}>
-                              {Number(session.alert_triggered) === 1 ? 'Alert Triggered' : 'No Alert'}
-                            </span>
-                            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${session.session_complete === 1 ? 'border-emerald-300 bg-emerald-100 text-emerald-800' : 'border-slate-300 bg-slate-100 text-slate-600'}`}>
-                              {session.session_complete === 1 ? 'Completed' : 'Open'}
+                            {Number(s.alert_triggered) === 1 && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">
+                                Alert
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border ${
+                              s.session_complete === 1
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                : "bg-slate-50 text-slate-500 border-slate-200"
+                            }`}>
+                              {s.session_complete === 1 ? "Done" : "Open"}
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-4">
-                          <SyncBadge synced={session.synced} />
+                        <td className="px-3 sm:px-4 py-3">
+                          <span className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10px] font-semibold ${
+                            Number(s.synced) === 1
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                              : "bg-slate-50 text-slate-600 border border-slate-200"
+                          }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {Number(s.synced) === 1 ? "Synced" : "Pending"}
+                          </span>
                         </td>
                       </tr>
                     ))
@@ -407,17 +405,123 @@ function ChildEducationScreen() {
                 </tbody>
               </table>
             </div>
-          </section>
-        </>
+          </div>
+        </motion.div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-          Search a child to view the education dashboard.
-          <div className="mt-2 text-sm text-slate-400">The page will show child profile data, full session history, alerts, and sync status.</div>
-        </div>
+        /* Children Directory */
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5 lg:p-6"
+        >
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
+                <List className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-xs sm:text-sm font-semibold text-slate-800">Children Directory</h2>
+                <p className="text-[10px] sm:text-[11px] text-slate-400">{children.length} enrolled</p>
+              </div>
+            </div>
+            <Button variant="secondary" size="sm" onClick={fetchChildren}>
+              <RefreshCw className="w-3 h-3" />
+            </Button>
+          </div>
+
+          {childrenError && (
+            <div className="flex items-center gap-2 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 mb-3">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <span className="flex-1">{childrenError}</span>
+              <Button variant="secondary" size="sm" onClick={fetchChildren}>
+                <RefreshCw className="w-3 h-3" /> Retry
+              </Button>
+            </div>
+          )}
+
+          <DataTable
+            columns={[
+              {
+                key: "child_id",
+                label: "Child ID",
+                render: (val, row) => (
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                      {val?.slice(-2)}
+                    </div>
+                    <span className="font-medium text-slate-900">{val}</span>
+                  </div>
+                ),
+              },
+              { key: "res_id", label: "Res ID" },
+              { key: "grade", label: "Grade" },
+              { key: "camp_id", label: "Camp" },
+              { key: "total_sessions", label: "Sessions" },
+              {
+                key: "alert_status",
+                label: "Alert",
+                render: (val) => (
+                  <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${
+                    val === "active" ? "bg-red-50 text-red-700 border border-red-100" :
+                    val === "resolved" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                    "bg-slate-50 text-slate-500 border border-slate-200"
+                  }`}>
+                    {val || "none"}
+                  </span>
+                ),
+              },
+              {
+                key: "synced",
+                label: "Sync",
+                render: (val) => (
+                  <span className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10px] font-semibold ${
+                    Number(val) === 1
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                      : "bg-slate-50 text-slate-600 border border-slate-200"
+                  }`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                    {Number(val) === 1 ? "Synced" : "Pending"}
+                  </span>
+                ),
+              },
+            ]}
+            data={children}
+            loading={childrenLoading}
+            searchPlaceholder="Search by child ID or res ID..."
+            searchKeys={["child_id", "res_id"]}
+            pageSize={10}
+            emptyMessage="No children found"
+            onRowClick={(row) => loadChild(row.child_id)}
+            mobileCard={(row) => (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                  {row.child_id?.slice(-2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-800 truncate">{row.child_id}</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
+                      row.alert_status === "active" ? "bg-red-50 text-red-700 border-red-100" :
+                      "bg-slate-50 text-slate-500 border-slate-200"
+                    }`}>
+                      {row.alert_status || "none"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                    <span>Grade {row.grade}</span>
+                    <span className="text-slate-300">·</span>
+                    <span>{row.total_sessions ?? 0} sessions</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+              </div>
+            )}
+          />
+        </motion.div>
       )}
     </div>
-  )
+  );
 }
- 
-export default ChildEducationScreen
- 
+
+export default ChildEducationScreen;
