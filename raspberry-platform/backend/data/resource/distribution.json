@@ -1,0 +1,14 @@
+{
+  "standard": {
+    "breakfast": 0.5,
+    "lunch": 0.6,
+    "dinner": 0.5,
+    "water": 15
+  },
+  "pregnant_extra": {
+    "breakfast": 0.2,
+    "lunch": 0.2,
+    "dinner": 0.2,
+    "water": 2
+  }
+}

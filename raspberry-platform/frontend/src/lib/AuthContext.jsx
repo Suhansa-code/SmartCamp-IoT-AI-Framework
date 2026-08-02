@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 
 const AUTH_KEY = 'scamp_auth'
-const HARDCODED_CODE = '260724'
+const HARDCODED_CODE = '123456'
 const EXPIRY_HOURS = 4
 
 function getStoredAuth() {

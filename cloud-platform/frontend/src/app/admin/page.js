@@ -146,7 +146,7 @@ export default function AdminPage() {
           ))}
         </nav>
 
-        <main style={{ padding:'1.5rem', maxWidth:'1200px', margin:'0 auto' }}>
+        <main style={{ padding:'1.5rem', maxWidth:'1280px', margin:'0 auto' }}>
           <div style={{ marginBottom:'1.5rem' }}>
             <h1 style={{ fontFamily:"'Baloo 2',cursive", fontSize:'1.6rem', fontWeight:900 }}>🏕️ All Camps Overview</h1>
             <p style={{ color:'#94A3B8', fontSize:'0.85rem', marginTop:'2px', fontWeight:600 }}>

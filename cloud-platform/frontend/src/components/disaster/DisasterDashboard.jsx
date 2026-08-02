@@ -171,7 +171,7 @@ export default function DisasterDashboard() {
 
   return (
     <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, transition: 'background 0.3s', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
-      <div style={{ width: '100%', maxWidth: 1560, margin: '0 auto', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
+      <div style={{ width: '100%', maxWidth: 1280, margin: '0 auto', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
