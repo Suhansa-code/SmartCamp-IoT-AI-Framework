@@ -195,6 +195,7 @@ export async function completeSession(req, res, next) {
 
     sqliteUpdate('pages_sessions', {
       cognitive_score: Number(cognitiveScore), content_session_id: contentSessionId, session_complete: 1,
+      anomaly_flagged: session.anomaly_flagged,
     }, 'session_id = ?', [session_id]);
 
     sqliteUpdate('pages_children', {

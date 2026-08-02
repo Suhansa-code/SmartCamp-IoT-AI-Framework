@@ -1,4 +1,4 @@
-import { pagesDb, sqliteInsert, sqliteGetLastChildId } from '../../config/database.js';
+import { pagesDb, sqliteInsert, sqliteUpdate, sqliteGetLastChildId } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { nextChildId, enqueue, nowISO } from '../../utils/helpers.js';
@@ -81,4 +81,140 @@ export async function testChildIdGeneration(req, res, next) {
     logger.error(`[DB] Failed to insert test child: ${err.message}`);
     return res.status(500).json({ success: false, message: 'Failed to insert test child' });
   }
+}
+
+function parseTriggerDetail(value) {
+  if (!value) return null;
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return value; }
+}
+
+export async function getChildDirectory(req, res, next) {
+  try {
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const rawPage = Number.parseInt(req.query.page, 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 5;
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const offset = (page - 1) * limit;
+
+    const totalRow = pagesDb.prepare('SELECT COUNT(*) AS total FROM pages_children').get();
+    const rows = pagesDb.prepare(`
+      SELECT child_id, res_id, grade, camp_id, zone_id, language,
+             enrolled_at, total_sessions, baseline_score,
+             consecutive_low, sdq_band, alert_status, synced, qr_code_data
+      FROM pages_children
+      ORDER BY child_id ASC
+      LIMIT ? OFFSET ?
+    `).all(limit, offset);
+
+    const total = Number(totalRow?.total || 0);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return res.json({
+      success: true,
+      children: rows.map((row) => ({ ...row, synced: Number(row.synced) || 0 })),
+      pagination: { page, limit, total, totalPages, hasPrev: page > 1, hasNext: page < totalPages },
+    });
+  } catch (err) { next(err); }
+}
+
+export async function getChildEducation(req, res, next) {
+  try {
+    const { childId } = req.params;
+    const normalizedChildId = childId.trim().toUpperCase();
+
+    const childRow = pagesDb.prepare(`
+      SELECT child_id, res_id, grade, camp_id, zone_id, language,
+             enrolled_at, total_sessions, baseline_score,
+             consecutive_low, sdq_band, alert_status, synced, qr_code_data
+      FROM pages_children WHERE child_id = ?
+    `).get(normalizedChildId);
+    if (!childRow) return next(createError(404, `Child not found: ${normalizedChildId}`));
+
+    const sessionRows = pagesDb.prepare(`
+      SELECT session_id, content_session_id, session_date, session_time,
+             condition_label, composite_score, task_score, passive_score,
+             baseline_score_used, gate_decision, second_gate_score,
+             cognitive_score, session_complete, anomaly_flagged,
+             z_score, if_score, alert_triggered, synced, created_at
+      FROM pages_sessions WHERE child_id = ?
+      ORDER BY created_at DESC
+    `).all(normalizedChildId);
+
+    const alertRows = pagesDb.prepare(`
+      SELECT alert_id, alert_type, trigger_detail, triggered_at,
+             status, resolved_at, resolved_notes, synced
+      FROM pages_alerts WHERE child_id = ?
+      ORDER BY triggered_at DESC
+    `).all(normalizedChildId);
+
+    const alerts = alertRows.map((row) => ({
+      ...row, trigger_detail: parseTriggerDetail(row.trigger_detail),
+    }));
+
+    const syncedSessions = sessionRows.filter((r) => Number(r.synced) === 1).length;
+    const syncedAlerts = alertRows.filter((r) => Number(r.synced) === 1).length;
+    const pendingAlerts = alertRows.filter((r) => r.status === 'pending').length;
+    const resolvedAlerts = alertRows.filter((r) => r.status === 'resolved').length;
+
+    return res.json({
+      success: true,
+      child: { ...childRow, synced: Number(childRow.synced) || 0 },
+      sessions: sessionRows,
+      alerts,
+      stats: {
+        total_sessions: Number(childRow.total_sessions) || sessionRows.length,
+        session_history_count: sessionRows.length,
+        synced_sessions: syncedSessions,
+        unsynced_sessions: sessionRows.length - syncedSessions,
+        pending_alerts: pendingAlerts,
+        resolved_alerts: resolvedAlerts,
+        synced_alerts: syncedAlerts,
+        unsynced_alerts: alertRows.length - syncedAlerts,
+      },
+    });
+  } catch (err) { next(err); }
+}
+
+export async function saveLanguagePreference(req, res, next) {
+  try {
+    const { child_id, language } = req.body;
+    if (!child_id || !language) return next(createError(400, 'child_id and language are required'));
+    if (!['en', 'si', 'ta'].includes(language)) return next(createError(400, 'Invalid language code'));
+
+    sqliteUpdate('pages_children', { language }, 'child_id = ?', [child_id]);
+    logger.info(`[CHILD] Language preference saved for ${child_id}: ${language}`);
+    return res.json({ success: true, message: `Language preference updated to ${language}`, child_id, language });
+  } catch (err) { next(err); }
+}
+
+export async function getChildQRCode(req, res, next) {
+  try {
+    const { childId } = req.params;
+    const child = pagesDb.prepare('SELECT child_id, qr_code_data FROM pages_children WHERE child_id = ?').get(childId);
+    if (!child) return next(createError(404, `Child not found: ${childId}`));
+    if (!child.qr_code_data) return next(createError(404, `QR code not available for child: ${childId}`));
+
+    const html = `<!DOCTYPE html>
+      <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>QR Code - ${childId}</title>
+      <style>
+        body { margin:0; padding:20px; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f5f5f5; font-family:Arial,sans-serif; }
+        .qr-container { background:white; padding:30px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); text-align:center; }
+        .qr-container img { max-width:300px; height:auto; margin:20px 0; }
+        .child-info { font-size:18px; font-weight:bold; margin-top:20px; color:#333; }
+        .print-btn { margin-top:20px; padding:10px 20px; background:#0D9488; color:white; border:none; border-radius:4px; cursor:pointer; font-size:16px; }
+        .print-btn:hover { background:#0a7570; }
+        @media print { body { background:white; padding:0; } .print-btn { display:none; } }
+      </style></head><body>
+        <div class="qr-container">
+          <h1>PAGES Child QR Code</h1>
+          <img src="${child.qr_code_data}" alt="QR Code for ${childId}">
+          <div class="child-info">Child ID: ${childId}</div>
+          <button class="print-btn" onclick="window.print()">Print QR Code</button>
+        </div>
+      </body></html>`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) { next(err); }
 }

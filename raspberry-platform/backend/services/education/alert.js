@@ -54,3 +54,53 @@ function resetConsecutiveLow(childId) {
   pagesDb.prepare('UPDATE pages_children SET consecutive_low = 0 WHERE child_id = ?').run(childId);
   logger.info(`[ALERT] Reset consecutive_low for child ${childId}`);
 }
+
+export function getAlerts(status) {
+  const whereClause = status ? 'WHERE a.status = ?' : '';
+  const params = status ? [status] : [];
+
+  const alerts = pagesDb.prepare(`
+    SELECT a.alert_id, a.child_id, a.camp_id, a.res_id, a.alert_type,
+           a.trigger_detail, a.triggered_at, a.status, a.resolved_at, a.resolved_notes
+    FROM pages_alerts a ${whereClause}
+    ORDER BY a.triggered_at DESC
+  `).all(...params);
+
+  return alerts.map((alert) => {
+    const recentSessions = pagesDb.prepare(`
+      SELECT composite_score FROM pages_sessions
+      WHERE child_id = ? ORDER BY created_at DESC LIMIT 5
+    `).all(alert.child_id);
+    const recentScores = recentSessions
+      .map((s) => (s.composite_score !== null ? Math.round(s.composite_score) : null))
+      .filter((s) => s !== null)
+      .reverse();
+    return { ...alert, recent_scores: recentScores };
+  });
+}
+
+export function resolveAlert(alertId, notes) {
+  const alert = pagesDb.prepare('SELECT alert_id, child_id FROM pages_alerts WHERE alert_id = ?').get(alertId);
+  if (!alert) return false;
+
+  const resolveTransaction = pagesDb.transaction(() => {
+    pagesDb.prepare(`
+      UPDATE pages_alerts SET status = 'resolved', resolved_at = ?, resolved_notes = ?
+      WHERE alert_id = ?
+    `).run(nowISO(), notes || null, alertId);
+
+    const pendingCount = pagesDb.prepare(`
+      SELECT COUNT(*) AS cnt FROM pages_alerts WHERE child_id = ? AND status = 'pending'
+    `).get(alert.child_id).cnt;
+
+    if (pendingCount === 0) {
+      pagesDb.prepare("UPDATE pages_children SET alert_status = 'none' WHERE child_id = ?").run(alert.child_id);
+    }
+
+    enqueue('pages_alerts', alertId, 'UPDATE');
+  });
+
+  resolveTransaction();
+  logger.info(`[ALERT] Resolved alert ${alertId}`);
+  return true;
+}

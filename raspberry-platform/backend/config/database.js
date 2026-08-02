@@ -19,10 +19,11 @@ function ensureDir(filePath) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 ensureDir(C.CAMP_DB_PATH);
-const campDb = new Database(path.resolve(rootDir, C.CAMP_DB_PATH), { timeout: 5000 });
+const campDb = new Database(path.resolve(rootDir, C.CAMP_DB_PATH), { timeout: 30000 });
 campDb.pragma('journal_mode = WAL');
 campDb.pragma('foreign_keys = ON');
 campDb.pragma('synchronous = NORMAL');
+campDb.pragma('busy_timeout = 30000');
 
 function initializeCampDb() {
   campDb.exec(`
@@ -132,10 +133,11 @@ if (!fs.existsSync(modelsDir)) fs.mkdirSync(modelsDir, { recursive: true });
 
 let pagesDb;
 try {
-  pagesDb = new Database(path.resolve(rootDir, C.PAGES_DB_PATH), { timeout: 5000 });
+  pagesDb = new Database(path.resolve(rootDir, C.PAGES_DB_PATH), { timeout: 30000 });
   pagesDb.pragma('journal_mode = WAL');
   pagesDb.pragma('foreign_keys = ON');
   pagesDb.pragma('synchronous = NORMAL');
+  pagesDb.pragma('busy_timeout = 30000');
 
   const schemaPath = path.resolve(rootDir, 'db/pages-schema.sql');
   if (fs.existsSync(schemaPath)) {

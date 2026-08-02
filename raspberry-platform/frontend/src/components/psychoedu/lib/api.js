@@ -36,6 +36,15 @@ export async function saveLanguagePreference(childId, language) {
   })
 }
 
+export async function fetchChildEducation(childId) {
+  return apiFetch(`/api/child/${encodeURIComponent(childId)}/education`)
+}
+
+export async function fetchChildDirectory(page = 1, limit = 5) {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) })
+  return apiFetch(`/api/child/list?${query.toString()}`)
+}
+
 export async function submitScore(payload) {
   // payload: { sessionId, score, totalTrials, results }
   return apiFetch('/api/session/score', {
