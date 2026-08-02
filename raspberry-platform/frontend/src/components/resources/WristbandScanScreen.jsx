@@ -323,7 +323,6 @@ function WristbandScanScreen() {
         </AnimatePresence>
 
       </div>
-    </div>
   );
 }
 

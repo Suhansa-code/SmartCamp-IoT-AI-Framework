@@ -13,16 +13,13 @@ const STATE_STYLE = {
 };
 
 const STATE_DESC = {
-  STABLE:   'Network healthy — full QoS 2 for critical messages',
-  DEGRADED: 'Network congested — QoS automatically upgraded to protect delivery',
-  CRITICAL: 'Network failing — critical messages downgraded to QoS 1, others buffered',
+  STABLE:   'Network healthy — full QoS 2 for critical messages.',
+  DEGRADED: 'Network congested — QoS automatically upgraded to protect delivery.',
+  CRITICAL: 'Network failing — critical messages downgraded to QoS 1, others buffered.',
   UNKNOWN:  'Waiting for first ML prediction…',
 };
 
 // Matches decideAdaptiveQoS in saampMqtt.js
-// STABLE:   full base QoS (CRITICAL → QoS 2, network can handle it)
-// DEGRADED: QoS upgraded to protect delivery on stressed network
-// CRITICAL: only CRITICAL priority sent at QoS 1 (2-way handshake survives lossy links better than QoS 2's 4-way)
 const QOS_TABLE = [
   { priority: 'CRITICAL', pColor: 'text-red-600',    stable: { qos: 2, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: false } },
   { priority: 'HIGH',     pColor: 'text-orange-500', stable: { qos: 1, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: true  } },
@@ -54,6 +51,21 @@ function CardHeader({ icon: Icon, title, subtitle }) {
     </div>
   )
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function NetworkScreen() {
   const [status, setStatus] = useState(null);

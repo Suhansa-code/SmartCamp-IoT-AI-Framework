@@ -347,9 +347,7 @@ function PredictionScreen() {
             </motion.div>
           )}
         </AnimatePresence>
-
       </div>
-    </div>
   );
 }
 
