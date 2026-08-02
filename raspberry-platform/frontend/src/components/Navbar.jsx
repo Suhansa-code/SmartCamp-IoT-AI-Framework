@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Children } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link, useRouter } from '../lib/router'
 import { useAuth } from '../lib/AuthContext'
@@ -21,6 +21,7 @@ const tabs = [
   { id: 'registration', label: 'Registration', path: '/registration', icon: Fingerprint },
   { id: 'wristband', label: 'Distribution', path: '/wristband', icon: ScanBarcode },
   { id: 'prediction', label: 'AI Predictions', path: '/prediction', icon: BrainCircuit },
+  { id: 'educationscreen', label: 'Education', path: '/educationscreen', icon: BrainCircuit },
   { id: 'network', label: 'Network', path: '/network', icon: Activity },
   { id: 'disaster', label: 'Disaster', path: '/disaster', icon: Map },
 ]

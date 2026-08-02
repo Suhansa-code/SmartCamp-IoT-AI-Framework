@@ -4,7 +4,7 @@
 
 const BASE =
   import.meta.env.VITE_API_URL ||
-  'http://localhost:3001'
+  'http://localhost:5000'
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -34,6 +34,15 @@ export async function saveLanguagePreference(childId, language) {
     method: 'POST',
     body: JSON.stringify({ child_id: childId, language }),
   })
+}
+
+export async function fetchChildEducation(childId) {
+  return apiFetch(`/api/child/${encodeURIComponent(childId)}/education`)
+}
+
+export async function fetchChildDirectory(page = 1, limit = 5) {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) })
+  return apiFetch(`/api/child/list?${query.toString()}`)
 }
 
 export async function submitScore(payload) {
