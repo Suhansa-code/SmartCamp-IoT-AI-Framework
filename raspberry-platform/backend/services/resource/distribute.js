@@ -44,7 +44,7 @@ export async function distributeResource(barcode, resourceType) {
 
   const payload = {
     event: 'distribution', person_id: person.id, person_name: person.full_name,
-    barcode, resource_type, quantity: quantities[resourceType], timestamp: new Date().toISOString(),
+    barcode, resource_type: resourceType, quantity: quantities[resourceType], timestamp: new Date().toISOString(),
   };
 
   let mqttResult;
