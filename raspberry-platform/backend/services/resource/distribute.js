@@ -25,7 +25,7 @@ export async function distributeResource(barcode, resourceType) {
   }
 
   const existing = db.prepare(
-    'SELECT id FROM distributions WHERE wristband_barcode = ? AND resource_type = ? AND DATE(distributed_at) = DATE("now")'
+    "SELECT id FROM distributions WHERE wristband_barcode = ? AND resource_type = ? AND DATE(distributed_at) = DATE('now')"
   ).get(barcode, resourceType);
   if (existing) {
     throw Object.assign(new Error(`${resourceType} already distributed today.`), { status: 400 });
@@ -38,7 +38,7 @@ export async function distributeResource(barcode, resourceType) {
   const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(wristband.person_id);
 
   const given = new Set(
-    db.prepare('SELECT resource_type FROM distributions WHERE wristband_barcode = ? AND DATE(distributed_at) = DATE("now")')
+    db.prepare("SELECT resource_type FROM distributions WHERE wristband_barcode = ? AND DATE(distributed_at) = DATE('now')")
       .all(barcode).map(d => d.resource_type)
   );
 
