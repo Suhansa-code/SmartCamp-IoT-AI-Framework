@@ -105,22 +105,42 @@ let db;
 try {
   db = new Database(path.resolve(C.SQLITE_PATH), {
     // verbose: C.NODE_ENV === 'development' ? console.log : null,
-    timeout: 5000,
+    timeout: 30000,
   });
 
   // Apply WAL mode and FK enforcement immediately
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.pragma('synchronous = NORMAL');
+  db.pragma('busy_timeout = 30000');
 
   // Apply schema
   const schemaPath = path.resolve('./database/schema.sql');
   if (fs.existsSync(schemaPath)) {
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    db.exec(schema);
-    migrateSelectedAnswerConstraint(db);
-    migrateAddQRCodeColumn(db);
-    logger.info('[DB] SQLite schema applied successfully');
+    const childrenTableExists = db
+      .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'pages_children'`)
+      .get();
+
+    if (childrenTableExists) {
+      logger.info('[DB] SQLite schema already present; skipping startup migration pass');
+    } else {
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+      try {
+        runWithBusyRetry(() => {
+          db.exec(schema);
+          migrateSelectedAnswerConstraint(db);
+          migrateAddQRCodeColumn(db);
+        }, 'SQLite schema application', 5);
+        logger.info('[DB] SQLite schema applied successfully');
+      } catch (err) {
+        const isBusy = err?.code === 'SQLITE_BUSY' || /database is locked/i.test(err?.message || '');
+        if (!isBusy) {
+          throw err;
+        }
+
+        logger.warn('[DB] SQLite schema application skipped because the database is locked; continuing with existing schema');
+      }
+    }
   } else {
     logger.warn('[DB] schema.sql not found — tables may not exist');
   }
@@ -193,6 +213,34 @@ async function pgQuery(text, params = []) {
 // These provide sync wrappers around better-sqlite3 for use in controllers
 // ═══════════════════════════════════════════════════════════════════════════
 
+function sleepSync(ms) {
+  const shared = new SharedArrayBuffer(4);
+  const view = new Int32Array(shared);
+  Atomics.wait(view, 0, 0, ms);
+}
+
+function runWithBusyRetry(operation, context, attempts = 8) {
+  let lastErr;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return operation();
+    } catch (err) {
+      lastErr = err;
+      const isBusy = err?.code === 'SQLITE_BUSY' || /database is locked/i.test(err?.message || '');
+      if (!isBusy || attempt === attempts) {
+        throw err;
+      }
+
+      const waitMs = 250 * (2 ** (attempt - 1));
+      logger.warn(`[SQLite] ${context} busy on attempt ${attempt}/${attempts}; retrying in ${waitMs}ms`);
+      sleepSync(waitMs);
+    }
+  }
+
+  throw lastErr;
+}
+
 /**
  * Insert a record into SQLite table
  * @param {string} table - Table name
@@ -212,7 +260,10 @@ function sqliteInsert(table, data) {
     logger.debug(`  Values: ${JSON.stringify(values)}`);
     
     const stmt = db.prepare(sql);
-    const result = stmt.run(...values);
+    const result = runWithBusyRetry(
+      () => stmt.run(...values),
+      `INSERT into ${table}`
+    );
     logger.info(`[SQLite] Inserted into ${table}: changes=${result.changes}`);
     return { success: true, changes: result.changes };
   } catch (err) {
@@ -261,7 +312,10 @@ function sqliteUpdate(table, data, whereClause, whereParams = []) {
   
   try {
     const stmt = db.prepare(sql);
-    const result = stmt.run(...values, ...whereParams);
+    const result = runWithBusyRetry(
+      () => stmt.run(...values, ...whereParams),
+      `UPDATE ${table}`
+    );
     logger.info(`[SQLite] Updated ${table}: ${JSON.stringify(data)} where ${whereClause}`);
     return { success: true, changes: result.changes };
   } catch (err) {

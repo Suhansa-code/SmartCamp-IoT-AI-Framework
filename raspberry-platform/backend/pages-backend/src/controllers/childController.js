@@ -171,4 +171,137 @@ async function getChild(req, res, next) {
   }
 }
 
-export { enrolChild, getChild, testChildIdGeneration };
+function parseTriggerDetail(value) {
+  if (!value) return null;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+async function getChildDirectory(req, res, next) {
+  try {
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const rawPage = Number.parseInt(req.query.page, 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 5;
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const offset = (page - 1) * limit;
+
+    const totalRow = db.prepare(`
+      SELECT COUNT(*) AS total FROM pages_children
+    `).get();
+
+    const rows = db.prepare(`
+      SELECT
+        child_id, res_id, grade, camp_id, zone_id, language,
+        enrolled_at, total_sessions, baseline_score,
+        consecutive_low, sdq_band, alert_status, synced, qr_code_data
+      FROM pages_children
+      ORDER BY child_id ASC
+      LIMIT ? OFFSET ?
+    `).all(limit, offset);
+
+    const total = Number(totalRow?.total || 0);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return res.json({
+      success: true,
+      children: rows.map((row) => ({
+        ...row,
+        synced: Number(row.synced) || 0,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasPrev: page > 1,
+        hasNext: page < totalPages,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getChildEducation(req, res, next) {
+  try {
+    const { childId } = req.params;
+    const normalizedChildId = childId.trim().toUpperCase();
+
+    const childRow = db.prepare(`
+      SELECT
+        child_id, res_id, grade, camp_id, zone_id, language,
+        enrolled_at, total_sessions, baseline_score,
+        consecutive_low, sdq_band, alert_status, synced, qr_code_data
+      FROM pages_children
+      WHERE child_id = ?
+    `).get(normalizedChildId);
+
+    if (!childRow) {
+      return next(createError(404, `Child not found: ${normalizedChildId}`));
+    }
+
+    const sessionRows = db.prepare(`
+      SELECT
+        session_id, content_session_id, session_date, session_time,
+        condition_label, composite_score, task_score, passive_score,
+        baseline_score_used, gate_decision, second_gate_score,
+        cognitive_score, session_complete, anomaly_flagged,
+        z_score, if_score, alert_triggered, synced, created_at
+      FROM pages_sessions
+      WHERE child_id = ?
+      ORDER BY created_at DESC
+    `).all(normalizedChildId);
+
+    const alertRows = db.prepare(`
+      SELECT
+        alert_id, alert_type, trigger_detail, triggered_at,
+        status, resolved_at, resolved_notes, synced
+      FROM pages_alerts
+      WHERE child_id = ?
+      ORDER BY triggered_at DESC
+    `).all(normalizedChildId);
+
+    const sessions = sessionRows.map((row) => ({
+      ...row,
+      trigger_detail: row.trigger_detail ? parseTriggerDetail(row.trigger_detail) : undefined,
+    }));
+
+    const alerts = alertRows.map((row) => ({
+      ...row,
+      trigger_detail: parseTriggerDetail(row.trigger_detail),
+    }));
+
+    const syncedSessions = sessionRows.filter((row) => Number(row.synced) === 1).length;
+    const syncedAlerts = alertRows.filter((row) => Number(row.synced) === 1).length;
+    const pendingAlerts = alertRows.filter((row) => row.status === 'pending').length;
+    const resolvedAlerts = alertRows.filter((row) => row.status === 'resolved').length;
+
+    return res.json({
+      success: true,
+      child: {
+        ...childRow,
+        synced: Number(childRow.synced) || 0,
+      },
+      sessions,
+      alerts,
+      stats: {
+        total_sessions: Number(childRow.total_sessions) || sessions.length,
+        session_history_count: sessions.length,
+        synced_sessions: syncedSessions,
+        unsynced_sessions: sessionRows.length - syncedSessions,
+        pending_alerts: pendingAlerts,
+        resolved_alerts: resolvedAlerts,
+        synced_alerts: syncedAlerts,
+        unsynced_alerts: alertRows.length - syncedAlerts,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export { enrolChild, getChild, getChildDirectory, getChildEducation, testChildIdGeneration };

@@ -9,6 +9,7 @@ import ContentCard from './components/psychoedu/child/ContentCard'
 // Resource Management Component
 import RegistrationScreen from './components/resources/RegistrationScreen'
 import WristbandScanScreen from './components/resources/WristbandScanScreen'
+import ChildEducationScreen from './components/childEducation/ChildEducationScreen'
 import PredictionScreen from './components/resources/PredictionScreen'
 import NetworkScreen from './components/resources/NetworkScreen'
 // Context & Shared
@@ -158,6 +159,7 @@ function AppContent() {
 
         {activeTab === 'registration' && <RegistrationScreen />}
         {activeTab === 'wristband' && <WristbandScanScreen />}
+        {activeTab === 'childEducation' && <ChildEducationScreen />}
         {activeTab === 'prediction' && <PredictionScreen />}
         {activeTab === 'network' && <NetworkScreen />}
       </div>

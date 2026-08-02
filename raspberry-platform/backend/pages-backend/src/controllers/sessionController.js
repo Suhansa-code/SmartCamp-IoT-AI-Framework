@@ -392,7 +392,7 @@ async function secondGate(req, res, next) {
   }
 }
  
-//POST /api/session/complete 
+// POST /api/session/complete 
 async function completeSession(req, res, next) {
   try {
     const {
@@ -407,108 +407,86 @@ async function completeSession(req, res, next) {
 
     // Validate required fields
     if (!session_id || !child_id) {
-      logger.error(`[SESSION COMPLETE] Missing required fields: session_id=${session_id}, child_id=${child_id}`);
       return next(createError(400, 'Missing session_id or child_id'));
     }
-
     if (cognitiveScore === undefined || cognitiveScore === null || isNaN(Number(cognitiveScore))) {
-      logger.error(`[SESSION COMPLETE] Invalid cognitiveScore: ${cognitiveScore}`);
       return next(createError(400, 'Invalid or missing cognitiveScore'));
     }
 
     // Fetch session record
-    const sessionRows = sqliteRetrieve(
-      'pages_sessions',
-      undefined,
-      'session_id = ?',
-      [session_id]
-    )
-    const session = sessionRows[0]
-    if (!session) {
-      logger.error(`[SESSION COMPLETE] Session not found: ${session_id}`);
-      return next(createError(404, `Session not found: ${session_id}`));
+    const sessionRows = sqliteRetrieve('pages_sessions', undefined, 'session_id = ?', [session_id]);
+    const session = sessionRows[0];
+    if (!session) return next(createError(404, `Session not found: ${session_id}`));
+
+    // Fetch child record
+    const childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [child_id]);
+    const child = childRows[0];
+    if (!child) return next(createError(404, `Child not found: ${child_id}`));
+
+    // Compute new baseline
+    const compositeScore = session.composite_score || child.baseline_score;
+    const newBaseline = updateBaseline(child.baseline_score, compositeScore);
+
+    // Save content responses
+    for (const r of contentResponses) {
+      const responseId = newId();
+      const row = {
+        response_id: responseId,
+        session_id,
+        child_id,
+        task_id: r.taskId,
+        selected_answer: r.answer,
+        is_correct: r.isCorrect ? 1 : 0,
+        time_taken_ms: r.timeTakenMs || 0,
+        responded_at: nowISO(),
+      };
+      sqliteInsert('pages_content_responses', row);
+      enqueue('pages_content_responses', responseId, 'INSERT');
     }
 
-    // Get Turso child record    
-    const childRows = sqliteRetrieve(
+    // Mark session complete (persist anomaly_flagged as it was set earlier)
+    sqliteUpdate(
+      'pages_sessions',
+      {
+        cognitive_score: Number(cognitiveScore),
+        content_session_id: contentSessionId,
+        session_complete: 1,
+        anomaly_flagged: session.anomaly_flagged
+      },
+      'session_id = ?',
+      [session_id]
+    );
+    enqueue('pages_sessions', session_id, 'UPDATE');
+
+    // Update child baseline + total sessions
+    sqliteUpdate(
       'pages_children',
-      undefined,
+      {
+        baseline_score: newBaseline,
+        total_sessions: child.total_sessions + 1,
+        consecutive_low: compositeScore >= C.GATE_THRESHOLD ? 0 : child.consecutive_low,
+      },
       'child_id = ?',
       [child_id]
     );
-    const child = childRows[0];
-    if (!child) return next(createError(404, `Child not found: ${child_id}`));
- 
-    // Compute new baseline
-    const compositeScore = session.composite_score || child.baseline_score;
-    const newBaseline    = updateBaseline(child.baseline_score, compositeScore);
-    const contentRowsToSync = [];
- 
+    enqueue('pages_children', child_id, 'UPDATE');
 
-      for (const r of contentResponses) {
-        const responseId = newId();
-        const row = {
-          response_id: responseId,
-          session_id,
-          child_id,
-          task_id: r.taskId,
-          selected_answer: r.answer,
-          is_correct: r.isCorrect ? 1 : 0,
-          time_taken_ms: r.timeTakenMs || 0,
-          responded_at: nowISO(),
-        };
-        sqliteInsert('pages_content_responses', row);
-        contentRowsToSync.push(row);
-        enqueue('pages_content_responses', responseId, 'INSERT');
-      }
- 
-      // 2. Mark session complete
-      logger.info(`[SESSION COMPLETE] Updating session ${session_id} with cognitive_score=${cognitiveScore}, content_session_id=${contentSessionId}, session_complete=1`);
-      
-      sqliteUpdate(
-        'pages_sessions',
-        {
-          cognitive_score: Number(cognitiveScore),
-          content_session_id: contentSessionId,
-          session_complete: 1,
-        },
-        'session_id = ?',
-        [session_id]
-      );
-      enqueue('pages_sessions', session_id, 'UPDATE');
-      logger.info(`[SESSION COMPLETE] ✅ Session ${session_id} marked as complete`);
+    // Re-fetch updated session to check anomaly flag
+    const updatedSessionRows = sqliteRetrieve('pages_sessions', 'anomaly_flagged', 'session_id = ?', [session_id]);
+    const updatedSession = updatedSessionRows[0];
 
-      // 3. Update child baseline + total sessions
-      logger.info(`[SESSION COMPLETE] Updating child ${child_id}: baseline=${newBaseline}, total_sessions=${child.total_sessions + 1}`);
-      
-      sqliteUpdate(
-        'pages_children',
-        {
-          baseline_score: newBaseline,
-          total_sessions: child.total_sessions + 1,
-          consecutive_low: compositeScore >= C.GATE_THRESHOLD ? 0 : child.consecutive_low,
-        },
-        'child_id = ?',
-        [child_id]
-      );
+    if (updatedSession && updatedSession.anomaly_flagged === 1) {
+      logger.info(`[ALERT] Running alert check for child ${child_id}, session ${session_id}`);
+      checkAndCreateAlert(child_id, session_id);
+    }
 
- 
-      // 4. Enqueue session + children for sync
-      enqueue('pages_sessions',  session_id, 'UPDATE');
-      enqueue('pages_children',  child_id,   'UPDATE');
-      logger.info(`[SESSION COMPLETE] ✅ Child ${child_id} updated`);
- 
-    logger.info(
-      `[SESSION] Complete: session=${session_id}, cognitive=${cognitiveScore}, ` +
-      `new_baseline=${newBaseline}`
-    );
- 
+    logger.info(`[SESSION COMPLETE]  Child ${child_id} updated, baseline=${newBaseline}`);
     return res.json({
-      success:      true,
-      message:      'Session saved',
+      success: true,
+      message: 'Session saved',
       new_baseline: newBaseline,
     });
- 
+
   } catch (err) {
     next(err);
   }

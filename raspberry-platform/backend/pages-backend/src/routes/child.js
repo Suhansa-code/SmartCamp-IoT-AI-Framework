@@ -64,8 +64,14 @@ router.get('/:childId/qrcode', (req, res, next) => {
   }
 });
 
+// GET /api/child/list - Paginated list of children from pages_children
+router.get('/list', ctrl.getChildDirectory);
+
 // GET /api/child/:childId - Get child profile
 router.get('/:childId', ctrl.getChild);
+
+// GET /api/child/:childId/education - Get child education dashboard payload
+router.get('/:childId/education', ctrl.getChildEducation);
 
 // POST /api/child/language - Save language preference to Turso
 router.post('/language', async (req, res, next) => {
