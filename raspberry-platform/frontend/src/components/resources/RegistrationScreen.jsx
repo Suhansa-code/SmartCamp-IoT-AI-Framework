@@ -807,7 +807,7 @@ function RegistrationScreen() {
   return (
     <div className="min-h-[calc(100svh-3.5rem)]  text-slate-800 font-sans relative">
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
