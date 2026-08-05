@@ -4,9 +4,11 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const isWindows = process.platform === 'win32'
+
 const DEFAULT_PYTHON_PATH = path.resolve(
   __dirname,
-  '../../../../edge-gateway/scripts/OpenStreet API/.venv/Scripts/python.exe',
+  `../../../../edge-gateway/scripts/.venv/bin/${isWindows ? 'python.exe' : 'python'}`,
 )
 const DEFAULT_SCRIPT_PATH = path.resolve(
   __dirname,
