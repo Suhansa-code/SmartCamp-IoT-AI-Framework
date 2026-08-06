@@ -390,7 +390,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
           loading={submitting}
           loadingText="Enrolling…"
           onClick={handleSubmit}
-          className="flex-[2]"
+          className="flex-2"
         >
           Enroll &amp; Issue Wristband
           <ArrowRight className="w-4 h-4" />
@@ -513,7 +513,7 @@ function ReturningSearch({ query, setQuery, results, onSearch, onSelect, searchi
         <ErrorState message={error} className="border-0 bg-red-50 p-3" />
       )}
 
-      <div className="flex-1 overflow-y-auto space-y-2 max-h-[300px]">
+      <div className="flex-1 overflow-y-auto space-y-2 max-h-75">
         {!searching && results.length === 0 && !error && (
           <div className="text-center py-8">
             <p className="text-sm text-slate-400">
@@ -803,7 +803,7 @@ function RegistrationScreen() {
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <Card padding={false} className="p-5 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-[320px] lg:min-h-[420px]">
+            <Card padding={false} className="p-5 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-80 lg:min-h-105">
               <ScanningVisual scanState={scanState} />
 
               {scanState === "idle" && (
@@ -848,7 +848,7 @@ function RegistrationScreen() {
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <Card padding={false} className="p-5 sm:p-6 lg:p-8 min-h-[280px] lg:min-h-[420px] flex flex-col justify-center">
+            <Card padding={false} className="p-5 sm:p-6 lg:p-8 min-h-70 lg:min-h-105 flex flex-col justify-center">
               <AnimatePresence mode="wait">
               {(scanState === "idle" || scanState === "scanning") && (
                 <motion.div
