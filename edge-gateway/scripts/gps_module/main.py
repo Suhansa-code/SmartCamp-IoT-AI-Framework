@@ -1,6 +1,6 @@
 import serial
 
-ser = serial.Serial('COM7', 115200, timeout=1)
+ser = serial.Serial('COM5', 115200, timeout=1)
 
 print("Reading GPS raw data...")
 

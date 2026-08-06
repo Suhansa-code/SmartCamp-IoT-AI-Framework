@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Activity, Droplets, Wind, Thermometer, CloudRain, MapPin, AlertTriangle, Shield, Cpu, Gauge, RefreshCw, Radar } from 'lucide-react'
+import { Activity, Droplets, Wind, Thermometer, CloudRain, MapPin, AlertTriangle, Shield, Cpu, Gauge, RefreshCw, Radar, Navigation, Satellite } from 'lucide-react'
 import Button from '../ui/Button'
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000"
@@ -119,8 +119,16 @@ export default function DisasterMonitorPage() {
   const [camp, setCamp] = useState(null)
   const [models, setModels] = useState([])
   const [overview, setOverview] = useState(null)
+  const [gps, setGps] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const fetchGps = () => {
+    fetch(`${API}/api/disaster/gps`)
+      .then(r => r.json())
+      .then(setGps)
+      .catch(() => setGps({ latitude: null, longitude: null, altitude: null, satellites: 0, error: 'GPS unavailable', live: false }))
+  }
 
   const fetchAll = () => {
     setLoading(true)
@@ -144,8 +152,10 @@ export default function DisasterMonitorPage() {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 30000)
-    return () => clearInterval(interval)
+    fetchGps()
+    const dataInterval = setInterval(fetchAll, 30000)
+    const gpsInterval = setInterval(fetchGps, 5000)
+    return () => { clearInterval(dataInterval); clearInterval(gpsInterval) }
   }, [])
 
   const bestModel = useMemo(() => models.length > 0 ? models.reduce((a, b) => (a.roc_auc > b.roc_auc ? a : b)) : null, [models])
@@ -370,6 +380,43 @@ export default function DisasterMonitorPage() {
                   </div>
                 </div>
               )}
+
+              <div className={sectionCard}>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center border border-teal-100">
+                    <Navigation className="w-4 h-4 text-teal-600" />
+                  </div>
+                  <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Current Location</h2>
+                  {gps?.live && <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Live</span>}
+                  {gps?.error && !gps?.live && <span className="ml-auto text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5">Offline</span>}
+                </div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-[11px] text-slate-400">Latitude</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono">{gps?.latitude != null ? gps.latitude.toFixed(6) : '—'}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-[11px] text-slate-400">Longitude</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono">{gps?.longitude != null ? gps.longitude.toFixed(6) : '—'}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-[11px] text-slate-400">Altitude</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono">{gps?.altitude != null ? `${gps.altitude.toFixed(1)}m` : '—'}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-[11px] text-slate-400">Satellites</p>
+                      <p className="text-sm font-bold text-slate-800 font-mono flex items-center gap-1.5">
+                        <Satellite className="w-3.5 h-3.5 text-slate-400" />
+                        {gps?.satellites ?? '—'}
+                      </p>
+                    </div>
+                  </div>
+                  {gps?.fetched_at && (
+                    <p className="text-[10px] text-slate-400 text-right">Updated {new Date(gps.fetched_at).toLocaleTimeString()}</p>
+                  )}
+                </div>
+              </div>
 
               <div className={sectionCard}>
                 <div className="flex items-center gap-2.5 mb-4">

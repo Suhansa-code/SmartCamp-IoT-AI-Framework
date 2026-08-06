@@ -5,7 +5,7 @@ from pynmea2 import parse
 
 
 class GPSReader:
-    def __init__(self, port='COM7', baudrate=9600):
+    def __init__(self, port='COM5', baudrate=9600):
         self.serial_port = serial.Serial(port, baudrate, timeout=1)
 
     def get_gps_data(self):
