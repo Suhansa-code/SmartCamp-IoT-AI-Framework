@@ -15,8 +15,10 @@ import {
   Package,
 } from 'lucide-react';
 import Button from '../ui/base/Button';
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API } from '../ui/config';
+import PageHeader from '../ui/base/PageHeader';
+import Card from '../ui/base/Card';
+import Avatar from '../ui/base/Avatar';
 
 function WristbandScanScreen() {
   const [barcode, setBarcode] = useState('');
@@ -110,38 +112,9 @@ function WristbandScanScreen() {
     <div className="min-h-[calc(100svh-3.5rem)] bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
 
       <div className="max-w-7xl mx-auto  sm:px-6  sm:py-8 space-y-6 sm:space-y-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/25">
-              <ScanBarcode className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-semibold text-slate-800 tracking-tight">
-                Distribution Hub
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Scan wristbands to allocate daily resources safely
-              </p>
-            </div>
-          </div>
+        <PageHeader icon={ScanBarcode} title="Distribution Hub" subtitle="Scan wristbands to allocate daily resources safely" />
 
-          <div className="flex items-center gap-2 text-xs text-slate-500 bg-white/80 border border-slate-200/80 rounded-full px-3.5 py-1.5 w-fit shadow-sm">
-            <Package className="w-3.5 h-3.5 text-teal-600" />
-            <span className="font-medium">Daily Ration Allocation</span>
-          </div>
-        </motion.div>
-
-        <motion.form
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-6 sm:p-8"
-          onSubmit={handleScan}
-        >
+        <Card as="form" onSubmit={handleScan}>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
             Wristband Barcode
           </label>
@@ -184,7 +157,7 @@ function WristbandScanScreen() {
               Lookup
             </Button>
           </div>
-        </motion.form>
+        </Card>
 
         <AnimatePresence mode="wait">
           {statusMessage && !profile && (
@@ -210,10 +183,8 @@ function WristbandScanScreen() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="space-y-6"
             >
-              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-lg font-bold shrink-0 shadow-md shadow-teal-500/25">
-                  {profile.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
-                </div>
+              <Card className="flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
+                <Avatar name={profile.full_name} />
 
                 <div className="flex-1 text-center md:text-left">
                   <h3 className="text-xl font-semibold text-slate-800">{profile.full_name}</h3>
@@ -256,7 +227,7 @@ function WristbandScanScreen() {
                     <AlertCircle className="w-4 h-4" /> {statusMessage}
                   </motion.div>
                 )}
-              </div>
+              </Card>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <DistributionTile
@@ -290,10 +261,7 @@ function WristbandScanScreen() {
               </div>
 
               {qosInfo && (
-                <motion.div
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl p-5 flex flex-wrap gap-4 text-xs font-semibold uppercase tracking-wider items-center shadow-[0_1px_4px_0_rgba(0,0,0,0.04)]"
-                >
+                <Card className="flex flex-wrap gap-4 text-xs font-semibold uppercase tracking-wider items-center">
                   <span className="text-slate-500 flex items-center gap-2">
                     <Activity className="w-4 h-4 text-teal-600" /> MQTT Sync
                   </span>
@@ -311,7 +279,7 @@ function WristbandScanScreen() {
                   }`}>
                     {qosInfo.published ? <><PackageCheck className="w-3 h-3" /> Published</> : 'Buffered locally'}
                   </span>
-                </motion.div>
+                </Card>
               )}
 
             </motion.div>
@@ -327,12 +295,11 @@ function DistributionTile({ label, icon: Icon, quantity, given, onGive }) {
   const isGiven = given;
 
   return (
-    <motion.div
-      whileHover={!isGiven ? { y: -4 } : {}}
-      className={`relative rounded-2xl p-5 text-center transition-all duration-300 overflow-hidden flex flex-col items-center justify-center min-h-[200px] ${
+    <Card
+      className={`relative p-5 text-center transition-all duration-300 overflow-hidden flex flex-col items-center justify-center min-h-[200px] ${
         isGiven
           ? 'bg-teal-50/70 border-2 border-teal-100'
-          : 'bg-white/90 backdrop-blur-xl border border-slate-200/70 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]'
+          : 'hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]'
       }`}
     >
       {!isGiven && (
@@ -359,7 +326,7 @@ function DistributionTile({ label, icon: Icon, quantity, given, onGive }) {
           </Button>
         )}
       </div>
-    </motion.div>
+    </Card>
   );
 }
 

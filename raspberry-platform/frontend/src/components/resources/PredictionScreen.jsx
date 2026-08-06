@@ -13,14 +13,11 @@ import {
   Sparkles,
 } from 'lucide-react';
 import Button from '../ui/base/Button';
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const NETWORK_STYLE = {
-  STABLE:   { badge: 'bg-emerald-50 text-emerald-700 border-emerald-100', dot: 'bg-emerald-500' },
-  DEGRADED: { badge: 'bg-amber-50 text-amber-700 border-amber-100',   dot: 'bg-amber-500' },
-  CRITICAL: { badge: 'bg-red-50 text-red-700 border-red-100',      dot: 'bg-red-500' },
-};
+import { API, NETWORK_STYLE } from '../ui/config';
+import PageHeader from '../ui/base/PageHeader';
+import Card from '../ui/base/Card';
+import SectionHeader from '../ui/base/SectionHeader';
+import StatCard from '../ui/base/StatCard';
 
 const STATUS_STYLE = {
   none:     'bg-slate-100 text-slate-500 border-slate-200',
@@ -47,29 +44,6 @@ const TYPE_LABELS = {
   stateless:         'Stateless',
   ooc:               'Others of Concern',
 };
-
-function StatChip({ label, value, unit = '', icon: Icon, delay = 0 }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl p-4 flex flex-col relative overflow-hidden group hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300"
-    >
-      <div className="absolute -right-4 -top-4 w-16 h-16 bg-gradient-to-br from-teal-500/10 to-sky-500/10 rounded-full group-hover:scale-150 transition-transform duration-500" />
-      <div className="flex items-center gap-2 mb-2">
-        {Icon && <Icon className="w-4 h-4 text-teal-600" />}
-        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
-      </div>
-      <span className="text-2xl font-bold text-slate-800 font-mono tracking-tight">
-        {typeof value === 'number' && value < 1 && value > 0
-          ? `${(value * 100).toFixed(1)}%`
-          : (value?.toLocaleString() ?? '—')}
-        {unit && <span className="text-sm text-slate-400 ml-1 font-sans">{unit}</span>}
-      </span>
-    </motion.div>
-  );
-}
 
 function ForecastRow({ row, isToday, index }) {
   const r = row.result;
@@ -173,41 +147,15 @@ function PredictionScreen() {
     }
   }, []);
 
-  const ns = NETWORK_STYLE[networkState] || NETWORK_STYLE.STABLE;
-
   return (
     <div className="min-h-[calc(100svh-3.5rem)] bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
 
       <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/25">
-              <BrainCircuit className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-semibold text-slate-800 tracking-tight">
-                AI Resource Forecast
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Predictive models driven by real-time demographics
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2 items-center flex-wrap">
-            <span className={`px-3.5 py-1.5 border rounded-full text-xs font-medium flex items-center gap-2 tracking-wide ${ns.badge}`}>
-              <span className={`w-2 h-2 rounded-full animate-pulse ${ns.dot}`} />
-              {networkState}
-            </span>
-            <span className={`px-3.5 py-1.5 border rounded-full text-xs font-medium tracking-wide ${STATUS_STYLE[reqStatus]}`}>
-              {STATUS_LABEL[reqStatus]}
-            </span>
-          </div>
-        </motion.div>
+        <PageHeader
+          icon={BrainCircuit}
+          title="AI Prediction"
+          subtitle="Resource allocation forecast"
+        />
 
         {campData && (
           <motion.div
@@ -216,35 +164,28 @@ function PredictionScreen() {
             transition={{ delay: 0.1 }}
             className="space-y-4"
           >
-            <div className="flex items-center justify-between px-2">
-              <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                <Users className="w-4 h-4 text-teal-600" />
-                Live Demographics
-              </h3>
-              <span className="text-[11px] bg-teal-50 text-teal-700 px-3 py-1 rounded-full font-medium border border-teal-100">
-                Auto-synced
-              </span>
-            </div>
+            <SectionHeader
+              title="Live Demographics"
+              icon={Users}
+              badge="Auto-synced"
+            />
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              <StatChip label="Total Population" value={campData.total_population} icon={Users} delay={0.1} />
-              <StatChip label="Daily Arrival" value={campData.daily_arrival_rate} unit="/ day" icon={TrendingUp} delay={0.2} />
-              <StatChip label="Children Ratio" value={campData.children_ratio} icon={Baby} delay={0.3} />
-              <StatChip label="Female Ratio" value={campData.female_ratio} icon={Users} delay={0.4} />
-              <StatChip label="Yearly Arrivals" value={campData.yearly_arrivals} icon={PackagePlus} delay={0.5} />
-              <StatChip label="Pregnant" value={campData.pregnant} icon={Activity} delay={0.6} />
-              <StatChip label="Chronic Illness" value={campData.chronic_illness} icon={Shield} delay={0.7} />
-              <StatChip label="Elderly Ratio" value={campData.elderly_ratio} icon={Users} delay={0.8} />
+              <StatCard label="Total Population" value={campData.total_population} icon={Users} delay={0.1} color="teal" />
+              <StatCard label="Daily Arrival" value={campData.daily_arrival_rate} unit="/ day" icon={TrendingUp} delay={0.2} color="amber" />
+              <StatCard label="Children Ratio" value={campData.children_ratio} icon={Baby} delay={0.3} color="sky" />
+              <StatCard label="Female Ratio" value={campData.female_ratio} icon={Users} delay={0.4} color="violet" />
+              <StatCard label="Yearly Arrivals" value={campData.yearly_arrivals} icon={PackagePlus} delay={0.5} color="emerald" />
+              <StatCard label="Pregnant" value={campData.pregnant} icon={Activity} delay={0.6} color="rose" />
+              <StatCard label="Chronic Illness" value={campData.chronic_illness} icon={Shield} delay={0.7} color="orange" />
+              <StatCard label="Elderly Ratio" value={campData.elderly_ratio} icon={Users} delay={0.8} color="slate" />
             </div>
 
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
-              className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl p-5 mt-4 shadow-[0_1px_4px_0_rgba(0,0,0,0.04)]"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-teal-600" />
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Category Breakdown</p>
-              </div>
+            <Card delay={0.9} className="p-5 mt-4">
+              <SectionHeader
+                title="Category Breakdown"
+                icon={FileText}
+              />
               <div className="flex flex-wrap gap-2">
                 {Object.entries(TYPE_LABELS).map(([key, label]) => (
                   campData[key] > 0 && (
@@ -257,16 +198,11 @@ function PredictionScreen() {
                   <span className="text-sm text-slate-400 italic">No category breakdown available.</span>
                 )}
               </div>
-            </motion.div>
+            </Card>
           </motion.div>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-6 sm:p-8"
-        >
+        <Card delay={0.2} className="p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row items-center gap-6 justify-between">
             <div className="flex items-center gap-4 flex-wrap">
               <Button
@@ -301,25 +237,17 @@ function PredictionScreen() {
               </div>
             )}
           </div>
-        </motion.div>
+        </Card>
 
         <AnimatePresence>
           {forecasts.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] overflow-hidden"
-            >
-              <div className="px-6 sm:px-8 py-6 border-b border-slate-100/50 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
-                  <CalendarDays className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-800">Forecast Matrix</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Population projected linearly. Resource ratios calculated dynamically via AI.
-                  </p>
-                </div>
+            <Card delay={0.2} className="overflow-hidden">
+              <div className="px-6 sm:px-8 py-6 border-b border-slate-100/50">
+                <SectionHeader
+                  title="Forecast Matrix"
+                  icon={CalendarDays}
+                  subtitle="Population projected linearly. Resource ratios calculated dynamically via AI."
+                />
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -340,7 +268,7 @@ function PredictionScreen() {
                   </tbody>
                 </table>
               </div>
-            </motion.div>
+            </Card>
           )}
         </AnimatePresence>
 

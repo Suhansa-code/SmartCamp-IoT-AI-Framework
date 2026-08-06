@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Children } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link, useRouter } from '../lib/router'
-import { useAuth } from '../lib/AuthContext'
+import { Link, useRouter } from '../../../lib/router'
+import { useAuth } from '../../../lib/AuthContext'
 import {
   LayoutDashboard,
   Fingerprint,

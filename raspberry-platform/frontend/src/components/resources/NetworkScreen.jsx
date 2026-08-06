@@ -3,23 +3,12 @@ import { motion } from 'framer-motion';
 import { Activity, Wifi, Layers, Database, RefreshCw, AlertTriangle } from 'lucide-react';
 import LoadingState from '../ui/feedback/LoadingState';
 import ErrorState from '../ui/feedback/ErrorState';
+import { API, NETWORK_STYLE, NETWORK_STATE_DESC } from '../ui/config'
+import PageHeader from '../ui/base/PageHeader'
+import Card from '../ui/base/Card'
+import SectionHeader from '../ui/base/SectionHeader'
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const POLL_MS = 10_000;
-
-const STATE_STYLE = {
-  STABLE:   { badge: 'bg-emerald-50 text-emerald-700 border-emerald-100',  dot: 'bg-emerald-500',  border: 'border-emerald-200', text: 'text-emerald-700' },
-  DEGRADED: { badge: 'bg-amber-50 text-amber-700 border-amber-100', dot: 'bg-amber-500', border: 'border-amber-200', text: 'text-amber-700' },
-  CRITICAL: { badge: 'bg-red-50 text-red-700 border-red-100',      dot: 'bg-red-500',    border: 'border-red-200',   text: 'text-red-700' },
-  UNKNOWN:  { badge: 'bg-slate-100 text-slate-500 border-slate-200',    dot: 'bg-slate-400',   border: 'border-slate-200',  text: 'text-slate-500' },
-};
-
-const STATE_DESC = {
-  STABLE:   'Network healthy — full QoS 2 for critical messages',
-  DEGRADED: 'Network congested — QoS automatically upgraded to protect delivery',
-  CRITICAL: 'Network failing — critical messages downgraded to QoS 1, others buffered',
-  UNKNOWN:  'Waiting for first ML prediction…',
-};
 
 // Matches decideAdaptiveQoS in saampMqtt.js
 // STABLE:   full base QoS (CRITICAL → QoS 2, network can handle it)
@@ -37,24 +26,6 @@ function metricColor(value, warn, crit, invert = false) {
   if (isNaN(n)) return 'text-slate-400';
   if (invert) return n < crit ? 'text-red-600' : n < warn ? 'text-amber-600' : 'text-emerald-600';
   return n > crit ? 'text-red-600' : n > warn ? 'text-amber-600' : 'text-emerald-600';
-}
-
-function card() {
-  return 'bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-6 sm:p-8';
-}
-
-function CardHeader({ icon: Icon, title, subtitle }) {
-  return (
-    <div className="flex items-center gap-2.5 mb-4">
-      <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100 shrink-0">
-        <Icon className="w-4 h-4" />
-      </div>
-      <div>
-        <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">{title}</h2>
-        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
-      </div>
-    </div>
-  )
 }
 
 export default function NetworkScreen() {
@@ -81,7 +52,7 @@ export default function NetworkScreen() {
   }, [fetchStatus]);
 
   const state    = status?.state || 'UNKNOWN';
-  const st       = STATE_STYLE[state] || STATE_STYLE.UNKNOWN;
+  const st       = NETWORK_STYLE[state] || NETWORK_STYLE.UNKNOWN;
   const m        = status?.metrics   || {};
   const buffered = status?.buffered_messages ?? 0;
   const updatedAt = status?.updated_at
@@ -92,38 +63,18 @@ export default function NetworkScreen() {
     <div className="min-h-[calc(100svh-3.5rem)] bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
 
       <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/25">
-              <Wifi className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-semibold text-slate-800 tracking-tight">
-                Network Monitor
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                ML-predicted link health and adaptive QoS decisions
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-slate-500 bg-white/80 border border-slate-200/80 rounded-full px-3.5 py-1.5 w-fit shadow-sm">
-            <RefreshCw className={`w-3.5 h-3.5 text-teal-600 ${lastAt ? '' : 'animate-spin'}`} />
-            <span className="font-medium">Refreshes every {POLL_MS / 1000}s</span>
-          </div>
-        </motion.div>
+        <PageHeader icon={Wifi} title="Network Monitor" subtitle="ML-predicted link health and adaptive QoS decisions">
+          <RefreshCw className={`w-3.5 h-3.5 text-teal-600 ${lastAt ? '' : 'animate-spin'}`} />
+          <span className="font-medium">Refreshes every {POLL_MS / 1000}s</span>
+        </PageHeader>
 
         {/* ── State banner ─────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className={`${card()} border-2 ${st.border}`}
         >
+          <Card className={`border-2 ${st.border}`}>
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div>
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
@@ -136,13 +87,14 @@ export default function NetworkScreen() {
                   Random Forest
                 </span>
               </div>
-              <p className="text-sm text-slate-500 mt-2">{STATE_DESC[state]}</p>
+              <p className="text-sm text-slate-500 mt-2">{NETWORK_STATE_DESC[state]}</p>
             </div>
             <div className="text-right text-xs text-slate-400 space-y-1">
               <p>Updated {updatedAt}</p>
               <p>{lastAt ? `Polled ${lastAt.toLocaleTimeString()}` : 'Connecting…'}</p>
             </div>
           </div>
+          </Card>
         </motion.div>
 
         {/* ── Warning banners ──────────────────────────── */}
@@ -167,9 +119,9 @@ export default function NetworkScreen() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className={card()}
         >
-          <CardHeader icon={Activity} title="Live Network Metrics" />
+          <Card>
+            <SectionHeader icon={Activity} title="Live Network Metrics" />
           <div className="grid grid-cols-2 gap-x-8 gap-y-3">
             {[
               { label: 'RTT Average',  val: m.rtt_avg,     unit: ' ms',   warn: 200,  crit: 500  },
@@ -193,6 +145,7 @@ export default function NetworkScreen() {
               </span>
             </div>
           </div>
+          </Card>
         </motion.div>
 
         {/* ── QoS Decision Table ───────────────────────── */}
@@ -200,13 +153,13 @@ export default function NetworkScreen() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className={card()}
         >
-          <CardHeader icon={Layers} title="Adaptive QoS Decisions" subtitle="(current state highlighted)" />
+          <Card>
+            <SectionHeader icon={Layers} title="Adaptive QoS Decisions" subtitle="(current state highlighted)" />
           <div className="grid grid-cols-4 gap-2 text-center text-xs font-medium mb-2">
             <div />
             {['STABLE', 'DEGRADED', 'CRITICAL'].map(s => (
-              <div key={s} className={`rounded-lg py-2 ${state === s ? `${STATE_STYLE[s].badge} border ring-2 ring-offset-1 ${STATE_STYLE[s].border.replace('border-', 'ring-')}` : 'bg-slate-100 text-slate-400'}`}>
+              <div key={s} className={`rounded-lg py-2 ${state === s ? `${NETWORK_STYLE[s].badge} border ring-2 ring-offset-1 ${NETWORK_STYLE[s].border.replace('border-', 'ring-')}` : 'bg-slate-100 text-slate-400'}`}>
                 {s}
               </div>
             ))}
@@ -235,6 +188,7 @@ export default function NetworkScreen() {
               })}
             </div>
           ))}
+          </Card>
         </motion.div>
 
         {/* ── Buffer status ─────────────────────────────── */}
@@ -242,8 +196,8 @@ export default function NetworkScreen() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className={`${card()} border ${buffered > 0 ? 'border-orange-300' : 'border-slate-200'}`}
         >
+          <Card className={`border ${buffered > 0 ? 'border-orange-300' : 'border-slate-200'}`}>
           <div className="flex justify-between items-center gap-6 flex-wrap">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 shrink-0">
@@ -265,6 +219,7 @@ export default function NetworkScreen() {
               <p className="text-xs text-slate-400">buffered</p>
             </div>
           </div>
+          </Card>
         </motion.div>
 
       </div>

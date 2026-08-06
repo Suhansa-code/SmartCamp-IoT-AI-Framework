@@ -11,6 +11,10 @@ import LoadingState from "../ui/feedback/LoadingState";
 import ErrorState from "../ui/feedback/ErrorState";
 import { useToast } from "../ui/feedback/Toast";
 import { fetchChildDirectory, fetchChildEducation } from "@/components/psychoedu/lib/api";
+import Card from "../ui/base/Card";
+import SectionHeader from "../ui/base/SectionHeader";
+import SearchInput from "../ui/base/SearchInput";
+import Avatar from "../ui/base/Avatar";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -103,11 +107,7 @@ function ChildEducationScreen() {
   return (
     <div className="space-y-4">
       {/* Header + Search */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5 lg:p-6"
-      >
+      <Card>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2.5 sm:gap-3">
@@ -131,15 +131,11 @@ function ChildEducationScreen() {
               loadChild(childId);
             }}
           >
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                value={childId}
-                onChange={(e) => setChildId(e.target.value)}
-                placeholder="Enter child ID, e.g. CAMP-B-000001"
-                className="w-full min-h-10 pl-9 pr-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
-              />
-            </div>
+            <SearchInput
+              value={childId}
+              onChange={setChildId}
+              placeholder="Enter child ID, e.g. CAMP-B-000001"
+            />
             <Button type="submit" loading={loading} size="md">
               Search
             </Button>
@@ -157,7 +153,7 @@ function ChildEducationScreen() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </Card>
 
       {/* Child Profile (when selected) */}
       {child ? (
@@ -193,13 +189,7 @@ function ChildEducationScreen() {
               { label: "Resolved", value: alertSummary.resolved, icon: CheckCircle, color: "sky" },
               { label: "Sync State", value: Number(child.synced) === 1 ? "Synced" : "Pending", icon: Activity, color: "teal" },
             ].map((item, i) => (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * i }}
-                className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl p-4 relative overflow-hidden group hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300"
-              >
+              <Card key={item.label} className="relative overflow-hidden group hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300">
                 <div className={`absolute -right-5 -top-5 w-20 h-20 bg-gradient-to-br ${
                   item.color === "amber" ? "from-amber-500/10 to-orange-500/10" :
                   item.color === "sky" ? "from-sky-500/10 to-blue-500/10" :
@@ -212,33 +202,15 @@ function ChildEducationScreen() {
                   </div>
                   <span className="text-xl font-bold text-slate-800 font-mono tracking-tight">{item.value}</span>
                 </div>
-              </motion.div>
+              </Card>
             ))}
           </div>
 
           {/* Profile + Alerts Grid */}
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Child Record */}
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-slate-800">Child Record</h3>
-                    <p className="text-[10px] sm:text-[11px] text-slate-400">{child.child_id}</p>
-                  </div>
-                </div>
-                <span className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10px] font-semibold ${
-                  Number(child.synced) === 1
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                    : "bg-slate-50 text-slate-600 border border-slate-200"
-                }`}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                  {Number(child.synced) === 1 ? "Synced" : "Pending"}
-                </span>
-              </div>
+            <Card>
+              <SectionHeader icon={ShieldCheck} title="Child Record" subtitle={child.child_id} />
 
               <div className="grid gap-2 sm:grid-cols-2">
                 {[
@@ -261,25 +233,11 @@ function ChildEducationScreen() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
 
             {/* Alert Overview */}
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-slate-800">Alert Overview</h3>
-                    <p className="text-[10px] sm:text-[11px] text-slate-400">Triggered alerts</p>
-                  </div>
-                </div>
-                <div className="text-right text-[10px] font-semibold text-slate-400 space-y-0.5">
-                  <div>Pending: {alertSummary.pending}</div>
-                  <div>Resolved: {alertSummary.resolved}</div>
-                </div>
-              </div>
+            <Card>
+              <SectionHeader icon={AlertTriangle} title="Alert Overview" subtitle="Triggered alerts" />
 
               <div className="space-y-2">
                 {alerts.length === 0 ? (
@@ -315,22 +273,12 @@ function ChildEducationScreen() {
                   ))
                 )}
               </div>
-            </div>
+            </Card>
           </div>
 
           {/* Session History */}
-          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
-                  <CalendarDays className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-slate-800">Session History</h3>
-                  <p className="text-[10px] sm:text-[11px] text-slate-400">{sessions.length} recorded sessions</p>
-                </div>
-              </div>
-            </div>
+          <Card>
+            <SectionHeader icon={CalendarDays} title="Session History" subtitle={`${sessions.length} recorded sessions`} />
 
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-left text-xs sm:text-sm">
@@ -405,26 +353,13 @@ function ChildEducationScreen() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </motion.div>
       ) : (
         /* Children Directory */
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5 lg:p-6"
-        >
+        <Card>
           <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
-                <List className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-xs sm:text-sm font-semibold text-slate-800">Children Directory</h2>
-                <p className="text-[10px] sm:text-[11px] text-slate-400">{children.length} enrolled</p>
-              </div>
-            </div>
+            <SectionHeader icon={List} title="Children Directory" subtitle={`${children.length} enrolled`} />
             <Button variant="secondary" size="sm" onClick={fetchChildren}>
               <RefreshCw className="w-3 h-3" />
             </Button>
@@ -446,9 +381,7 @@ function ChildEducationScreen() {
                 label: "Child ID",
                 render: (val, row) => (
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                      {val?.slice(-2)}
-                    </div>
+                    <Avatar name={val} size="sm" />
                     <span className="font-medium text-slate-900">{val}</span>
                   </div>
                 ),
@@ -494,9 +427,7 @@ function ChildEducationScreen() {
             onRowClick={(row) => loadChild(row.child_id)}
             mobileCard={(row) => (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                  {row.child_id?.slice(-2)}
-                </div>
+                <Avatar name={row.child_id} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-800 truncate">{row.child_id}</span>
@@ -517,7 +448,7 @@ function ChildEducationScreen() {
               </div>
             )}
           />
-        </motion.div>
+        </Card>
       )}
     </div>
   );

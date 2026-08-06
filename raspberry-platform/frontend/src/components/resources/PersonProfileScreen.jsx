@@ -9,29 +9,15 @@ import ConfirmDialog from "../ui/feedback/ConfirmDialog";
 import LoadingState from "../ui/feedback/LoadingState";
 import ErrorState from "../ui/feedback/ErrorState";
 import { useToast } from "../ui/feedback/Toast";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API, inputClass as inputClassBase } from "../ui/config";
+import InfoField from "../ui/base/InfoField";
+import Avatar from "../ui/base/Avatar";
 
 const TYPE_LABELS = {
   refugee: "Refugee", asylum_seeker: "Asylum Seeker", idp: "IDP",
   returned_refugee: "Returned Refugee", returned_idp: "Returned IDP",
   stateless: "Stateless", ooc: "Others of Concern",
 };
-
-const inputClass =
-  "w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 transition-all text-sm text-slate-800";
-
-function InfoField({ label, icon: Icon, editing, value, children }) {
-  return (
-    <div className="bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-100">
-      <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-        {Icon && <Icon className="w-3 h-3" />}
-        <span className="text-[10px] font-semibold uppercase tracking-wider">{label}</span>
-      </div>
-      {editing ? children : <p className="text-sm font-semibold text-slate-800">{value || "—"}</p>}
-    </div>
-  );
-}
 
 export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   const { addToast } = useToast();
@@ -224,15 +210,13 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
 
       {/* ── Avatar & Name ── */}
       <div className="flex items-start gap-3 sm:gap-4">
-        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-base sm:text-lg font-bold shrink-0 shadow-md shadow-teal-500/25">
-          {person.full_name?.substring(0, 2).toUpperCase()}
-        </div>
+        <Avatar name={person?.full_name} />
         <div className="flex-1 min-w-0">
           {editing ? (
             <input
               value={editForm.full_name}
               onChange={(e) => updateField("full_name", e.target.value)}
-              className={`${inputClass} font-semibold`}
+              className={`${inputClassBase} font-semibold`}
               placeholder="Full name"
             />
           ) : (
@@ -284,14 +268,14 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
                 type="number" min={0} max={130}
                 value={editForm.age}
                 onChange={(e) => updateField("age", e.target.value)}
-                className={inputClass}
+                className={inputClassBase}
               />
               {editErrors.age && <p className="text-[11px] text-red-500 mt-0.5">{editErrors.age}</p>}
             </InfoField>
 
             <InfoField label="Gender" icon={GenderIcon} editing={editing}
               value={person.gender === "M" ? "Male" : person.gender === "F" ? "Female" : "Other"}>
-              <select value={editForm.gender} onChange={(e) => updateField("gender", e.target.value)} className={inputClass}>
+              <select value={editForm.gender} onChange={(e) => updateField("gender", e.target.value)} className={inputClassBase}>
                 <option value="M">Male</option>
                 <option value="F">Female</option>
                 <option value="O">Other</option>
@@ -300,7 +284,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
 
             <InfoField label="Type" icon={BadgeCheck} editing={editing}
               value={TYPE_LABELS[person.person_type] || person.person_type}>
-              <select value={editForm.person_type} onChange={(e) => updateField("person_type", e.target.value)} className={inputClass}>
+              <select value={editForm.person_type} onChange={(e) => updateField("person_type", e.target.value)} className={inputClassBase}>
                 <option value="refugee">Refugee</option>
                 <option value="asylum_seeker">Asylum Seeker</option>
                 <option value="idp">IDP</option>
@@ -360,7 +344,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
               <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Medical Notes</label>
               <textarea rows={2} value={editForm.medical_notes}
                 onChange={(e) => updateField("medical_notes", e.target.value)}
-                className={`${inputClass} resize-none`} placeholder="Optional" />
+                className={`${inputClassBase} resize-none`} placeholder="Optional" />
             </div>
           ) : person.medical_notes ? (
             <div className="text-xs text-slate-600 bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2.5">

@@ -4,7 +4,6 @@ import {
   Fingerprint,
   CheckCircle,
   UserPlus,
-  ScanLine,
   Activity,
   ArrowRight,
   ShieldCheck,
@@ -29,8 +28,12 @@ import LoadingState from "../ui/feedback/LoadingState";
 import ErrorState from "../ui/feedback/ErrorState";
 import PersonProfileScreen from "./PersonProfileScreen";
 import { useToast } from "../ui/feedback/Toast";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API, inputClass as inputClassBase } from "../ui/config";
+import PageHeader from "../ui/base/PageHeader";
+import Card from "../ui/base/Card";
+import SectionHeader from "../ui/base/SectionHeader";
+import SearchInput from "../ui/base/SearchInput";
+import Avatar from "../ui/base/Avatar";
 
 const STEPS = [
   { key: "scan", label: "Scan", icon: Fingerprint },
@@ -199,8 +202,7 @@ function Field({ label, required, children, hint }) {
   );
 }
 
-const inputClass =
-  "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 transition-all text-sm text-slate-800 placeholder-slate-400";
+
 
 function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error }) {
   const [errors, setErrors] = useState({});
@@ -248,7 +250,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
               placeholder="e.g. John Doe"
               value={form.full_name}
               onChange={(e) => update("full_name", e.target.value)}
-              className={inputClass}
+              className={inputClassBase}
             />
             {errors.full_name && (
               <p className="mt-1 text-[11px] text-red-500 flex items-center gap-1">
@@ -266,7 +268,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
             placeholder="Years"
             value={form.age}
             onChange={(e) => update("age", e.target.value)}
-            className={inputClass}
+            className={inputClassBase}
           />
           {errors.age && (
             <p className="mt-1 text-[11px] text-red-500 flex items-center gap-1">
@@ -279,7 +281,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
           <select
             value={form.gender}
             onChange={(e) => update("gender", e.target.value)}
-            className={inputClass}
+            className={inputClassBase}
           >
             <option value="M">Male</option>
             <option value="F">Female</option>
@@ -292,7 +294,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
             <select
               value={form.person_type}
               onChange={(e) => update("person_type", e.target.value)}
-              className={inputClass}
+              className={inputClassBase}
             >
               <option value="refugee">Refugee</option>
               <option value="asylum_seeker">Asylum Seeker</option>
@@ -370,7 +372,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
               placeholder="e.g. Diabetes type 2, on insulin"
               value={form.medical_notes}
               onChange={(e) => update("medical_notes", e.target.value)}
-              className={`${inputClass} resize-none`}
+              className={`${inputClassBase} resize-none`}
             />
           </Field>
         </div>
@@ -495,28 +497,7 @@ function ReturningSearch({ query, setQuery, results, onSearch, onSelect, searchi
       </div>
 
       <form onSubmit={onSearch} className="space-y-3">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none">
-            <Search className={`w-4 h-4 ${searching ? "text-teal-500 animate-pulse" : "text-slate-400"}`} />
-          </div>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. Kasun Perera, FP_0001, WB000001"
-            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 transition-all text-sm text-slate-800 placeholder-slate-400"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
-              aria-label="Clear search"
-            >
-              <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">×</span>
-            </button>
-          )}
-        </div>
+        <SearchInput value={query} onChange={setQuery} onClear={() => setQuery("")} placeholder="e.g. Kasun Perera, FP_0001, WB000001" searching={searching} />
 
         <Button
           type="submit"
@@ -548,9 +529,7 @@ function ReturningSearch({ query, setQuery, results, onSearch, onSelect, searchi
             onClick={() => onSelect(p)}
             className="w-full flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:border-teal-200 hover:bg-teal-50/50 transition-all text-left"
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {p.full_name.substring(0, 2).toUpperCase()}
-            </div>
+            <Avatar name={p.full_name} />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-slate-800 truncate">{p.full_name}</div>
               <div className="text-[11px] text-slate-400">
@@ -806,30 +785,10 @@ function RegistrationScreen() {
     <div className="min-h-[calc(100svh-3.5rem)]  text-slate-800 font-sans relative">
 
       <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/25">
-              <ScanLine className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-semibold text-slate-800 tracking-tight">
-                Camp Registration Hub
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Biometric check-in and secure enrollment
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mb-5 text-xs text-slate-500 bg-white/80 border border-slate-200/80 rounded-full px-3.5 py-1.5 w-fit shadow-sm">
-            <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
-            <span className="font-medium">{today}</span>
-          </div>
-        </motion.div>
+        <PageHeader icon={UserPlus} title="Registration">
+          <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
+          <span className="font-medium">{today}</span>
+        </PageHeader>
 
         <motion.div
           initial={{ opacity: 0 }}
@@ -845,53 +804,54 @@ function RegistrationScreen() {
           <motion.div
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-5 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-[320px] lg:min-h-[420px]"
           >
-            <ScanningVisual scanState={scanState} />
+            <Card padding={false} className="p-5 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-[320px] lg:min-h-[420px]">
+              <ScanningVisual scanState={scanState} />
 
-            {scanState === "idle" && (
-              <Button
-                onClick={handleScanFingerprint}
-                size="lg"
-                className="mt-7 w-full"
-              >
-                <Fingerprint className="w-4 h-4" />
-                Initiate Scan
-              </Button>
-            )}
-            {scanState === "idle" && import.meta.env.DEV && (
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={() => {
-                  setScanState("not_found");
-                  setNotFoundView("new");
-                  setStatusMessage("");
-                }}
-                className="mt-3 w-full text-slate-500"
-              >
-                <UserPlus className="w-4 h-4" />
-                Test Registration
-              </Button>
-            )}
-            {scanState !== "idle" && (
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={reset}
-                className="mt-7 w-full text-slate-500"
-              >
-                Reset
-              </Button>
-            )}
+              {scanState === "idle" && (
+                <Button
+                  onClick={handleScanFingerprint}
+                  size="lg"
+                  className="mt-7 w-full"
+                >
+                  <Fingerprint className="w-4 h-4" />
+                  Initiate Scan
+                </Button>
+              )}
+              {scanState === "idle" && import.meta.env.DEV && (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => {
+                    setScanState("not_found");
+                    setNotFoundView("new");
+                    setStatusMessage("");
+                  }}
+                  className="mt-3 w-full text-slate-500"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Test Registration
+                </Button>
+              )}
+              {scanState !== "idle" && (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={reset}
+                  className="mt-7 w-full text-slate-500"
+                >
+                  Reset
+                </Button>
+              )}
+            </Card>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-5 sm:p-6 lg:p-8 min-h-[280px] lg:min-h-[420px] flex flex-col justify-center"
           >
-            <AnimatePresence mode="wait">
+            <Card padding={false} className="p-5 sm:p-6 lg:p-8 min-h-[280px] lg:min-h-[420px] flex flex-col justify-center">
+              <AnimatePresence mode="wait">
               {(scanState === "idle" || scanState === "scanning") && (
                 <motion.div
                   key="waiting"
@@ -933,9 +893,7 @@ function RegistrationScreen() {
                   className="space-y-6"
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-lg font-bold shrink-0 shadow-md shadow-teal-500/25">
-                      {profile.full_name.substring(0, 2).toUpperCase()}
-                    </div>
+                    <Avatar name={profile.full_name} size="lg" />
                     <div>
                       <h2 className="text-xl font-semibold text-slate-800 tracking-tight">
                         {profile.full_name}
@@ -1055,9 +1013,7 @@ function RegistrationScreen() {
                   {notFoundView === "returning_profile" && profile && (
                     <div className="space-y-6">
                       <div className="flex items-start gap-5">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-lg font-bold shrink-0 shadow-md shadow-teal-500/25">
-                          {profile.full_name.substring(0, 2).toUpperCase()}
-                        </div>
+                        <Avatar name={profile.full_name} size="lg" />
                         <div>
                           <h2 className="text-xl font-semibold text-slate-800 tracking-tight">
                             {profile.full_name}
@@ -1158,7 +1114,8 @@ function RegistrationScreen() {
                   </Button>
                 </motion.div>
               )}
-            </AnimatePresence>
+              </AnimatePresence>
+            </Card>
           </motion.div>
         </div>
 
@@ -1166,8 +1123,9 @@ function RegistrationScreen() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white/90 backdrop-blur-xl border mt-4 border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-4 sm:p-5 lg:p-6"
+          className="mt-4"
         >
+          <Card padding={false} className="p-4 sm:p-5 lg:p-6">
           {viewingPersonId ? (
             <PersonProfileScreen
               personId={viewingPersonId}
@@ -1209,9 +1167,7 @@ function RegistrationScreen() {
                     label: "Name",
                     render: (val, row) => (
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                          {val?.substring(0, 2).toUpperCase()}
-                        </div>
+                        <Avatar name={val} size="sm" />
                         <span className="font-medium text-slate-900">{val}</span>
                       </div>
                     ),
@@ -1285,9 +1241,7 @@ function RegistrationScreen() {
                 onRowClick={(row) => setViewingPersonId(row.id)}
                 mobileCard={(row) => (
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {row.full_name?.substring(0, 2).toUpperCase()}
-                    </div>
+                    <Avatar name={row.full_name} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-slate-800 truncate">{row.full_name}</span>
@@ -1314,6 +1268,7 @@ function RegistrationScreen() {
               />
             </>
           )}
+          </Card>
         </motion.div>
 
         <ConfirmDialog

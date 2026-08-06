@@ -4,8 +4,11 @@ import { Activity, Droplets, Wind, Thermometer, CloudRain, MapPin, AlertTriangle
 import Button from '../ui/base/Button'
 import LoadingState from '../ui/feedback/LoadingState'
 import ErrorState from '../ui/feedback/ErrorState'
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000"
+import { API } from '../ui/config'
+import PageHeader from '../ui/base/PageHeader'
+import Card from '../ui/base/Card'
+import SectionHeader from '../ui/base/SectionHeader'
+import StatCard from '../ui/base/StatCard'
 
 //HardCoded camp Location till Fetch the GPS from IOT
 const Camp_Location = {
@@ -24,27 +27,6 @@ const STATUS_META = {
   medium: { label: 'MEDIUM', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' },
   stable: { label: 'STABLE', color: 'text-teal-700', bg: 'bg-teal-50 border-teal-100', dot: 'bg-teal-500' },
   recovery: { label: 'RECOVERY', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' },
-}
-
-function MetricCard({ label, value, icon: Icon, unit = '', color = 'teal' }) {
-  const iconColor = {
-    teal: 'text-teal-600', red: 'text-red-600', blue: 'text-sky-600',
-    amber: 'text-amber-600', orange: 'text-orange-500', emerald: 'text-emerald-600',
-    indigo: 'text-indigo-600', purple: 'text-violet-600', gray: 'text-slate-500',
-  }[color] || 'text-teal-600'
-
-  return (
-    <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl p-4 hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className={`w-4 h-4 ${iconColor}`} />
-        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
-      </div>
-      <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-bold text-slate-800 font-mono tracking-tight">{value ?? '—'}</span>
-        {unit && <span className="text-sm text-slate-400">{unit}</span>}
-      </div>
-    </div>
-  )
 }
 
 function ModelCard({ model, index }) {
@@ -162,41 +144,14 @@ export default function DisasterMonitorPage() {
   if (error && !camp) return <ErrorState title="Could not load disaster data" message={error} onRetry={fetchAll} />
   if (!camp) return <ErrorState title="Camp data not found" message="No camp data available" onRetry={fetchAll} />
 
-  const sectionCard = 'bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-5'
-
   return (
     <div className="min-h-[calc(100svh-3.5rem)] bg-linear-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
 
       <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-linear-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/25">
-              <Radar className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-semibold text-slate-800 tracking-tight">
-                Disaster Monitoring
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Flood prediction, sensor telemetry &amp; model confidence
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-xs text-slate-500 bg-white/80 border border-slate-200/80 rounded-full px-3.5 py-1.5 w-fit shadow-sm">
-              <RefreshCw className="w-3.5 h-3.5 text-teal-600" />
-              <span className="font-medium">{new Date().toLocaleTimeString()}</span>
-            </span>
-            <button onClick={fetchAll} className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/80 border border-slate-200/80 text-slate-500 hover:text-teal-600 hover:border-teal-200 transition-all shadow-sm" aria-label="Refresh">
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-        </motion.div>
+        <PageHeader icon={Radar} title="Disaster Monitoring" subtitle="Flood prediction, sensor telemetry & model confidence">
+          <RefreshCw className="w-3.5 h-3.5 text-teal-600" />
+          <span className="font-medium">{new Date().toLocaleTimeString()}</span>
+        </PageHeader>
 
         <motion.div
           key={camp.id}
@@ -231,21 +186,16 @@ export default function DisasterMonitorPage() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard label="Displaced" value={camp.displaced.toLocaleString()} icon={Activity} color="red" />
-            <MetricCard label="Capacity" value={camp.capacity.toLocaleString()} icon={MapPin} color="blue" />
-            <MetricCard label="Occupancy" value={Math.round((camp.displaced / camp.capacity) * 100)} unit="%" icon={Gauge} color="amber" />
-            <MetricCard label="Aid Coverage" value={camp.aid} unit="%" icon={Shield} color="emerald" />
+            <StatCard label="Displaced" value={camp.displaced.toLocaleString()} icon={Activity} color="red" />
+            <StatCard label="Capacity" value={camp.capacity.toLocaleString()} icon={MapPin} color="blue" />
+            <StatCard label="Occupancy" value={Math.round((camp.displaced / camp.capacity) * 100)} unit="%" icon={Gauge} color="amber" />
+            <StatCard label="Aid Coverage" value={camp.aid} unit="%" icon={Shield} color="emerald" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              <div className={sectionCard}>
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center border border-sky-100">
-                    <CloudRain className="w-4 h-4 text-sky-600" />
-                  </div>
-                  <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Current Sensor Status</h2>
-                </div>
+              <Card>
+                <SectionHeader icon={CloudRain} title="Current Sensor Status" color="sky" />
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-1.5">
@@ -278,35 +228,25 @@ export default function DisasterMonitorPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
 
-              <div className={sectionCard}>
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center border border-orange-100">
-                    <Thermometer className="w-4 h-4 text-orange-500" />
-                  </div>
-                  <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Environmental Readings</h2>
-                </div>
+              <Card>
+                <SectionHeader icon={Thermometer} title="Environmental Readings" color="orange" />
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <MetricCard label="Temperature" value={`${camp.minT} / ${camp.maxT}`} unit="°C" icon={Thermometer} color="orange" />
-                  <MetricCard label="Humidity" value={camp.hum} unit="%" icon={Droplets} color="blue" />
-                  <MetricCard label="Rainfall" value={camp.rain} unit="mm" icon={CloudRain} color="blue" />
-                  <MetricCard label="Precipitation" value={camp.precip} unit="mm" icon={Droplets} color="indigo" />
-                  <MetricCard label="Wind" value={camp.avgWind} unit="km/h" icon={Wind} color="teal" />
-                  <MetricCard label="Max Wind" value={camp.maxWind} unit="km/h" icon={Wind} color="amber" />
-                  <MetricCard label="Pressure" value={camp.pres} unit="hPa" icon={Activity} color="purple" />
-                  <MetricCard label="Soil Moisture" value={camp.soil?.toFixed(2)} icon={Droplets} color="amber" />
-                  <MetricCard label="Cloud Cover" value={camp.cloud} unit="%" icon={CloudRain} color="gray" />
+                  <StatCard label="Temperature" value={`${camp.minT} / ${camp.maxT}`} unit="°C" icon={Thermometer} color="orange" />
+                  <StatCard label="Humidity" value={camp.hum} unit="%" icon={Droplets} color="blue" />
+                  <StatCard label="Rainfall" value={camp.rain} unit="mm" icon={CloudRain} color="blue" />
+                  <StatCard label="Precipitation" value={camp.precip} unit="mm" icon={Droplets} color="indigo" />
+                  <StatCard label="Wind" value={camp.avgWind} unit="km/h" icon={Wind} color="teal" />
+                  <StatCard label="Max Wind" value={camp.maxWind} unit="km/h" icon={Wind} color="amber" />
+                  <StatCard label="Pressure" value={camp.pres} unit="hPa" icon={Activity} color="purple" />
+                  <StatCard label="Soil Moisture" value={camp.soil?.toFixed(2)} icon={Droplets} color="amber" />
+                  <StatCard label="Cloud Cover" value={camp.cloud} unit="%" icon={CloudRain} color="gray" />
                 </div>
-              </div>
+              </Card>
 
-              <div className={sectionCard}>
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center border border-indigo-100">
-                    <Cpu className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Device Status</h2>
-                </div>
+              <Card>
+                <SectionHeader icon={Cpu} title="Device Status" color="indigo" />
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { label: 'Edge Gateway', desc: 'Intel NUC' },
@@ -321,18 +261,13 @@ export default function DisasterMonitorPage() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             </div>
 
             <div className="space-y-6">
               {bestModel && (
-                <div className={sectionCard}>
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center border border-indigo-100">
-                      <AlertTriangle className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Disaster Prediction</h2>
-                  </div>
+                <Card>
+                  <SectionHeader icon={AlertTriangle} title="Disaster Prediction" color="indigo" />
                   <div className="text-center py-4">
                     <div className="text-4xl font-bold mb-1" style={{
                       color: alertLevel === 'CRITICAL' ? '#ef4444' : alertLevel === 'WARNING' ? '#f59e0b' : '#10b981'
@@ -365,10 +300,10 @@ export default function DisasterMonitorPage() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </Card>
               )}
 
-              <div className={sectionCard}>
+              <Card>
                 <div className="flex items-center gap-2.5 mb-4">
                   <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center border border-teal-100">
                     <Navigation className="w-4 h-4 text-teal-600" />
@@ -403,19 +338,14 @@ export default function DisasterMonitorPage() {
                     <p className="text-[10px] text-slate-400 text-right">Updated {new Date(gps.fetched_at).toLocaleTimeString()}</p>
                   )}
                 </div>
-              </div>
+              </Card>
 
-              <div className={sectionCard}>
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center border border-violet-100">
-                    <Activity className="w-4 h-4 text-violet-600" />
-                  </div>
-                  <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Prediction Confidence</h2>
-                </div>
+              <Card>
+                <SectionHeader icon={Activity} title="Prediction Confidence" color="violet" />
                 <div className="space-y-3">
                   {models.map((m, i) => <ModelCard key={m.model_name} model={m} index={i} />)}
                 </div>
-              </div>
+              </Card>
             </div>
           </div>
         </motion.div>
