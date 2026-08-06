@@ -90,15 +90,20 @@ export default function DisasterMonitorPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const STATUS_PRIORITY = { critical: 0, high: 1, medium: 2, stable: 3, recovery: 4 }
+
   const fetchAll = () => {
     setLoading(true)
     setError('')
     Promise.all([
+      fetch(`${API}/api/disaster/camps`).then(r => { if (!r.ok) throw new Error('Camps failed'); return r.json() }),
       fetch(`${API}/api/disaster/prediction-models`).then(r => { if (!r.ok) throw new Error('Models failed'); return r.json() }),
       fetch(`${API}/api/disaster/overview`).then(r => { if (!r.ok) throw new Error('Overview failed'); return r.json() }),
     ])
       .then(([cp, md, ov]) => {
-        setCamp(cp.camp ?? null)
+        const camps = cp.camps ?? []
+        const sorted = [...camps].sort((a, b) => (STATUS_PRIORITY[a.status] ?? 9) - (STATUS_PRIORITY[b.status] ?? 9))
+        setCamp(sorted[0] ?? null)
         setModels(md.models ?? [])
         setOverview(ov)
         setLoading(false)
