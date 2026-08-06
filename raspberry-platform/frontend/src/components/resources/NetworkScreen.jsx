@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Wifi, Layers, Database, RefreshCw, AlertTriangle } from 'lucide-react';
-import LoadingState from '../ui/feedback/LoadingState';
+import { Activity, Wifi, Layers, Database, RefreshCw } from 'lucide-react';
 import ErrorState from '../ui/feedback/ErrorState';
 import { API, NETWORK_STYLE, NETWORK_STATE_DESC } from '../ui/config'
 import PageHeader from '../ui/base/PageHeader'
@@ -60,7 +59,7 @@ export default function NetworkScreen() {
     : '—';
 
   return (
-    <div className="min-h-[calc(100svh-3.5rem)] bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
+    <div className="min-h-[calc(100svh-3.5rem)] bg-linear-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
 
       <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
         <PageHeader icon={Wifi} title="Network Monitor" subtitle="ML-predicted link health and adaptive QoS decisions">

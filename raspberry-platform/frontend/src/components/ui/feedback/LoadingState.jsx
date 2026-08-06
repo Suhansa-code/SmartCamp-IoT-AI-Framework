@@ -15,7 +15,7 @@ export default function LoadingState({
   const s = sizeMap[size] || sizeMap.md
 
   const spinner = (
-    <div className={`flex flex-col items-center justify-center ${s.gap} ${className}`}>
+    <div className={`flex flex-col items-center justify-center max-w-7xl mx-auto sm:px-6 sm:py-8 ${s.gap} ${className}`}>
       <div className={`${s.ring} border-teal-500 border-t-transparent rounded-full animate-spin`} />
       {message && <span className={`${s.text} text-slate-500 font-medium`}>{message}</span>}
     </div>

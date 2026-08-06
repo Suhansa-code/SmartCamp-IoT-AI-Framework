@@ -24,7 +24,7 @@ function StatCard({ label, value, icon: Icon, delay = 0 }) {
       transition={{ delay, duration: 0.35 }}
       className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl p-5 relative overflow-hidden group hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300"
     >
-      <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-teal-500/10 to-sky-500/10 rounded-full group-hover:scale-150 transition-transform duration-500" />
+      <div className="absolute -right-6 -top-6 w-24 h-24 bg-linear-to-br from-teal-500/10 to-sky-500/10 rounded-full group-hover:scale-150 transition-transform duration-500" />
       <div className="relative">
         <div className="flex items-center gap-2 mb-2">
           {Icon && <Icon className="w-4 h-4 text-teal-600" />}
@@ -110,7 +110,7 @@ export default function DashboardPage() {
   const netStyle = NETWORK_STYLE[mqtt.network_state] ?? NETWORK_STYLE.STABLE
 
   return (
-    <div className="min-h-[calc(100svh-3.5rem)] bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
+    <div className="min-h-[calc(100svh-3.5rem)] bg-linear-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
 
 
       <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
@@ -120,7 +120,7 @@ export default function DashboardPage() {
           className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
         >
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/25">
+            <div className="w-11 h-11 rounded-xl bg-linear-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-500/25">
               <LayoutDashboard className="w-5 h-5" />
             </div>
             <div>

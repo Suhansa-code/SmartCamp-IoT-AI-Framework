@@ -12,7 +12,6 @@ import {
   Utensils,
   Coffee,
   PackageCheck,
-  Package,
 } from 'lucide-react';
 import Button from '../ui/base/Button';
 import { API } from '../ui/config';
@@ -109,7 +108,7 @@ function WristbandScanScreen() {
   };
 
   return (
-    <div className="min-h-[calc(100svh-3.5rem)] bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
+    <div className="min-h-[calc(100svh-3.5rem)] bg-linear-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
 
       <div className="max-w-7xl mx-auto  sm:px-6  sm:py-8 space-y-6 sm:space-y-8 relative z-10">
         <PageHeader icon={ScanBarcode} title="Distribution Hub" subtitle="Scan wristbands to allocate daily resources safely" />
@@ -296,18 +295,18 @@ function DistributionTile({ label, icon: Icon, quantity, given, onGive }) {
 
   return (
     <Card
-      className={`relative p-5 text-center transition-all duration-300 overflow-hidden flex flex-col items-center justify-center min-h-[200px] ${
+      className={`relative p-5 text-center transition-all duration-300 overflow-hidden flex flex-col items-center justify-center min-h-50 ${
         isGiven
           ? 'bg-teal-50/70 border-2 border-teal-100'
           : 'hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]'
       }`}
     >
       {!isGiven && (
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-teal-400 to-sky-500 rounded-full blur-3xl opacity-5 pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-linear-to-br from-teal-400 to-sky-500 rounded-full blur-3xl opacity-5 pointer-events-none" />
       )}
 
       <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 ${
-        isGiven ? 'bg-white shadow-sm scale-90' : 'bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-md shadow-teal-500/25'
+        isGiven ? 'bg-white shadow-sm scale-90' : 'bg-linear-to-br from-teal-500 to-teal-600 text-white shadow-md shadow-teal-500/25'
       }`}>
         <Icon className={`w-7 h-7 ${isGiven ? 'text-teal-600' : 'text-white'}`} />
       </div>

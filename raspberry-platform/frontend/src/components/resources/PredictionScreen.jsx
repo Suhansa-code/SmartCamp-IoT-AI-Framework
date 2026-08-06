@@ -13,7 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import Button from '../ui/base/Button';
-import { API, NETWORK_STYLE } from '../ui/config';
+import { API } from '../ui/config';
 import PageHeader from '../ui/base/PageHeader';
 import Card from '../ui/base/Card';
 import SectionHeader from '../ui/base/SectionHeader';
@@ -148,7 +148,7 @@ function PredictionScreen() {
   }, []);
 
   return (
-    <div className="min-h-[calc(100svh-3.5rem)] bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
+    <div className="min-h-[calc(100svh-3.5rem)] bg-linear-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
 
       <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
         <PageHeader

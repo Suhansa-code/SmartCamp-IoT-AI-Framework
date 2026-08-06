@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  GraduationCap, Search, Users, AlertTriangle, CheckCircle,
+  GraduationCap, AlertTriangle, CheckCircle,
   Clock, RefreshCw, ShieldCheck, CalendarDays,
-  Activity, BookOpen, List, ArrowRight, ChevronRight,
+  Activity, BookOpen, List, ChevronRight,
 } from "lucide-react";
 import Button from "../ui/base/Button";
 import DataTable from "../ui/display/DataTable";
-import LoadingState from "../ui/feedback/LoadingState";
 import ErrorState from "../ui/feedback/ErrorState";
 import { useToast } from "../ui/feedback/Toast";
 import { fetchChildDirectory, fetchChildEducation } from "@/components/psychoedu/lib/api";
@@ -105,7 +104,7 @@ function ChildEducationScreen() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-7xl mx-auto sm:px-6 sm:py-8 ">
       {/* Header + Search */}
       <Card>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -190,7 +189,7 @@ function ChildEducationScreen() {
               { label: "Sync State", value: Number(child.synced) === 1 ? "Synced" : "Pending", icon: Activity, color: "teal" },
             ].map((item, i) => (
               <Card key={item.label} className="relative overflow-hidden group hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300">
-                <div className={`absolute -right-5 -top-5 w-20 h-20 bg-gradient-to-br ${
+                <div className={`absolute -right-5 -top-5 w-20 h-20 bg-linear-to-br ${
                   item.color === "amber" ? "from-amber-500/10 to-orange-500/10" :
                   item.color === "sky" ? "from-sky-500/10 to-blue-500/10" :
                   "from-teal-500/10 to-sky-500/10"

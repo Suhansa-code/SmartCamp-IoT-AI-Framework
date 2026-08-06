@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
-import { SESSIONS, SUBJECT_COLORS, TASK_TYPE_LABELS, getRandomSession } from '@/components/psychoedu/lib/sessions'
+import { SUBJECT_COLORS, TASK_TYPE_LABELS, getRandomSession } from '@/components/psychoedu/lib/sessions'
 import TaskRenderer from './TaskRenderer'
 import Eli from '@/components/psychoedu/child/Eli'
 import LoadingState from '@/components/ui/feedback/LoadingState'

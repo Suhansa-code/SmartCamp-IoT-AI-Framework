@@ -114,7 +114,7 @@ export default function Navbar() {
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="flex items-center gap-2.5"
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-md shadow-teal-500/25">
+              <div className="w-8 h-8 rounded-lg bg-linear-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-md shadow-teal-500/25">
                 <ScanLine className="w-4 h-4 text-white" />
               </div>
               <span className="text-sm font-semibold text-slate-800 tracking-tight">SmartCamp</span>

@@ -13,7 +13,7 @@ export default function ErrorState({
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`bg-red-50 border border-red-200 rounded-2xl p-6 text-center ${className}`}
+      className={`bg-red-50 border border-red-200 rounded-2xl p-6 text-center max-w-7xl mx-auto sm:px-6 sm:py-8 ${className}`}
     >
       <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
       <p className="text-red-600 font-semibold">{title}</p>

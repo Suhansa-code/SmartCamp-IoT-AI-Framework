@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Users, CalendarDays, BadgeCheck, Waves, AlertTriangle,
-  ClipboardCheck, Utensils, Loader2, Edit2, Trash2, X, Save, RefreshCw,
+  ClipboardCheck, Utensils, Loader2, Edit2, Trash2, X, Save,
 } from "lucide-react";
 import Button from "../ui/base/Button";
 import ConfirmDialog from "../ui/feedback/ConfirmDialog";

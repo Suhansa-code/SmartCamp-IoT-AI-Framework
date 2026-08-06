@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Activity, Droplets, Wind, Thermometer, CloudRain, MapPin, AlertTriangle, Shield, Cpu, Gauge, RefreshCw, Radar, Navigation, Satellite } from 'lucide-react'
-import Button from '../ui/base/Button'
 import LoadingState from '../ui/feedback/LoadingState'
 import ErrorState from '../ui/feedback/ErrorState'
 import { API } from '../ui/config'
@@ -10,16 +9,14 @@ import Card from '../ui/base/Card'
 import SectionHeader from '../ui/base/SectionHeader'
 import StatCard from '../ui/base/StatCard'
 
-//HardCoded camp Location till Fetch the GPS from IOT
-const Camp_Location = {
+const CAMP_LOCATION = {
   latitude: 6.0535,
   longitude: 80.2210,
   altitude: 10.0,
   satellites: 5,
-  live: true,
-  fetched_at: new Date().toISOString()
+  live: false,
+  fetched_at: new Date().toISOString(),
 }
-
 
 const STATUS_META = {
   critical: { label: 'CRITICAL', color: 'text-red-600', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
@@ -89,16 +86,9 @@ export default function DisasterMonitorPage() {
   const [camp, setCamp] = useState(null)
   const [models, setModels] = useState([])
   const [overview, setOverview] = useState(null)
-  const [gps, setGps] = useState(null)
+  const [gps, setGps] = useState(CAMP_LOCATION)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  const fetchGps = () => {
-    fetch(`${API}/api/disaster/gps`)
-      .then(r => r.json())
-      .then(setGps)
-      .catch(() => setGps({ latitude: null, longitude: null, altitude: null, satellites: 0, error: 'GPS unavailable', live: false }))
-  }
 
   const fetchAll = () => {
     setLoading(true)
@@ -121,10 +111,8 @@ export default function DisasterMonitorPage() {
 
   useEffect(() => {
     fetchAll()
-    fetchGps()
     const dataInterval = setInterval(fetchAll, 30000)
-    const gpsInterval = setInterval(fetchGps, 5000)
-    return () => { clearInterval(dataInterval); clearInterval(gpsInterval) }
+    return () => clearInterval(dataInterval)
   }, [])
 
   const bestModel = useMemo(() => models.length > 0 ? models.reduce((a, b) => (a.roc_auc > b.roc_auc ? a : b)) : null, [models])
@@ -309,8 +297,7 @@ export default function DisasterMonitorPage() {
                     <Navigation className="w-4 h-4 text-teal-600" />
                   </div>
                   <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Current Location</h2>
-                  {gps?.live && <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Live</span>}
-                  {gps?.error && !gps?.live && <span className="ml-auto text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5">Offline</span>}
+                  <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-sky-600 bg-sky-50 border border-sky-100 rounded-full px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-sky-500" />Fixed</span>
                 </div>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
