@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Wifi, Layers, Database, RefreshCw, AlertTriangle } from 'lucide-react';
+import LoadingState from '../ui/feedback/LoadingState';
+import ErrorState from '../ui/feedback/ErrorState';
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const POLL_MS = 10_000;
@@ -145,14 +147,7 @@ export default function NetworkScreen() {
 
         {/* ── Warning banners ──────────────────────────── */}
         {error && (
-          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-sm text-red-700">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <div>
-              <span className="font-bold">Backend unreachable:</span> {error}.
-              Start with <code className="bg-red-100 px-1 rounded">npm start</code> in{' '}
-              <code className="bg-red-100 px-1 rounded">raspberry-platform/backend</code>.
-            </div>
-          </div>
+          <ErrorState title="Backend unreachable" message={error} onRetry={fetchStatus} />
         )}
         {!error && state === 'UNKNOWN' && (
           <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm text-amber-800">

@@ -4,9 +4,11 @@ import {
   ArrowLeft, User, Users, CalendarDays, BadgeCheck, Waves, AlertTriangle,
   ClipboardCheck, Utensils, Loader2, Edit2, Trash2, X, Save, RefreshCw,
 } from "lucide-react";
-import Button from "../ui/Button";
-import ConfirmDialog from "../ui/ConfirmDialog";
-import { useToast } from "../ui/Toast";
+import Button from "../ui/base/Button";
+import ConfirmDialog from "../ui/feedback/ConfirmDialog";
+import LoadingState from "../ui/feedback/LoadingState";
+import ErrorState from "../ui/feedback/ErrorState";
+import { useToast } from "../ui/feedback/Toast";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -148,7 +150,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48 sm:h-64">
-        <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
+        <LoadingState size="sm" />
       </div>
     );
   }
@@ -156,10 +158,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   if (fetchError) {
     return (
       <div className="text-center py-8 sm:py-12 space-y-3">
-        <p className="text-sm text-red-500">{fetchError}</p>
-        <Button variant="secondary" size="sm" onClick={fetchProfile}>
-          <RefreshCw className="w-3.5 h-3.5" /> Retry
-        </Button>
+        <ErrorState message={fetchError} onRetry={fetchProfile} retryText="Retry" />
       </div>
     );
   }

@@ -22,11 +22,13 @@ import {
   List,
   RefreshCw,
 } from "lucide-react";
-import Button from "../ui/Button";
-import DataTable from "../ui/DataTable";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import Button from "../ui/base/Button";
+import DataTable from "../ui/display/DataTable";
+import ConfirmDialog from "../ui/feedback/ConfirmDialog";
+import LoadingState from "../ui/feedback/LoadingState";
+import ErrorState from "../ui/feedback/ErrorState";
 import PersonProfileScreen from "./PersonProfileScreen";
-import { useToast } from "../ui/Toast";
+import { useToast } from "../ui/feedback/Toast";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -236,9 +238,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5">
-          <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {error}
-        </div>
+        <ErrorState message={error} className="border-0 bg-red-50 p-3" />
       )}
 
       <div className="grid grid-cols-2 gap-3">
@@ -531,9 +531,7 @@ function ReturningSearch({ query, setQuery, results, onSearch, onSelect, searchi
       </form>
 
       {error && (
-        <div className="flex items-center gap-2 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
-          <AlertTriangle className="w-4 h-4" /> {error}
-        </div>
+        <ErrorState message={error} className="border-0 bg-red-50 p-3" />
       )}
 
       <div className="flex-1 overflow-y-auto space-y-2 max-h-[300px]">

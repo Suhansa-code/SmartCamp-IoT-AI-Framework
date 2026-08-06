@@ -12,7 +12,7 @@ import {
   CalendarDays,
   Sparkles,
 } from 'lucide-react';
-import Button from '../ui/Button';
+import Button from '../ui/base/Button';
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 

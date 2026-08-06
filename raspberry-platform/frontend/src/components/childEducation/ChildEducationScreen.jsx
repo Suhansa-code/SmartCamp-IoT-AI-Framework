@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap, Search, Users, AlertTriangle, CheckCircle,
-  Clock, Loader2, RefreshCw, ShieldCheck, CalendarDays,
+  Clock, RefreshCw, ShieldCheck, CalendarDays,
   Activity, BookOpen, List, ArrowRight, ChevronRight,
 } from "lucide-react";
-import Button from "../ui/Button";
-import DataTable from "../ui/DataTable";
-import { useToast } from "../ui/Toast";
+import Button from "../ui/base/Button";
+import DataTable from "../ui/display/DataTable";
+import LoadingState from "../ui/feedback/LoadingState";
+import ErrorState from "../ui/feedback/ErrorState";
+import { useToast } from "../ui/feedback/Toast";
 import { fetchChildDirectory, fetchChildEducation } from "@/components/psychoedu/lib/api";
 
 function formatDate(value) {
@@ -150,10 +152,8 @@ function ChildEducationScreen() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-3 flex items-center gap-2 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5"
             >
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              {error}
+              <ErrorState message={error} className="mt-3 border-0 bg-red-50 p-3" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -431,13 +431,12 @@ function ChildEducationScreen() {
           </div>
 
           {childrenError && (
-            <div className="flex items-center gap-2 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5 mb-3">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              <span className="flex-1">{childrenError}</span>
-              <Button variant="secondary" size="sm" onClick={fetchChildren}>
-                <RefreshCw className="w-3 h-3" /> Retry
-              </Button>
-            </div>
+            <ErrorState
+              message={childrenError}
+              onRetry={fetchChildren}
+              retryText="Retry"
+              className="border-0 bg-red-50 p-3 mb-3"
+            />
           )}
 
           <DataTable

@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users, UserPlus, ClipboardCheck, Heart, Baby, Activity, TrendingUp, Wifi,
-  LayoutDashboard, CalendarDays, Loader2,
+  LayoutDashboard, CalendarDays,
 } from 'lucide-react'
-import Button from '../ui/Button'
+import Button from '../ui/base/Button'
+import LoadingState from '../ui/feedback/LoadingState'
+import ErrorState from '../ui/feedback/ErrorState'
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000"
 
@@ -91,26 +93,11 @@ export default function DashboardPage() {
   })
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-slate-500">Loading dashboard...</span>
-        </div>
-      </div>
-    )
+    return <LoadingState message="Loading dashboard..." fullPage />
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-        <p className="text-red-600 font-semibold">Could not load dashboard</p>
-        <p className="text-red-400 text-sm mt-1">{error}</p>
-        <Button variant="danger" onClick={fetchStats} className="mt-3">
-          Retry
-        </Button>
-      </div>
-    )
+    return <ErrorState title="Could not load dashboard" message={error} onRetry={fetchStats} />
   }
 
   const pop = stats?.population ?? {}

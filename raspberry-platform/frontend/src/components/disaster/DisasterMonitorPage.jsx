@@ -1,10 +1,22 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Activity, Droplets, Wind, Thermometer, CloudRain, MapPin, AlertTriangle, Shield, Cpu, Gauge, RefreshCw, Radar, Navigation, Satellite } from 'lucide-react'
-import Button from '../ui/Button'
+import Button from '../ui/base/Button'
+import LoadingState from '../ui/feedback/LoadingState'
+import ErrorState from '../ui/feedback/ErrorState'
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000"
-const CAMP_ID = 'galle'
+
+//HardCoded camp Location till Fetch the GPS from IOT
+const Camp_Location = {
+  latitude: 6.0535,
+  longitude: 80.2210,
+  altitude: 10.0,
+  satellites: 5,
+  live: true,
+  fetched_at: new Date().toISOString()
+}
+
 
 const STATUS_META = {
   critical: { label: 'CRITICAL', color: 'text-red-600', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
@@ -12,30 +24,6 @@ const STATUS_META = {
   medium: { label: 'MEDIUM', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' },
   stable: { label: 'STABLE', color: 'text-teal-700', bg: 'bg-teal-50 border-teal-100', dot: 'bg-teal-500' },
   recovery: { label: 'RECOVERY', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' },
-}
-
-function LoadingState() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-slate-500">Loading disaster data...</span>
-      </div>
-    </div>
-  )
-}
-
-function ErrorState({ message, onRetry }) {
-  return (
-    <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-      <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-      <p className="text-red-600 font-semibold">Could not load disaster data</p>
-      <p className="text-red-400 text-sm mt-1">{message}</p>
-      <Button variant="danger" onClick={onRetry} className="mt-3">
-        Retry
-      </Button>
-    </div>
-  )
 }
 
 function MetricCard({ label, value, icon: Icon, unit = '', color = 'teal' }) {
@@ -134,7 +122,6 @@ export default function DisasterMonitorPage() {
     setLoading(true)
     setError('')
     Promise.all([
-      fetch(`${API}/api/disaster/camps/${CAMP_ID}`).then(r => { if (!r.ok) throw new Error('Camp fetch failed'); return r.json() }),
       fetch(`${API}/api/disaster/prediction-models`).then(r => { if (!r.ok) throw new Error('Models failed'); return r.json() }),
       fetch(`${API}/api/disaster/overview`).then(r => { if (!r.ok) throw new Error('Overview failed'); return r.json() }),
     ])
@@ -171,9 +158,9 @@ export default function DisasterMonitorPage() {
   const alertLevel = getAlertLevel(camp)
   const statusMeta = STATUS_META[camp?.status] ?? STATUS_META.stable
 
-  if (loading && !camp) return <LoadingState />
-  if (error && !camp) return <ErrorState message={error} onRetry={fetchAll} />
-  if (!camp) return <ErrorState message="Camp data not found" onRetry={fetchAll} />
+  if (loading && !camp) return <LoadingState message="Loading disaster data..." fullPage />
+  if (error && !camp) return <ErrorState title="Could not load disaster data" message={error} onRetry={fetchAll} />
+  if (!camp) return <ErrorState title="Camp data not found" message="No camp data available" onRetry={fetchAll} />
 
   const sectionCard = 'bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-5'
 

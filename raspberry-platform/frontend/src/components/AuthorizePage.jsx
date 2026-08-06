@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from '../lib/router'
 import { useAuth } from '../lib/AuthContext'
-import Button from './ui/Button'
+import Button from './ui/base/Button'
 
 export default function AuthorizePage() {
   const { navigate } = useRouter()
