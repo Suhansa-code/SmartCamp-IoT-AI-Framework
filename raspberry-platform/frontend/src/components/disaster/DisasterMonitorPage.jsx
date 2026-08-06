@@ -10,8 +10,8 @@ import SectionHeader from '../ui/base/SectionHeader'
 import StatCard from '../ui/base/StatCard'
 
 const CAMP_LOCATION = {
-  latitude: 6.0535,
-  longitude: 80.2210,
+  latitude: 8.394877229188058,
+  longitude: 80.38335448069611,
   altitude: 10.0,
   satellites: 5,
   live: false,
@@ -87,10 +87,18 @@ export default function DisasterMonitorPage() {
   const [models, setModels] = useState([])
   const [overview, setOverview] = useState(null)
   const [gps, setGps] = useState(CAMP_LOCATION)
+  const [gauging, setGauging] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const STATUS_PRIORITY = { critical: 0, high: 1, medium: 2, stable: 3, recovery: 4 }
+
+  const fetchGauging = () => {
+    fetch(`${API}/api/disaster/gauging-station?lat=${CAMP_LOCATION.latitude}&lon=${CAMP_LOCATION.longitude}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setGauging(data) })
+      .catch(() => {})
+  }
 
   const fetchAll = () => {
     setLoading(true)
@@ -116,6 +124,7 @@ export default function DisasterMonitorPage() {
 
   useEffect(() => {
     fetchAll()
+    fetchGauging()
     const dataInterval = setInterval(fetchAll, 30000)
     return () => clearInterval(dataInterval)
   }, [])
@@ -188,7 +197,7 @@ export default function DisasterMonitorPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <Card>
-                <SectionHeader icon={CloudRain} title="Current Sensor Status" color="sky" />
+                <SectionHeader icon={CloudRain} title="Gauging Station Updates" color="sky" />
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-1.5">
@@ -205,11 +214,17 @@ export default function DisasterMonitorPage() {
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-[11px] text-slate-400">River</p>
-                      <p className="text-sm font-bold text-slate-800">{camp.river}</p>
+                      <p className="text-sm font-bold text-slate-800">{gauging?.river?.name ?? '—'}</p>
+                      {gauging?.river?.distance_km != null && (
+                        <p className="text-[10px] text-slate-400">{gauging.river.distance_km} km away</p>
+                      )}
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-[11px] text-slate-400">Station</p>
-                      <p className="text-sm font-bold text-slate-800">{camp.station} ({camp.stDist.toLocaleString()}m)</p>
+                      <p className="text-sm font-bold text-slate-800">{gauging?.gauging_station?.name ?? '—'}</p>
+                      {gauging?.gauging_station?.distance_km != null && (
+                        <p className="text-[10px] text-slate-400">{gauging.gauging_station.distance_km} km away</p>
+                      )}
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-[11px] text-slate-400">Elevation</p>
@@ -217,7 +232,7 @@ export default function DisasterMonitorPage() {
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-[11px] text-slate-400">Water Body</p>
-                      <p className="text-sm font-bold text-slate-800">{camp.waterPath}</p>
+                      <p className="text-sm font-bold text-slate-800">{gauging?.river?.name ?? camp.waterPath}</p>
                     </div>
                   </div>
                 </div>
