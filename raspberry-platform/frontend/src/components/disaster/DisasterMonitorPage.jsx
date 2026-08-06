@@ -94,7 +94,7 @@ export default function DisasterMonitorPage() {
   const STATUS_PRIORITY = { critical: 0, high: 1, medium: 2, stable: 3, recovery: 4 }
 
   const fetchGauging = () => {
-    fetch(`${API}/api/disaster/gauging-station?lat=${CAMP_LOCATION.latitude}&lon=${CAMP_LOCATION.longitude}`)
+    fetch(`${API}/api/disaster/live-payload?lat=${CAMP_LOCATION.latitude}&lon=${CAMP_LOCATION.longitude}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setGauging(data) })
       .catch(() => {})
@@ -202,37 +202,42 @@ export default function DisasterMonitorPage() {
                   <div>
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="text-slate-500 font-medium">Water Level</span>
-                      <span className="font-bold text-slate-900">{camp.wl.toFixed(2)}m</span>
+                      <span className="font-bold text-slate-900">{gauging?.live_gauge_data?.water_level?.toFixed(2) ?? camp.wl.toFixed(2)}m</span>
                     </div>
-                    <WaterLevelGauge wl={camp.wl} alertL={camp.alertL} minorL={camp.minorL} majorL={camp.majorL} />
+                    <WaterLevelGauge
+                      wl={gauging?.live_gauge_data?.water_level ?? camp.wl}
+                      alertL={gauging?.live_gauge_data?.alert_level ?? gauging?.gauging_station?.alert_level ?? camp.alertL}
+                      minorL={gauging?.live_gauge_data?.minor_flood_level ?? gauging?.gauging_station?.minor_flood_level ?? camp.minorL}
+                      majorL={gauging?.live_gauge_data?.major_flood_level ?? gauging?.gauging_station?.major_flood_level ?? camp.majorL}
+                    />
                     <div className="flex justify-between text-xs text-slate-400 mt-1">
-                      <span>Alert: {camp.alertL}m</span>
-                      <span>Minor: {camp.minorL}m</span>
-                      <span>Major: {camp.majorL}m</span>
+                      <span>Alert: {gauging?.live_gauge_data?.alert_level ?? gauging?.gauging_station?.alert_level ?? camp.alertL}m</span>
+                      <span>Minor: {gauging?.live_gauge_data?.minor_flood_level ?? gauging?.gauging_station?.minor_flood_level ?? camp.minorL}m</span>
+                      <span>Major: {gauging?.live_gauge_data?.major_flood_level ?? gauging?.gauging_station?.major_flood_level ?? camp.majorL}m</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-[11px] text-slate-400">River</p>
-                      <p className="text-sm font-bold text-slate-800">{gauging?.river?.name ?? '—'}</p>
-                      {gauging?.river?.distance_km != null && (
-                        <p className="text-[10px] text-slate-400">{gauging.river.distance_km} km away</p>
+                      <p className="text-sm font-bold text-slate-800">{gauging?.nearest_river?.name ?? gauging?.gauging_station?.river_name ?? '—'}</p>
+                      {gauging?.nearest_river?.distance_km != null && (
+                        <p className="text-[10px] text-slate-400">{gauging.nearest_river.distance_km} km away</p>
                       )}
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-[11px] text-slate-400">Station</p>
-                      <p className="text-sm font-bold text-slate-800">{gauging?.gauging_station?.name ?? '—'}</p>
-                      {gauging?.gauging_station?.distance_km != null && (
-                        <p className="text-[10px] text-slate-400">{gauging.gauging_station.distance_km} km away</p>
+                      <p className="text-sm font-bold text-slate-800">{gauging?.gauging_station?.station_name ?? '—'}</p>
+                      {gauging?.gauging_station?.distance_meters != null && (
+                        <p className="text-[10px] text-slate-400">{gauging.gauging_station.distance_meters}m away</p>
                       )}
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">Elevation</p>
-                      <p className="text-sm font-bold text-slate-800">{camp.elev}m</p>
+                      <p className="text-[11px] text-slate-400">Rainfall</p>
+                      <p className="text-sm font-bold text-slate-800">{gauging?.live_gauge_data?.rainfall ?? '—'} mm</p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-[11px] text-slate-400">Water Body</p>
-                      <p className="text-sm font-bold text-slate-800">{gauging?.river?.name ?? camp.waterPath}</p>
+                      <p className="text-sm font-bold text-slate-800">{gauging?.nearest_river?.name ?? camp.waterPath}</p>
                     </div>
                   </div>
                 </div>

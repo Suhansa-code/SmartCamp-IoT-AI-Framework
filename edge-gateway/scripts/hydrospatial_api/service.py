@@ -1,5 +1,8 @@
+import time
+
 from .providers.gauging_station import get_nearest_waterlevel_station
 from .providers.river_lookup import get_nearest_named_river
+from .providers.live_water_level_api import get_latest_gauge_data
 from .providers.river_shapefile import (
     load_river_data,
     load_gauging_station_data,
@@ -8,21 +11,22 @@ from .providers.river_shapefile import (
     find_upstream_gauging_station,
 )
 
+# In-memory cache: river/station data for a location rarely changes
+_cache = {}
+_CACHE_TTL = 3600  # 1 hour
+
+
 def find_nearest_gauging_station_detailed(latitude: float, longitude: float):
     """
     Return detailed gauging station info with flood levels using shapefile data.
     Includes alert levels, minor/major flood levels, and upstream station preference.
     """
-
-    
     try:
-        # Load geospatial data
         rivers = load_river_data()
         stations = load_gauging_station_data()
         river_graph = build_river_graph(rivers)
         station_graph_nodes = get_station_graph_nodes(stations, river_graph.nodes)
 
-        # Find upstream gauging station (or nearest as fallback)
         result = find_upstream_gauging_station(
             latitude=latitude,
             longitude=longitude,
@@ -39,26 +43,69 @@ def find_nearest_gauging_station_detailed(latitude: float, longitude: float):
 
 
 def find_nearest_river_and_station(latitude: float, longitude: float):
-    """Return nearest named river and nearest gauging station near that river."""
+    """Return nearest named river and nearest gauging station — with caching."""
+    cache_key = f"{latitude:.4f},{longitude:.4f}"
+    cached = _cache.get(cache_key)
+    if cached and (time.time() - cached["ts"] < _CACHE_TTL):
+        return cached["result"], None
+
     river, river_error = get_nearest_named_river(latitude, longitude)
-    if river_error:
+
+    station = None
+    station_error = None
+    if river and not river_error:
+        time.sleep(2)
+        station, station_error = get_nearest_waterlevel_station(
+            latitude, longitude, 10000, (latitude, longitude),
+        )
+
+    if river_error and not river:
         return None, {"stage": "river_lookup", **river_error}
 
-    river_lat, river_lon = river["coordinates"]
-    station, station_error = get_nearest_waterlevel_station(
-        river_lat,
-        river_lon,
-        query_point=(latitude, longitude),
-    )
-    if station_error:
+    if station_error and not station:
         return None, {
             "stage": "gauging_station",
             "river": river,
             "error": station_error,
         }
 
-    return {
+    result = {
         "river": river,
         "gauging_station": station,
         "query_point": {"lat": latitude, "lon": longitude},
-    }, None
+    }
+
+    _cache[cache_key] = {"result": result, "ts": time.time()}
+    return result, None
+
+
+def build_live_payload(latitude: float, longitude: float, altitude: float = 10.0):
+    """Full live payload: river (Overpass), station (CSV+graph), live gauge (ArcGIS)."""
+    payload = {
+        "query_location": {"lat": latitude, "lon": longitude, "alt": altitude},
+        "nearest_river": None,
+        "gauging_station": None,
+        "live_gauge_data": None,
+        "errors": {},
+    }
+
+    nearest_river, river_error = get_nearest_named_river(latitude, longitude)
+    if river_error:
+        payload["errors"]["river_lookup"] = river_error
+    else:
+        payload["nearest_river"] = nearest_river
+
+    detailed_result, detailed_error = find_nearest_gauging_station_detailed(latitude, longitude)
+    if detailed_error:
+        payload["errors"]["gauging_station"] = detailed_error
+    else:
+        payload["gauging_station"] = detailed_result
+
+    station_name = detailed_result.get("station_name") if detailed_result else ""
+    if station_name:
+        try:
+            payload["live_gauge_data"] = get_latest_gauge_data(station_name, include_geometry=True)
+        except Exception as exc:
+            payload["errors"]["live_gauge_data"] = str(exc)
+
+    return payload

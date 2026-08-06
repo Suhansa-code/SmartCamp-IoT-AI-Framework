@@ -10,11 +10,11 @@ router.get('/prediction-models', getPredictionModels);
 router.get('/overview', getOverview);
 router.get('/gps', getGpsLocation);
 
-router.get('/gauging-station', async (req, res) => {
-  const { lat, lon } = req.query;
+router.get('/live-payload', async (req, res) => {
+  const { lat, lon, alt } = req.query;
   if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
   try {
-    const response = await fetch(`${EDGE_API}/hydrospatial/nearest-river-gauging-station?lat=${lat}&lon=${lon}`);
+    const response = await fetch(`${EDGE_API}/hydrospatial/live-payload?lat=${lat}&lon=${lon}&alt=${alt || 10}`);
     if (!response.ok) throw new Error(`Edge gateway returned ${response.status}`);
     const data = await response.json();
     res.json(data);
