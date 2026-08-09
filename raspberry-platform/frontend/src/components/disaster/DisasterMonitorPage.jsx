@@ -203,7 +203,7 @@ export default function DisasterMonitorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans" style={{ color: COLORS.ink }}>
+    <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
       {/* ================= HEADER ================= */}
       <header className="border-b" style={{ borderColor: COLORS.line }}>
         <div className="lg:px-6 py-3.5 sm:py-4 flex items-center justify-between">
