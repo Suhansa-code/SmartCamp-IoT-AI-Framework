@@ -16,9 +16,9 @@ import ChildcareScreen from './components/childEducation/ChildEducationScreen'
 
 function AdminLayout({ children }) {
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen ">
       <Navbar />
-      <div className="p-6">{children}</div>
+      <div className="p-5">{children}</div>
     </div>
   )
 }

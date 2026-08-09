@@ -1,366 +1,423 @@
-import { useState, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { Activity, Droplets, Wind, Thermometer, CloudRain, MapPin, AlertTriangle, Shield, Cpu, Gauge, RefreshCw, Radar, Navigation, Satellite } from 'lucide-react'
-import LoadingState from '../ui/feedback/LoadingState'
-import ErrorState from '../ui/feedback/ErrorState'
-import { API } from '../ui/config'
-import PageHeader from '../ui/base/PageHeader'
-import Card from '../ui/base/Card'
-import SectionHeader from '../ui/base/SectionHeader'
-import StatCard from '../ui/base/StatCard'
+import { useState, useEffect } from 'react'
+import {
+  Droplets, Wind, MapPin, RefreshCw, Radar, Navigation, Satellite,
+  CloudRain, Bell, Download, Cpu, Waves, Gauge as GaugeIcon, ArrowRight,
+} from 'lucide-react'
+import {
+  ComposedChart, Bar, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
+} from 'recharts'
 
-const CAMP_LOCATION = {
-  latitude: 8.394877229188058,
-  longitude: 80.38335448069611,
-  altitude: 10.0,
-  satellites: 5,
-  live: false,
-  fetched_at: new Date().toISOString(),
+/* ------------------------------------------------------------------ */
+/*  DESIGN TOKENS                                                      */
+/* ------------------------------------------------------------------ */
+const INK = '#15191C'         // near-black for headings
+const BODY = '#5B6169'        // warm gray for body copy
+const MUTED = '#9AA0A6'       // captions / meta
+const LINE = '#E7E8EA'        // hairline borders
+const BRAND = '#059669'       // modern emerald — the single accent
+const TREND = '#B45309'       // warm amber — trend line, distinct from brand
+const BRAND_SOFT = '#ECFDF5'  // faint emerald tint, used sparingly
+
+const RISK = {
+  safe:     { label: 'Stable',   color: '#059669' },
+  caution:  { label: 'Caution',  color: '#D97706' },
+  warning:  { label: 'Warning',  color: '#EA580C' },
+  critical: { label: 'Critical', color: '#DC2626' },
 }
 
-const STATUS_META = {
-  critical: { label: 'CRITICAL', color: 'text-red-600', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
-  high: { label: 'HIGH', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', dot: 'bg-orange-500' },
-  medium: { label: 'MEDIUM', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' },
-  stable: { label: 'STABLE', color: 'text-teal-700', bg: 'bg-teal-50 border-teal-100', dot: 'bg-teal-500' },
-  recovery: { label: 'RECOVERY', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' },
+/* ------------------------------------------------------------------ */
+/*  MOCK DATA — swap for real API responses                            */
+/* ------------------------------------------------------------------ */
+
+const CAMP = { name: 'Smart Camp — Kalutara North', type: 'Flood' }
+const CAMP_LOCATION = { latitude: 8.394877, longitude: 80.383354, altitude: 10.0, satellites: 5 }
+
+const GAUGING = {
+  water_level: 2.35, alert_level: 2.0, minor_flood_level: 3.0, major_flood_level: 4.2,
+  rainfall: 18.4,
+  river: { name: 'Kalu Ganga', distance_km: 1.2 },
+  station: { name: 'Ellagawa Gauge', distance_m: 640 },
 }
 
-function ModelCard({ model, index }) {
+function getRisk(wl) {
+  if (wl >= GAUGING.major_flood_level) return RISK.critical
+  if (wl >= GAUGING.minor_flood_level) return RISK.warning
+  if (wl >= GAUGING.alert_level) return RISK.caution
+  return RISK.safe
+}
+const CURRENT_RISK = getRisk(GAUGING.water_level)
+
+const HISTORY = [
+  { t: '-6h', level: 1.62 }, { t: '-5h', level: 1.74 }, { t: '-4h', level: 1.88 },
+  { t: '-3h', level: 2.02 }, { t: '-2h', level: 2.15 }, { t: '-1h', level: 2.28 },
+  { t: 'Now', level: 2.35 },
+].map((d, i, arr) => {
+  const win = arr.slice(Math.max(0, i - 2), i + 1)
+  const trend = win.reduce((s, x) => s + x.level, 0) / win.length
+  return { ...d, trend: Number(trend.toFixed(2)) }
+})
+
+const WEATHER = {
+  condition: 'Partly cloudy, light showers', temp: 27, wind: 14, humidity: 82, rainChance: 62,
+  hourly: [
+    { t: '9AM', pct: 20 }, { t: '12PM', pct: 35 }, { t: '3PM', pct: 58 },
+    { t: '6PM', pct: 72 }, { t: '9PM', pct: 44 },
+  ],
+}
+
+const BEST_MODEL = { name: 'XGBoost', roc_auc: 0.927 }
+
+const READINGS = [
+  {
+    icon: GaugeIcon, title: 'Ellagawa Gauge Station', meta: `${GAUGING.station.distance_m} m away · ${GAUGING.river.name}`,
+    value: `${GAUGING.water_level.toFixed(2)} m`, note: 'water level',
+  },
+  {
+    icon: CloudRain, title: 'Rain Intensity Sensor', meta: 'Last 24 hours · On-site sensor',
+    value: `${GAUGING.rainfall} mm`, note: 'accumulated',
+  },
+  {
+    icon: Waves, title: GAUGING.river.name, meta: `${GAUGING.river.distance_km} km from camp · Nearest waterway`,
+    value: 'Normal', note: 'flow status',
+  },
+]
+
+/* ------------------------------------------------------------------ */
+/*  SEMI-CIRCLE GAUGE — fill colour follows live risk level             */
+/* ------------------------------------------------------------------ */
+
+function polar(cx, cy, r, deg) {
+  const rad = ((deg - 180) * Math.PI) / 180
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+}
+function arcPath(cx, cy, r, startDeg, endDeg) {
+  const s = polar(cx, cy, r, startDeg)
+  const e = polar(cx, cy, r, endDeg)
+  const large = endDeg - startDeg <= 180 ? 0 : 1
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`
+}
+
+function LevelGauge() {
+  const max = GAUGING.major_flood_level * 1.1
+  const valueDeg = Math.min(180, (GAUGING.water_level / max) * 180)
+  const cx = 110, cy = 110, r = 90
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
-      className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-2xl p-4 hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider">{model.model_name.replace(/_/g, ' ')}</span>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
-          model.roc_auc >= 0.9 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-          model.roc_auc >= 0.85 ? 'bg-sky-50 text-sky-700 border-sky-100' :
-          'bg-amber-50 text-amber-700 border-amber-100'
-        }`}>
-          ROC-AUC: {model.roc_auc.toFixed(3)}
-        </span>
+    <div className="flex flex-col items-center w-full">
+      <svg viewBox="0 0 220 128" className="w-full max-w-[240px]">
+        <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke="#EEF0ED" strokeWidth="15" strokeLinecap="round" />
+        <path d={arcPath(cx, cy, r, 0, valueDeg)} fill="none" stroke={CURRENT_RISK.color} strokeWidth="15" strokeLinecap="round" />
+        {[GAUGING.alert_level, GAUGING.minor_flood_level, GAUGING.major_flood_level].map((lvl, i) => {
+          const deg = Math.min(180, (lvl / max) * 180)
+          const p1 = polar(cx, cy, r - 10, deg)
+          const p2 = polar(cx, cy, r + 10, deg)
+          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#C7CCC8" strokeWidth="1.5" />
+        })}
+      </svg>
+      <div className="-mt-12 text-center">
+        <p className="font-serif text-[38px] leading-none tabular-nums tracking-tight" style={{ color: CURRENT_RISK.color }}>
+          {GAUGING.water_level.toFixed(2)}<span className="text-lg" style={{ color: MUTED }}>m</span>
+        </p>
+        <p className="text-[11px] mt-2 tracking-[0.08em] uppercase font-semibold" style={{ color: CURRENT_RISK.color }}>{CURRENT_RISK.label}</p>
       </div>
-      <div className="grid grid-cols-4 gap-2 text-center text-xs">
-        <div><p className="text-slate-400">Accuracy</p><p className="font-bold text-slate-800">{(model.accuracy * 100).toFixed(1)}%</p></div>
-        <div><p className="text-slate-400">Precision</p><p className="font-bold text-slate-800">{(model.precision * 100).toFixed(1)}%</p></div>
-        <div><p className="text-slate-400">Recall</p><p className="font-bold text-slate-800">{(model.recall * 100).toFixed(1)}%</p></div>
-        <div><p className="text-slate-400">F1</p><p className="font-bold text-slate-800">{(model.f1 * 100).toFixed(1)}%</p></div>
-      </div>
-    </motion.div>
-  )
-}
-
-function WaterLevelGauge({ wl, alertL, minorL, majorL }) {
-  const max = Math.max(majorL, Math.abs(wl) * 1.5, 10)
-  const pct = ((wl + max / 2) / max) * 100
-  const clampedPct = Math.max(2, Math.min(98, pct))
-  const color = wl >= majorL ? 'bg-red-500' : wl >= minorL ? 'bg-orange-500' : wl >= alertL ? 'bg-amber-500' : 'bg-emerald-500'
-
-  return (
-    <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
-      <motion.div
-        initial={{ width: 0 }}
-        animate={{ width: `${clampedPct}%` }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        className={`h-full rounded-full ${color} transition-colors`}
-      />
-      <div className="absolute inset-0 flex items-center justify-between px-1">
-        {[alertL, minorL, majorL].map((level, i) => (
-          <div
-            key={i}
-            className="w-0.5 h-full bg-white/60"
-            style={{ marginLeft: `${((level + max / 2) / max) * 100}%` }}
-            title={`${i === 0 ? 'Alert' : i === 1 ? 'Minor' : 'Major'}: ${level}m`}
-          />
-        ))}
+      <div className="flex items-center justify-between w-full max-w-[240px] mt-4 text-[10.5px] font-mono" style={{ color: MUTED }}>
+        <span>0m</span>
+        <span>Alert {GAUGING.alert_level}</span>
+        <span>Major {GAUGING.major_flood_level}</span>
       </div>
     </div>
   )
 }
 
+function LevelHistoryChart() {
+  return (
+    <div className="h-[200px] sm:h-[220px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={HISTORY} margin={{ top: 10, right: 6, bottom: 0, left: -18 }}>
+          <defs>
+            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={TREND} stopOpacity={0.16} />
+              <stop offset="100%" stopColor={TREND} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={BRAND} stopOpacity={0.95} />
+              <stop offset="100%" stopColor={BRAND} stopOpacity={0.55} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="#F0F1EF" />
+          <XAxis dataKey="t" tick={{ fontSize: 11, fill: MUTED, fontFamily: 'Inter' }} axisLine={{ stroke: LINE }} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: MUTED, fontFamily: 'Inter' }} axisLine={false} tickLine={false} width={34} />
+          <ReferenceLine y={GAUGING.alert_level} stroke="#C7CCC8" strokeDasharray="4 4" />
+          <Tooltip
+            contentStyle={{ borderRadius: 10, border: `1px solid ${LINE}`, fontSize: 12, boxShadow: '0 8px 24px rgba(15,23,20,0.08)', fontFamily: 'Inter' }}
+            labelStyle={{ color: INK, fontWeight: 600 }}
+            cursor={{ fill: 'rgba(5,150,105,0.05)' }}
+          />
+          <Area type="monotone" dataKey="trend" stroke="none" fill="url(#trendFill)" />
+          <Bar dataKey="level" fill="url(#barFill)" radius={[4, 4, 0, 0]} maxBarSize={24} />
+          <Line
+            type="monotone"
+            dataKey="trend"
+            stroke={TREND}
+            strokeWidth={2.25}
+            dot={{ r: 3, fill: TREND, strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: TREND, stroke: '#fff', strokeWidth: 2 }}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  SMALL PRIMITIVES — icons stay neutral; colour is reserved for state */
+/* ------------------------------------------------------------------ */
+
+function IconTile({ icon: Icon }) {
+  return (
+    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border flex items-center justify-center shrink-0" style={{ borderColor: LINE }}>
+      <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" style={{ color: BODY }} strokeWidth={1.6} />
+    </div>
+  )
+}
+
+function FieldBox({ label, value, icon: Icon }) {
+  return (
+    <div className="rounded-lg border px-3.5 py-3 flex items-center justify-between" style={{ borderColor: LINE }}>
+      <div>
+        <p className="text-[10.5px]" style={{ color: MUTED }}>{label}</p>
+        <p className="text-sm font-medium font-mono mt-0.5" style={{ color: INK }}>{value}</p>
+      </div>
+      {Icon && <Icon className="w-4 h-4" style={{ color: '#D4D8D5' }} />}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  PAGE                                                                */
+/* ------------------------------------------------------------------ */
+
 export default function DisasterMonitorPage() {
-  const [camp, setCamp] = useState(null)
-  const [models, setModels] = useState([])
-  const [overview, setOverview] = useState(null)
-  const [gps, setGps] = useState(CAMP_LOCATION)
-  const [gauging, setGauging] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  const STATUS_PRIORITY = { critical: 0, high: 1, medium: 2, stable: 3, recovery: 4 }
-
-  const fetchGauging = () => {
-    fetch(`${API}/api/disaster/live-payload?lat=${CAMP_LOCATION.latitude}&lon=${CAMP_LOCATION.longitude}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setGauging(data) })
-      .catch(() => {})
-  }
-
-  const fetchAll = () => {
-    setLoading(true)
-    setError('')
-    Promise.all([
-      fetch(`${API}/api/disaster/camps`).then(r => { if (!r.ok) throw new Error('Camps failed'); return r.json() }),
-      fetch(`${API}/api/disaster/prediction-models`).then(r => { if (!r.ok) throw new Error('Models failed'); return r.json() }),
-      fetch(`${API}/api/disaster/overview`).then(r => { if (!r.ok) throw new Error('Overview failed'); return r.json() }),
-    ])
-      .then(([cp, md, ov]) => {
-        const camps = cp.camps ?? []
-        const sorted = [...camps].sort((a, b) => (STATUS_PRIORITY[a.status] ?? 9) - (STATUS_PRIORITY[b.status] ?? 9))
-        setCamp(sorted[0] ?? null)
-        setModels(md.models ?? [])
-        setOverview(ov)
-        setLoading(false)
-      })
-      .catch(err => {
-        setError(err.message)
-        setLoading(false)
-      })
-  }
+  const [now, setNow] = useState(new Date())
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
-    fetchAll()
-    fetchGauging()
-    const dataInterval = setInterval(fetchAll, 30000)
-    return () => clearInterval(dataInterval)
+    const t = setInterval(() => setNow(new Date()), 30000)
+    return () => clearInterval(t)
   }, [])
 
-  const bestModel = useMemo(() => models.length > 0 ? models.reduce((a, b) => (a.roc_auc > b.roc_auc ? a : b)) : null, [models])
-
-  const getAlertLevel = (c) => {
-    if (!c) return 'SAFE'
-    if (c.wl >= c.majorL) return 'CRITICAL'
-    if (c.wl >= c.minorL) return 'WARNING'
-    if (c.wl >= c.alertL) return 'CAUTION'
-    return 'SAFE'
+  const handleRefresh = () => {
+    setRefreshing(true)
+    setTimeout(() => setRefreshing(false), 700)
   }
 
-  const alertLevel = getAlertLevel(camp)
-  const statusMeta = STATUS_META[camp?.status] ?? STATUS_META.stable
-
-  if (loading && !camp) return <LoadingState message="Loading disaster data..." fullPage />
-  if (error && !camp) return <ErrorState title="Could not load disaster data" message={error} onRetry={fetchAll} />
-  if (!camp) return <ErrorState title="Camp data not found" message="No camp data available" onRetry={fetchAll} />
-
   return (
-    <div className="min-h-[calc(100svh-3.5rem)] bg-linear-to-b from-slate-50 via-white to-slate-50 text-slate-800 font-sans relative">
+    <div className="min-h-screen bg-white font-sans" style={{ color: INK }}>
+<style>{`
+  @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Sora:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
-      <div className="max-w-7xl mx-auto sm:px-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
-        <PageHeader icon={Radar} title="Disaster Monitoring" subtitle="Flood prediction, sensor telemetry & model confidence">
-          <RefreshCw className="w-3.5 h-3.5 text-teal-600" />
-          <span className="font-medium">{new Date().toLocaleTimeString()}</span>
-        </PageHeader>
+  .font-serif {
+    font-family: 'Libre Baskerville', ui-serif, Georgia, serif;
+  }
 
-        <motion.div
-          key={camp.id}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-6"
-        >
-          <div className={`${statusMeta.bg} rounded-2xl p-4 flex items-center gap-4 border`}>
-            <div className="w-10 h-10 rounded-lg bg-white/80 flex items-center justify-center shrink-0 border border-slate-100">
-              <Shield className={`w-5 h-5 ${statusMeta.color}`} />
+  .font-sans {
+    font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'Space Mono', ui-monospace, monospace;
+  }
+
+  body,
+  .font-sans {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+`}</style>
+
+      {/* ================= HEADER ================= */}
+      <header className="border-b" style={{ borderColor: LINE }}>
+        <div className="lg:px-6 py-3.5 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: BRAND }}>
+              <Radar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" strokeWidth={1.8} />
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-lg font-bold text-slate-900">{camp.name}</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusMeta.color} bg-white/80 border`}>
-                  {statusMeta.label}
-                </span>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                  alertLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-200' :
-                  alertLevel === 'WARNING' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                  'bg-emerald-100 text-emerald-700 border-emerald-200'
-                }`}>
-                  Alert: {alertLevel}
-                </span>
+            <span className="font-bold text-[14.5px] sm:text-[15.5px] tracking-tight">FloodWatch</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="hidden sm:flex w-8 h-8 rounded-lg border items-center justify-center transition-colors" style={{ borderColor: LINE, color: BODY }}>
+              <Bell className="w-4 h-4" strokeWidth={1.6} />
+            </button>
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-1.5 rounded-lg border text-[12px] sm:text-[12.5px] font-medium px-2.5 sm:px-3 py-1.5 font-mono transition-colors"
+              style={{ borderColor: LINE, color: BODY }}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={1.8} />
+              <span className="hidden sm:inline">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="sm:px-5 lg:px-6">
+
+        {/* ================= TITLE ROW ================= */}
+        <div className="py-5 sm:py-7 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: MUTED }}>{CAMP.type} monitoring</p>
+            <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">{CAMP.name}</h1>
+            <p className="flex items-center gap-1.5 text-[12.5px] mt-2" style={{ color: MUTED }}>
+              <MapPin className="w-3.5 h-3.5" />
+              {CAMP_LOCATION.latitude.toFixed(4)}, {CAMP_LOCATION.longitude.toFixed(4)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-[13px]">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: CURRENT_RISK.color }} />
+            <span className="font-semibold" style={{ color: CURRENT_RISK.color }}>{CURRENT_RISK.label}</span>
+          </div>
+        </div>
+
+        {/* ================= OVERVIEW + WEATHER ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 pb-4 sm:pb-6">
+          <div className="lg:col-span-5 rounded-xl border p-4 sm:p-6 flex flex-col" style={{ borderColor: LINE }}>
+            <p className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: MUTED }}>Flood risk overview</p>
+            <p className="font-serif font-medium text-[28px] sm:text-[30px] mt-2 tracking-tight" style={{ color: CURRENT_RISK.color }}>{CURRENT_RISK.label}</p>
+            <p className="text-[13.5px] leading-relaxed mt-3" style={{ color: BODY }}>
+              Readings from the {GAUGING.station.name} are within the safe range. Prediction engine: {BEST_MODEL.name}, {(BEST_MODEL.roc_auc * 100).toFixed(1)}% confidence.
+            </p>
+            <div className="flex items-center gap-2 mt-5 pt-5 border-t" style={{ borderColor: '#F1F2F0' }}>
+              <button className="flex-1 rounded-lg border text-[12.5px] font-semibold py-2.5 flex items-center justify-center gap-1.5 transition-colors" style={{ borderColor: LINE, color: BODY }}>
+                <Download className="w-3.5 h-3.5" strokeWidth={1.7} /> Export
+              </button>
+              <button
+                className="flex-1 rounded-lg text-[12.5px] font-semibold py-2.5 text-white flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: BRAND }}
+              >
+                View report <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.7} />
+              </button>
+            </div>
+          </div>
+
+          <div className="lg:col-span-7 rounded-xl border p-4 sm:p-6" style={{ borderColor: LINE }}>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <IconTile icon={CloudRain} />
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: MUTED }}>Weather prediction</p>
+                  <p className="text-[13.5px] sm:text-[14px] font-semibold mt-0.5">{WEATHER.condition}</p>
+                </div>
               </div>
-              <p className="text-sm text-slate-500 mt-0.5">
-                {camp.type} &middot; {camp.displaced.toLocaleString()}/{camp.capacity.toLocaleString()} displaced &middot; {camp.workers} workers
-              </p>
-            </div>
-            <span className={`w-3 h-3 rounded-full ${statusMeta.dot} animate-pulse`} />
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Displaced" value={camp.displaced.toLocaleString()} icon={Activity} color="red" />
-            <StatCard label="Capacity" value={camp.capacity.toLocaleString()} icon={MapPin} color="blue" />
-            <StatCard label="Occupancy" value={Math.round((camp.displaced / camp.capacity) * 100)} unit="%" icon={Gauge} color="amber" />
-            <StatCard label="Aid Coverage" value={camp.aid} unit="%" icon={Shield} color="emerald" />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <SectionHeader icon={CloudRain} title="Gauging Station Updates" color="sky" />
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-slate-500 font-medium">Water Level</span>
-                      <span className="font-bold text-slate-900">{gauging?.live_gauge_data?.water_level?.toFixed(2) ?? camp.wl.toFixed(2)}m</span>
-                    </div>
-                    <WaterLevelGauge
-                      wl={gauging?.live_gauge_data?.water_level ?? camp.wl}
-                      alertL={gauging?.live_gauge_data?.alert_level ?? gauging?.gauging_station?.alert_level ?? camp.alertL}
-                      minorL={gauging?.live_gauge_data?.minor_flood_level ?? gauging?.gauging_station?.minor_flood_level ?? camp.minorL}
-                      majorL={gauging?.live_gauge_data?.major_flood_level ?? gauging?.gauging_station?.major_flood_level ?? camp.majorL}
-                    />
-                    <div className="flex justify-between text-xs text-slate-400 mt-1">
-                      <span>Alert: {gauging?.live_gauge_data?.alert_level ?? gauging?.gauging_station?.alert_level ?? camp.alertL}m</span>
-                      <span>Minor: {gauging?.live_gauge_data?.minor_flood_level ?? gauging?.gauging_station?.minor_flood_level ?? camp.minorL}m</span>
-                      <span>Major: {gauging?.live_gauge_data?.major_flood_level ?? gauging?.gauging_station?.major_flood_level ?? camp.majorL}m</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">River</p>
-                      <p className="text-sm font-bold text-slate-800">{gauging?.nearest_river?.name ?? gauging?.gauging_station?.river_name ?? '—'}</p>
-                      {gauging?.nearest_river?.distance_km != null && (
-                        <p className="text-[10px] text-slate-400">{gauging.nearest_river.distance_km} km away</p>
-                      )}
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">Station</p>
-                      <p className="text-sm font-bold text-slate-800">{gauging?.gauging_station?.station_name ?? '—'}</p>
-                      {gauging?.gauging_station?.distance_meters != null && (
-                        <p className="text-[10px] text-slate-400">{gauging.gauging_station.distance_meters}m away</p>
-                      )}
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">Rainfall</p>
-                      <p className="text-sm font-bold text-slate-800">{gauging?.live_gauge_data?.rainfall ?? '—'} mm</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">Water Body</p>
-                      <p className="text-sm font-bold text-slate-800">{gauging?.nearest_river?.name ?? camp.waterPath}</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              <Card>
-                <SectionHeader icon={Thermometer} title="Environmental Readings" color="orange" />
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <StatCard label="Temperature" value={`${camp.minT} / ${camp.maxT}`} unit="°C" icon={Thermometer} color="orange" />
-                  <StatCard label="Humidity" value={camp.hum} unit="%" icon={Droplets} color="blue" />
-                  <StatCard label="Rainfall" value={camp.rain} unit="mm" icon={CloudRain} color="blue" />
-                  <StatCard label="Precipitation" value={camp.precip} unit="mm" icon={Droplets} color="indigo" />
-                  <StatCard label="Wind" value={camp.avgWind} unit="km/h" icon={Wind} color="teal" />
-                  <StatCard label="Max Wind" value={camp.maxWind} unit="km/h" icon={Wind} color="amber" />
-                  <StatCard label="Pressure" value={camp.pres} unit="hPa" icon={Activity} color="purple" />
-                  <StatCard label="Soil Moisture" value={camp.soil?.toFixed(2)} icon={Droplets} color="amber" />
-                  <StatCard label="Cloud Cover" value={camp.cloud} unit="%" icon={CloudRain} color="gray" />
-                </div>
-              </Card>
-
-              <Card>
-                <SectionHeader icon={Cpu} title="Device Status" color="indigo" />
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Edge Gateway', desc: 'Intel NUC' },
-                    { label: 'XGBoost Model', desc: `ROC-AUC ${bestModel?.roc_auc.toFixed(3) ?? '0.927'}` },
-                    { label: 'Sensor Station', desc: camp.station },
-                    { label: 'MQTT Bridge', desc: 'EMQX broker' },
-                  ].map((d, i) => (
-                    <div key={i} className="bg-slate-50 rounded-xl p-3 text-center">
-                      <span className="inline-block w-2 h-2 rounded-full mb-2 bg-emerald-500" />
-                      <p className="text-sm font-bold text-slate-800">{d.label}</p>
-                      <p className="text-xs text-slate-400">{d.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+              <p className="font-serif font-medium text-[28px] sm:text-[30px] leading-none tracking-tight">{WEATHER.temp}°</p>
             </div>
 
-            <div className="space-y-6">
-              {bestModel && (
-                <Card>
-                  <SectionHeader icon={AlertTriangle} title="Disaster Prediction" color="indigo" />
-                  <div className="text-center py-4">
-                    <div className="text-4xl font-bold mb-1" style={{
-                      color: alertLevel === 'CRITICAL' ? '#ef4444' : alertLevel === 'WARNING' ? '#f59e0b' : '#10b981'
-                    }}>
-                      {alertLevel}
-                    </div>
-                    <p className="text-xs text-slate-400">Alert Level</p>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Camp Status</span>
-                      <span className={`font-semibold ${statusMeta.color}`}>{statusMeta.label}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Best Model</span>
-                      <span className="font-semibold text-slate-800 uppercase">{bestModel.model_name.replace(/_/g, ' ')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">ROC-AUC</span>
-                      <span className="font-semibold text-slate-800">{(bestModel.roc_auc * 100).toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Accuracy</span>
-                      <span className="font-semibold text-slate-800">{(bestModel.accuracy * 100).toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Critical Camps</span>
-                      <span className={`font-bold ${(overview?.summary?.critical_count ?? 0) > 0 ? 'text-red-600' : 'text-slate-800'}`}>
-                        {overview?.summary?.critical_count ?? 0}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              )}
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-5">
+              <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: '#F1F2F0' }}>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.rainChance}%</p>
+                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: MUTED }}>Rain chance</p>
+              </div>
+              <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: '#F1F2F0' }}>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.wind} km/h</p>
+                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: MUTED }}>Wind</p>
+              </div>
+              <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: '#F1F2F0' }}>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.humidity}%</p>
+                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: MUTED }}>Humidity</p>
+              </div>
+            </div>
 
-              <Card>
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center border border-teal-100">
-                    <Navigation className="w-4 h-4 text-teal-600" />
-                  </div>
-                  <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Current Location</h2>
-                  <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-sky-600 bg-sky-50 border border-sky-100 rounded-full px-2 py-0.5"><span className="w-1.5 h-1.5 rounded-full bg-sky-500" />Fixed</span>
+            <div className="flex items-center justify-between mt-5 pt-4 border-t" style={{ borderColor: '#F1F2F0' }}>
+              {WEATHER.hourly.map((h) => (
+                <div key={h.t} className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] sm:text-[10.5px] font-mono" style={{ color: MUTED }}>{h.t}</span>
+                  <span className="text-[11px] sm:text-[11.5px] font-semibold">{h.pct}%</span>
                 </div>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">Latitude</p>
-                      <p className="text-sm font-bold text-slate-800 font-mono">{gps?.latitude != null ? gps.latitude.toFixed(6) : '—'}</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">Longitude</p>
-                      <p className="text-sm font-bold text-slate-800 font-mono">{gps?.longitude != null ? gps.longitude.toFixed(6) : '—'}</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">Altitude</p>
-                      <p className="text-sm font-bold text-slate-800 font-mono">{gps?.altitude != null ? `${gps.altitude.toFixed(1)}m` : '—'}</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">Satellites</p>
-                      <p className="text-sm font-bold text-slate-800 font-mono flex items-center gap-1.5">
-                        <Satellite className="w-3.5 h-3.5 text-slate-400" />
-                        {gps?.satellites ?? '—'}
-                      </p>
-                    </div>
-                  </div>
-                  {gps?.fetched_at && (
-                    <p className="text-[10px] text-slate-400 text-right">Updated {new Date(gps.fetched_at).toLocaleTimeString()}</p>
-                  )}
-                </div>
-              </Card>
-
-              <Card>
-                <SectionHeader icon={Activity} title="Prediction Confidence" color="violet" />
-                <div className="space-y-3">
-                  {models.map((m, i) => <ModelCard key={m.model_name} model={m} index={i} />)}
-                </div>
-              </Card>
+              ))}
             </div>
           </div>
-        </motion.div>
+        </div>
+
+        {/* ================= WATER LEVEL: GAUGE + HISTORY ================= */}
+        <div className="rounded-xl border p-4 sm:p-6 mb-4 sm:mb-6" style={{ borderColor: LINE }}>
+          <div className="flex items-center justify-between mb-4 sm:mb-5">
+            <div className="flex items-center gap-3">
+              <IconTile icon={GaugeIcon} />
+              <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Water level</h2>
+            </div>
+            <span className="text-[11px] sm:text-[11.5px] font-mono" style={{ color: MUTED }}>Last 6 hours</span>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-center">
+            <div className="lg:col-span-4 flex justify-center">
+              <LevelGauge />
+            </div>
+            <div className="lg:col-span-8">
+              <LevelHistoryChart />
+              <div className="flex items-center gap-4 mt-3 text-[11px] font-mono" style={{ color: MUTED }}>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm" style={{ backgroundColor: BRAND }} /> Level</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: TREND }} /> Trend</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ================= LIVE READINGS ================= */}
+        <div className="pb-4 sm:pb-6">
+          <h2 className="text-[13.5px] sm:text-[14px] font-semibold mb-3">Live readings</h2>
+          <div className="rounded-xl border divide-y" style={{ borderColor: LINE }}>
+            {READINGS.map((r) => (
+              <div key={r.title} className="flex items-center gap-3 sm:gap-3.5 px-3.5 sm:px-5 py-3.5 sm:py-4" style={{ borderColor: '#F1F2F0' }}>
+                <IconTile icon={r.icon} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] sm:text-[13.5px] font-semibold truncate">{r.title}</p>
+                  <p className="text-[11.5px] sm:text-[12px] truncate mt-0.5" style={{ color: MUTED }}>{r.meta}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[13.5px] sm:text-[14px] font-bold font-mono">{r.value}</p>
+                  <p className="text-[10px] sm:text-[10.5px]" style={{ color: MUTED }}>{r.note}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ================= LOCATION + DEVICE STATUS ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 pb-6 sm:pb-8">
+          <div className="lg:col-span-5">
+            <div className="flex items-center gap-3 mb-3">
+              <IconTile icon={Navigation} />
+              <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Location</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+              <FieldBox label="Latitude" value={CAMP_LOCATION.latitude.toFixed(6)} />
+              <FieldBox label="Longitude" value={CAMP_LOCATION.longitude.toFixed(6)} />
+              <FieldBox label="Altitude" value={`${CAMP_LOCATION.altitude} m`} />
+              <FieldBox label="Satellites" value={CAMP_LOCATION.satellites} icon={Satellite} />
+            </div>
+          </div>
+
+          <div className="lg:col-span-7">
+            <div className="flex items-center gap-3 mb-3">
+              <IconTile icon={Cpu} />
+              <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Device status</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+              {[
+                { label: 'Edge Gateway', desc: 'Intel NUC' },
+                { label: 'Prediction Engine', desc: `${BEST_MODEL.name} · ${(BEST_MODEL.roc_auc * 100).toFixed(1)}%` },
+                { label: 'Sensor Station', desc: GAUGING.station.name },
+                { label: 'MQTT Bridge', desc: 'EMQX broker' },
+              ].map((d) => (
+                <div key={d.label} className="rounded-lg border p-3 sm:p-3.5" style={{ borderColor: LINE }}>
+                  <span className="inline-block w-1.5 h-1.5 rounded-full mb-2" style={{ backgroundColor: BRAND }} />
+                  <p className="text-[12px] sm:text-[12.5px] font-semibold leading-tight">{d.label}</p>
+                  <p className="text-[10.5px] sm:text-[11px] mt-0.5 truncate" style={{ color: MUTED }}>{d.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

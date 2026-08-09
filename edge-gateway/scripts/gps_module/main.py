@@ -1,10 +1,11 @@
-import serial
+from gps_reader import GPSReader
 
-ser = serial.Serial('COM5', 115200, timeout=1)
 
-print("Reading GPS raw data...")
+gps = GPSReader('COM5', 115200)
 
-while True:
-    line = ser.readline().decode(errors='ignore').strip()
-    if line:
-        print(line)
+print("Waiting for GPS data...")
+
+data = gps.get_gps_data()
+
+print("GPS Data:")
+print(data)

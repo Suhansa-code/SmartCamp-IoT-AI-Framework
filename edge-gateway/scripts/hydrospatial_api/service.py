@@ -3,6 +3,7 @@ import time
 from .providers.gauging_station import get_nearest_waterlevel_station
 from .providers.river_lookup import get_nearest_named_river
 from .providers.live_water_level_api import get_latest_gauge_data
+from .providers.prediction import run_prediction
 from .providers.river_shapefile import (
     load_river_data,
     load_gauging_station_data,
@@ -49,15 +50,21 @@ def find_nearest_river_and_station(latitude: float, longitude: float):
     if cached and (time.time() - cached["ts"] < _CACHE_TTL):
         return cached["result"], None
 
-    river, river_error = get_nearest_named_river(latitude, longitude)
+    try:
+        river, river_error = get_nearest_named_river(latitude, longitude)
+    except Exception as exc:
+        river, river_error = None, {"error": str(exc)}
 
     station = None
     station_error = None
     if river and not river_error:
         time.sleep(2)
-        station, station_error = get_nearest_waterlevel_station(
-            latitude, longitude, 10000, (latitude, longitude),
-        )
+        try:
+            station, station_error = get_nearest_waterlevel_station(
+                latitude, longitude, 10000, (latitude, longitude),
+            )
+        except Exception as exc:
+            station, station_error = None, {"error": str(exc)}
 
     if river_error and not river:
         return None, {"stage": "river_lookup", **river_error}
@@ -89,17 +96,24 @@ def build_live_payload(latitude: float, longitude: float, altitude: float = 10.0
         "errors": {},
     }
 
-    nearest_river, river_error = get_nearest_named_river(latitude, longitude)
-    if river_error:
-        payload["errors"]["river_lookup"] = river_error
-    else:
-        payload["nearest_river"] = nearest_river
+    try:
+        nearest_river, river_error = get_nearest_named_river(latitude, longitude)
+        if river_error:
+            payload["errors"]["river_lookup"] = river_error
+        else:
+            payload["nearest_river"] = nearest_river
+    except Exception as exc:
+        payload["errors"]["river_lookup"] = str(exc)
 
-    detailed_result, detailed_error = find_nearest_gauging_station_detailed(latitude, longitude)
-    if detailed_error:
-        payload["errors"]["gauging_station"] = detailed_error
-    else:
-        payload["gauging_station"] = detailed_result
+    try:
+        detailed_result, detailed_error = find_nearest_gauging_station_detailed(latitude, longitude)
+        if detailed_error:
+            payload["errors"]["gauging_station"] = detailed_error
+        else:
+            payload["gauging_station"] = detailed_result
+    except Exception as exc:
+        payload["errors"]["gauging_station"] = str(exc)
+        detailed_result = None
 
     station_name = detailed_result.get("station_name") if detailed_result else ""
     if station_name:
@@ -109,3 +123,58 @@ def build_live_payload(latitude: float, longitude: float, altitude: float = 10.0
             payload["errors"]["live_gauge_data"] = str(exc)
 
     return payload
+
+
+def build_live_prediction(latitude: float, longitude: float, altitude: float = 10.0):
+    """Run the live flood prediction model with current gauge data."""
+    payload = build_live_payload(latitude, longitude, altitude)
+
+    gauge = payload.get("live_gauge_data") or {}
+    station = payload.get("gauging_station") or {}
+
+    # distance to river: prefer the detailed station river distance, fallback to nearest river km
+    nearest_river_m = station.get("distance_to_river_meters") or 0
+    if not nearest_river_m:
+        river = payload.get("nearest_river") or {}
+        nearest_river_m = (river.get("distance_km") or 0) * 1000
+
+    inputs = {
+        "rainfall_mm": gauge.get("rainfall") or 0.0,
+        "longitude": longitude,
+        "latitude": latitude,
+        "altitude_m": altitude,
+        "dem_elevation_m": station.get("elevation"),
+        "nearest_river_m": nearest_river_m,
+        "gauging_station_current_water_level_m": gauge.get("water_level") or 0.0,
+        "is_forecast": True,
+    }
+
+    try:
+        prediction = run_prediction(inputs)
+    except Exception as exc:
+        return {
+            "prediction": None,
+            "inputs": inputs,
+            "source_data": {
+                "station_name": station.get("station_name"),
+                "river_name": station.get("river_name"),
+                "water_level": gauge.get("water_level"),
+                "rainfall": gauge.get("rainfall"),
+            },
+            "errors": {
+                **payload.get("errors", {}),
+                "prediction": f"Prediction failed: {exc}",
+            },
+        }, {"error": f"Prediction failed: {exc}", "errors": payload.get("errors", {})}
+
+    return {
+        "prediction": prediction,
+        "inputs": inputs,
+        "source_data": {
+            "station_name": station.get("station_name"),
+            "river_name": station.get("river_name"),
+            "water_level": gauge.get("water_level"),
+            "rainfall": gauge.get("rainfall"),
+        },
+        "errors": payload.get("errors", {}),
+    }, None

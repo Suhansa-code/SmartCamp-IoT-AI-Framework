@@ -23,4 +23,17 @@ router.get('/live-payload', async (req, res) => {
   }
 });
 
+router.get('/predict', async (req, res) => {
+  const { lat, lon, alt } = req.query;
+  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
+  try {
+    const response = await fetch(`${EDGE_API}/hydrospatial/predict?lat=${lat}&lon=${lon}&alt=${alt || 10}`);
+    if (!response.ok) throw new Error(`Edge gateway returned ${response.status}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
 export default router;
