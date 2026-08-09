@@ -6,7 +6,6 @@ import DisasterMonitorPage from './components/disaster/DisasterMonitorPage'
 import RegistrationScreen from './components/resources/RegistrationScreen'
 import WristbandScanScreen from './components/resources/WristbandScanScreen'
 import ChildEducationScreen from './components/childEducation/ChildEducationScreen'
-import PredictionScreen from './components/resources/PredictionScreen'
 import NetworkScreen from './components/resources/NetworkScreen'
 import Navbar from './components/ui/layout/Navbar'
 import ChildFlow from './components/ChildFlow'
@@ -33,7 +32,6 @@ function AdminRoutes() {
           <Route path="/disaster" element={<DisasterMonitorPage />} />
           <Route path="/registration" element={<RegistrationScreen />} />
           <Route path="/wristband" element={<WristbandScanScreen />} />
-          <Route path="/prediction" element={<PredictionScreen />} />
           <Route path="/network" element={<NetworkScreen />} />
           <Route path="/educationscreen" element={<ChildcareScreen />} />
           <Route path="*" element={<DashboardPage />} />

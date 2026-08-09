@@ -204,35 +204,12 @@ export default function DisasterMonitorPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
-      {/* ================= HEADER ================= */}
-      <header className="border-b" style={{ borderColor: COLORS.line }}>
-        <div className="lg:px-6 py-3.5 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.brand }}>
-              <Radar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" strokeWidth={1.8} />
-            </div>
-            <span className="font-bold text-[14.5px] sm:text-[15.5px] tracking-tight">FloodWatch</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="hidden sm:flex w-8 h-8 rounded-lg border items-center justify-center transition-colors" style={{ borderColor: COLORS.line, color: COLORS.body }}>
-              <Bell className="w-4 h-4" strokeWidth={1.6} />
-            </button>
-            <button
-              onClick={handleRefresh}
-              className="flex items-center gap-1.5 rounded-lg border text-[12px] sm:text-[12.5px] font-medium px-2.5 sm:px-3 py-1.5 font-mono transition-colors"
-              style={{ borderColor: COLORS.line, color: COLORS.body }}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={1.8} />
-              <span className="hidden sm:inline">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-            </button>
-          </div>
-        </div>
-      </header>
+
 
       <div className="sm:px-5 lg:px-6">
 
         {/* ================= TITLE ROW ================= */}
-        <div className="py-5 sm:py-7 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="py-2 sm:py-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{CAMP.type} monitoring</p>
             <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">{CAMP.name}</h1>
