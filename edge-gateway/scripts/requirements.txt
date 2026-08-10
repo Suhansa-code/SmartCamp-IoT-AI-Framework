@@ -1,7 +1,10 @@
-requests
+fastapi
+uvicorn
 pyserial
-flask
 requests
 geopy
 shapely
 geopandas
+networkx
+pandas
+numpy
