@@ -1,4 +1,5 @@
 import * as disasterService from '../../services/disaster/disaster.js';
+import * as gpsService from '../../services/disaster/gps.js';
 
 export function getCamps(req, res) {
   const camps = disasterService.getCampsData();
@@ -19,4 +20,9 @@ export function getPredictionModels(req, res) {
 export function getOverview(req, res) {
   const result = disasterService.getOverview();
   res.json(result);
+}
+
+export async function getGpsLocation(req, res) {
+  const gps = await gpsService.getGpsLocation();
+  res.json(gps);
 }

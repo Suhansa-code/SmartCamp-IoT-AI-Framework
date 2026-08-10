@@ -4,8 +4,8 @@ import os
 import sys
 from gps_module.gps_reader import GPSReader
 from providers.river_lookup import get_nearest_named_river
-from providers.river_lookup import find_nearest_gauging_station_detailed
-from providers.river_lookup import get_latest_gauge_data
+from service import find_nearest_gauging_station_detailed
+from providers.live_water_level_api import get_latest_gauge_data
 from providers.weather_forecast_location import fetch_forecast_location
 
 DEFAULT_LATITUDE = 7.507

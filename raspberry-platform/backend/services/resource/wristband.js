@@ -8,7 +8,7 @@ export function getWristbandInfo(barcode) {
   if (!person) throw Object.assign(new Error('Person not found'), { status: 404 });
 
   const distributions = db.prepare(
-    'SELECT resource_type FROM distributions WHERE wristband_barcode = ? AND DATE(distributed_at) = DATE("now")'
+    "SELECT resource_type FROM distributions WHERE wristband_barcode = ? AND DATE(distributed_at) = DATE('now')"
   ).all(barcode);
 
   const givenSet = new Set(distributions.map(d => d.resource_type));
@@ -33,7 +33,7 @@ export function getDistributionHistory(barcode, { days } = {}) {
   const params = [barcode];
 
   if (days) {
-    whereClause += ' AND distributed_at >= DATE("now", ? || " days")';
+    whereClause += " AND distributed_at >= DATE('now', ? || ' days')";
     params.push(`-${parseInt(days)}`);
   }
 

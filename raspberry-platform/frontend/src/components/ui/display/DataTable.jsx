@@ -4,30 +4,31 @@ import {
   Search, ChevronUp, ChevronDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, Inbox,
 } from "lucide-react";
+import { COLORS, SHADOW_CARD } from "../../../lib/tokens";
 
 function SortIcon({ direction }) {
-  if (!direction) return <ChevronsUpDown className="w-3 h-3 text-slate-300" />;
+  if (!direction) return <ChevronsUpDown className="w-3 h-3" style={{ color: "#D4D8D5" }} />;
   return direction === "asc"
-    ? <ChevronUp className="w-3 h-3 text-teal-600" />
-    : <ChevronDown className="w-3 h-3 text-teal-600" />;
+    ? <ChevronUp className="w-3 h-3" style={{ color: COLORS.brand }} />
+    : <ChevronDown className="w-3 h-3" style={{ color: COLORS.brand }} />;
 }
 
 function LoadingSkeleton({ columns, rows = 5, mobile }) {
   if (mobile) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {Array.from({ length: rows }).map((_, r) => (
-          <div key={r} className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+          <div key={r} className="p-3.5 rounded-xl border space-y-3" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
+              <div className="w-10 h-10 rounded-lg animate-pulse" style={{ backgroundColor: COLORS.line }} />
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-slate-200 rounded-md animate-pulse w-1/2" />
-                <div className="h-3 bg-slate-200 rounded-md animate-pulse w-1/3" />
+                <div className="h-3.5 rounded-md animate-pulse w-1/2" style={{ backgroundColor: COLORS.line }} />
+                <div className="h-3 rounded-md animate-pulse w-1/3" style={{ backgroundColor: COLORS.line }} />
               </div>
             </div>
             <div className="flex gap-2">
-              <div className="h-6 bg-slate-200 rounded-md animate-pulse w-16" />
-              <div className="h-6 bg-slate-200 rounded-md animate-pulse w-20" />
+              <div className="h-5 rounded-md animate-pulse w-16" style={{ backgroundColor: COLORS.line }} />
+              <div className="h-5 rounded-md animate-pulse w-20" style={{ backgroundColor: COLORS.line }} />
             </div>
           </div>
         ))}
@@ -37,10 +38,10 @@ function LoadingSkeleton({ columns, rows = 5, mobile }) {
   return (
     <tbody>
       {Array.from({ length: rows }).map((_, r) => (
-        <tr key={r} className="border-b border-slate-50">
+        <tr key={r} className="border-t" style={{ borderColor: COLORS.hairline }}>
           {columns.map((col, c) => (
             <td key={c} className="py-3 px-4">
-              <div className="h-4 bg-slate-100 rounded-md animate-pulse" style={{ width: `${50 + (c % 3) * 15}%` }} />
+              <div className="h-3.5 rounded-md animate-pulse" style={{ width: `${50 + (c % 3) * 15}%`, backgroundColor: "#F0F1EF" }} />
             </td>
           ))}
         </tr>
@@ -50,27 +51,19 @@ function LoadingSkeleton({ columns, rows = 5, mobile }) {
 }
 
 function EmptyState({ message, mobile }) {
-  if (mobile) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-12">
-        <div className="w-14 h-14 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center">
-          <Inbox className="w-6 h-6 text-slate-300" />
-        </div>
-        <p className="text-sm font-medium text-slate-400">{message}</p>
+  const body = (
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-14 h-14 rounded-full border flex items-center justify-center" style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line }}>
+        <Inbox className="w-6 h-6" style={{ color: "#D4D8D5" }} />
       </div>
-    );
-  }
+      <p className="text-[13px] font-medium" style={{ color: COLORS.muted }}>{message}</p>
+    </div>
+  );
+  if (mobile) return <div className="py-12">{body}</div>;
   return (
     <tbody>
       <tr>
-        <td colSpan={99} className="py-16 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center">
-              <Inbox className="w-6 h-6 text-slate-300" />
-            </div>
-            <p className="text-sm font-medium text-slate-400">{message}</p>
-          </div>
-        </td>
+        <td colSpan={99} className="py-16 text-center">{body}</td>
       </tr>
     </tbody>
   );
@@ -80,14 +73,15 @@ function Pagination({ page, totalPages, filteredLength, setPage }) {
   if (totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-between pt-1">
-      <span className="text-xs text-slate-400">
+      <span className="text-[11.5px] font-mono" style={{ color: COLORS.muted }}>
         {filteredLength} record{filteredLength !== 1 ? "s" : ""} total
       </span>
       <div className="flex items-center gap-1">
         <button
           onClick={() => setPage((p) => Math.max(0, p - 1))}
           disabled={page === 0}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="w-7 h-7 rounded-md flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ color: COLORS.muted }}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -95,9 +89,10 @@ function Pagination({ page, totalPages, filteredLength, setPage }) {
           <button
             key={i}
             onClick={() => setPage(i)}
-            className={`w-7 h-7 rounded-md text-xs font-medium transition-colors ${
-              i === page ? "bg-teal-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"
-            }`}
+            className="w-7 h-7 rounded-md text-[11.5px] font-mono font-semibold transition-colors"
+            style={i === page
+              ? { backgroundColor: COLORS.brand, color: "#fff" }
+              : { color: COLORS.muted }}
           >
             {i + 1}
           </button>
@@ -105,7 +100,8 @@ function Pagination({ page, totalPages, filteredLength, setPage }) {
         <button
           onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
           disabled={page >= totalPages - 1}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="w-7 h-7 rounded-md flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ color: COLORS.muted }}
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -194,14 +190,15 @@ export default function DataTable({
           {searchKeys.length > 0 && (
             <div className="relative flex-1 min-w-0 sm:max-w-xs">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <Search className="w-4 h-4 text-slate-400" />
+                <Search className="w-4 h-4" style={{ color: COLORS.muted }} />
               </div>
               <input
                 type="text"
                 defaultValue=""
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 transition-all text-sm text-slate-800 placeholder-slate-400"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border focus:outline-none transition-colors text-[13px]"
+                style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line, color: COLORS.ink }}
               />
             </div>
           )}
@@ -213,7 +210,8 @@ export default function DataTable({
                 setFilterValues((prev) => ({ ...prev, [filter.key]: e.target.value }));
                 setPage(0);
               }}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-teal-500 transition-all"
+              className="px-3 py-2 rounded-lg border text-[13px] focus:outline-none transition-colors"
+              style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line, color: COLORS.body }}
             >
               <option value="">{filter.label}</option>
               {filter.options.map((opt) => (
@@ -239,9 +237,8 @@ export default function DataTable({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   onClick={() => onRowClick?.(row)}
-                  className={`p-3.5 bg-slate-50 border border-slate-100 rounded-xl transition-all ${
-                    onRowClick ? "active:scale-[0.98] cursor-pointer hover:border-teal-200 hover:bg-teal-50/30" : ""
-                  }`}
+                  className={`p-3.5 rounded-xl border transition-all ${onRowClick ? "active:scale-[0.98] cursor-pointer" : ""}`}
+                  style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line }}
                 >
                   {mobileCard(row)}
                 </motion.div>
@@ -254,16 +251,15 @@ export default function DataTable({
         </div>
       ) : null}
 
-      <div className={`${mobileCard ? "hidden sm:block" : ""} overflow-x-auto`}>
-        <table className="w-full text-sm">
+      <div className={`${mobileCard ? "hidden sm:block" : ""} overflow-x-auto rounded-xl border`} style={{ borderColor: COLORS.line }}>
+        <table className="w-full text-[13px]">
           <thead>
-            <tr className="text-left text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-100">
+            <tr className="text-left border-b" style={{ borderColor: COLORS.hairline, backgroundColor: "#FAFAF9" }}>
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`pb-2.5 px-4 font-semibold whitespace-nowrap ${
-                    col.sortable !== false ? "cursor-pointer select-none hover:text-teal-600 transition-colors" : ""
-                  }`}
+                  className={`py-3 px-4 font-mono font-semibold text-[10.5px] uppercase tracking-[0.06em] whitespace-nowrap ${col.sortable !== false ? "cursor-pointer select-none transition-colors" : ""}`}
+                  style={{ color: COLORS.muted }}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
                 >
                   <div className="flex items-center gap-1.5">
@@ -287,12 +283,13 @@ export default function DataTable({
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.02 }}
                   onClick={() => onRowClick?.(row)}
-                  className={`border-b border-slate-50 transition-colors ${
-                    onRowClick ? "cursor-pointer hover:bg-teal-50/40" : "hover:bg-slate-50/60"
-                  }`}
+                  className={`border-t transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
+                  style={{ borderColor: COLORS.hairline }}
+                  onMouseEnter={(e) => { if (onRowClick) e.currentTarget.style.backgroundColor = `${COLORS.brand}08`; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className="py-2.5 px-4 text-slate-600 whitespace-nowrap">
+                    <td key={col.key} className="py-3 px-4 whitespace-nowrap" style={{ color: COLORS.body }}>
                       {col.render ? col.render(row[col.key], row) : (row[col.key] ?? "—")}
                     </td>
                   ))}
