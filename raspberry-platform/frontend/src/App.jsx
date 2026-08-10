@@ -1,7 +1,7 @@
 import React from 'react'
 import { Routes, Route, useRouter } from './lib/router'
 import { AuthProvider } from './lib/AuthContext'
-import DashboardPage from './components/resources/DashboardPage'
+import DashboardPage from './components/DashboardPage'
 import DisasterMonitorPage from './components/disaster/DisasterMonitorPage'
 import RegistrationScreen from './components/resources/RegistrationScreen'
 import WristbandScanScreen from './components/resources/WristbandScanScreen'

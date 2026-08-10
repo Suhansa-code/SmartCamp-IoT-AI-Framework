@@ -4,20 +4,117 @@ import {
   ArrowLeft, User, Users, CalendarDays, BadgeCheck, Waves, AlertTriangle,
   ClipboardCheck, Utensils, Loader2, Edit2, Trash2, X, Save,
 } from "lucide-react";
-import Button from "../ui/base/Button";
 import ConfirmDialog from "../ui/feedback/ConfirmDialog";
 import LoadingState from "../ui/feedback/LoadingState";
 import ErrorState from "../ui/feedback/ErrorState";
 import { useToast } from "../ui/feedback/Toast";
 import { API, inputClass as inputClassBase } from "../ui/config";
-import InfoField from "../ui/base/InfoField";
-import Avatar from "../ui/base/Avatar";
+import { COLORS, SHADOW_CARD } from "../../lib/tokens";
 
 const TYPE_LABELS = {
   refugee: "Refugee", asylum_seeker: "Asylum Seeker", idp: "IDP",
   returned_refugee: "Returned Refugee", returned_idp: "Returned IDP",
   stateless: "Stateless", ooc: "Others of Concern",
 };
+
+/* ------------------------------------------------------------------ */
+/*  SEMANTIC COLOUR MAP                                                 */
+/* ------------------------------------------------------------------ */
+
+const TONE = {
+  brand:   { color: COLORS.brand, bg: `${COLORS.brand}14`, border: `${COLORS.brand}33` },
+  warning: { color: '#D97706',    bg: '#FFFBEB',           border: '#FDE68A' },
+  danger:  { color: '#DC2626',    bg: '#FEF2F2',           border: '#FECACA' },
+  info:    { color: '#0284C7',    bg: '#F0F9FF',           border: '#BAE6FD' },
+  violet:  { color: '#7C3AED',    bg: '#F5F3FF',           border: '#DDD6FE' },
+  neutral: { color: COLORS.body,  bg: '#F5F6F5',            border: COLORS.line },
+};
+
+/* ------------------------------------------------------------------ */
+/*  LOCAL PRIMITIVES — mirror the FloodWatch / ReliefOps design system  */
+/* ------------------------------------------------------------------ */
+
+function Chip({ children, tone = "neutral" }) {
+  const t = TONE[tone] || TONE.neutral;
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold tracking-wide border"
+      style={{ color: t.color, backgroundColor: t.bg, borderColor: t.border }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function IconTile({ icon: Icon, tone = "brand", size = "md" }) {
+  const t = TONE[tone] || TONE.brand;
+  const dims = size === "sm" ? "w-7 h-7" : "w-8 h-8 sm:w-9 sm:h-9";
+  return (
+    <div className={`${dims} rounded-full flex items-center justify-center shrink-0 border`} style={{ backgroundColor: t.bg, borderColor: t.border }}>
+      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: t.color }} strokeWidth={1.7} />
+    </div>
+  );
+}
+
+function Avatar({ name, size = "md" }) {
+  const dims = size === "sm" ? "w-8 h-8 text-[11px]" : "w-14 h-14 sm:w-16 sm:h-16 text-[18px]";
+  const initials = (name || "").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  return (
+    <div
+      className={`${dims} rounded-xl flex items-center justify-center shrink-0 font-serif font-medium`}
+      style={{ backgroundColor: `${COLORS.brand}14`, color: COLORS.brand, border: `1px solid ${COLORS.brand}33` }}
+    >
+      {initials || <User className="w-1/2 h-1/2" />}
+    </div>
+  );
+}
+
+function Button({ variant = "primary", size = "md", loading, loadingText, children, className = "", ...props }) {
+  const sizeCls = size === "sm" ? "text-[11.5px] py-1.5 px-3" : "text-[12.5px] py-2.5 px-4";
+  const style =
+    variant === "primary" ? { backgroundColor: COLORS.brand, color: "#fff" } :
+    variant === "danger" ? { backgroundColor: TONE.danger.bg, color: TONE.danger.color, border: `1px solid ${TONE.danger.border}` } :
+    { backgroundColor: "transparent", color: COLORS.body, border: `1px solid ${COLORS.line}` };
+  return (
+    <button
+      {...props}
+      disabled={loading || props.disabled}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-opacity disabled:opacity-40 hover:opacity-90 ${sizeCls} ${className}`}
+      style={style}
+    >
+      {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {loadingText || "Working…"}</> : children}
+    </button>
+  );
+}
+
+function InfoField({ label, icon: Icon, editing, value, children }) {
+  return (
+    <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
+      <div className="flex items-center gap-1.5 mb-1" style={{ color: COLORS.muted }}>
+        <Icon className="w-3.5 h-3.5" />
+        <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
+      </div>
+      {editing ? children : <p className="text-[13.5px] font-semibold" style={{ color: COLORS.ink }}>{value}</p>}
+    </div>
+  );
+}
+
+function RecordRow({ icon: Icon, tone, title, meta, right }) {
+  return (
+    <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl border" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
+      <IconTile icon={Icon} tone={tone} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[12.5px] sm:text-[13px] font-semibold" style={{ color: COLORS.ink }}>{title}</p>
+        <p className="text-[10.5px] sm:text-[11px] truncate" style={{ color: COLORS.muted }}>{meta}</p>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  MAIN                                                                */
+/* ------------------------------------------------------------------ */
 
 export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   const { addToast } = useToast();
@@ -152,7 +249,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   if (!person) {
     return (
       <div className="text-center py-8 sm:py-12">
-        <p className="text-sm text-slate-500">Person not found</p>
+        <p className="text-[13px]" style={{ color: COLORS.muted }}>Person not found</p>
         <Button variant="secondary" onClick={onBack} className="mt-3">
           <ArrowLeft className="w-4 h-4" /> Go Back
         </Button>
@@ -174,13 +271,14 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
       <div className="flex items-center gap-2 sm:gap-3">
         <button
           onClick={onBack}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors shrink-0"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-colors shrink-0 border"
+          style={{ borderColor: COLORS.line, color: COLORS.body }}
         >
-          <ArrowLeft className="w-4 h-4 text-slate-600" />
+          <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-sm sm:text-base font-semibold text-slate-800 truncate">{person.full_name}</h2>
-          <p className="text-[11px] text-slate-400">Profile &amp; history</p>
+          <h2 className="text-[13.5px] sm:text-[15px] font-semibold truncate" style={{ color: COLORS.ink }}>{person.full_name}</h2>
+          <p className="text-[11px]" style={{ color: COLORS.muted }}>Profile &amp; history</p>
         </div>
         {!editing && (
           <div className="flex items-center gap-1.5 shrink-0">
@@ -194,13 +292,18 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
         )}
         {editing && (
           <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={cancelEdit} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
-              <X className="w-4 h-4 text-slate-500" />
+            <button
+              onClick={cancelEdit}
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors border"
+              style={{ borderColor: COLORS.line, color: COLORS.muted }}
+            >
+              <X className="w-4 h-4" />
             </button>
             <button
               onClick={saveEdit}
               disabled={saving}
-              className="w-8 h-8 rounded-lg bg-teal-600 hover:bg-teal-700 flex items-center justify-center transition-colors text-white disabled:opacity-50"
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity text-white disabled:opacity-50 hover:opacity-90"
+              style={{ backgroundColor: COLORS.brand }}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             </button>
@@ -220,21 +323,17 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
               placeholder="Full name"
             />
           ) : (
-            <h3 className="text-base sm:text-lg font-semibold text-slate-800">{person.full_name}</h3>
+            <h3 className="font-serif font-medium text-[18px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>{person.full_name}</h3>
           )}
-          {editErrors.full_name && <p className="text-[11px] text-red-500 mt-0.5">{editErrors.full_name}</p>}
+          {editErrors.full_name && <p className="text-[11px] mt-0.5" style={{ color: TONE.danger.color }}>{editErrors.full_name}</p>}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5">
             {person.pre_registered ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100">
-                <BadgeCheck className="w-3 h-3" /> Pre-registered
-              </span>
+              <Chip tone="brand"><BadgeCheck className="w-3 h-3" /> Pre-registered</Chip>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
-                New
-              </span>
+              <Chip tone="info">New</Chip>
             )}
             {person.wristband_barcode && (
-              <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md" style={{ color: COLORS.body, backgroundColor: "#F5F6F5" }}>
                 {person.wristband_barcode}
               </span>
             )}
@@ -243,16 +342,15 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+      <div className="flex gap-1 rounded-lg p-1 border" style={{ backgroundColor: "#F5F6F5", borderColor: COLORS.line }}>
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 text-[11px] sm:text-xs font-medium py-1.5 sm:py-2 rounded-md transition-all ${
-              activeTab === tab.key
-                ? "bg-white text-teal-700 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
+            className="flex-1 text-[11px] sm:text-[12px] font-semibold py-1.5 sm:py-2 rounded-md transition-all"
+            style={activeTab === tab.key
+              ? { backgroundColor: "#fff", color: COLORS.brand, boxShadow: SHADOW_CARD }
+              : { color: COLORS.muted }}
           >
             {tab.label}
           </button>
@@ -270,7 +368,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
                 onChange={(e) => updateField("age", e.target.value)}
                 className={inputClassBase}
               />
-              {editErrors.age && <p className="text-[11px] text-red-500 mt-0.5">{editErrors.age}</p>}
+              {editErrors.age && <p className="text-[11px] mt-0.5" style={{ color: TONE.danger.color }}>{editErrors.age}</p>}
             </InfoField>
 
             <InfoField label="Gender" icon={GenderIcon} editing={editing}
@@ -297,62 +395,64 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
 
             <InfoField label="Family" icon={Users} editing={editing} value={`${person.family_size} members`}>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => updateField("family_size", Math.max(1, Number(editForm.family_size || 1) - 1))}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-sm font-bold transition-colors">−</button>
-                <span className="text-sm font-bold w-6 text-center tabular-nums">{editForm.family_size || 1}</span>
-                <button type="button" onClick={() => updateField("family_size", Math.min(20, Number(editForm.family_size || 1) + 1))}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-sm font-bold transition-colors">+</button>
+                <button
+                  type="button"
+                  onClick={() => updateField("family_size", Math.max(1, Number(editForm.family_size || 1) - 1))}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-bold transition-colors border"
+                  style={{ backgroundColor: "#F5F6F5", borderColor: COLORS.line, color: COLORS.body }}
+                >−</button>
+                <span className="text-[13px] font-bold w-6 text-center tabular-nums font-mono" style={{ color: COLORS.ink }}>{editForm.family_size || 1}</span>
+                <button
+                  type="button"
+                  onClick={() => updateField("family_size", Math.min(20, Number(editForm.family_size || 1) + 1))}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-bold transition-colors border"
+                  style={{ backgroundColor: "#F5F6F5", borderColor: COLORS.line, color: COLORS.body }}
+                >+</button>
               </div>
-              {editErrors.family_size && <p className="text-[11px] text-red-500 mt-0.5">{editErrors.family_size}</p>}
+              {editErrors.family_size && <p className="text-[11px] mt-0.5" style={{ color: TONE.danger.color }}>{editErrors.family_size}</p>}
             </InfoField>
           </div>
 
           {editing ? (
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => updateField("is_pregnant", editForm.is_pregnant ? 0 : 1)}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
-                  editForm.is_pregnant ? "bg-violet-50 border-violet-200 text-violet-700" : "bg-white border-slate-200 text-slate-500"
-                }`}>
+              <button
+                type="button" onClick={() => updateField("is_pregnant", editForm.is_pregnant ? 0 : 1)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[12px] font-medium transition-all"
+                style={editForm.is_pregnant ? { backgroundColor: TONE.violet.bg, borderColor: TONE.violet.border, color: TONE.violet.color } : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }}
+              >
                 <Waves className="w-3.5 h-3.5" /> Pregnant
               </button>
-              <button type="button" onClick={() => updateField("has_chronic_illness", editForm.has_chronic_illness ? 0 : 1)}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
-                  editForm.has_chronic_illness ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-white border-slate-200 text-slate-500"
-                }`}>
+              <button
+                type="button" onClick={() => updateField("has_chronic_illness", editForm.has_chronic_illness ? 0 : 1)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[12px] font-medium transition-all"
+                style={editForm.has_chronic_illness ? { backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border, color: TONE.warning.color } : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }}
+              >
                 <AlertTriangle className="w-3.5 h-3.5" /> Chronic Illness
               </button>
             </div>
           ) : (
             (person.is_pregnant > 0 || person.has_chronic_illness > 0) && (
               <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {person.is_pregnant > 0 && (
-                  <span className="bg-violet-50 text-violet-700 text-xs font-medium px-2.5 py-1 rounded-md border border-violet-100 flex items-center gap-1.5">
-                    <Waves className="w-3.5 h-3.5" /> Pregnant
-                  </span>
-                )}
-                {person.has_chronic_illness > 0 && (
-                  <span className="bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1 rounded-md border border-amber-100 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Chronic Illness
-                  </span>
-                )}
+                {person.is_pregnant > 0 && <Chip tone="violet"><Waves className="w-3.5 h-3.5" /> Pregnant</Chip>}
+                {person.has_chronic_illness > 0 && <Chip tone="warning"><AlertTriangle className="w-3.5 h-3.5" /> Chronic Illness</Chip>}
               </div>
             )
           )}
 
           {editing ? (
             <div>
-              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Medical Notes</label>
+              <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider mb-1" style={{ color: COLORS.muted }}>Medical Notes</label>
               <textarea rows={2} value={editForm.medical_notes}
                 onChange={(e) => updateField("medical_notes", e.target.value)}
                 className={`${inputClassBase} resize-none`} placeholder="Optional" />
             </div>
           ) : person.medical_notes ? (
-            <div className="text-xs text-slate-600 bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2.5">
-              <span className="font-semibold text-amber-700">Notes: </span>{person.medical_notes}
+            <div className="text-[12.5px] rounded-lg px-3 py-2.5 border" style={{ color: COLORS.body, backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border }}>
+              <span className="font-semibold" style={{ color: TONE.warning.color }}>Notes: </span>{person.medical_notes}
             </div>
           ) : null}
 
-          <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1">
+          <div className="text-[11px] flex flex-wrap items-center gap-1 font-mono" style={{ color: COLORS.muted }}>
             <CalendarDays className="w-3 h-3" />
             <span>Registered: {person.created_at ? new Date(person.created_at).toLocaleDateString() : "—"}</span>
             {person.last_checkin && (
@@ -366,27 +466,18 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
       {activeTab === "checkins" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           {checkins.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">No check-in records</p>
+            <p className="text-[13px] text-center py-8" style={{ color: COLORS.muted }}>No check-in records</p>
           ) : (
             <div className="space-y-2">
               {checkins.map((c) => (
-                <div key={c.id} className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-teal-50 flex items-center justify-center border border-teal-100 shrink-0">
-                    <ClipboardCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-slate-800">Check-in #{c.id}</p>
-                    <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
-                      {c.checkin_time ? new Date(c.checkin_time).toLocaleString() : "—"}
-                      {c.wristband_barcode && <span className="ml-1.5 font-mono">{c.wristband_barcode}</span>}
-                    </p>
-                  </div>
-                  {c.is_new_arrival > 0 && (
-                    <span className="text-[10px] font-medium text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100 shrink-0">
-                      New
-                    </span>
-                  )}
-                </div>
+                <RecordRow
+                  key={c.id}
+                  icon={ClipboardCheck}
+                  tone="brand"
+                  title={`Check-in #${c.id}`}
+                  meta={`${c.checkin_time ? new Date(c.checkin_time).toLocaleString() : "—"}${c.wristband_barcode ? "  ·  " + c.wristband_barcode : ""}`}
+                  right={c.is_new_arrival > 0 && <Chip tone="info">New</Chip>}
+                />
               ))}
             </div>
           )}
@@ -397,22 +488,18 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
       {activeTab === "distributions" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           {distributions.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">No distribution records</p>
+            <p className="text-[13px] text-center py-8" style={{ color: COLORS.muted }}>No distribution records</p>
           ) : (
             <div className="space-y-2">
               {distributions.map((d) => (
-                <div key={d.id} className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 shrink-0">
-                    <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 capitalize">{d.resource_type}</p>
-                    <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
-                      {d.distributed_at ? new Date(d.distributed_at).toLocaleString() : "—"}
-                    </p>
-                  </div>
-                  {d.quantity && <span className="text-xs font-medium text-slate-600 shrink-0">{d.quantity}</span>}
-                </div>
+                <RecordRow
+                  key={d.id}
+                  icon={Utensils}
+                  tone="warning"
+                  title={<span className="capitalize">{d.resource_type}</span>}
+                  meta={d.distributed_at ? new Date(d.distributed_at).toLocaleString() : "—"}
+                  right={d.quantity && <span className="text-[12px] font-semibold font-mono" style={{ color: COLORS.body }}>{d.quantity}</span>}
+                />
               ))}
             </div>
           )}
