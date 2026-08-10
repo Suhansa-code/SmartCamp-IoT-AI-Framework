@@ -121,8 +121,8 @@ export default function NetworkPage() {
             {/* Dynamic Background Blurs for Light Mode */}
             {!isDarkMode && (
               <>
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px] mix-blend-multiply pointer-events-none -z-10" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-400/20 rounded-full blur-[120px] mix-blend-multiply pointer-events-none -z-10" />
+                <div className="absolute top-[-10%] left-[-10%] w-125 h-125 bg-blue-400/20 rounded-full blur-[100px] mix-blend-multiply pointer-events-none -z-10" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-150 h-150 bg-emerald-400/20 rounded-full blur-[120px] mix-blend-multiply pointer-events-none -z-10" />
               </>
             )}
 

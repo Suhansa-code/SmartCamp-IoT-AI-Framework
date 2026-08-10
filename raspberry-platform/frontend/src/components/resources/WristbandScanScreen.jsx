@@ -90,7 +90,7 @@ function Avatar({ name }) {
     .toUpperCase();
   return (
     <div
-      className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-xl flex items-center justify-center shrink-0 font-serif text-[22px] font-medium"
+      className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl flex items-center justify-center shrink-0 font-serif text-[22px] font-medium"
       style={{ backgroundColor: `${COLORS.brand}14`, color: COLORS.brand, border: `1px solid ${COLORS.brand}33` }}
     >
       {initials || <UserCircle2 className="w-7 h-7" />}
@@ -284,7 +284,7 @@ function DistributionPanel() {
     <div className="space-y-4 sm:space-y-6">
       {/* Barcode lookup */}
       <form onSubmit={handleScan} className="rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
-        <p className="text-[11px] uppercase tracking-[0.1em] font-mono mb-3" style={{ color: COLORS.muted }}>
+        <p className="text-[11px] uppercase tracking-widest font-mono mb-3" style={{ color: COLORS.muted }}>
           Wristband barcode
         </p>
         <div className="flex flex-col sm:flex-row gap-3">

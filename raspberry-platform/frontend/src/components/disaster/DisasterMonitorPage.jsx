@@ -95,7 +95,7 @@ function LevelGauge() {
 
   return (
     <div className="flex flex-col items-center w-full">
-      <svg viewBox="0 0 220 128" className="w-full max-w-[240px]">
+      <svg viewBox="0 0 220 128" className="w-full max-w-60">
         <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke={COLORS.track} strokeWidth="15" strokeLinecap="round" />
         <path d={arcPath(cx, cy, r, 0, valueDeg)} fill="none" stroke={CURRENT_RISK.color} strokeWidth="15" strokeLinecap="round" />
         {[GAUGING.alert_level, GAUGING.minor_flood_level, GAUGING.major_flood_level].map((lvl, i) => {
@@ -111,7 +111,7 @@ function LevelGauge() {
         </p>
         <p className="text-[11px] mt-2 tracking-[0.08em] uppercase font-semibold" style={{ color: CURRENT_RISK.color }}>{CURRENT_RISK.label}</p>
       </div>
-      <div className="flex items-center justify-between w-full max-w-[240px] mt-4 text-[10.5px] font-mono" style={{ color: COLORS.muted }}>
+      <div className="flex items-center justify-between w-full max-w-60 mt-4 text-[10.5px] font-mono" style={{ color: COLORS.muted }}>
         <span>0m</span>
         <span>Alert {GAUGING.alert_level}</span>
         <span>Major {GAUGING.major_flood_level}</span>
@@ -122,7 +122,7 @@ function LevelGauge() {
 
 function LevelHistoryChart() {
   return (
-    <div className="h-[200px] sm:h-[220px] w-full">
+    <div className="h-50 sm:h-55 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={HISTORY} margin={{ top: 10, right: 6, bottom: 0, left: -18 }}>
           <defs>
@@ -227,7 +227,7 @@ export default function DisasterMonitorPage() {
         {/* ================= OVERVIEW + WEATHER ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 pb-4 sm:pb-6">
           <div className="lg:col-span-5 rounded-xl border p-4 sm:p-6 flex flex-col" style={{ borderColor: COLORS.line }}>
-            <p className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: COLORS.muted }}>Flood risk overview</p>
+            <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Flood risk overview</p>
             <p className="font-serif font-medium text-[28px] sm:text-[30px] mt-2 tracking-tight" style={{ color: CURRENT_RISK.color }}>{CURRENT_RISK.label}</p>
             <p className="text-[13.5px] leading-relaxed mt-3" style={{ color: COLORS.body }}>
               Readings from the {GAUGING.station.name} are within the safe range. Prediction engine: {BEST_MODEL.name}, {(BEST_MODEL.roc_auc * 100).toFixed(1)}% confidence.
@@ -250,7 +250,7 @@ export default function DisasterMonitorPage() {
               <div className="flex items-center gap-3">
                 <IconTile icon={CloudRain} />
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: COLORS.muted }}>Weather prediction</p>
+                  <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Weather prediction</p>
                   <p className="text-[13.5px] sm:text-[14px] font-semibold mt-0.5">{WEATHER.condition}</p>
                 </div>
               </div>
