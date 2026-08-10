@@ -449,6 +449,7 @@ function StatTile({ label, value, unit, icon: Icon }) {
         </span>
         {Icon && <Icon className="w-3.5 h-3.5" style={{ color: COLORS.chip }} />}
       </div>
+      </div>
   );
 }
 
