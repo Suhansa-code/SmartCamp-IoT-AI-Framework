@@ -19,18 +19,14 @@ const TONE = {
   neutral: { color: COLORS.body,  bg: '#F5F6F5',            border: COLORS.line },
 };
 
-// Maps ML-predicted network state to a semantic tone
-const STATE_TONE = {
-  STABLE: 'brand',
-  DEGRADED: 'warning',
-  CRITICAL: 'danger',
-  UNKNOWN: 'neutral',
+const STATE_DESC = {
+  STABLE:   'Network healthy — full QoS 2 for critical messages.',
+  DEGRADED: 'Network congested — QoS automatically upgraded to protect delivery.',
+  CRITICAL: 'Network failing — critical messages downgraded to QoS 1, others buffered.',
+  UNKNOWN:  'Waiting for first ML prediction…',
 };
 
 // Matches decideAdaptiveQoS in saampMqtt.js
-// STABLE:   full base QoS (CRITICAL → QoS 2, network can handle it)
-// DEGRADED: QoS upgraded to protect delivery on stressed network
-// CRITICAL: only CRITICAL priority sent at QoS 1 (2-way handshake survives lossy links better than QoS 2's 4-way)
 const QOS_TABLE = [
   { priority: 'CRITICAL', tone: 'danger',  stable: { qos: 2, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: false } },
   { priority: 'HIGH',     tone: 'warning', stable: { qos: 1, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: true  } },
@@ -79,21 +75,20 @@ function SectionHeader({ icon, title, subtitle }) {
   );
 }
 
-function Chip({ children, tone = "neutral" }) {
-  const t = TONE[tone] || TONE.neutral;
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold tracking-wide border"
-      style={{ color: t.color, backgroundColor: t.bg, borderColor: t.border }}
-    >
-      {children}
-    </span>
-  );
-}
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
 
-/* ------------------------------------------------------------------ */
-/*  MAIN SCREEN                                                         */
-/* ------------------------------------------------------------------ */
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function NetworkScreen() {
   const [status, setStatus] = useState(null);

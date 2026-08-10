@@ -334,9 +334,7 @@ function PredictionScreen() {
             </Card>
           )}
         </AnimatePresence>
-
       </div>
-    </div>
   );
 }
 
