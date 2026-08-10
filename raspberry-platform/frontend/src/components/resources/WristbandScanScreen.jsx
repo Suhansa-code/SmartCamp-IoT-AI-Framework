@@ -355,20 +355,21 @@ function DistributionPanel() {
             className="space-y-4 sm:space-y-6"
           >
             <div className="rounded-xl border p-4 sm:p-6 relative" style={{ borderColor: COLORS.line }}>
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
+              <div className="flex flex-row items-center sm:items-start gap-2 sm:gap-5">
                 <Avatar name={profile.full_name} />
-                <div className="flex-1 text-center sm:text-left">
+                <div className="flex-1 text-left">
                   <p className="font-serif font-medium text-[19px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>
                     {profile.full_name}
                   </p>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mt-2.5">
+                  <div className="flex flex-wrap items-center justify-start gap-1.5 mt-2.5">
                     <Chip>Age {profile.age}</Chip>
-                    <Chip>{profile.gender}</Chip>
+                    
                     <Chip tone="success">
                       <UserCircle2 className="w-3 h-3" /> Family {profile.family_unit_id}
                     </Chip>
                     {profile.is_pregnant === 1 && <Chip tone="info">Pregnant</Chip>}
                     {profile.has_chronic_illness === 1 && <Chip tone="pending">Chronic illness</Chip>}
+                    <Chip>{profile.gender}</Chip>
                   </div>
                 </div>
               </div>

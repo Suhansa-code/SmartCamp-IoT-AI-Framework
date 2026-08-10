@@ -244,15 +244,14 @@ function ChildEducationScreen() {
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
-      <div className="sm:px-5 lg:px-6 py-5 sm:py-7 space-y-4 sm:space-y-6">
+      <div className="sm:px-5 lg:px-6 py-2 sm:py-5 space-y-4 sm:space-y-6">
 
         {/* ================= HEADER + SEARCH ================= */}
-        <Card>
+        <div>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
               <div className="flex items-center gap-3 mt-1.5">
-                <IconTile icon={GraduationCap} size="lg" />
                 <h1 className="font-serif font-medium text-[24px] sm:text-[28px] leading-[1.1] tracking-tight">Child Education</h1>
               </div>
               <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Session history, alerts &amp; profile details</p>
@@ -273,7 +272,7 @@ function ChildEducationScreen() {
               </motion.div>
             )}
           </AnimatePresence>
-        </Card>
+        </div>
 
         {/* ================= CHILD PROFILE ================= */}
         {child ? (
