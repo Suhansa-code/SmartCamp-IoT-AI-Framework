@@ -1,35 +1,48 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
 import AlertBadge from '@/components/psychoedu/ui/AlertBadge'
 
-export default function CampOverview({ camp }) {
-  const router = useRouter()
+export default function CampOverview({ camp, onCampClick, darkMode = false }) {
   const alertCount = camp.alerts?.length ?? 0
   const status = alertCount === 0 ? 'clear' : alertCount <= 2 ? 'watch' : 'urgent'
 
-  const statusConfig = {
-    clear:  { bg: '#DCFCE7', label: '✅ Clear',  color: '#16A34A' },
-    watch:  { bg: '#FEF3C7', label: '👁 Watch',  color: '#D97706' },
-    urgent: { bg: '#FEE2E2', label: '🚨 Urgent', color: '#DC2626' },
-  }
+  const statusConfig = darkMode
+    ? {
+        clear:  { bg: '#064E3B', label: '✅ Clear',  color: '#6EE7B7' },
+        watch:  { bg: '#78350F', label: '👁 Watch',  color: '#FCD34D' },
+        urgent: { bg: '#7F1D1D', label: '🚨 Urgent', color: '#FCA5A5' },
+      }
+    : {
+        clear:  { bg: '#DCFCE7', label: '✅ Clear',  color: '#16A34A' },
+        watch:  { bg: '#FEF3C7', label: '👁 Watch',  color: '#D97706' },
+        urgent: { bg: '#FEE2E2', label: '🚨 Urgent', color: '#DC2626' },
+      }
   const sc = statusConfig[status]
+
+  const textColor = darkMode ? '#E2E8F0' : '#1E3A5F'
+  const subColor  = darkMode ? '#94A3B8' : '#0D9488'
+  const cardBg    = darkMode ? '#1E3A5F' : '#F0F9FF'
+  const mutedColor = darkMode ? 'rgba(226,232,240,0.5)' : 'rgba(30,58,95,0.5)'
 
   return (
     <div
-      className="card-soft flex flex-col gap-4 cursor-pointer hover:shadow-xl transition-shadow duration-200 active:scale-[0.98]"
-      onClick={() => router.push(`/admin/alert?camp=${camp.id}`)}
+      className="flex flex-col gap-4 cursor-pointer hover:shadow-xl transition-shadow duration-200 active:scale-[0.98]"
+      style={{
+        background: darkMode ? '#0F2A4A' : 'white',
+        borderRadius: '1.25rem',
+        padding: '1.25rem',
+        border: darkMode ? '1px solid #2D4A70' : '1px solid #E2E8F0',
+      }}
+      onClick={() => onCampClick?.(camp.id)}
     >
       {/* Camp header */}
       <div className="flex items-start justify-between">
         <div>
           <h3
             className="text-xl font-extrabold"
-            style={{ fontFamily: "'Baloo 2', cursive", color: '#1E3A5F' }}
+            style={{ fontFamily: "'Baloo 2', cursive", color: textColor }}
           >
             🏕️ {camp.name}
           </h3>
-          <p className="text-sm font-semibold" style={{ color: '#0D9488' }}>
+          <p className="text-sm font-semibold" style={{ color: subColor }}>
             {camp.location ?? 'Location unknown'} · {camp.code}
           </p>
         </div>
@@ -51,16 +64,16 @@ export default function CampOverview({ camp }) {
           <div
             key={stat.label}
             className="rounded-2xl p-3 flex flex-col items-center gap-1"
-            style={{ background: '#F0F9FF' }}
+            style={{ background: cardBg }}
           >
             <span style={{ fontSize: '22px' }}>{stat.icon}</span>
             <span
               className="text-2xl font-extrabold"
-              style={{ color: stat.label === 'Alerts' && alertCount > 0 ? '#DC2626' : '#1E3A5F', fontFamily: "'Baloo 2', cursive" }}
+              style={{ color: stat.label === 'Alerts' && alertCount > 0 ? '#DC2626' : textColor, fontFamily: "'Baloo 2', cursive" }}
             >
               {stat.value}
             </span>
-            <span className="text-xs font-bold" style={{ color: '#0D9488' }}>
+            <span className="text-xs font-bold" style={{ color: subColor }}>
               {stat.label}
             </span>
           </div>
@@ -76,7 +89,7 @@ export default function CampOverview({ camp }) {
           {camp.alerts?.length > 3 && (
             <span
               className="rounded-full px-3 py-1 text-xs font-bold"
-              style={{ background: '#F0F9FF', color: '#1E3A5F' }}
+              style={{ background: cardBg, color: textColor }}
             >
               +{camp.alerts.length - 3} more
             </span>
@@ -85,7 +98,7 @@ export default function CampOverview({ camp }) {
       )}
 
       {/* Last activity */}
-      <p className="text-xs font-semibold" style={{ color: '#1E3A5F', opacity: 0.5 }}>
+      <p className="text-xs font-semibold" style={{ color: mutedColor }}>
         Last session: {camp.lastSession ? new Date(camp.lastSession).toLocaleString() : 'No sessions yet'}
       </p>
     </div>
