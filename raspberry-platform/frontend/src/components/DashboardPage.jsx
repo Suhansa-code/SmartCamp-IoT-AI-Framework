@@ -181,7 +181,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
-      <div className="sm:px-5 lg:px-6 py-5 sm:py-7 space-y-4 sm:space-y-6">
+      <div className="sm:px-5 lg:px-6 py-2 sm:py-7 space-y-4 sm:space-y-6">
 
         {/* ================= TITLE ROW ================= */}
         <motion.div
