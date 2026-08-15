@@ -2,6 +2,8 @@ import { campDb as db } from '../../config/database.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import * as emqx from '../network/emqx-manager.js';
 import { genPassword, genId } from '../../utils/crypto.js';
+import { generateWristbandQRCode } from './wristband.js';
+import { audit } from './resources.js';
 
 const VALID_GENDERS = ['M', 'F', 'O'];
 const VALID_TYPES = ['refugee', 'asylum_seeker', 'idp', 'returned_refugee', 'returned_idp', 'stateless', 'ooc'];
@@ -133,19 +135,41 @@ export async function registerPerson(data) {
   const fpId = genId('FP');
   const familyUnitId = genId('FAM');
 
+  // Optional: bind the new person to a physical printed QR code (wristband).
+  const providedQr = data.wristband_qr ? String(data.wristband_qr).trim() : '';
+  let providedWristband = null;
+  if (providedQr) {
+    providedWristband = db.prepare('SELECT * FROM wristbands WHERE qr_identifier = ? OR barcode = ?').get(providedQr, providedQr);
+    if (!providedWristband) {
+      throw Object.assign(new Error('QR code not recognized.'), { status: 404 });
+    }
+    if (providedWristband.status !== 'AVAILABLE') {
+      throw Object.assign(new Error('This wristband is already assigned or inactive.'), { status: 409 });
+    }
+  }
+
   const insertDb = db.transaction(() => {
     const result = db.prepare(`
       INSERT INTO persons (fingerprint_id, full_name, age, gender, person_type, family_unit_id, family_size,
-        is_pregnant, has_chronic_illness, medical_notes, pre_registered)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        is_pregnant, has_chronic_illness, medical_notes, pre_registered, registration_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, datetime('now'))
     `).run(fpId, String(full_name).trim(), parseInt(age), gender || 'M', person_type || 'refugee', familyUnitId,
       parseInt(family_size) || 1, is_pregnant || 0, has_chronic_illness || 0, medical_notes || '');
 
     const personId = result.lastInsertRowid;
     db.prepare('INSERT INTO camp_checkins (person_id, camp_day, is_new_arrival) VALUES (?, 1, 1)').run(personId);
 
-    const barcode = `WB${String(personId).padStart(6, '0')}`;
-    db.prepare('INSERT INTO wristbands (person_id, barcode) VALUES (?, ?)').run(personId, barcode);
+    let barcode;
+    if (providedWristband) {
+      barcode = providedWristband.barcode;
+      db.prepare("UPDATE wristbands SET person_id = ?, status = 'ASSIGNED', assigned_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")
+        .run(personId, providedWristband.id);
+      db.prepare('INSERT INTO wristband_assignments (wristband_id, person_id) VALUES (?, ?)').run(providedWristband.id, personId);
+      audit({ actor: null, action: 'wristband_assign', wristband_id: providedWristband.id, person_id: personId, details: `${barcode} → ${full_name}` });
+    } else {
+      barcode = `WB${String(personId).padStart(6, '0')}`;
+      db.prepare('INSERT INTO wristbands (person_id, barcode) VALUES (?, ?)').run(personId, barcode);
+    }
 
     return { personId, barcode };
   });
@@ -172,6 +196,38 @@ export async function registerPerson(data) {
 
   const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(personId);
   return { person, wristband_barcode: barcode, mqtt: mqttResult };
+}
+
+// ── QR Card ─────────────────────────────────────────────────
+export async function getPersonQrCode(id) {
+  const person = db.prepare('SELECT * FROM persons WHERE id = ? AND is_active = 1').get(id);
+  if (!person) {
+    const err = new Error('Person not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const wristband = db.prepare('SELECT * FROM wristbands WHERE person_id = ? AND is_active = 1').get(id);
+  if (!wristband) {
+    const err = new Error('No wristband assigned');
+    err.status = 404;
+    throw err;
+  }
+
+  if (!wristband.qr_identifier) {
+    wristband.qr_identifier = `CAMP-${wristband.barcode}`;
+    db.prepare("UPDATE wristbands SET qr_identifier = ?, updated_at = datetime('now') WHERE id = ?").run(wristband.qr_identifier, wristband.id);
+  }
+
+  const { data_url } = await generateWristbandQRCode(wristband.barcode);
+
+  return {
+    person_id: person.id,
+    full_name: person.full_name,
+    wristband_barcode: wristband.barcode,
+    qr_identifier: wristband.qr_identifier,
+    data_url,
+  };
 }
 
 // ── Update ──────────────────────────────────────────────────

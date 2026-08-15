@@ -15,11 +15,15 @@ import fingerprintRoute from './routes/resource/fingerprint.js';
 import checkinRoute from './routes/resource/checkin.js';
 import registerRoute from './routes/resource/register.js';
 import wristbandRoute from './routes/resource/wristband.js';
+import wristbandsRoute from './routes/resource/wristbands.js';
 import distributeRoute from './routes/resource/distribute.js';
 import networkRoute from './routes/network/network.js';
 import statsRoute from './routes/resource/stats.js';
 import predictionRoute from './routes/resource/prediction.js';
 import disasterRoute from './routes/disaster/disaster.js';
+import qrRoute from './routes/resource/qr.js';
+import resourcesRoute from './routes/resource/resources.js';
+import personsRoute from './routes/resource/persons.js';
 
 // Education routes
 import childRoute from './routes/education/child.js';
@@ -88,11 +92,15 @@ app.use('/api/fingerprint', fingerprintRoute);
 app.use('/api/checkin', checkinRoute);
 app.use('/api/register', registerRoute);
 app.use('/api/wristband', wristbandRoute);
+app.use('/api/wristbands', wristbandsRoute);
 app.use('/api/distribute', distributeRoute);
 app.use('/api/network', networkRoute);
 app.use('/api/stats', statsRoute);
 app.use('/api/prediction', predictionRoute);
 app.use('/api/disaster', disasterRoute);
+app.use('/api/qr', qrRoute);
+app.use('/api/resources', resourcesRoute);
+app.use('/api/persons', personsRoute);
 
 // ── PAGES Education Routes ──────────────────────────────────
 app.use('/api/child', childRoute);
