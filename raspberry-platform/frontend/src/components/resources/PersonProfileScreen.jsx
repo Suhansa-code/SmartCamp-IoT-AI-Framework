@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Users, CalendarDays, BadgeCheck, Waves, AlertTriangle,
-  ClipboardCheck, Utensils, Loader2, Edit2, Trash2, X, Save,
+  ClipboardCheck, Utensils, Loader2, Edit2, Trash2, X, Save, QrCode,
 } from "lucide-react";
 import ConfirmDialog from "../ui/feedback/ConfirmDialog";
 import LoadingState from "../ui/feedback/LoadingState";
@@ -10,6 +10,7 @@ import ErrorState from "../ui/feedback/ErrorState";
 import { useToast } from "../ui/feedback/Toast";
 import { API, inputClass as inputClassBase } from "../ui/config";
 import { COLORS, SHADOW_CARD } from "../../lib/tokens";
+import QrCardModal from "./QrCardModal";
 
 const TYPE_LABELS = {
   refugee: "Refugee", asylum_seeker: "Asylum Seeker", idp: "IDP",
@@ -130,6 +131,8 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   const [saving, setSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrData, setQrData] = useState(null);
 
   const fetchProfile = () => {
     setLoading(true);
@@ -230,6 +233,23 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
     setDeleting(false);
   };
 
+  const openQr = async () => {
+    setQrLoading(true);
+    try {
+      const res = await fetch(`${API}/api/register/${personId}/qrcode`);
+      const data = await res.json();
+      if (!res.ok) {
+        addToast(data.error || "Failed to load QR", "error");
+        return;
+      }
+      setQrData(data);
+    } catch (err) {
+      addToast("Network error", "error");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48 sm:h-64">
@@ -282,6 +302,9 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
         </div>
         {!editing && (
           <div className="flex items-center gap-1.5 shrink-0">
+            <Button variant="secondary" size="sm" onClick={openQr} loading={qrLoading} loadingText="Loading…">
+              <QrCode className="w-3.5 h-3.5" /> <span className="hidden sm:inline">QR</span>
+            </Button>
             <Button variant="secondary" size="sm" onClick={startEdit}>
               <Edit2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Edit</span>
             </Button>
@@ -515,6 +538,8 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
         onConfirm={handleDelete}
         onCancel={() => setShowDelete(false)}
       />
+
+      <QrCardModal data={qrData} onClose={() => setQrData(null)} />
     </div>
   );
 }
