@@ -7,18 +7,18 @@ OVERPASS_ENDPOINTS = (
     "https://overpass.kumi.systems/api/interpreter",
 )
 
-REQUEST_HEADERS = {"User-Agent": "OpenStreet-API-Script/1.0"}
+REQUEST_HEADERS = {"User-Agent": "SmartCamp/1.0"}
 
 
-def query_overpass(query: str, timeout_s: int = 90, retries_per_endpoint: int = 2):
-    """Query Overpass with endpoint fallback and simple retry for transient failures."""
+def query_overpass(query: str, timeout_s: int = 30, retries_per_endpoint: int = 2):
+    """Query Overpass via POST with retry and cooldown for rate-limiting."""
     last_error = None
 
     for endpoint in OVERPASS_ENDPOINTS:
         for attempt in range(retries_per_endpoint):
             try:
-                url = f"{endpoint}?{parse.urlencode({'data': query})}"
-                req = request.Request(url, headers=REQUEST_HEADERS, method="GET")
+                data = parse.urlencode({"data": query}).encode()
+                req = request.Request(endpoint, data=data, headers=REQUEST_HEADERS, method="POST")
                 with request.urlopen(req, timeout=timeout_s) as response:
                     status = response.status
                     content_type = response.headers.get("Content-Type", "")
@@ -30,6 +30,8 @@ def query_overpass(query: str, timeout_s: int = 90, retries_per_endpoint: int = 
                         "status": status,
                         "endpoint": endpoint,
                     }
+                    if status == 429:
+                        time.sleep(5 * (attempt + 1))
                     continue
 
                 if "json" not in content_type.lower():
@@ -51,8 +53,7 @@ def query_overpass(query: str, timeout_s: int = 90, retries_per_endpoint: int = 
                     "attempt": attempt + 1,
                 }
                 if attempt < retries_per_endpoint - 1:
-                    # Small backoff for temporary overload/rate-limit spikes.
-                    time.sleep(1.5 * (attempt + 1))
+                    time.sleep(3 * (attempt + 1))
                     continue
                 break
             except ValueError as exc:

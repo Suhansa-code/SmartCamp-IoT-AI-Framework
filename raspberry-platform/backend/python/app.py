@@ -467,7 +467,7 @@ if __name__ == '__main__':
     logger.info('════════════════════════════════════════')
 
     app.run(
-        host='127.0.0.1',   # localhost only — never exposed externally
+        host='0.0.0.0',   # reachable from other containers on the compose network
         port=port,
         debug=debug,
         threaded=True,

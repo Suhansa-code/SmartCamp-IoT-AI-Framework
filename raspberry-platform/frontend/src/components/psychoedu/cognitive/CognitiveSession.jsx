@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '@/components/psychoedu/context/LanguageContext'
-import { SESSIONS, SUBJECT_COLORS, TASK_TYPE_LABELS, getRandomSession } from '@/components/psychoedu/lib/sessions'
-import TaskRenderer  from './TaskRenderer'
-import Eli           from '@/components/psychoedu/child/Eli'
+import { SUBJECT_COLORS, TASK_TYPE_LABELS, getRandomSession } from '@/components/psychoedu/lib/sessions'
+import TaskRenderer from './TaskRenderer'
+import Eli from '@/components/psychoedu/child/Eli'
+import LoadingState from '@/components/ui/feedback/LoadingState'
 
 //  Confetti burst 
 const CONFETTI_COLORS = ['#FF6B35','#FFD93D','#FF6B9D','#A855F7','#0D9488','#4ADE80','#60A5FA']
@@ -253,15 +254,12 @@ export default function CognitiveSession({ session, childId, lang = 'en', onComp
       }}>
         <div style={{ textAlign: 'center' }}>
           <Eli size={120} mood="happy" />
-          <p style={{
-            fontFamily: "'Baloo 2', cursive",
-            fontSize: 'clamp(1.2rem, 4vw, 1.6rem)',
-            fontWeight: 900,
-            color: '#1E3A5F',
-            marginTop: '1rem',
-          }}>
-            {displayLang === 'si' ? 'පැටවිම...' : displayLang === 'ta' ? 'ஏற்றුகிறது...' : 'Loading...'}
-          </p>
+          <div style={{ marginTop: '1rem' }}>
+            <LoadingState
+              message={displayLang === 'si' ? 'පැටවිම...' : displayLang === 'ta' ? 'ஏற்ற௔கிறது...' : 'Loading...'}
+              size="lg"
+            />
+          </div>
         </div>
       </div>
     )
@@ -343,7 +341,7 @@ export default function CognitiveSession({ session, childId, lang = 'en', onComp
 
     try {
       // Call backend to complete the session and save scores
-      const response = await fetch('http://localhost:3001/api/session/complete', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/session/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

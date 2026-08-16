@@ -1,5 +1,5 @@
 // lib/api.js — API call functions to Node.js backend
-// All calls go to http://localhost:3001 (backend running on port 3001)
+// Base URL follows VITE_API_URL (defaults to localhost:5000 for the unified backend)
 // Includes offline-safe wrappers with fallback behaviour
 
 const BASE =

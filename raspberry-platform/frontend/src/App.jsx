@@ -1,14 +1,14 @@
 import React from 'react'
 import { Routes, Route, useRouter } from './lib/router'
 import { AuthProvider } from './lib/AuthContext'
-import DashboardPage from './components/resources/DashboardPage'
-import DisasterMonitorPage from './components/resources/DisasterMonitorPage'
+import DashboardPage from './components/DashboardPage'
+import DisasterMonitorPage from './components/disaster/DisasterMonitorPage'
 import RegistrationScreen from './components/resources/RegistrationScreen'
 import WristbandScanScreen from './components/resources/WristbandScanScreen'
+import WristbandsScreen from './components/resources/WristbandsScreen'
 import ChildEducationScreen from './components/childEducation/ChildEducationScreen'
-import PredictionScreen from './components/resources/PredictionScreen'
 import NetworkScreen from './components/resources/NetworkScreen'
-import Navbar from './components/Navbar'
+import Navbar from './components/ui/layout/Navbar'
 import ChildFlow from './components/ChildFlow'
 import AuthorizePage from './components/AuthorizePage'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -16,9 +16,9 @@ import ChildcareScreen from './components/childEducation/ChildEducationScreen'
 
 function AdminLayout({ children }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen ">
       <Navbar />
-      <div className="p-6">{children}</div>
+      <div className="p-5">{children}</div>
     </div>
   )
 }
@@ -33,7 +33,7 @@ function AdminRoutes() {
           <Route path="/disaster" element={<DisasterMonitorPage />} />
           <Route path="/registration" element={<RegistrationScreen />} />
           <Route path="/wristband" element={<WristbandScanScreen />} />
-          <Route path="/prediction" element={<PredictionScreen />} />
+          <Route path="/wristbands" element={<WristbandsScreen />} />
           <Route path="/network" element={<NetworkScreen />} />
           <Route path="/educationscreen" element={<ChildcareScreen />} />
           <Route path="*" element={<DashboardPage />} />

@@ -62,3 +62,13 @@ export async function getCheckinsByPersonId(req, res) {
     res.status(status).json({ error: err.message });
   }
 }
+
+export async function getPersonQr(req, res) {
+  try {
+    const result = await registerService.getPersonQrCode(parseInt(req.params.id));
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message });
+  }
+}
