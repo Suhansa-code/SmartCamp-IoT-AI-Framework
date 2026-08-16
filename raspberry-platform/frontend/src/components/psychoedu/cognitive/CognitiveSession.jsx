@@ -341,7 +341,7 @@ export default function CognitiveSession({ session, childId, lang = 'en', onComp
 
     try {
       // Call backend to complete the session and save scores
-      const response = await fetch('http://localhost:3001/api/session/complete', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/session/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

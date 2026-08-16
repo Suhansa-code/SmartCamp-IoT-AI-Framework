@@ -94,7 +94,7 @@ function Avatar({ name }) {
     .toUpperCase();
   return (
     <div
-      className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-xl flex items-center justify-center shrink-0 font-serif text-[22px] font-medium"
+      className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl flex items-center justify-center shrink-0 font-serif text-[22px] font-medium"
       style={{ backgroundColor: `${COLORS.brand}14`, color: COLORS.brand, border: `1px solid ${COLORS.brand}33` }}
     >
       {initials || <UserCircle2 className="w-7 h-7" />}
@@ -675,11 +675,7 @@ function ForecastRow({ row, isToday, index }) {
       className="border-t"
     >
       <td className="px-4 sm:px-5 py-3.5">
-        <p className="text-[12.5px] font-semibold" style={{ color: isToday ? COLORS.brand : COLORS.ink }}>
-          {dayName}
-        </p>
         <p className="text-[10.5px] font-mono" style={{ color: COLORS.muted }}>
-          {dateStr}
         </p>
       </td>
       <td className="px-4 sm:px-5 py-3.5">
