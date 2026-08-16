@@ -10,11 +10,10 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   LineChart, Line, ResponsiveContainer, Tooltip, ReferenceLine,
 } from 'recharts'
-import PageHeader from '@/components/common/PageHeader'
 import CampSidebar from '@/components/common/CampSidebar'
 import SkeletonCard from '@/components/common/SkeletonCard'
 import SideNav from '@/components/common/SideNav'
-import { C } from '@/components/common/theme'
+import { useTheme } from '@/components/common/ThemeProvider'
 import { daysSince } from '@/components/common/utils'
 
 // ── Mock camp list (replace with API data) ────────────────────────────────────
@@ -88,10 +87,11 @@ function mockAlerts() {
 
 // ── Severity badge ────────────────────────────────────────────────────────────
 function SeverityBadge({ severity }) {
+  const { T } = useTheme()
   const map = {
-    high:   { bg: '#450A0A', color: '#FCA5A5', label: '🔴 High' },
-    medium: { bg: '#451A03', color: '#FCD34D', label: '🟡 Medium' },
-    low:    { bg: '#022C22', color: '#6EE7B7', label: '🟢 Low' },
+    high:   { bg: `${T.red}1a`, color: T.red, label: '🔴 High' },
+    medium: { bg: `${T.amber}1a`, color: T.amber, label: '🟡 Medium' },
+    low:    { bg: `${T.green}1a`, color: T.green, label: '🟢 Low' },
   }
   const s = map[severity] ?? map.low
   return (
@@ -99,6 +99,7 @@ function SeverityBadge({ severity }) {
       background: s.bg,
       color: s.color,
       borderRadius: '9999px',
+      border: `1px solid ${s.color}55`,
       padding: '3px 12px',
       fontSize: '0.75rem',
       fontWeight: 700,
@@ -110,14 +111,15 @@ function SeverityBadge({ severity }) {
 
 // ── Score sparkline (recharts) ────────────────────────────────────────────────
 function ScoreSparkline({ scores }) {
+  const { T } = useTheme()
   const last = scores[scores.length - 1]?.score ?? 0
-  const lineColor = last >= 70 ? C.green : last >= 50 ? C.amber : '#F87171'
+  const lineColor = last >= 70 ? T.green : last >= 50 ? T.amber : T.red
 
   const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null
     return (
-      <div style={{ background: C.navy, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '4px 10px' }}>
-        <p style={{ color: 'white', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
+      <div style={{ background: T.bgDeep, border: `1px solid ${T.border}`, borderRadius: '8px', padding: '4px 10px' }}>
+        <p style={{ color: T.textPrimary, fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
           S{payload[0]?.payload?.session}: {payload[0]?.value}
         </p>
       </div>
@@ -128,7 +130,7 @@ function ScoreSparkline({ scores }) {
     <div style={{ width: '100%', height: 64 }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={scores} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
-          <ReferenceLine y={50} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.5} />
+          <ReferenceLine y={50} stroke={T.amber} strokeDasharray="3 3" strokeOpacity={0.5} />
           <Tooltip content={<CustomTooltip />} />
           <Line
             type="monotone"
@@ -147,11 +149,12 @@ function ScoreSparkline({ scores }) {
 
 // ── Alert card ────────────────────────────────────────────────────────────────
 function AlertCard({ alert, onAction }) {
+  const { T } = useTheme()
   const [actionLoading, setActionLoading] = useState(null)
 
-  const borderColor = alert.status === 'resolved' ? C.green
-    : alert.status === 'escalated'               ? '#A78BFA'
-    : C.amber   // pending
+  const borderColor = alert.status === 'resolved' ? T.green
+    : alert.status === 'escalated'               ? T.purple
+    : T.amber   // pending
 
   async function doAction(action) {
     setActionLoading(action)
@@ -185,14 +188,15 @@ function AlertCard({ alert, onAction }) {
   }
 
   const statusLabel = {
-    pending:   { color: C.amber,   label: '● Pending'   },
-    resolved:  { color: C.green,   label: '● Resolved'  },
-    escalated: { color: '#A78BFA', label: '● Escalated' },
-  }[alert.status] ?? { color: C.textMuted, label: '● Unknown' }
+    pending:   { color: T.amber,   label: '● Pending'   },
+    resolved:  { color: T.green,   label: '● Resolved'  },
+    escalated: { color: T.purple,  label: '● Escalated' },
+  }[alert.status] ?? { color: T.muted, label: '● Unknown' }
 
   return (
     <div style={{
-      background: C.navyCard,
+      background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
+      border: `1px solid ${T.border}`,
       borderRadius: '1rem',
       borderLeft: `6px solid ${borderColor}`,
       padding: '1.25rem 1.5rem',
@@ -210,13 +214,13 @@ function AlertCard({ alert, onAction }) {
               fontFamily: "'Inter',sans-serif",
               fontSize: '1.35rem',
               fontWeight: 800,
-              color: C.textPrimary,
+              color: T.textPrimary,
             }}>
               {alert.childId}
             </span>
             <SeverityBadge severity={alert.severity} />
           </div>
-          <p style={{ fontSize: '0.85rem', color: C.textMuted, marginTop: '2px', fontWeight: 600 }}>
+          <p style={{ fontSize: '0.85rem', color: T.muted, marginTop: '2px', fontWeight: 600 }}>
             🏕️ {alert.campName}
           </p>
         </div>
@@ -227,7 +231,7 @@ function AlertCard({ alert, onAction }) {
 
       {/* ── Alert type + time ── */}
       <div style={{
-        background: 'rgba(255,255,255,0.04)',
+        background: T.bgSoft,
         borderRadius: '0.75rem',
         padding: '0.6rem 1rem',
         display: 'flex',
@@ -236,10 +240,10 @@ function AlertCard({ alert, onAction }) {
         flexWrap: 'wrap',
         gap: '0.5rem',
       }}>
-        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: C.textPrimary }}>
+        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: T.textPrimary }}>
           ⚠️ {alert.alertType}
         </span>
-        <span style={{ fontSize: '0.8rem', color: C.textMuted, fontWeight: 600 }}>
+        <span style={{ fontSize: '0.8rem', color: T.muted, fontWeight: 600 }}>
           🕐 {daysSince(alert.triggeredAt)}
         </span>
       </div>
@@ -247,17 +251,17 @@ function AlertCard({ alert, onAction }) {
       {/* ── Score trend sparkline ── */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '0.78rem', color: C.textMuted, fontWeight: 600 }}>
+          <span style={{ fontSize: '0.78rem', color: T.muted, fontWeight: 600 }}>
             Last 5 sessions
           </span>
-          <span style={{ fontSize: '0.78rem', color: C.textMuted, fontWeight: 600 }}>
+          <span style={{ fontSize: '0.78rem', color: T.muted, fontWeight: 600 }}>
             Score →
           </span>
         </div>
         <ScoreSparkline scores={alert.scores} />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
           {alert.scores.map((s, i) => (
-            <span key={i} style={{ fontSize: '0.7rem', color: C.textMuted, fontWeight: 600 }}>
+            <span key={i} style={{ fontSize: '0.7rem', color: T.muted, fontWeight: 600 }}>
               {s.score}
             </span>
           ))}
@@ -273,7 +277,7 @@ function AlertCard({ alert, onAction }) {
             style={{
               flex: 1,
               minHeight: '44px',
-              background: actionLoading === 'review' ? '#0A7670' : C.teal,
+              background: actionLoading === 'review' ? T.tealDim : T.teal,
               color: 'white',
               borderRadius: '0.75rem',
               border: 'none',
@@ -297,10 +301,10 @@ function AlertCard({ alert, onAction }) {
               style={{
                 flex: 1,
                 minHeight: '44px',
-                background: actionLoading === 'escalate' ? '#92400E' : 'rgba(245,158,11,0.15)',
-                color: C.amber,
+                background: actionLoading === 'escalate' ? T.amber : `${T.amber}1f`,
+                color: T.amber,
                 borderRadius: '0.75rem',
-                border: `2px solid ${C.amber}`,
+                border: `2px solid ${T.amber}`,
                 fontWeight: 700,
                 fontSize: '0.9rem',
                 cursor: actionLoading ? 'not-allowed' : 'pointer',
@@ -322,12 +326,12 @@ function AlertCard({ alert, onAction }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AlertsPage() {
+  const { T } = useTheme()
   const [alerts,      setAlerts]      = useState([])
   const [loading,     setLoading]     = useState(true)
   const [filter,      setFilter]      = useState('all')      // all|pending|resolved|escalated
   const [sortBy,      setSortBy]      = useState('recent')   // recent|oldest|camp
   const [selectedCamp,setSelectedCamp]= useState('all')
-  const [adminName,   setAdminName]   = useState('Admin')    // from Cognito session
 
   // ── Data fetch ──────────────────────────────────────────────────────────────
   const fetchAlerts = useCallback(async () => {
@@ -364,11 +368,6 @@ export default function AlertsPage() {
   }, [filter, selectedCamp])
 
   useEffect(() => { fetchAlerts() }, [fetchAlerts])
-
-  // ── Cognito name (stub — replace with actual Cognito SDK call) ─────────────
-  useEffect(() => {
-    setAdminName('Dr. Perera')
-  }, [])
 
   // ── Alert action handler ────────────────────────────────────────────────────
   function handleAction(alertId, action) {
@@ -427,23 +426,21 @@ export default function AlertsPage() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #071B30; }
-        ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
       `}</style>
 
       <div style={{
         minHeight: '100svh',
-        background: C.navy,
+        background: T.bg,
         display: 'flex',
         flexDirection: 'column',
         fontFamily: "'Inter', sans-serif",
-        color: C.textPrimary,
+        color: T.text,
         paddingLeft: 'var(--rail-width, 236px)',
         transition: 'padding-left 0.2s ease',
       }}>
 
         <SideNav />
-
-        <PageHeader title="PAGES" subtitle="Admin Console" adminName={adminName} />
 
         {/* ══ Body: sidebar + main ═════════════════════════════════════════════ */}
         <div className="dash-body" style={{ overflow: 'hidden' }}>
@@ -461,10 +458,10 @@ export default function AlertsPage() {
 
             {/* Page title */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.6rem', fontWeight: 800, color: 'white' }}>
+              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.6rem', fontWeight: 800, color: T.textPrimary }}>
                 ⚠️ Welfare Alerts
               </h1>
-              <p style={{ fontSize: '0.85rem', color: C.textMuted, marginTop: '2px', fontWeight: 600 }}>
+              <p style={{ fontSize: '0.85rem', color: T.muted, marginTop: '2px', fontWeight: 600 }}>
                 {loading ? 'Loading…' : `${visible.length} alert${visible.length !== 1 ? 's' : ''} · ${selectedCamp === 'all' ? 'All camps' : MOCK_CAMPS.find(c => c.id === selectedCamp)?.name}`}
               </p>
             </div>
@@ -490,9 +487,9 @@ export default function AlertsPage() {
                       key={f.key}
                       onClick={() => setFilter(f.key)}
                       style={{
-                        background: active ? C.teal : 'transparent',
-                        color: active ? 'white' : C.textMuted,
-                        border: `2px solid ${active ? C.teal : C.border}`,
+                        background: active ? T.teal : 'transparent',
+                        color: active ? '#fff' : T.muted,
+                        border: `2px solid ${active ? T.teal : T.border}`,
                         borderRadius: '9999px',
                         padding: '4px 14px',
                         fontWeight: 700,
@@ -506,12 +503,12 @@ export default function AlertsPage() {
                     >
                       {f.label}
                       <span style={{
-                        background: active ? 'rgba(255,255,255,0.25)' : C.navyCard,
+                        background: active ? 'rgba(255,255,255,0.25)' : T.navyCard,
                         borderRadius: '9999px',
                         padding: '0 6px',
                         fontSize: '0.72rem',
                         fontWeight: 800,
-                        color: active ? 'white' : C.textMuted,
+                        color: active ? '#fff' : T.muted,
                       }}>
                         {cnt}
                       </span>
@@ -525,9 +522,9 @@ export default function AlertsPage() {
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value)}
                 style={{
-                  background: C.navyCard,
-                  color: C.textPrimary,
-                  border: `2px solid ${C.border}`,
+                  background: T.navyCard,
+                  color: T.textPrimary,
+                  border: `2px solid ${T.border}`,
                   borderRadius: '0.6rem',
                   padding: '6px 12px',
                   fontWeight: 700,
@@ -549,16 +546,16 @@ export default function AlertsPage() {
               </div>
             ) : visible.length === 0 ? (
               <div style={{
-                background: C.navyCard,
+                background: T.navyCard,
                 borderRadius: '1.25rem',
                 padding: '3rem 2rem',
                 textAlign: 'center',
               }}>
                 <p style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>✅</p>
-                <p style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
+                <p style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.4rem', fontWeight: 800, color: T.textPrimary }}>
                   No alerts here
                 </p>
-                <p style={{ fontSize: '0.9rem', color: C.textMuted, marginTop: '4px' }}>
+                <p style={{ fontSize: '0.9rem', color: T.muted, marginTop: '4px' }}>
                   {filter !== 'all' ? `No ${filter} alerts for this selection.` : 'All clear!'}
                 </p>
               </div>

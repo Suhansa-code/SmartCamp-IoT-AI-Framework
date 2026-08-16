@@ -1,152 +1,157 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, CheckCircle2, ShieldAlert, ServerCrash, Layers } from 'lucide-react';
+'use client'
+
+import React from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Activity, CheckCircle2, ShieldAlert, ServerCrash, Layers } from 'lucide-react'
+import { useTheme } from '@/components/common/ThemeProvider'
+
+function Panel({ icon, iconColor, title, right, children, bodyStyle }) {
+  const { T } = useTheme()
+  return (
+    <div style={{
+      background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
+      border: `1px solid ${T.border}`, borderRadius: 18,
+      boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
+      overflow: 'hidden', flex: 1,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.9rem 1.1rem', borderBottom: `1px solid ${T.line}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {icon}
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: T.textPrimary, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
+        </div>
+        {right}
+      </div>
+      <div style={{ padding: '1rem 1.1rem', ...bodyStyle }}>{children}</div>
+    </div>
+  )
+}
 
 export default function StatsPanel({ stats, buffer, metrics, networkState }) {
-  const s = stats || {};
-  const totalCrit = (s.critical_sent || 0) + (s.critical_buffered || 0);
-  const deliveryRate = totalCrit > 0
-    ? ((s.critical_sent / totalCrit) * 100).toFixed(1)
-    : '100.0';
-  
-  let drColorClass = 'text-emerald-600 dark:text-emerald-400 drop-shadow-sm dark:drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]';
-  let drBgClass = 'bg-emerald-500 shadow-sm dark:shadow-[0_0_15px_rgba(16,185,129,0.5)]';
-  if (+deliveryRate < 70) {
-    drColorClass = 'text-rose-600 dark:text-rose-500 drop-shadow-sm dark:drop-shadow-[0_0_12px_rgba(244,63,94,0.8)]';
-    drBgClass = 'bg-rose-500 shadow-sm dark:shadow-[0_0_15px_rgba(244,63,94,0.5)]';
-  } else if (+deliveryRate < 95) {
-    drColorClass = 'text-amber-600 dark:text-amber-500 drop-shadow-sm dark:drop-shadow-[0_0_12px_rgba(245,158,11,0.8)]';
-    drBgClass = 'bg-amber-500 shadow-sm dark:shadow-[0_0_15px_rgba(245,158,11,0.5)]';
-  }
+  const { T } = useTheme()
+  const s = stats || {}
+  const totalCrit = (s.critical_sent || 0) + (s.critical_buffered || 0)
+  const deliveryRate = totalCrit > 0 ? ((s.critical_sent / totalCrit) * 100).toFixed(1) : '100.0'
 
-  const priorityColor = (p) => ({
-    CRITICAL: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30',
-    IMPORTANT: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30',
-    ROUTINE: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30'
-  }[p] || 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-500/10 border-slate-200 dark:border-slate-500/30');
+  let drColor = T.green
+  if (+deliveryRate < 70) drColor = T.red
+  else if (+deliveryRate < 95) drColor = T.amber
+
+  const priorityColor = (T, p) => ({
+    CRITICAL: T.red,
+    IMPORTANT: T.amber,
+    ROUTINE: T.blue,
+  }[p] || T.muted)
 
   return (
-    <div className="flex flex-col gap-6 h-full">
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', height: '100%' }}>
       {/* Delivery Statistics */}
-      <motion.div 
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-lg relative overflow-hidden shrink-0 transition-colors duration-500"
+      <Panel
+        icon={<Activity size={17} color={T.green} />}
+        title="Delivery Statistics"
       >
-        <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex items-center gap-2 mb-6 relative z-10">
-          <Activity className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
-          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">Delivery Statistics</h3>
-        </div>
-
-        <div className="text-center mb-8 relative z-10">
-          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest mb-2">CRITICAL DELIVERY RATE</div>
-          <div className={`text-6xl font-black ${drColorClass} tracking-tighter leading-none`}>
-            {deliveryRate}<span className="text-3xl ml-1">%</span>
+        <div style={{ textAlign: 'center', marginBottom: '1.2rem' }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>Critical Delivery Rate</div>
+          <div style={{ fontSize: '2.6rem', fontWeight: 800, color: drColor, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+            {deliveryRate}<span style={{ fontSize: '1.3rem' }}>%</span>
           </div>
-          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider mt-2 uppercase">target ≥ 95%</div>
-          
-          <div className="h-2.5 bg-white/80 dark:bg-slate-800 rounded-full mt-4 overflow-hidden shadow-inner">
-            <motion.div 
+          <div style={{ fontSize: '0.6rem', fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>target ≥ 95%</div>
+          <div style={{ height: 8, borderRadius: 99, background: T.bar, overflow: 'hidden', marginTop: 12 }}>
+            <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(+deliveryRate, 100)}%` }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
-              className={`h-full rounded-full ${drBgClass}`}
+              transition={{ duration: 1.5, ease: 'easeOut' }}
+              style={{ height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${drColor}88, ${drColor})` }}
             />
           </div>
         </div>
 
-        <div className="space-y-3 relative z-10">
+        <div>
           {[
-            { label: 'Total Sent',          value: s.total_sent || 0,        color: 'text-emerald-600 dark:text-emerald-400' },
-            { label: 'Total Buffered',      value: s.total_buffered || 0,    color: 'text-amber-600 dark:text-amber-400' },
-            { label: 'Total Dropped',       value: s.total_dropped || 0,     color: 'text-rose-600 dark:text-rose-400' },
-            { label: 'Critical Sent',       value: s.critical_sent || 0,     color: 'text-emerald-600 dark:text-emerald-400' },
-            { label: 'Critical Buffered',   value: s.critical_buffered || 0, color: 'text-amber-600 dark:text-amber-400' },
+            { label: 'Total Sent',        value: s.total_sent || 0,        color: T.green },
+            { label: 'Total Buffered',    value: s.total_buffered || 0,    color: T.amber },
+            { label: 'Total Dropped',     value: s.total_dropped || 0,     color: T.red },
+            { label: 'Critical Sent',     value: s.critical_sent || 0,     color: T.green },
+            { label: 'Critical Buffered', value: s.critical_buffered || 0, color: T.amber },
           ].map((row, i) => (
-            <div key={i} className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-700/50 last:border-0">
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{row.label}</span>
-              <span className={`text-sm font-black ${row.color}`}>{row.value}</span>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0', borderBottom: `1px solid ${T.line}`, fontSize: '0.82rem' }}>
+              <span style={{ color: T.muted, fontWeight: 600 }}>{row.label}</span>
+              <span style={{ color: row.color, fontWeight: 800 }}>{row.value}</span>
             </div>
           ))}
         </div>
 
-        <div className={`mt-6 p-3 rounded-xl border flex justify-between items-center shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-inner relative z-10 transition-colors duration-500 ${
-          metrics?.bridge_alive 
-            ? 'bg-white/80 dark:bg-emerald-500/10 border-white dark:border-emerald-500/30' 
-            : 'bg-white/80 dark:bg-rose-500/10 border-white dark:border-rose-500/30'
-        }`}>
-          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-2">
-            {metrics?.bridge_alive ? <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <ServerCrash className="w-4 h-4 text-rose-600 dark:text-rose-400" />}
+        <div style={{
+          marginTop: '1rem', padding: '0.6rem 0.9rem', borderRadius: 10,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: metrics?.bridge_alive ? `${T.green}1a` : `${T.red}1a`,
+          border: `1px solid ${metrics?.bridge_alive ? T.green : T.red}55`,
+        }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: T.textPrimary, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {metrics?.bridge_alive ? <CheckCircle2 size={15} color={T.green} /> : <ServerCrash size={15} color={T.red} />}
             Cloud Bridge
           </span>
-          <span className={`text-xs font-black tracking-wider ${metrics?.bridge_alive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: metrics?.bridge_alive ? T.green : T.red }}>
             {metrics?.bridge_alive ? 'CONNECTED' : 'OFFLINE'}
           </span>
         </div>
-      </motion.div>
+      </Panel>
 
       {/* Priority Buffer */}
-      <motion.div 
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-lg relative overflow-hidden flex-1 flex flex-col min-h-[300px] transition-colors duration-500"
-      >
-        <div className="flex justify-between items-center mb-6 relative z-10">
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">Priority Buffer</h3>
-          </div>
-          <span className={`px-3 py-1 text-[10px] font-bold tracking-widest rounded-full border transition-colors duration-500 ${
-            buffer.length > 0 
-              ? 'bg-white/80 dark:bg-amber-500/10 border-white dark:border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-sm dark:shadow-none' 
-              : 'bg-white/80 dark:bg-slate-800/50 border-white dark:border-slate-700 text-slate-500 shadow-sm dark:shadow-none'
-          }`}>
+      <Panel
+        icon={<Layers size={17} color={T.tealMid} />}
+        title="Priority Buffer"
+        right={
+          <span style={{
+            padding: '2px 10px', borderRadius: 999, fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.06em',
+            background: buffer.length > 0 ? `${T.amber}1a` : T.bgSoft,
+            border: `1px solid ${buffer.length > 0 ? T.amber : T.border}55`,
+            color: buffer.length > 0 ? T.amber : T.muted,
+          }}>
             {buffer.length} QUEUED
           </span>
-        </div>
-
-        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
+        }
+        bodyStyle={{ display: 'flex', flexDirection: 'column', flex: 1 }}
+      >
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 220 }}>
           {buffer.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
-              <CheckCircle2 className="w-12 h-12 mb-3 opacity-50" />
-              <div className="text-sm font-semibold tracking-wide">Buffer Empty</div>
-              <div className="text-xs mt-1 opacity-75">All messages delivered to cloud</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 0', color: T.muted }}>
+              <CheckCircle2 size={38} style={{ opacity: 0.5 }} />
+              <p style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: 8 }}>Buffer Empty</p>
+              <p style={{ fontSize: '0.78rem', opacity: 0.75 }}>All messages delivered to cloud</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <AnimatePresence>
                 {buffer.slice(0, 10).map((msg, i) => {
-                  const pc = priorityColor(msg.priority);
-                  const timeStr = msg.time || (msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : '—');
-                  
+                  const pc = priorityColor(T, msg.priority)
+                  const timeStr = msg.time || (msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : '—')
                   return (
-                    <motion.div 
+                    <motion.div
                       key={msg.id || i}
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="p-3 bg-white/80 dark:bg-slate-800/60 rounded-xl border border-white dark:border-slate-700/50 flex justify-between items-center shadow-sm transition-colors duration-500"
+                      style={{
+                        padding: '0.6rem 0.8rem', borderRadius: 10,
+                        background: T.bgSoft, border: `1px solid ${T.border}`,
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      }}
                     >
                       <div>
-                        <div className="text-xs font-bold text-slate-700 dark:text-slate-200 capitalize tracking-wide flex items-center gap-2">
-                          {msg.source || msg.source_type} 
-                          <span className="text-slate-300 dark:text-slate-600">·</span> 
-                          {(msg.action || '').replace(/_/g, ' ')}
+                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: T.textPrimary, textTransform: 'capitalize' }}>
+                          {msg.source || msg.source_type} <span style={{ color: T.muted }}>·</span> {(msg.action || '').replace(/_/g, ' ')}
                         </div>
-                        <div className="text-[10px] text-slate-500 font-mono mt-1">
-                          {timeStr}
-                        </div>
+                        <div style={{ fontSize: '0.68rem', color: T.muted, fontFamily: 'monospace', marginTop: 2 }}>{timeStr}</div>
                       </div>
-                      <span className={`px-2.5 py-1 text-[10px] font-black tracking-widest rounded-md border ${pc}`}>
+                      <span style={{
+                        padding: '2px 8px', borderRadius: 999, fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.06em',
+                        background: `${pc}1a`, border: `1px solid ${pc}55`, color: pc,
+                      }}>
                         {(msg.priority || '').slice(0, 4)}
                       </span>
                     </motion.div>
-                  );
+                  )
                 })}
               </AnimatePresence>
             </div>
@@ -154,17 +159,20 @@ export default function StatsPanel({ stats, buffer, metrics, networkState }) {
         </div>
 
         {networkState !== 'OFFLINE' && buffer.length > 0 && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 p-3 bg-white/80 dark:bg-emerald-500/10 border border-white dark:border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 text-center flex items-center justify-center gap-2 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-inner transition-colors duration-500 relative z-10"
+            style={{
+              marginTop: '0.8rem', padding: '0.6rem 0.8rem', borderRadius: 10,
+              background: `${T.green}1a`, border: `1px solid ${T.green}55`,
+              fontSize: '0.78rem', fontWeight: 700, color: T.green,
+              textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
           >
-            <ShieldAlert className="w-4 h-4" />
-            Reconnected — Flushing CRITICAL records first
+            <ShieldAlert size={15} /> Reconnected — Flushing CRITICAL records first
           </motion.div>
         )}
-      </motion.div>
-
+      </Panel>
     </div>
-  );
+  )
 }

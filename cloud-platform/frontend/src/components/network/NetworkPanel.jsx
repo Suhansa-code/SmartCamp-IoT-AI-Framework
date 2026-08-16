@@ -1,6 +1,9 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Cpu, Network, Zap } from 'lucide-react';
+'use client'
+
+import React from 'react'
+import { motion } from 'framer-motion'
+import { Cpu, Network, Zap } from 'lucide-react'
+import { useTheme } from '@/components/common/ThemeProvider'
 
 const FEATURES = [
   { key: 'rtt_avg',     label: 'RTT Average',    importance: 0.18, fmt: v => `${v}ms`    },
@@ -13,154 +16,127 @@ const FEATURES = [
   { key: 'bandwidth',   label: 'Bandwidth',      importance: 0.04, fmt: v => `${v}KB/s`  },
   { key: 'drop_rate',   label: 'Drop Rate',      importance: 0.05, fmt: v => `${v}/s`    },
   { key: 'bridge_alive',label: 'Bridge Alive',   importance: 0.19, fmt: v => v ? 'YES' : 'NO' },
-];
+]
 
 const QOS_MATRIX = {
   CRITICAL:  ['QoS 2', 'QoS 2', 'QoS 2', 'Buffer'],
   IMPORTANT: ['QoS 2', 'QoS 1', 'QoS 1', 'Buffer'],
   ROUTINE:   ['QoS 0', 'QoS 0', 'Drop',  'Drop'  ],
-};
+}
 
-const PRIORITY_COLORS = {
-  CRITICAL:  'text-rose-600 dark:text-rose-500 drop-shadow-none dark:drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]',
-  IMPORTANT: 'text-amber-600 dark:text-amber-500 drop-shadow-none dark:drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]',
-  ROUTINE:   'text-blue-600 dark:text-blue-500 drop-shadow-none dark:drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]',
-};
+function Panel({ icon, title, children }) {
+  const { T } = useTheme()
+  return (
+    <div style={{
+      background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
+      border: `1px solid ${T.border}`, borderRadius: 18,
+      boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
+      overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.9rem 1.1rem', borderBottom: `1px solid ${T.line}` }}>
+        {icon}
+        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: T.textPrimary, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
+      </div>
+      <div style={{ padding: '1rem 1.1rem' }}>{children}</div>
+    </div>
+  )
+}
 
 export default function NetworkPanel({ networkState, metrics }) {
-  const m = metrics || {};
-  
-  const getStateStyle = (state) => ({
-    GOOD: { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500', shadow: 'shadow-emerald-500/20 dark:shadow-emerald-500/50', border: 'border-emerald-500/20 dark:border-emerald-500/30' },
-    WEAK: { text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500', shadow: 'shadow-amber-500/20 dark:shadow-amber-500/50', border: 'border-amber-500/20 dark:border-amber-500/30' },
-    POOR: { text: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-500', shadow: 'shadow-orange-500/20 dark:shadow-orange-500/50', border: 'border-orange-500/20 dark:border-orange-500/30' },
-    OFFLINE: { text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500', shadow: 'shadow-rose-500/20 dark:shadow-rose-500/50', border: 'border-rose-500/20 dark:border-rose-500/30' }
-  }[state] || { text: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-400 dark:bg-slate-500', shadow: 'shadow-slate-500/20 dark:shadow-slate-500/50', border: 'border-slate-300 dark:border-slate-500/30' });
+  const { T } = useTheme()
+  const m = metrics || {}
 
-  const sc = getStateStyle(networkState);
-  const stateIndex = ['GOOD', 'WEAK', 'POOR', 'OFFLINE'].indexOf(networkState);
+  const stateColor = {
+    GOOD: T.green, WEAK: T.amber, POOR: T.coral, OFFLINE: T.red,
+  }[networkState] || T.slate
+  const stateIndex = ['GOOD', 'WEAK', 'POOR', 'OFFLINE'].indexOf(networkState)
+  const PRIORITY_COLORS = { CRITICAL: T.red, IMPORTANT: T.amber, ROUTINE: T.blue }
 
   return (
-    <div className="flex flex-col gap-6">
-      
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
       {/* ML Feature Importance Panel */}
-      <motion.div 
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-lg relative overflow-hidden transition-colors duration-500"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-        
-        <div className="flex items-center gap-2 mb-6 relative z-10">
-          <Cpu className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">Random Forest · 19 Features</h3>
-        </div>
-
-        <div className="space-y-4 relative z-10">
+      <Panel icon={<Cpu size={17} color={T.tealMid} />} title="Random Forest · 19 Features">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
           {FEATURES.map((feat, i) => {
-            const raw = m[feat.key];
-            const val = raw !== undefined ? feat.fmt(raw) : '—';
+            const raw = m[feat.key]
+            const val = raw !== undefined ? feat.fmt(raw) : '—'
             return (
-              <div key={i} className="flex items-center gap-4">
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 w-24 shrink-0">
-                  {feat.label}
-                </div>
-                <div className="flex-1 h-2 bg-white/80 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                  <motion.div 
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: T.muted, width: 96, flexShrink: 0 }}>{feat.label}</div>
+                <div style={{ flex: 1, height: 6, borderRadius: 99, background: T.bar, overflow: 'hidden' }}>
+                  <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${feat.importance * 100}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className={`h-full ${sc.bg} ${sc.shadow} rounded-full`}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                    style={{ height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${stateColor}88, ${stateColor})` }}
                   />
                 </div>
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-200 w-16 text-right shrink-0">
-                  {val}
-                </div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: T.textPrimary, width: 60, textAlign: 'right', flexShrink: 0 }}>{val}</div>
               </div>
-            );
+            )
           })}
         </div>
 
-        <div className={`mt-6 p-4 rounded-2xl bg-white/80 dark:bg-slate-800/50 border ${sc.border} relative overflow-hidden group transition-colors duration-500 shadow-sm dark:shadow-none`}>
-          <div className={`absolute inset-0 ${sc.bg} opacity-5 group-hover:opacity-10 transition-opacity`} />
-          <div className="relative z-10">
-            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase mb-1">
-              Prediction (60s Ahead)
-            </div>
-            <div className={`text-3xl font-black ${sc.text} drop-shadow-sm dark:drop-shadow-[0_0_12px_currentColor] tracking-tighter`}>
-              {networkState}
-            </div>
-            <div className="text-xs text-slate-500 font-medium mt-1 flex items-center gap-1.5">
-              <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400" /> Inference &lt;5ms · Pi 5
-            </div>
+        <div style={{
+          marginTop: '1rem', padding: '0.8rem 1rem', borderRadius: 12,
+          background: `${stateColor}1a`, border: `1px solid ${stateColor}55`,
+        }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Prediction (60s Ahead)</div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: stateColor, lineHeight: 1.2 }}>{networkState}</div>
+          <div style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Zap size={13} color={T.amber} /> Inference &lt;5ms · Pi 5
           </div>
         </div>
-      </motion.div>
+      </Panel>
 
       {/* QoS Decision Matrix */}
-      <motion.div 
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-lg relative overflow-hidden transition-colors duration-500"
-      >
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="flex items-center gap-2 mb-6 relative z-10">
-          <Network className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">QoS Decision Matrix</h3>
-        </div>
-
-        <div className="grid grid-cols-[90px_repeat(4,1fr)] gap-2 mb-6 relative z-10">
+      <Panel icon={<Network size={17} color={T.blue} />} title="QoS Decision Matrix">
+        <div style={{ display: 'grid', gridTemplateColumns: '90px repeat(4, 1fr)', gap: 6, marginBottom: '1rem' }}>
           <div />
           {['GOOD', 'WEAK', 'POOR', 'OFF'].map((h, i) => (
-            <div key={i} className="text-center py-2 bg-white/80 dark:bg-slate-800/80 rounded-lg text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider shadow-sm dark:shadow-none">
-              {h}
-            </div>
+            <div key={i} style={{
+              textAlign: 'center', padding: '0.45rem 0', borderRadius: 8,
+              background: T.bgSoft, border: `1px solid ${T.border}`,
+              fontSize: '0.62rem', fontWeight: 800, color: T.muted, letterSpacing: '0.06em',
+            }}>{h}</div>
           ))}
 
           {Object.entries(QOS_MATRIX).map(([priority, cells]) => (
             <React.Fragment key={priority}>
-              <div className={`text-[10px] font-bold flex items-center ${PRIORITY_COLORS[priority]}`}>
-                {priority}
-              </div>
-
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: PRIORITY_COLORS[priority], display: 'flex', alignItems: 'center' }}>{priority}</div>
               {cells.map((cell, ci) => {
-                const isActive = stateIndex === ci;
-                const isBad = cell === 'Buffer' || cell === 'Drop';
-                const cellText = cell === 'Buffer' ? 'text-amber-600 dark:text-amber-400' : cell === 'Drop' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400';
-                const activeBg = isBad ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40 shadow-md dark:shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/40 shadow-md dark:shadow-[0_0_15px_rgba(16,185,129,0.2)]';
-                
+                const isActive = stateIndex === ci
+                const isBad = cell === 'Buffer' || cell === 'Drop'
+                const cellColor = cell === 'Buffer' ? T.amber : cell === 'Drop' ? T.red : T.green
                 return (
-                  <div key={ci} className={`
-                    text-center py-2.5 text-[11px] rounded-lg transition-all duration-300
-                    ${isActive ? `border-2 font-black ${activeBg} ${cellText} scale-105 z-10 relative` : `bg-white/80 dark:bg-slate-800/30 border-2 border-transparent font-medium ${cellText} opacity-80 dark:opacity-60 shadow-[0_2px_10px_rgb(0,0,0,0.02)]`}
-                  `}>
+                  <div key={ci} style={{
+                    textAlign: 'center', padding: '0.5rem 0', borderRadius: 8,
+                    fontSize: '0.68rem', fontWeight: isActive ? 800 : 600,
+                    color: cellColor,
+                    background: isActive ? `${cellColor}22` : T.bgSoft,
+                    border: isActive ? `2px solid ${cellColor}` : `1px solid ${T.border}`,
+                    opacity: isActive ? 1 : 0.6,
+                  }}>
                     {cell}
                   </div>
-                );
+                )
               })}
             </React.Fragment>
           ))}
         </div>
 
-        <div className="relative z-10">
-          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase mb-3">
-            Buffer Flush Order on Reconnect
+        <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Buffer Flush Order on Reconnect</div>
+        {[
+          { label: '1st — CRITICAL',  color: T.red },
+          { label: '2nd — IMPORTANT', color: T.amber },
+          { label: '3rd — ROUTINE',   color: T.blue },
+        ].map((row, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.3rem 0', fontSize: '0.75rem', fontWeight: 700, color: T.textPrimary }}>
+            <span style={{ width: 26, height: 6, borderRadius: 99, background: row.color, boxShadow: `0 0 8px ${row.color}` }} />
+            {row.label}
           </div>
-          {[
-            { label: '1st — CRITICAL',  color: 'bg-rose-500 shadow-rose-500/50', text: 'text-rose-600 dark:text-rose-400' },
-            { label: '2nd — IMPORTANT', color: 'bg-amber-500 shadow-amber-500/50', text: 'text-amber-600 dark:text-amber-400' },
-            { label: '3rd — ROUTINE',   color: 'bg-blue-500 shadow-blue-500/50', text: 'text-blue-600 dark:text-blue-400' },
-          ].map((row, i) => (
-            <div key={i} className="flex items-center gap-3 py-1.5 text-xs">
-              <div className={`w-8 h-1.5 rounded-full ${row.color} shadow-sm dark:shadow-[0_0_8px_currentColor]`} />
-              <span className={`font-bold tracking-wide ${row.text}`}>{row.label}</span>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
+        ))}
+      </Panel>
     </div>
-  );
+  )
 }

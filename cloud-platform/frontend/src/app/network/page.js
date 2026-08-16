@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import PageHeader from '@/components/common/PageHeader'
 import SideNav from '@/components/common/SideNav'
 import Header from '@/components/network/Header'
 import StatCards from '@/components/network/StatCards'
@@ -9,7 +8,7 @@ import MessageLog from '@/components/network/MessageLog'
 import NetworkPanel from '@/components/network/NetworkPanel'
 import StatsPanel from '@/components/network/StatsPanel'
 import BottomBar from '@/components/network/BottomBar'
-import { C } from '@/components/common/theme'
+import { useTheme } from '@/components/common/ThemeProvider'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -20,7 +19,7 @@ async function fetchNetworkMetrics() {
 }
 
 export default function NetworkPage() {
-  const [adminName] = useState('Dr. Perera')
+  const { T } = useTheme()
   const [connected, setConnected] = useState(false)
   const [networkState, setNetworkState] = useState('GOOD')
   const [metrics, setMetrics] = useState(null)
@@ -28,7 +27,6 @@ export default function NetworkPage() {
   const [stats, setStats] = useState({})
   const [buffer, setBuffer] = useState([])
   const [history, setHistory] = useState([])
-  const [isDarkMode, setIsDarkMode] = useState(true)
 
   const updateData = useCallback(async () => {
     try {
@@ -59,93 +57,53 @@ export default function NetworkPage() {
     <>
       <style>{`
         * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width:6px; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #071B30; }
-        ::-webkit-scrollbar-thumb { background: #2D4A70; border-radius:9999px; }
-        .pulse { animation: pulse 1.5s ease-in-out infinite; }
-        .slide { animation: slide 0.15s ease; }
+        ::-webkit-scrollbar-thumb { background: #2D4A70; border-radius: 9999px; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
       `}</style>
 
-      <div style={{ minHeight: '100svh', background: '#0A2540', fontFamily: "'Inter',sans-serif", color: 'white', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+      <div style={{ minHeight: '100svh', background: T.bg, fontFamily: "'Inter',sans-serif", color: T.text, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
 
         <SideNav />
 
-        <PageHeader title="PAGES" subtitle="Admin Console" adminName={adminName} height={72} />
+        <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
+          <Header
+            networkState={networkState}
+            connected={connected}
+            metrics={metrics}
+          />
 
-        {/* SAAMP Network Monitor Content */}
-        <div className={isDarkMode ? 'dark' : ''}>
-          <div className="min-h-[calc(100svh-72px)] p-4 sm:p-6 lg:p-8 transition-colors duration-500 bg-slate-50 dark:bg-[#0d1520] text-slate-800 dark:text-slate-200 relative overflow-hidden z-0 w-full">
-            {/* Dynamic Background Blurs for Light Mode */}
-            {!isDarkMode && (
-              <>
-                <div className="absolute top-[-10%] left-[-10%] w-125 h-125 bg-blue-400/20 rounded-full blur-[100px] mix-blend-multiply pointer-events-none -z-10" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-150 h-150 bg-emerald-400/20 rounded-full blur-[120px] mix-blend-multiply pointer-events-none -z-10" />
-              </>
-            )}
-
-            {/* MQTT Manager Header */}
-            <Header 
-              networkState={networkState}
-              connected={connected}
-              metrics={metrics}
-              isDarkMode={isDarkMode}
-              toggleTheme={() => setIsDarkMode(!isDarkMode)}
-            />
-
-          {/* Stat Cards */}
           <StatCards metrics={metrics} history={history} />
 
-          {/* Main Grid */}
           <div className="grid-panel" style={{ alignItems: 'start' }}>
-            {/* Left - Message Log */}
-            <MessageLog 
-              messages={messages}
-              networkState={networkState}
-            />
-
-            {/* Right - Network Panel */}
-            <NetworkPanel 
-              networkState={networkState}
-              metrics={metrics}
-            />
+            <MessageLog messages={messages} networkState={networkState} />
+            <NetworkPanel networkState={networkState} metrics={metrics} />
           </div>
 
-          {/* Stats Panel */}
           <div className="grid-2" style={{ marginTop: 18 }}>
-            <StatsPanel 
-              stats={stats}
-              buffer={buffer}
-              metrics={metrics}
-              networkState={networkState}
-            />
-            
-            {/* Empty placeholder for balance */}
+            <StatsPanel stats={stats} buffer={buffer} metrics={metrics} networkState={networkState} />
+
             <div style={{
-              background: C.panel,
-              border: `1px solid ${C.border}`,
-              borderRadius: 12,
-              padding: 20,
+              background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
+              border: `1px solid ${T.border}`,
+              borderRadius: 18,
+              boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
+              overflow: 'hidden',
             }}>
-              <div style={{
-                fontSize: 13, color: C.muted,
-                letterSpacing: 1, marginBottom: 16,
-                textTransform: 'uppercase',
-                fontWeight: 600,
-              }}>
-                System Logs
+              <div style={{ padding: '0.9rem 1.1rem', borderBottom: `1px solid ${T.line}` }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: T.textPrimary, textTransform: 'uppercase', letterSpacing: '0.1em' }}>System Logs</span>
               </div>
-              <div style={{ fontSize: 14, color: C.muted, textAlign: 'center', padding: '3rem 0' }}>
+              <div style={{ padding: '1rem 1.1rem', fontSize: '0.85rem', color: T.muted, textAlign: 'center', padding: '3rem 0' }}>
                 No system logs available
               </div>
             </div>
           </div>
 
-          {/* Bottom Bar */}
           <div style={{ marginTop: 18 }}>
             <BottomBar metrics={metrics} />
           </div>
-        </div>
-        </div>
+        </main>
       </div>
     </>
   )

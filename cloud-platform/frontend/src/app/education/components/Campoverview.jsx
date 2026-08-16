@@ -1,4 +1,4 @@
-import AlertBadge from '@/components/education/ui/AlertBadge'
+import AlertBadge from './AlertBadge'
 
 export default function CampOverview({ camp, onCampClick, darkMode = false }) {
   const alertCount = camp.alerts?.length ?? 0

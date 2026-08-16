@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { STATUS_META, statusColor } from '@/components/disaster/disasterData'
 import SideNav from '@/components/common/SideNav'
+import { useTheme } from '@/components/common/ThemeProvider'
 
 // Applies the global navigation rail + offsets content to the right of it.
 function WithRail({ children }) {
@@ -13,36 +14,6 @@ function WithRail({ children }) {
       {children}
     </div>
   )
-}
-
-const DARK = {
-  mode: 'dark',
-  bg: '#03080f',
-  surface: '#06101a',
-  border: '#0e2030',
-  t0: '#e2edf7',
-  t1: '#93b7d2',
-  t2: '#6790aa',
-  red: '#ef4444',
-  orange: '#f97316',
-  yellow: '#eab308',
-  cyan: '#22d3ee',
-  green: '#4ade80',
-}
-
-const LIGHT = {
-  mode: 'light',
-  bg: '#eef4f8',
-  surface: '#ffffff',
-  border: '#d3dde7',
-  t0: '#0f2336',
-  t1: '#284b67',
-  t2: '#5f7f94',
-  red: '#dc2626',
-  orange: '#ea6a0a',
-  yellow: '#ca8a04',
-  cyan: '#0891b2',
-  green: '#16a34a',
 }
 
 function InfoCard({ label, value, tone, theme, style, compact }) {
@@ -93,7 +64,6 @@ function getPredictionTone(probability, theme) {
 export default function DisasterCampDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const [mode, setMode] = useState('dark')
   const [utc, setUtc] = useState('')
   const [tick, setTick] = useState(0)
   const [camp, setCamp] = useState(null)
@@ -101,7 +71,17 @@ export default function DisasterCampDetailPage() {
   const [error, setError] = useState('')
 
   const campId = Array.isArray(params?.campId) ? params.campId[0] : params?.campId
-  const theme = mode === 'dark' ? DARK : LIGHT
+  const { T, mode } = useTheme()
+  const theme = {
+    ...T,
+    t0: T.textPrimary,
+    t1: T.text,
+    t2: T.muted,
+    t3: T.slate,
+    cyan: T.tealMid,
+    orange: T.coral,
+    surface: T.card,
+  }
 
   useEffect(() => {
     setUtc(formatSriLankaTime())
@@ -363,10 +343,6 @@ export default function DisasterCampDetailPage() {
             <span style={{ color: tick % 2 === 0 ? theme.t1 : theme.t2 }}>●</span>
             LIVE LK {utc}
           </div>
-          <button onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: `1px solid ${theme.border}`, borderRadius: 999, background: theme.surface, fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: theme.t1, letterSpacing: '0.1em', cursor: 'pointer', transition: 'all 0.2s' }}>
-            <span style={{ fontSize: 12 }}>{mode === 'dark' ? '☀' : '🌙'}</span>
-            {mode === 'dark' ? 'LIGHT' : 'DARK'}
-          </button>
           <button onClick={() => router.push('/disaster')} style={{ border: `1px solid ${theme.border}`, background: theme.surface, color: theme.t1, borderRadius: 6, padding: '8px 14px', fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>← Back</button>
         </div>
       </header>
