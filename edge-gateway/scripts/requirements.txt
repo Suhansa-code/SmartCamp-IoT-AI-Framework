@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pyserial
+requests
+geopy
+shapely
+geopandas
+networkx
+pandas
+numpy

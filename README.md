@@ -1,105 +1,154 @@
-# Smart Disaster Relief Camp Box (SDRC-Box)
+# 🌍 Smart Disaster Relief Camp Box (SDRC-Box)
 
-# 📌 Project Vision
+<div align="center">
 
-# The SDRC-Box is an integrated hardware and software solution designed for rapid deployment in disaster-stricken areas. It serves as a localized intelligence hub, balancing environmental safety, efficient resource logistics, and the mental well-being of displaced individuals.
+<img src="https://readme-typing-svg.herokuapp.com?font=Orbitron&size=32&duration=3000&color=00C2FF&center=true&vCenter=true&width=900&lines=Smart+Disaster+Relief+Camp+Box+(SDRC-Box);AI+%2B+IoT+%2B+Edge+Computing;Offline-First+Disaster+Infrastructure;Predictive+Flood+Monitoring+System;Semantic-Aware+Adaptive+QoS+(SAAMP)" />
 
-# 
+<br>
 
-# 🏗 The Three Core Pillars
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0ea5e9,100:2563eb&height=220&section=header&text=SDRC-BOX&fontSize=55&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Intelligent%20Offline-First%20Disaster%20Relief%20Infrastructure&descAlignY=58&descSize=20"/>
 
-# 1\. Smart Environmental Risk Monitoring \& Flood Prediction
+<br>
 
-# Purpose: Real-time safety auditing of the camp's physical location.
+![IoT](https://img.shields.io/badge/IoT-ESP32-blue?style=for-the-badge)
+![AI](https://img.shields.io/badge/AI-TensorFlow_Lite-orange?style=for-the-badge)
+![MQTT](https://img.shields.io/badge/MQTT-EMQX-orange?style=for-the-badge&logo=emqx)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react)
+![Edge](https://img.shields.io/badge/Edge-Raspberry_Pi-red?style=for-the-badge)
 
-# 
+</div>
 
-# Tech: ESP32 sensors (water level, rain), Raspberry Pi Gateway, and Location-Aware AI (LSTM/TFLite) to predict flood risks before they occur.
+---
 
-# 
+# 🌍 Project Vision
 
-# 2\. Camp Resource Management
+The **SDRC-Box** is an AI-powered disaster response ecosystem combining:
 
-# Purpose: Digital inventory and distribution tracking for food, medicine, and water.
+- 🌊 Flood prediction (Edge AI)
+- 📡 MQTT messaging via **EMQX Broker**
+- 📦 Smart resource management
+- 🧠 Offline education + psychology support
+- ☁️ Cloud analytics dashboard
 
-# 
+It ensures **continuous operation even without internet**.
 
-# Tech: Centralized Admin Dashboard (Next.js) with real-time stock alerts and QR-based tracking to prevent resource wastage or hoarding.
+---
 
-# 
+# ⚡ Smart System Workflow
 
-# 3\. Educational \& Psychology Module
+<div align="center">
 
-# Purpose: Providing offline access to educational content and psychological support tools.
+```mermaid
+flowchart LR
 
-# 
+A[📟 ESP32 Sensors]
+B[📡 EMQX MQTT Broker]
 
-# Tech: A "Captive Portal" or local web server hosted on the Raspberry Pi, offering interactive learning and guided trauma-relief exercises without needing an active internet connection.
+A --> B
 
-# 
+B --> C[🧠 Raspberry Pi Edge Gateway]
 
-# 📁 Integrated Repository Structure
+C --> D[🌊 Flood Prediction AI]
+C --> E[📦 Resource Management]
+C --> F[🧠 Psychology Module]
 
-# Plaintext
+C --> S[📡 SAAMP Engine]
+S --> S1[🔴 Priority Classification]
+S --> S2[📶 Predictive QoS]
+S --> S3[💾 Offline Buffering]
 
-# /sdrc-box-root
+D --> G[🚨 Alert System]
+E --> G
+F --> G
+S --> G
 
-# ├── apps/
+B <--> X[☁️ Cloud MQTT Bridge]
+X --> Y[🌐 Cloud Server]
 
-# │   ├── admin-dashboard/     # Next.js (Management of Pillars 1 \& 2)
+Y --> Z[📊 Admin Dashboard]
+Y --> Z1[🗄 Database]
+```
 
-# │   ├── web-portal/          # Localized Web Server for Pillar 3 (Pi-hosted)
+</div>
 
-# │   └── backend-api/         # Central Node.js API (MERN Stack)
+---
 
-# ├── firmware/
+# 🛰 Live System Animation
 
-# │   ├── sensor-nodes/        # ESP32 code for Flood Monitoring
+<div align="center">
 
-# │   └── disaster-box-pi/     # Raspberry Pi Gateway \& Local Services
+<img src="https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif" width="500"/>
 
-# ├── ml-engine/
+</div>
 
-# │   ├── models/              # Prediction models (Flood \& Resource Trends)
+---
 
-# │   └── api/                 # FastAPI for serving model inferences
+# 🏗 Core Modules
 
-# ├── docs/                    # System Architecture \& Research Papers
+| Module | Description |
+|---|---|
+| 🌊 Flood Prediction | AI-based environmental forecasting |
+| 📦 Resource Management | QR + real-time inventory system |
+| 📡 MQTT System | EMQX broker message handling |
+| 🧠 SAAMP | Adaptive QoS + priority routing |
+| 🌐 Cloud Bridge | Real-time dashboard sync |
+| 📱 React UI | Admin control panel |
 
-# └── docker-compose.yml       # One-click deployment for the full stack
+---
 
-# 🛠 Strategic Architecture Guidelines
+# 🚀 Tech Stack
 
-# Offline-First Strategy: Since Pillar 3 (Psychology/Education) must work during disasters, the Raspberry Pi should act as a Local Wi-Fi Hotspot. Users connect their phones to the "SDRC-BOX" Wi-Fi to access the educational module without internet.
+<div align="center">
 
-# 
+| Layer | Technology |
+|---|---|
+| Frontend | React, Next.js |
+| Backend | Node.js, Flask |
+| MQTT Broker | EMQX |
+| Edge AI | Raspberry Pi + TensorFlow Lite |
+| IoT | ESP32 |
+| Database | MongoDB / PostgreSQL |
+| Communication | MQTT, WebSockets |
 
-# Unified Data Schema: Ensure your database (PostgreSQL/MongoDB) links "Environmental Risk" levels to "Resource Management." (e.g., If a flood is predicted, the system automatically alerts managers to move food resources to higher ground).
+</div>
 
-# 
+---
 
-# Modular Deployment: Each of the 3 components should be able to run independently. If the sensors fail, the Resource Management and Psychology modules must remain functional.
+# 📁 Repository Structure
 
-# 
+```bash
+SmartCamp-IoT-AI-Framework/
+│
+├── cloud-platform/
+├── edge-gateway/
+├── raspberry-platform/
+├── sensor-node/
+├── .github/workflows/
+├── Credentials.md
+├── network_simulation_log.csv
+└── README.md
+```
 
-# 📊 Technical Standards
+---
 
-# UI/UX: High-end, luxury aesthetic for the Admin Dashboard to ensure clarity during high-stress disaster scenarios.
+# 🌟 Future Enhancements
 
-# 
+- 🛰 Satellite communication support
+- 🚁 Drone-based delivery system
+- 🤖 AI crowd analysis
+- 🔗 Blockchain aid tracking
+- 🧠 Federated learning across regions
 
-# Communication: MQTT for sensor-to-Pi, REST/WebSockets for Pi-to-Cloud.
+---
 
-# 
+# ❤️ Final Message
 
-# AI: Use TensorFlow Lite for edge prediction to minimize latency.
+<div align="center">
 
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2563eb,100:0ea5e9&height=140&section=footer&text=Technology%20Should%20Not%20Stop%20When%20Disasters%20Begin&fontSize=20&fontColor=ffffff"/>
 
+### 🌍 SDRC-BOX
+**AI + IoT + Edge + Cloud for Humanitarian Intelligence**
 
-
-
-<!-- ❯ Can you go though my model and create what are the inputs do i need in my prediction frontend frontend path is  
-  /home/suhansa-kashmira/Documents/SmartCamp-IoT-AI-Framework/raspberry-platform/frontend/src/components/resources    and backend is in           
-  rassberrypie and need to create buffer for sync during the low network the registration data and other model need data need to be get from the  
-  locl env (rassberry pie) and then it go to the brocker and then go to the cloud vm in there is my prediction dydtem is deployed inside the      
-  container and predicted  result need to be showd in admin dashboard   -->
+</div>

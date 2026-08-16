@@ -1,27 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  BrainCircuit, Users, TrendingUp, Baby, Shield, Activity,
+  FileText, PackagePlus, CalendarDays, Sparkles, RefreshCw,
+} from 'lucide-react';
+import { API } from '../ui/config';
+import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 
-const API = 'http://localhost:5000';
+/* ------------------------------------------------------------------ */
+/*  SEMANTIC COLOUR MAP                                                 */
+/* ------------------------------------------------------------------ */
 
-const NETWORK_STYLE = {
-  STABLE:   { badge: 'bg-green-100 text-green-800',  dot: 'bg-green-500' },
-  DEGRADED: { badge: 'bg-yellow-100 text-yellow-800', dot: 'bg-yellow-500' },
-  CRITICAL: { badge: 'bg-red-100 text-red-800',      dot: 'bg-red-500' },
-};
-
-const STATUS_STYLE = {
-  none:     'bg-gray-100 text-gray-500',
-  pending:  'bg-yellow-100 text-yellow-700',
-  sent:     'bg-blue-100 text-blue-700',
-  buffered: 'bg-orange-100 text-orange-700',
-  complete: 'bg-green-100 text-green-800',
-};
-
-const STATUS_LABEL = {
-  none:     'No forecast yet',
-  pending:  'Pending...',
-  sent:     'Sent — awaiting cloud result',
-  buffered: 'Buffered (low network)',
-  complete: 'Complete',
+const TONE = {
+  brand:   { color: COLORS.brand, bg: `${COLORS.brand}14`, border: `${COLORS.brand}33` },
+  warning: { color: '#D97706',    bg: '#FFFBEB',           border: '#FDE68A' },
+  danger:  { color: '#DC2626',    bg: '#FEF2F2',           border: '#FECACA' },
+  info:    { color: '#0284C7',    bg: '#F0F9FF',           border: '#BAE6FD' },
+  violet:  { color: '#7C3AED',    bg: '#F5F3FF',           border: '#DDD6FE' },
+  neutral: { color: COLORS.body,  bg: '#F5F6F5',            border: COLORS.line },
 };
 
 const TYPE_LABELS = {
@@ -34,21 +30,94 @@ const TYPE_LABELS = {
   ooc:               'Others of Concern',
 };
 
-function StatChip({ label, value, unit = '' }) {
+/* ------------------------------------------------------------------ */
+/*  LOCAL PRIMITIVES — mirror the FloodWatch / ReliefOps design system  */
+/* ------------------------------------------------------------------ */
+
+function Card({ children, className = "" }) {
   return (
-    <div className="bg-gray-50 rounded-xl px-4 py-3 flex flex-col gap-0.5">
-      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
-      <span className="text-lg font-bold text-gray-800">
-        {typeof value === 'number' && value < 1 && value > 0
-          ? `${(value * 100).toFixed(1)}%`
-          : (value?.toLocaleString() ?? '—')}
-        {unit && <span className="text-xs text-gray-400 ml-1">{unit}</span>}
-      </span>
+    <div className={`rounded-xl border bg-white ${className}`} style={{ borderColor: COLORS.line }}>
+      {children}
     </div>
   );
 }
 
-function ForecastRow({ row, isToday }) {
+function IconTile({ icon: Icon, tone = "brand", size = "md" }) {
+  const t = TONE[tone] || TONE.brand;
+  const dims = size === "lg" ? "w-10 h-10 sm:w-11 sm:h-11" : "w-9 h-9";
+  return (
+    <div className={`${dims} rounded-lg flex items-center justify-center shrink-0 border`} style={{ backgroundColor: t.bg, borderColor: t.border }}>
+      <Icon className={size === "lg" ? "w-5 h-5" : "w-4 h-4"} style={{ color: t.color }} strokeWidth={1.7} />
+    </div>
+  );
+}
+
+function Chip({ children, tone = "neutral" }) {
+  const t = TONE[tone] || TONE.neutral;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold tracking-wide border"
+      style={{ color: t.color, backgroundColor: t.bg, borderColor: t.border }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function SectionHeader({ icon, title, subtitle, badge }) {
+  return (
+    <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <div className="flex items-center gap-3">
+        <IconTile icon={icon} />
+        <div>
+          <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>{title}</h2>
+          {subtitle && <p className="text-[11px] sm:text-[11.5px]" style={{ color: COLORS.muted }}>{subtitle}</p>}
+        </div>
+      </div>
+      {badge && <Chip tone="brand">{badge}</Chip>}
+    </div>
+  );
+}
+
+function Button({ loading, loadingText, children, className = "", ...props }) {
+  return (
+    <button
+      {...props}
+      disabled={loading || props.disabled}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg text-[12.5px] font-semibold py-2.5 px-4 text-white transition-opacity disabled:opacity-40 hover:opacity-90 ${className}`}
+      style={{ backgroundColor: COLORS.brand }}
+    >
+      {loading ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> {loadingText || "Working…"}</> : children}
+    </button>
+  );
+}
+
+function StatTile({ label, value, unit, icon: Icon, tone = "brand" }) {
+  const t = TONE[tone] || TONE.brand;
+  return (
+    <Card className="p-3.5 relative overflow-hidden group">
+      <div
+        className="absolute -right-5 -top-5 w-20 h-20 rounded-full group-hover:scale-150 transition-transform duration-500"
+        style={{ backgroundColor: t.bg }}
+      />
+      <div className="relative">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] uppercase tracking-[0.06em] font-mono" style={{ color: COLORS.muted }}>{label}</span>
+          <Icon className="w-3.5 h-3.5" style={{ color: t.color }} />
+        </div>
+        <p className="text-[18px] sm:text-[19px] font-semibold font-mono tracking-tight" style={{ color: COLORS.ink }}>
+          {value ?? '—'}<span className="text-[11px] font-normal" style={{ color: COLORS.muted }}>{unit}</span>
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  FORECAST ROW                                                        */
+/* ------------------------------------------------------------------ */
+
+function ForecastRow({ row, isToday, index }) {
   const r = row.result;
   const pop = row.projected_population;
   const dateObj = new Date(row.date + 'T00:00:00');
@@ -56,27 +125,41 @@ function ForecastRow({ row, isToday }) {
   const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
-    <tr className={`border-t border-gray-100 ${isToday ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-      <td className="px-4 py-3">
-        <div className={`font-semibold text-sm ${isToday ? 'text-blue-700' : 'text-gray-700'}`}>{dayName}</div>
-        <div className="text-xs text-gray-400">{dateStr}</div>
+    <motion.tr
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 + 0.15 }}
+      className="border-t transition-colors"
+      style={{ borderColor: COLORS.hairline, backgroundColor: isToday ? `${COLORS.brand}0A` : 'transparent' }}
+    >
+      <td className="px-4 sm:px-5 py-3.5">
+        <div className="font-semibold text-[12.5px]" style={{ color: isToday ? COLORS.brand : COLORS.ink }}>{dayName}</div>
+        <div className="text-[10.5px] font-mono" style={{ color: COLORS.muted }}>{dateStr}</div>
       </td>
-      <td className="px-4 py-3 text-sm font-mono text-gray-700">{pop?.toLocaleString() ?? '—'}</td>
+      <td className="px-4 sm:px-5 py-3.5">
+        <Chip>{pop?.toLocaleString() ?? '—'}</Chip>
+      </td>
       {r ? (
         <>
-          <td className="px-4 py-3 text-sm font-mono text-amber-700">{r.food_kg_day?.toLocaleString()}</td>
-          <td className="px-4 py-3 text-sm font-mono text-blue-700">{r.water_liters_day?.toLocaleString()}</td>
-          <td className="px-4 py-3 text-sm font-mono text-green-700">{r.shelter_units?.toLocaleString()}</td>
-          <td className="px-4 py-3 text-sm font-mono text-purple-700">{r.medical_staff_needed?.toLocaleString()}</td>
+          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: '#B45309' }}>{r.food_kg_day?.toLocaleString()}</td>
+          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: '#0284C7' }}>{r.water_liters_day?.toLocaleString()}</td>
+          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: COLORS.brand }}>{r.shelter_units?.toLocaleString()}</td>
+          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: '#7C3AED' }}>{r.medical_staff_needed?.toLocaleString()}</td>
         </>
       ) : (
-        <td colSpan={4} className="px-4 py-3 text-sm text-gray-400 italic">
-          Awaiting prediction...
+        <td colSpan={4} className="px-4 sm:px-5 py-3.5">
+          <div className="flex items-center gap-2 text-[12.5px] italic" style={{ color: COLORS.muted }}>
+            <Activity className="w-3.5 h-3.5 animate-pulse" /> Computing...
+          </div>
         </td>
       )}
-    </tr>
+    </motion.tr>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  MAIN SCREEN                                                         */
+/* ------------------------------------------------------------------ */
 
 function PredictionScreen() {
   const [campData, setCampData]       = useState(null);
@@ -88,46 +171,30 @@ function PredictionScreen() {
   const [statusMsg, setStatusMsg]     = useState('');
   const [loading, setLoading]         = useState(false);
 
-  // Load camp demographics + latest result on mount
   useEffect(() => {
-    fetch(`${API}/api/prediction/inputs`)
-      .then(r => r.json())
-      .then(setCampData)
-      .catch(() => {});
-
-    fetch(`${API}/api/network/state`)
-      .then(r => r.json())
-      .then(d => setNetworkState(d.state || 'STABLE'))
-      .catch(() => {});
-
-    fetch(`${API}/api/prediction/results`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.status !== 'none') {
-          setReqStatus(d.status);
-          setRequestId(d.request_id);
-          if (d.forecasts) setForecasts(d.forecasts);
-        }
-      })
-      .catch(() => {});
+    fetch(`${API}/api/prediction/inputs`).then(r => r.json()).then(setCampData).catch(() => {});
+    fetch(`${API}/api/network/state`).then(r => r.json()).then(d => setNetworkState(d.state || 'STABLE')).catch(() => {});
+    fetch(`${API}/api/prediction/results`).then(r => r.json()).then(d => {
+      if (d.status !== 'none') {
+        setReqStatus(d.status);
+        setRequestId(d.request_id);
+        if (d.forecasts) setForecasts(d.forecasts);
+      }
+    }).catch(() => {});
   }, []);
 
-  // Poll for result every 5s when pending/sent/buffered
   useEffect(() => {
     if (!requestId || reqStatus === 'complete' || reqStatus === 'none') return;
     const interval = setInterval(() => {
-      fetch(`${API}/api/prediction/results`)
-        .then(r => r.json())
-        .then(d => {
-          if (d.request_id === requestId) {
-            setReqStatus(d.status);
-            if (d.forecasts) {
-              setForecasts(d.forecasts);
-              if (d.status === 'complete') clearInterval(interval);
-            }
+      fetch(`${API}/api/prediction/results`).then(r => r.json()).then(d => {
+        if (d.request_id === requestId) {
+          setReqStatus(d.status);
+          if (d.forecasts) {
+            setForecasts(d.forecasts);
+            if (d.status === 'complete') clearInterval(interval);
           }
-        })
-        .catch(() => {});
+        }
+      }).catch(() => {});
     }, 5000);
     return () => clearInterval(interval);
   }, [requestId, reqStatus]);
@@ -152,142 +219,122 @@ function PredictionScreen() {
     }
   }, []);
 
-  const ns = NETWORK_STYLE[networkState] || NETWORK_STYLE.STABLE;
-
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
+      <div className="sm:px-5 lg:px-6 py-5 sm:py-7 space-y-4 sm:space-y-6">
 
-      {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">AI Resource Forecast</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            All inputs are computed automatically from registered persons and check-in data.
-          </p>
-        </div>
-        <div className="flex gap-2 items-center flex-wrap">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${ns.badge}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${ns.dot}`} />
-            {networkState}
-          </span>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_STYLE[reqStatus]}`}>
-            {STATUS_LABEL[reqStatus]}
-          </span>
-        </div>
-      </div>
-
-      {/* Camp demographics — auto-fetched, read-only */}
-      {campData && (
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-          <h3 className="font-semibold text-gray-800">
-            Camp Demographics
-            <span className="ml-2 text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-normal">auto from Pi DB</span>
-          </h3>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            <StatChip label="Total Population"   value={campData.total_population} />
-            <StatChip label="Daily Arrival Rate" value={campData.daily_arrival_rate} unit="/ day" />
-            <StatChip label="Children Ratio"     value={campData.children_ratio} />
-            <StatChip label="Elderly Ratio"      value={campData.elderly_ratio} />
-            <StatChip label="Female Ratio"       value={campData.female_ratio} />
-            <StatChip label="Yearly Arrivals"    value={campData.yearly_arrivals} />
-            <StatChip label="Pregnant"           value={campData.pregnant} />
-            <StatChip label="Chronic Illness"    value={campData.chronic_illness} />
-          </div>
-
-          {/* UNHCR breakdown */}
+        {/* ================= TITLE ROW ================= */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">UNHCR Category Breakdown</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(TYPE_LABELS).map(([key, label]) => (
-                campData[key] > 0 && (
-                  <span key={key} className="bg-indigo-50 text-indigo-700 text-xs px-3 py-1 rounded-full font-medium">
-                    {label}: {campData[key].toLocaleString()}
-                  </span>
-                )
-              ))}
-              {Object.keys(TYPE_LABELS).every(k => !campData[k]) && (
-                <span className="text-xs text-gray-400 italic">
-                  No category breakdown yet — select Person Type during registration to populate this.
-                </span>
-              )}
+            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
+            <div className="flex items-center gap-3 mt-1.5">
+              <IconTile icon={BrainCircuit} size="lg" />
+              <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">AI Prediction</h1>
             </div>
+            <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Resource allocation forecast, projected 7 days ahead</p>
           </div>
         </div>
-      )}
 
-      {/* Generate button */}
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <div className="flex items-center gap-4 flex-wrap">
-          <button
-            onClick={handleForecast}
-            disabled={loading}
-            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold rounded-xl transition-colors"
-          >
-            {loading ? 'Generating...' : 'Generate 7-Day Forecast'}
-          </button>
+        {campData && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+            <Card className="p-4 sm:p-6">
+              <SectionHeader icon={Users} title="Live Demographics" badge="Auto-synced" />
 
-          {statusMsg && <span className="text-sm text-gray-600">{statusMsg}</span>}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <StatTile label="Population" value={campData.total_population?.toLocaleString()} icon={Users} tone="brand" />
+                <StatTile label="Daily Arrival" value={campData.daily_arrival_rate} unit=" /day" icon={TrendingUp} tone="warning" />
+                <StatTile label="Children Ratio" value={campData.children_ratio} icon={Baby} tone="info" />
+                <StatTile label="Female Ratio" value={campData.female_ratio} icon={Users} tone="violet" />
+                <StatTile label="Yearly Arrivals" value={campData.yearly_arrivals?.toLocaleString()} icon={PackagePlus} tone="brand" />
+                <StatTile label="Pregnant" value={campData.pregnant} icon={Activity} tone="danger" />
+                <StatTile label="Chronic Illness" value={campData.chronic_illness} icon={Shield} tone="warning" />
+                <StatTile label="Elderly Ratio" value={campData.elderly_ratio} icon={Users} tone="neutral" />
+              </div>
 
-          {mqttInfo && (
-            <div className="flex gap-2 flex-wrap">
-              <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Priority: {mqttInfo.priority}</span>
-              <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">QoS {mqttInfo.final_qos}</span>
-              <span className={`text-xs px-2 py-1 rounded-full ${mqttInfo.published ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                {mqttInfo.published ? 'Published' : 'Buffered'}
-              </span>
+              <div className="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t" style={{ borderColor: COLORS.hairline }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-3.5 h-3.5" style={{ color: COLORS.muted }} />
+                  <span className="text-[11px] uppercase tracking-[0.08em] font-mono" style={{ color: COLORS.muted }}>Category Breakdown</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(TYPE_LABELS).map(([key, label]) => (
+                    campData[key] > 0 && (
+                      <Chip key={key} tone="brand">{label}: {campData[key].toLocaleString()}</Chip>
+                    )
+                  ))}
+                  {Object.keys(TYPE_LABELS).every(k => !campData[k]) && (
+                    <span className="text-[12.5px] italic" style={{ color: COLORS.muted }}>No category breakdown available.</span>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
+        <Card className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button onClick={handleForecast} loading={loading} loadingText="Synthesizing…">
+                <Sparkles className="w-3.5 h-3.5" /> Generate 7-Day Forecast
+              </Button>
+
+              <AnimatePresence mode="wait">
+                {statusMsg && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                    className="text-[12.5px] font-medium px-3 py-1.5 rounded-lg"
+                    style={{ color: COLORS.body, backgroundColor: '#F5F6F5' }}
+                  >
+                    {statusMsg}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
-          )}
 
-          {(reqStatus === 'sent' || reqStatus === 'buffered') && (
-            <span className="text-xs text-gray-400 animate-pulse">Polling for result every 5s...</span>
-          )}
-        </div>
+            {mqttInfo && (
+              <div className="flex gap-1.5 flex-wrap">
+                <Chip>Priority: {mqttInfo.priority}</Chip>
+                <Chip tone={mqttInfo.published ? 'brand' : 'warning'}>
+                  {mqttInfo.published ? 'Published (MQTT)' : 'Buffered Local'}
+                </Chip>
+              </div>
+            )}
+          </div>
+        </Card>
 
-        {networkState === 'CRITICAL' && (
-          <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700">
-            Network CRITICAL — forecast will be buffered and sent when connectivity recovers.
-          </div>
-        )}
-        {networkState === 'DEGRADED' && (
-          <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2 text-sm text-yellow-700">
-            Network DEGRADED — QoS upgraded automatically to ensure delivery.
-          </div>
-        )}
+        <AnimatePresence>
+          {forecasts.length > 0 && (
+            <Card className="overflow-hidden">
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b flex items-center gap-3" style={{ borderColor: COLORS.hairline }}>
+                <IconTile icon={CalendarDays} />
+                <div>
+                  <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>Forecast Matrix</h2>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>Population projected linearly. Resource ratios calculated dynamically via AI.</p>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-[10.5px] font-mono font-semibold uppercase tracking-[0.06em]" style={{ color: COLORS.muted, backgroundColor: '#FAFAF9' }}>
+                      <th className="px-4 sm:px-5 py-3">Date Target</th>
+                      <th className="px-4 sm:px-5 py-3">Est. Pop.</th>
+                      <th className="px-4 sm:px-5 py-3" style={{ color: '#B45309' }}>Food kg/d</th>
+                      <th className="px-4 sm:px-5 py-3" style={{ color: '#0284C7' }}>Water L/d</th>
+                      <th className="px-4 sm:px-5 py-3" style={{ color: COLORS.brand }}>Shelters</th>
+                      <th className="px-4 sm:px-5 py-3" style={{ color: '#7C3AED' }}>Med Staff</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {forecasts.map((row, i) => (
+                      <ForecastRow key={row.date} row={row} isToday={i === 0} index={i} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* 7-day forecast table */}
-      {forecasts.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-800">7-Day Resource Forecast</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Population projected using {campData?.daily_arrival_rate ?? '—'} daily arrivals/day.
-              Ratios held constant.
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Est. Population</th>
-                  <th className="px-4 py-3 text-amber-600">Food (kg/day)</th>
-                  <th className="px-4 py-3 text-blue-600">Water (L/day)</th>
-                  <th className="px-4 py-3 text-green-600">Shelter Units</th>
-                  <th className="px-4 py-3 text-purple-600">Medical Staff</th>
-                </tr>
-              </thead>
-              <tbody>
-                {forecasts.map((row, i) => (
-                  <ForecastRow key={row.date} row={row} isToday={i === 0} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

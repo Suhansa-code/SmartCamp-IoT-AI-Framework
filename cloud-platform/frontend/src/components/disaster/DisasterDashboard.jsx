@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CAMPS, CAMP_DETAIL, DONUT_SEGS, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disasterData'
+import { DONUT_SEGS, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disasterData'
 import { DisasterGeoMap } from './DisasterGeoMap'
 import { DisasterCampSummaryPanel } from './DisasterCampSummaryPanel'
 import { DonutChart, Ring, Sparkline, ThemeToggle, TrendChart } from './DisasterVisuals'
+import SideNav from '@/components/common/SideNav'
 
 const DARK = {
   mode: 'dark',
@@ -55,34 +56,124 @@ function compactStatusLabel(status) {
   return { critical: 'Critical', high: 'High', medium: 'Medium', stable: 'Stable', recovery: 'Recovery' }[status] || 'Unknown'
 }
 
+const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
+
+function formatSriLankaTime(date = new Date()) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Colombo',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
 export default function DisasterDashboard() {
   const router = useRouter()
   const [mode, setMode] = useState('dark')
   const [selected, setSelected] = useState(null)
+  const [overview, setOverview] = useState(null)
+  const [selectedDetail, setSelectedDetail] = useState(null)
+  const [selectedDetailLoading, setSelectedDetailLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [utc, setUtc] = useState('')
   const [tick, setTick] = useState(0)
   const theme = mode === 'dark' ? DARK : LIGHT
 
   useEffect(() => {
+    setUtc(formatSriLankaTime())
     const id = setInterval(() => {
-      setUtc(new Date().toUTCString().slice(17, 25))
+      setUtc(formatSriLankaTime())
       setTick((value) => value + 1)
     }, 1000)
     return () => clearInterval(id)
   }, [])
 
-  const selectedCamp = useMemo(() => CAMPS.find((camp) => camp.id === selected) || null, [selected])
-  const selectedDetail = selectedCamp ? CAMP_DETAIL[selectedCamp.id] : null
-  const totalDisplaced = CAMPS.reduce((sum, camp) => sum + camp.displaced, 0)
+  useEffect(() => {
+    let active = true
+
+    async function loadOverview() {
+      setLoading(true)
+      setError('')
+
+      try {
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/overview`)
+        const payload = res.ok ? await res.json() : null
+        if (!active) return
+        setOverview(payload)
+      } catch (err) {
+        if (!active) return
+        setOverview(null)
+        setError(err instanceof Error ? err.message : 'Failed to load disaster overview')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    loadOverview()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadSelectedDetail() {
+      if (!selected) {
+        setSelectedDetail(null)
+        setSelectedDetailLoading(false)
+        return
+      }
+
+      // show loading state for the selected camp card
+      setSelectedDetail(null)
+      setSelectedDetailLoading(true)
+
+      try {
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${selected}`)
+        const camp = res.ok ? await res.json() : null
+        if (!active) return
+        setSelectedDetail(camp?.detail || null)
+      } catch {
+        if (!active) return
+        setSelectedDetail(null)
+      } finally {
+        if (active) setSelectedDetailLoading(false)
+      }
+    }
+
+    loadSelectedDetail()
+
+    return () => {
+      active = false
+    }
+  }, [selected])
+
+  const camps = overview?.camps || []
+  const mapNodes = overview?.map_nodes || camps
+  const selectedCamp = useMemo(() => camps.find((camp) => camp.id === selected) || null, [camps, selected])
+  const totalDisplaced = overview?.total_displaced || camps.reduce((sum, camp) => sum + camp.displaced, 0)
+  const totalWorkers = overview?.total_workers || camps.reduce((sum, camp) => sum + camp.workers, 0)
+  const statusCounts = overview?.status_counts || {
+    critical: camps.filter((camp) => camp.status === 'critical').length,
+    high: camps.filter((camp) => camp.status === 'high').length,
+    medium: camps.filter((camp) => camp.status === 'medium').length,
+    stable: camps.filter((camp) => camp.status === 'stable').length,
+    recovery: camps.filter((camp) => camp.status === 'recovery').length,
+  }
 
   const handleNavigate = () => {
     if (!selectedCamp) return
-    router.push(`/admin/disaster/${selectedCamp.id}`)
+    router.push(`/disaster/${selectedCamp.id}`)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, transition: 'background 0.3s', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
-      <div style={{ width: '100%', maxWidth: 1560, margin: '0 auto', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
+    <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, paddingLeft: 'calc(var(--rail-width, 236px) + 18px)', transition: 'background 0.3s, padding-left 0.2s ease', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
+      <SideNav />
+      <div style={{ width: '100%', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -90,6 +181,7 @@ export default function DisasterDashboard() {
           ::-webkit-scrollbar-track { background: ${theme.bg}; }
           ::-webkit-scrollbar-thumb { background: ${theme.border}; border-radius: 9999px; }
           button:hover { opacity: 0.9; }
+          @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
 
         <header style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, padding: '12px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
@@ -103,11 +195,11 @@ export default function DisasterDashboard() {
 
           <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             {[
-              { label: 'TOTAL CAMPS', value: '14', color: theme.t0 },
+              { label: 'TOTAL CAMPS', value: loading ? '—' : String(camps.length), color: theme.t0 },
               { label: 'DISPLACED', value: totalDisplaced.toLocaleString(), color: theme.orange },
-              { label: 'AID WORKERS', value: '847', color: theme.cyan },
+              { label: 'AID WORKERS', value: totalWorkers.toLocaleString(), color: theme.cyan },
               { label: 'COVERAGE', value: '89%', color: theme.green },
-              { label: 'CRITICAL', value: '3', color: theme.red },
+              { label: 'CRITICAL', value: String(statusCounts.critical || 0), color: theme.red },
             ].map((item) => (
               <div key={item.label} style={{ textAlign: 'center', minWidth: 76 }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: item.color, lineHeight: 1.1 }}>{item.value}</div>
@@ -119,18 +211,18 @@ export default function DisasterDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ color: tick % 2 === 0 ? theme.t1 : theme.t3 }}>●</span>
-              LIVE UTC {utc}
+              LIVE LK {utc}
             </div>
             <ThemeToggle mode={mode} onToggle={() => setMode((value) => value === 'dark' ? 'light' : 'dark')} theme={theme} />
           </div>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr 320px', flex: 1, minHeight: 720 }}>
+        <div className="disaster-grid" style={{ display: 'grid', flex: 1, minHeight: 720 }}>
           <aside style={{ borderRight: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>ACTIVE CAMPS</div>
               <div style={{ maxHeight: 284, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${theme.border} ${theme.bg}` }}>
-                {CAMPS.map((camp) => {
+                {camps.map((camp) => {
                   const isSelected = selected === camp.id
                   const color = { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[camp.status]
 
@@ -151,11 +243,34 @@ export default function DisasterDashboard() {
 
             <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>SELECTED CAMP</div>
-              {selectedCamp && selectedDetail ? <DisasterCampSummaryPanel camp={selectedCamp} detail={selectedDetail} theme={theme} onNavigate={handleNavigate} /> : (
-                <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
-                  SELECT A CAMP<br />TO VIEW DETAILS
-                </div>
-              )}
+                {selectedCamp ? (
+                  selectedDetailLoading ? (
+                    <div style={{ textAlign: 'center', color: theme.t3, fontSize: 12, lineHeight: 1.6, letterSpacing: '0.04em', padding: '18px 0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 36, height: 36, border: `4px solid ${theme.border}`, borderTop: `4px solid ${theme.cyan}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                        <div style={{ fontSize: 12, color: theme.t2, fontWeight: 700 }}>Loading camp details…</div>
+                      </div>
+                    </div>
+                  ) : selectedDetail ? (
+                    <DisasterCampSummaryPanel camp={selectedCamp} detail={selectedDetail} theme={theme} onNavigate={handleNavigate} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                      NO CAMP DETAILS
+                    </div>
+                  )
+                ) : loading ? (
+                  <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                    LOADING CAMP DATA
+                  </div>
+                ) : error ? (
+                  <div style={{ textAlign: 'center', color: theme.red, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                    {error}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
+                    SELECT A CAMP<br />TO VIEW DETAILS
+                  </div>
+                )}
             </div>
 
             <div style={{ padding: 16, flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -165,7 +280,7 @@ export default function DisasterDashboard() {
 
           <section style={{ display: 'flex', flexDirection: 'column', background: theme.mapBg, borderRight: `1px solid ${theme.border}`, minHeight: 720, maxHeight: 720 }}>
             <div style={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DisasterGeoMap camps={CAMPS} selected={selected} onSelect={setSelected} theme={theme} />
+              <DisasterGeoMap camps={mapNodes} selected={selected} onSelect={setSelected} theme={theme} />
               
               {/* Center Title */}
                {/* Title - Top Left */}
@@ -182,7 +297,7 @@ export default function DisasterDashboard() {
                      <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[status], flexShrink: 0 }} />
                        <span style={{ color: theme.t1, letterSpacing: '0.08em', flex: 1 }}>{compactStatusLabel(status)}</span>
-                       <span style={{ color: theme.t2, fontSize: 9 }}>{CAMPS.filter((camp) => camp.status === status).length}</span>
+                       <span style={{ color: theme.t2, fontSize: 9 }}>{statusCounts[status] || 0}</span>
                      </div>
                    ))}
                  </div>
@@ -199,11 +314,11 @@ export default function DisasterDashboard() {
                 <Ring value={65} label="POWER" color={theme.yellow} theme={theme} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+              <div className="disaster-grid-5" style={{ display: 'grid', gap: 10 }}>
                 {[
                   { label: 'DISPLACED', value: '12,480', tone: theme.orange, fill: theme.orange, percent: 72 },
                   { label: 'EVACUATED', value: '8,340', tone: theme.green, fill: theme.green, percent: 55 },
-                  { label: 'TOTAL CAMPS', value: '14', tone: theme.cyan, fill: theme.cyan, percent: 100 },
+                  { label: 'TOTAL CAMPS', value: String(camps.length || 0), tone: theme.cyan, fill: theme.cyan, percent: camps.length ? 100 : 0 },
                   { label: 'AID REQ.', value: '89%', tone: theme.yellow, fill: theme.yellow, percent: 89 },
                   { label: 'CRITICAL', value: '3', tone: theme.red, fill: theme.red, percent: 21 },
                 ].map((item) => (
@@ -230,7 +345,7 @@ export default function DisasterDashboard() {
 
             <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}` }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>STATISTICS</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="disaster-grid-2" style={{ display: 'grid', gap: 14 }}>
                 {[
                   { label: 'DISPLACED', value: '12,480', arrow: '↑ 8.4%', accent: theme.orange, data: DISPLACED_SPARK, sparkColor: theme.orange },
                   { label: 'AIDED', value: '9,340', arrow: '↑ 12.1%', accent: theme.green, data: AIDED_SPARK, sparkColor: theme.cyan },
