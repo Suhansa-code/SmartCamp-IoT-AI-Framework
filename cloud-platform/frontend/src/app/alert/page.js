@@ -1,20 +1,41 @@
 'use client'
 
-// Welfare Alert Dashboard
-// Layout: dark navy bg · sidebar camp list · main alert cards
-// Alert cards: card bg #1E3A5F · left border amber (pending) / green (resolved)
-//   · Child ID anonymised · Score trend sparkline · Actions: Review / Escalate
-// Data: GET /api/alerts → loading skeleton → filter + sort
+// Welfare Alert Dashboard — "nitec" reference layout
+// Hero + widget-grid composition (search header · big left headline panel ·
+// stacked right widget cards · 3-up bottom row) with real alert data mapped
+// into every slot. Full filterable/sortable alert list lives below the fold.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   LineChart, Line, ResponsiveContainer, Tooltip, ReferenceLine,
 } from 'recharts'
-import CampSidebar from '@/components/common/CampSidebar'
-import SkeletonCard from '@/components/common/SkeletonCard'
+import {
+  Search, RefreshCw, Bell, TriangleAlert, ArrowUpRight, Radio,
+  Users, Flame, CheckCircle2, ListChecks,
+} from 'lucide-react'
 import SideNav from '@/components/common/SideNav'
-import { useTheme } from '@/components/common/ThemeProvider'
 import { daysSince } from '@/components/common/utils'
+
+// ── "nitec"-style palette — fixed light/lime look, independent of app theme ──
+const P = {
+  outer:     'linear-gradient(135deg, #9FB0BE 0%, #C3D0D6 45%, #DEE7E0 100%)',
+  panel:     '#EEF2E7',
+  panelSoft: '#E7EDDD',
+  card:      '#FFFFFF',
+  cardSoft:  '#F6F8F1',
+  ink:       '#14171A',
+  inkSoft:   '#3A4149',
+  muted:     '#78838C',
+  border:    '#E3E7DA',
+  lime:      '#D8F24E',
+  limeDark:  '#B9DD2E',
+  dark:      '#14171A',
+  red:       '#EF4444',
+  amber:     '#F59E0B',
+  green:     '#22C55E',
+  purple:    '#8B5CF6',
+  teal:      '#0D9488',
+}
 
 // ── Mock camp list (replace with API data) ────────────────────────────────────
 const MOCK_CAMPS = [
@@ -85,41 +106,35 @@ function mockAlerts() {
   ]
 }
 
+const SEVERITY_COLOR = { high: P.red, medium: P.amber, low: P.green }
+const SEVERITY_RANK  = { high: 3, medium: 2, low: 1 }
+const STATUS_COLOR   = { pending: P.amber, escalated: P.purple, resolved: P.teal }
+
 // ── Severity badge ────────────────────────────────────────────────────────────
 function SeverityBadge({ severity }) {
-  const { T } = useTheme()
-  const map = {
-    high:   { bg: `${T.red}1a`, color: T.red, label: '🔴 High' },
-    medium: { bg: `${T.amber}1a`, color: T.amber, label: '🟡 Medium' },
-    low:    { bg: `${T.green}1a`, color: T.green, label: '🟢 Low' },
-  }
-  const s = map[severity] ?? map.low
+  const color = SEVERITY_COLOR[severity] ?? P.green
+  const label = severity === 'high' ? 'High' : severity === 'medium' ? 'Medium' : 'Low'
   return (
     <span style={{
-      background: s.bg,
-      color: s.color,
-      borderRadius: '9999px',
-      border: `1px solid ${s.color}55`,
-      padding: '3px 12px',
-      fontSize: '0.75rem',
-      fontWeight: 700,
+      background: `${color}1a`, color, borderRadius: '9999px',
+      border: `1px solid ${color}55`, padding: '3px 12px',
+      fontSize: '0.72rem', fontWeight: 700,
     }}>
-      {s.label}
+      ● {label}
     </span>
   )
 }
 
 // ── Score sparkline (recharts) ────────────────────────────────────────────────
 function ScoreSparkline({ scores }) {
-  const { T } = useTheme()
   const last = scores[scores.length - 1]?.score ?? 0
-  const lineColor = last >= 70 ? T.green : last >= 50 ? T.amber : T.red
+  const lineColor = last >= 70 ? P.green : last >= 50 ? P.amber : P.red
 
   const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null
     return (
-      <div style={{ background: T.bgDeep, border: `1px solid ${T.border}`, borderRadius: '8px', padding: '4px 10px' }}>
-        <p style={{ color: T.textPrimary, fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
+      <div style={{ background: P.dark, border: `1px solid ${P.dark}`, borderRadius: '8px', padding: '4px 10px' }}>
+        <p style={{ color: '#fff', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
           S{payload[0]?.payload?.session}: {payload[0]?.value}
         </p>
       </div>
@@ -127,16 +142,13 @@ function ScoreSparkline({ scores }) {
   }
 
   return (
-    <div style={{ width: '100%', height: 64 }}>
+    <div style={{ width: '100%', height: 56 }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={scores} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
-          <ReferenceLine y={50} stroke={T.amber} strokeDasharray="3 3" strokeOpacity={0.5} />
+          <ReferenceLine y={50} stroke={P.amber} strokeDasharray="3 3" strokeOpacity={0.5} />
           <Tooltip content={<CustomTooltip />} />
           <Line
-            type="monotone"
-            dataKey="score"
-            stroke={lineColor}
-            strokeWidth={2.5}
+            type="monotone" dataKey="score" stroke={lineColor} strokeWidth={2.5}
             dot={{ r: 3, fill: lineColor, strokeWidth: 0 }}
             activeDot={{ r: 5, fill: lineColor }}
             isAnimationActive={false}
@@ -147,39 +159,22 @@ function ScoreSparkline({ scores }) {
   )
 }
 
-// ── Alert card ────────────────────────────────────────────────────────────────
-function AlertCard({ alert, onAction }) {
-  const { T } = useTheme()
+// ── Full alert card (used in the "All Alerts" list below the hero) ───────────
+function AlertCard({ alert, onAction, highlighted }) {
   const [actionLoading, setActionLoading] = useState(null)
-
-  const borderColor = alert.status === 'resolved' ? T.green
-    : alert.status === 'escalated'               ? T.purple
-    : T.amber   // pending
+  const borderColor = STATUS_COLOR[alert.status] ?? P.amber
 
   async function doAction(action) {
     setActionLoading(action)
     try {
-      let endpoint = `/api/alerts/${alert.id}/resolve`
-      let method = 'POST'
-      let body = {}
-
-      if (action === 'review') {
-        // Mark as resolved
-        body = { notes: 'Reviewed by admin' }
-      } else if (action === 'escalate') {
-        // Escalate - for future implementation
-        body = { notes: 'Escalated by admin' }
-      }
-
+      const endpoint = `/api/alerts/${alert.id}/resolve`
+      const body = action === 'escalate' ? { notes: 'Escalated by admin' } : { notes: 'Reviewed by admin' }
       const res = await fetch(`http://localhost:3001${endpoint}`, {
-        method,
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       })
-
-      if (res.ok) {
-        onAction(alert.id, action)
-      }
+      if (res.ok) onAction(alert.id, action)
     } catch (err) {
       console.error('Action failed:', err)
     } finally {
@@ -188,40 +183,32 @@ function AlertCard({ alert, onAction }) {
   }
 
   const statusLabel = {
-    pending:   { color: T.amber,   label: '● Pending'   },
-    resolved:  { color: T.green,   label: '● Resolved'  },
-    escalated: { color: T.purple,  label: '● Escalated' },
-  }[alert.status] ?? { color: T.muted, label: '● Unknown' }
+    pending:   { color: P.amber,  label: '● Pending' },
+    resolved:  { color: P.teal,   label: '● Resolved' },
+    escalated: { color: P.purple, label: '● Escalated' },
+  }[alert.status] ?? { color: P.muted, label: '● Unknown' }
 
   return (
-    <div style={{
-      background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
-      border: `1px solid ${T.border}`,
-      borderRadius: '1rem',
+    <div id={`alert-${alert.id}`} style={{
+      background: P.card,
+      border: `1px solid ${P.border}`,
+      borderRadius: '1.25rem',
       borderLeft: `6px solid ${borderColor}`,
       padding: '1.25rem 1.5rem',
       display: 'flex',
       flexDirection: 'column',
       gap: '1rem',
-      boxShadow: `0 4px 24px rgba(0,0,0,0.25)`,
-      transition: 'transform 0.15s',
+      boxShadow: highlighted ? `0 0 0 3px ${P.lime}, 0 8px 28px rgba(20,23,26,0.12)` : '0 4px 18px rgba(20,23,26,0.06)',
+      transition: 'box-shadow 0.3s',
     }}>
-      {/* ── Top row: child ID + badges ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{
-              fontFamily: "'Inter',sans-serif",
-              fontSize: '1.35rem',
-              fontWeight: 800,
-              color: T.textPrimary,
-            }}>
-              {alert.childId}
-            </span>
+            <span style={{ fontSize: '1.3rem', fontWeight: 800, color: P.ink }}>{alert.childId}</span>
             <SeverityBadge severity={alert.severity} />
           </div>
-          <p style={{ fontSize: '0.85rem', color: T.muted, marginTop: '2px', fontWeight: 600 }}>
-            🏕️ {alert.campName}
+          <p style={{ fontSize: '0.85rem', color: P.muted, marginTop: '2px', fontWeight: 600 }}>
+            {alert.campName}
           </p>
         </div>
         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: statusLabel.color }}>
@@ -229,93 +216,49 @@ function AlertCard({ alert, onAction }) {
         </span>
       </div>
 
-      {/* ── Alert type + time ── */}
       <div style={{
-        background: T.bgSoft,
-        borderRadius: '0.75rem',
-        padding: '0.6rem 1rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
+        background: P.cardSoft, borderRadius: '0.75rem', padding: '0.6rem 1rem',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '0.5rem',
       }}>
-        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: T.textPrimary }}>
-          ⚠️ {alert.alertType}
-        </span>
-        <span style={{ fontSize: '0.8rem', color: T.muted, fontWeight: 600 }}>
-          🕐 {daysSince(alert.triggeredAt)}
-        </span>
+        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: P.ink }}>{alert.alertType}</span>
+        <span style={{ fontSize: '0.8rem', color: P.muted, fontWeight: 600 }}>{daysSince(alert.triggeredAt)}</span>
       </div>
 
-      {/* ── Score trend sparkline ── */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '0.78rem', color: T.muted, fontWeight: 600 }}>
-            Last 5 sessions
-          </span>
-          <span style={{ fontSize: '0.78rem', color: T.muted, fontWeight: 600 }}>
-            Score →
-          </span>
+          <span style={{ fontSize: '0.75rem', color: P.muted, fontWeight: 600 }}>Last 5 sessions</span>
+          <span style={{ fontSize: '0.75rem', color: P.muted, fontWeight: 600 }}>Score →</span>
         </div>
         <ScoreSparkline scores={alert.scores} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
-          {alert.scores.map((s, i) => (
-            <span key={i} style={{ fontSize: '0.7rem', color: T.muted, fontWeight: 600 }}>
-              {s.score}
-            </span>
-          ))}
-        </div>
       </div>
 
-      {/* ── Action buttons ── */}
       {alert.status !== 'resolved' && (
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => doAction('review')}
             disabled={!!actionLoading}
             style={{
-              flex: 1,
-              minHeight: '44px',
-              background: actionLoading === 'review' ? T.tealDim : T.teal,
-              color: 'white',
-              borderRadius: '0.75rem',
-              border: 'none',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: actionLoading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem',
+              flex: 1, minHeight: '44px', background: P.lime, color: P.dark,
+              borderRadius: '0.75rem', border: 'none', fontWeight: 800, fontSize: '0.9rem',
+              cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading === 'review' ? 0.6 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
             }}
           >
-            {actionLoading === 'review' ? '⏳' : '✅'} Mark Reviewed
+            {actionLoading === 'review' ? '⏳' : <CheckCircle2 size={16} />} Mark Reviewed
           </button>
-
           {alert.status !== 'escalated' && (
             <button
               onClick={() => doAction('escalate')}
               disabled={!!actionLoading}
               style={{
-                flex: 1,
-                minHeight: '44px',
-                background: actionLoading === 'escalate' ? T.amber : `${T.amber}1f`,
-                color: T.amber,
-                borderRadius: '0.75rem',
-                border: `2px solid ${T.amber}`,
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: actionLoading ? 'not-allowed' : 'pointer',
-                transition: 'background 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.4rem',
+                flex: 1, minHeight: '44px', background: 'transparent', color: P.ink,
+                borderRadius: '0.75rem', border: `2px solid ${P.dark}`, fontWeight: 800, fontSize: '0.9rem',
+                cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading === 'escalate' ? 0.6 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
               }}
             >
-              {actionLoading === 'escalate' ? '⏳' : '🔺'} Escalate
+              {actionLoading === 'escalate' ? '⏳' : <TriangleAlert size={16} />} Escalate
             </button>
           )}
         </div>
@@ -324,23 +267,37 @@ function AlertCard({ alert, onAction }) {
   )
 }
 
+// ── Small round icon-arrow badge used on widget cards (nitec's "↗" chip) ─────
+function ArrowChip({ dark }) {
+  return (
+    <div style={{
+      width: 34, height: 34, borderRadius: '50%',
+      background: dark ? 'rgba(255,255,255,0.16)' : P.dark,
+      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    }}>
+      <ArrowUpRight size={16} />
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AlertsPage() {
-  const { T } = useTheme()
-  const [alerts,      setAlerts]      = useState([])
-  const [loading,     setLoading]     = useState(true)
-  const [filter,      setFilter]      = useState('all')      // all|pending|resolved|escalated
-  const [sortBy,      setSortBy]      = useState('recent')   // recent|oldest|camp
-  const [selectedCamp,setSelectedCamp]= useState('all')
+  const [alerts,       setAlerts]       = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [filter,       setFilter]       = useState('all')
+  const [sortBy,       setSortBy]       = useState('recent')
+  const [selectedCamp, setSelectedCamp] = useState('all')
+  const [search,       setSearch]       = useState('')
+  const [highlightId,  setHighlightId]  = useState(null)
+  const listRef = useRef(null)
 
-  // ── Data fetch ──────────────────────────────────────────────────────────────
   const fetchAlerts = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`http://localhost:3001/api/alerts?status=${filter === 'all' ? '' : filter}&camp=${selectedCamp === 'all' ? '' : selectedCamp}`)
       if (res.ok) {
         const data = await res.json()
-        // Transform API response to UI format
         const transformed = data.alerts.map(a => ({
           id: a.alert_id,
           childId: a.child_id.replace(/TEST-CHILD-/, '').replace(/CHILD-/, ''),
@@ -360,7 +317,6 @@ export default function AlertsPage() {
       }
     } catch (err) {
       console.log('Fetching real alerts failed, using mock data:', err.message)
-      // Use mock data in dev / offline
       setAlerts(mockAlerts())
     } finally {
       setLoading(false)
@@ -369,7 +325,6 @@ export default function AlertsPage() {
 
   useEffect(() => { fetchAlerts() }, [fetchAlerts])
 
-  // ── Alert action handler ────────────────────────────────────────────────────
   function handleAction(alertId, action) {
     setAlerts(prev => prev.map(a => {
       if (a.id !== alertId) return a
@@ -379,11 +334,14 @@ export default function AlertsPage() {
     }))
   }
 
-  // ── Filtering + sorting ─────────────────────────────────────────────────────
   const visible = alerts
     .filter(a => {
       if (selectedCamp !== 'all' && a.campId !== selectedCamp) return false
       if (filter !== 'all' && a.status !== filter) return false
+      if (search.trim()) {
+        const q = search.trim().toLowerCase()
+        if (!a.childId.toLowerCase().includes(q) && !a.campName.toLowerCase().includes(q) && !a.alertType.toLowerCase().includes(q)) return false
+      }
       return true
     })
     .sort((a, b) => {
@@ -393,7 +351,6 @@ export default function AlertsPage() {
       return 0
     })
 
-  // ── Alert counts per camp (for sidebar badges) ──────────────────────────────
   const alertCounts = alerts.reduce((acc, a) => {
     if (a.status !== 'resolved') {
       acc[a.campId] = (acc[a.campId] ?? 0) + 1
@@ -401,6 +358,37 @@ export default function AlertsPage() {
     }
     return acc
   }, {})
+
+  const pendingCount   = alerts.filter(a => a.status === 'pending').length
+  const escalatedCount = alerts.filter(a => a.status === 'escalated').length
+  const resolvedCount  = alerts.filter(a => a.status === 'resolved').length
+  const totalCount     = alerts.length || 1
+  const activeCount    = pendingCount + escalatedCount
+
+  const mostCritical = useMemo(() => {
+    const open = alerts.filter(a => a.status !== 'resolved')
+    if (!open.length) return null
+    return [...open].sort((a, b) => {
+      const rank = (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0)
+      if (rank !== 0) return rank
+      return (a.scores.at(-1)?.score ?? 0) - (b.scores.at(-1)?.score ?? 0)
+    })[0]
+  }, [alerts])
+
+  const trending = useMemo(() => {
+    if (!alerts.length) return null
+    return [...alerts].sort((a, b) => b.triggeredAt - a.triggeredAt)[0]
+  }, [alerts])
+
+  const pendingDeg   = (pendingCount / totalCount) * 360
+  const escalatedDeg = (escalatedCount / totalCount) * 360
+
+  function jumpToList(opts = {}) {
+    if (opts.filter)       setFilter(opts.filter)
+    if (opts.campId)       setSelectedCamp(opts.campId)
+    if (opts.highlightId)  setHighlightId(opts.highlightId)
+    setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
+  }
 
   const FILTER_OPTIONS = [
     { key: 'all',       label: 'All' },
@@ -418,156 +406,470 @@ export default function AlertsPage() {
   return (
     <>
       <style>{`
-        @keyframes skeletonPulse {
-          0%,100% { opacity: 0.5; }
-          50%      { opacity: 1; }
-        }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #071B30; }
-        ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
+        * { box-sizing: border-box; }
+        @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes spinOnce { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .nitec-hero-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.25rem; }
+        .nitec-bottom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+        .nitec-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+        .nitec-search { flex: 1; min-width: 200px; max-width: 480px; }
+        @media (max-width: 900px) {
+          .nitec-hero-grid { grid-template-columns: 1fr; }
+          .nitec-bottom-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+          .hero-donut-wrap { display: none !important; }
+        }
       `}</style>
 
       <div style={{
         minHeight: '100svh',
-        background: T.bg,
+        background: P.outer,
         display: 'flex',
         flexDirection: 'column',
         fontFamily: "'Inter', sans-serif",
-        color: T.text,
         paddingLeft: 'var(--rail-width, 236px)',
         transition: 'padding-left 0.2s ease',
       }}>
-
         <SideNav />
 
-        {/* ══ Body: sidebar + main ═════════════════════════════════════════════ */}
-        <div className="dash-body" style={{ overflow: 'hidden' }}>
+        <main style={{ flex: 1 }}>
+          {/* ══ Big rounded panel — mirrors the reference composition ══ */}
+          <div style={{
+            background: P.panel,
+            padding: 'clamp(1rem, 2vw, 1.75rem)',
+            boxShadow: '0 30px 70px rgba(20,30,40,0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+          }}>
 
-          {/* ── Sidebar ── */}
-          <CampSidebar
-            camps={MOCK_CAMPS}
-            selectedCamp={selectedCamp}
-            onSelect={setSelectedCamp}
-            counts={alertCounts}
-          />
+            {/* ── Header: logo · search · icons · admin ── */}
+            <div className="nitec-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '0.7rem', background: P.dark,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                }}>
+                  <TriangleAlert size={18} />
+                </div>
+                <span style={{ fontSize: '1.15rem', fontWeight: 800, color: P.ink }}>smartcamp.</span>
+              </div>
 
-          {/* ── Main content ── */}
-          <main style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+              <div className="nitec-search" style={{
+                display: 'flex', alignItems: 'center', background: P.card,
+                borderRadius: '9999px', padding: '4px 4px 4px 18px', border: `1px solid ${P.border}`,
+              }}>
+                <Search size={16} color={P.muted} style={{ flexShrink: 0 }} />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search child ID, camp, alert type…"
+                  style={{
+                    flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                    padding: '8px 10px', fontSize: '0.88rem', fontWeight: 600, color: P.ink,
+                  }}
+                />
+                <button
+                  onClick={fetchAlerts}
+                  aria-label="Refresh alerts"
+                  style={{
+                    width: 34, height: 34, borderRadius: '50%', background: P.dark, border: 'none',
+                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <RefreshCw size={15} style={loading ? { animation: 'spinOnce 0.8s linear infinite' } : undefined} />
+                </button>
+              </div>
 
-            {/* Page title */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.6rem', fontWeight: 800, color: T.textPrimary }}>
-                ⚠️ Welfare Alerts
-              </h1>
-              <p style={{ fontSize: '0.85rem', color: T.muted, marginTop: '2px', fontWeight: 600 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <button
+                  onClick={() => jumpToList({ filter: 'pending' })}
+                  style={{
+                    position: 'relative', width: 40, height: 40, borderRadius: '50%', background: P.card,
+                    border: `1px solid ${P.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                  aria-label="Pending alerts"
+                >
+                  <Bell size={17} color={P.ink} />
+                  {pendingCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -4, right: -4, background: P.amber, color: '#fff',
+                      borderRadius: '9999px', fontSize: '0.62rem', fontWeight: 800, padding: '1px 5px',
+                    }}>{pendingCount}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => jumpToList({ filter: 'escalated' })}
+                  style={{
+                    position: 'relative', width: 40, height: 40, borderRadius: '50%', background: P.card,
+                    border: `1px solid ${P.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                  aria-label="Escalated alerts"
+                >
+                  <TriangleAlert size={17} color={P.ink} />
+                  {escalatedCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -4, right: -4, background: P.purple, color: '#fff',
+                      borderRadius: '9999px', fontSize: '0.62rem', fontWeight: 800, padding: '1px 5px',
+                    }}>{escalatedCount}</span>
+                  )}
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '0.3rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: P.ink }}>Dr. Perera</span>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #14B8A6, #0D9488)', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.78rem',
+                  }}>DP</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Hero: left copy panel + right widget stack ── */}
+            <div className="nitec-hero-grid">
+
+              {/* Left hero copy */}
+              <div style={{
+                background: P.panelSoft, borderRadius: '1.5rem', padding: 'clamp(1.25rem, 3vw, 2.25rem)',
+                display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', overflow: 'hidden',
+              }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem', width: 'fit-content',
+                  background: P.card, borderRadius: '9999px', padding: '5px 14px', fontSize: '0.78rem',
+                  fontWeight: 700, color: P.inkSoft, border: `1px solid ${P.border}`,
+                }}>
+                  <Radio size={13} color={P.green} /> Live Monitoring
+                </span>
+
+                <h1 style={{
+                  fontSize: 'clamp(2rem, 4vw, 3.1rem)', fontWeight: 800, color: P.ink, lineHeight: 1.05,
+                  letterSpacing: '-0.02em',
+                }}>
+                  Welfare Alerts<br />Overview.
+                </h1>
+
+                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', maxWidth: 360 }}>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 300, color: P.muted, flexShrink: 0 }}>01</span>
+                  <div style={{ width: 34, height: 2, background: P.muted, marginTop: '0.9rem', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: '1.05rem', fontWeight: 800, color: P.ink }}>Score Trends</p>
+                    <p style={{ fontSize: '0.88rem', color: P.muted, marginTop: '2px', lineHeight: 1.5 }}>
+                      Inhibition, tap-accuracy &amp; reaction-time drift tracked every session — so at-risk children surface before it becomes a pattern.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => jumpToList({})}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.6rem', width: 'fit-content',
+                    background: P.lime, color: P.dark, borderRadius: '9999px', border: 'none',
+                    padding: '10px 10px 10px 22px', fontWeight: 800, fontSize: '0.92rem', cursor: 'pointer',
+                  }}
+                >
+                  View All Alerts
+                  <span style={{
+                    width: 30, height: 30, borderRadius: '50%', background: P.dark, color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}><ArrowUpRight size={15} /></span>
+                </button>
+
+                {/* Decorative stat donut, standing in for the hero product shot */}
+                <div style={{
+                  position: 'absolute', right: 'clamp(0.5rem, 3vw, 2.5rem)', top: '50%', transform: 'translateY(-50%)',
+                  width: 190, height: 190, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                }} className="hero-donut-wrap">
+                  <div style={{
+                    position: 'absolute', width: '100%', height: '100%', borderRadius: '50%',
+                    background: `conic-gradient(${P.amber} 0deg ${pendingDeg}deg, ${P.purple} ${pendingDeg}deg ${pendingDeg + escalatedDeg}deg, ${P.teal} ${pendingDeg + escalatedDeg}deg 360deg)`,
+                  }} />
+                  <div style={{
+                    position: 'absolute', width: '68%', height: '68%', borderRadius: '50%', background: P.panelSoft,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: 'inset 0 0 0 1px rgba(20,23,26,0.06)',
+                  }}>
+                    <span style={{ fontSize: '1.8rem', fontWeight: 800, color: P.ink }}>{activeCount}</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Active</span>
+                  </div>
+                  <div style={{
+                    position: 'absolute', top: -8, left: 10, width: 16, height: 16, borderRadius: '50%',
+                    background: P.red, animation: 'floatY 3.2s ease-in-out infinite',
+                  }} />
+                  <div style={{
+                    position: 'absolute', bottom: 4, right: -10, width: 22, height: 22, borderRadius: '50%',
+                    background: P.card, border: `2px solid ${P.dark}`, animation: 'floatY 4s ease-in-out infinite 0.4s',
+                  }} />
+                  <div style={{
+                    position: 'absolute', top: '20%', right: -18, width: 10, height: 10, borderRadius: '50%',
+                    background: P.green, animation: 'floatY 2.6s ease-in-out infinite 0.8s',
+                  }} />
+                </div>
+
+                {/* Camp filter row (stands in for the "Follow us on" row) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: 'auto', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: P.muted }}>Filter camp:</span>
+                  {MOCK_CAMPS.map(c => {
+                    const active = selectedCamp === c.id
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedCamp(c.id)}
+                        title={c.name}
+                        style={{
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: active ? P.dark : P.card,
+                          color: active ? '#fff' : P.inkSoft,
+                          border: `1px solid ${active ? P.dark : P.border}`,
+                          fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer',
+                        }}
+                      >
+                        {c.code === 'ALL' ? '✦' : c.code.slice(0, 2)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Right widget stack */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Severity legend */}
+                <div style={{ background: P.card, borderRadius: '1.25rem', padding: '1.1rem 1.25rem', border: `1px solid ${P.border}` }}>
+                  <p style={{ fontSize: '0.88rem', fontWeight: 800, color: P.ink, marginBottom: '0.7rem' }}>Severity Legend</p>
+                  <div style={{ display: 'flex', gap: '0.6rem' }}>
+                    {[['High', P.red], ['Medium', P.amber], ['Low', P.green], ['Escalated', P.purple], ['Resolved', P.teal]].map(([label, color]) => (
+                      <span key={label} title={label} style={{
+                        width: 26, height: 26, borderRadius: '50%', background: color,
+                        border: '2px solid #fff', boxShadow: `0 0 0 1px ${P.border}`,
+                      }} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Most critical */}
+                <div
+                  onClick={() => mostCritical && jumpToList({ highlightId: mostCritical.id })}
+                  style={{
+                    background: `linear-gradient(155deg, ${P.dark} 0%, #2A2F35 100%)`, borderRadius: '1.25rem',
+                    padding: '1.1rem 1.25rem', color: '#fff', cursor: mostCritical ? 'pointer' : 'default',
+                    display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Most Critical</p>
+                    <ArrowChip dark />
+                  </div>
+                  {mostCritical ? (
+                    <>
+                      <p style={{ fontSize: '1.3rem', fontWeight: 800 }}>{mostCritical.childId}</p>
+                      <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>{mostCritical.alertType}</p>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: '0.95rem', fontWeight: 700 }}>All clear 🎉</p>
+                  )}
+                </div>
+
+                {/* Escalated queue */}
+                <div
+                  onClick={() => jumpToList({ filter: 'escalated' })}
+                  style={{
+                    background: `linear-gradient(160deg, #EDE4FB 0%, ${P.card} 70%)`, borderRadius: '1.25rem',
+                    padding: '1.1rem 1.25rem', flex: 1, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', gap: '0.5rem', border: `1px solid ${P.border}`,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: P.muted }}>Escalated Queue</p>
+                    <ArrowChip />
+                  </div>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: P.ink }}>{escalatedCount}</p>
+                  <p style={{ fontSize: '0.82rem', color: P.muted, fontWeight: 600 }}>Needs supervisor sign-off</p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Bottom row: 3 summary cards ── */}
+            <div className="nitec-bottom-grid">
+              <div
+                onClick={() => jumpToList({})}
+                style={{
+                  background: P.card, borderRadius: '1.25rem', padding: '1.25rem', border: `1px solid ${P.border}`,
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <p style={{ fontSize: '1rem', fontWeight: 800, color: P.ink }}>All Alerts</p>
+                    <p style={{ fontSize: '0.82rem', color: P.muted, fontWeight: 600 }}>{alerts.length} total logged</p>
+                  </div>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: '50%', background: P.cardSoft,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${P.border}`,
+                  }}><ListChecks size={16} color={P.ink} /></div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {[['Pending', P.amber, pendingCount], ['Escalated', P.purple, escalatedCount], ['Resolved', P.teal, resolvedCount]].map(([label, color, n]) => (
+                    <span key={label} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.3rem', background: `${color}14`,
+                      color, borderRadius: '9999px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: 800,
+                    }}>{n} {label}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{
+                background: P.card, borderRadius: '1.25rem', padding: '1.25rem', border: `1px solid ${P.border}`,
+                display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-start',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 8 }}>
+                  {['DP', 'RM', 'SK'].map((initials, i) => (
+                    <div key={initials} style={{
+                      width: 34, height: 34, borderRadius: '50%', marginLeft: -8,
+                      background: ['#14B8A6', '#F59E0B', '#8B5CF6'][i], color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 800, fontSize: '0.68rem', border: '2px solid #fff',
+                    }}>{initials}</div>
+                  ))}
+                  <div style={{
+                    width: 34, height: 34, borderRadius: '50%', marginLeft: -8, background: P.dark, color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem',
+                    fontWeight: 800, border: '2px solid #fff',
+                  }}><Users size={14} /></div>
+                </div>
+                <p style={{ fontSize: '1.5rem', fontWeight: 800, color: P.ink }}>3 Admins</p>
+                <span style={{
+                  background: `${P.green}16`, color: P.green, borderRadius: '9999px', padding: '3px 10px',
+                  fontSize: '0.72rem', fontWeight: 800,
+                }}>● On duty now</span>
+              </div>
+
+              <div
+                onClick={() => trending && jumpToList({ highlightId: trending.id })}
+                style={{
+                  background: P.card, borderRadius: '1.25rem', padding: '1.25rem', border: `1px solid ${P.border}`,
+                  cursor: trending ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', gap: '0.6rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: `${P.red}14`,
+                    color: P.red, borderRadius: '9999px', padding: '3px 10px', fontSize: '0.72rem', fontWeight: 800,
+                  }}><Flame size={12} /> Newest</span>
+                  <ArrowChip />
+                </div>
+                {trending ? (
+                  <>
+                    <p style={{ fontSize: '0.98rem', fontWeight: 800, color: P.ink }}>{trending.alertType}</p>
+                    <p style={{ fontSize: '0.8rem', color: P.muted, fontWeight: 600 }}>{trending.childId} · {trending.campName} · {daysSince(trending.triggeredAt)}</p>
+                  </>
+                ) : (
+                  <p style={{ fontSize: '0.9rem', color: P.muted, fontWeight: 600 }}>No alerts yet</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ══ Full alert list — filters, sort, review/escalate actions ══ */}
+          <div ref={listRef} id="all-alerts" style={{ paddingTop: '1.75rem' }}>
+            <div style={{ marginBottom: '1.1rem' }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: P.ink }}>All Alerts</h2>
+              <p style={{ fontSize: '0.85rem', color: P.muted, marginTop: '2px', fontWeight: 600 }}>
                 {loading ? 'Loading…' : `${visible.length} alert${visible.length !== 1 ? 's' : ''} · ${selectedCamp === 'all' ? 'All camps' : MOCK_CAMPS.find(c => c.id === selectedCamp)?.name}`}
               </p>
             </div>
 
-            {/* Filter + sort bar */}
             <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '0.75rem',
-              marginBottom: '1.25rem',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem',
             }}>
-              {/* Filter pills */}
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {FILTER_OPTIONS.map(f => {
                   const active = filter === f.key
-                  const cnt    = f.key === 'all'
-                    ? alerts.length
-                    : alerts.filter(a => a.status === f.key).length
+                  const cnt = f.key === 'all' ? alerts.length : alerts.filter(a => a.status === f.key).length
                   return (
                     <button
                       key={f.key}
                       onClick={() => setFilter(f.key)}
                       style={{
-                        background: active ? T.teal : 'transparent',
-                        color: active ? '#fff' : T.muted,
-                        border: `2px solid ${active ? T.teal : T.border}`,
-                        borderRadius: '9999px',
-                        padding: '4px 14px',
-                        fontWeight: 700,
-                        fontSize: '0.82rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
+                        background: active ? P.dark : P.card, color: active ? '#fff' : P.inkSoft,
+                        border: `2px solid ${active ? P.dark : P.border}`, borderRadius: '9999px',
+                        padding: '4px 14px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.35rem',
                       }}
                     >
                       {f.label}
                       <span style={{
-                        background: active ? 'rgba(255,255,255,0.25)' : T.navyCard,
-                        borderRadius: '9999px',
-                        padding: '0 6px',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        color: active ? '#fff' : T.muted,
-                      }}>
-                        {cnt}
-                      </span>
+                        background: active ? 'rgba(255,255,255,0.25)' : P.cardSoft, borderRadius: '9999px',
+                        padding: '0 6px', fontSize: '0.72rem', fontWeight: 800, color: active ? '#fff' : P.muted,
+                      }}>{cnt}</span>
                     </button>
                   )
                 })}
               </div>
 
-              {/* Sort select */}
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
-                style={{
-                  background: T.navyCard,
-                  color: T.textPrimary,
-                  border: `2px solid ${T.border}`,
-                  borderRadius: '0.6rem',
-                  padding: '6px 12px',
-                  fontWeight: 700,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  outline: 'none',
-                }}
-              >
-                {SORT_OPTIONS.map(s => (
-                  <option key={s.key} value={s.key}>{s.label}</option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  value={sortBy} onChange={e => setSortBy(e.target.value)}
+                  style={{
+                    background: P.card, color: P.ink, border: `2px solid ${P.border}`, borderRadius: '0.6rem',
+                    padding: '6px 12px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', outline: 'none',
+                  }}
+                >
+                  {SORT_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+                <select
+                  value={selectedCamp} onChange={e => setSelectedCamp(e.target.value)}
+                  style={{
+                    background: P.card, color: P.ink, border: `2px solid ${P.border}`, borderRadius: '0.6rem',
+                    padding: '6px 12px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', outline: 'none',
+                  }}
+                >
+                  {MOCK_CAMPS.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({alertCounts[c.id] ?? c.count})</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* ── Alert list ── */}
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} style={{
+                    background: P.card, borderRadius: '1.25rem', border: `1px solid ${P.border}`,
+                    borderLeft: `6px solid ${P.border}`, padding: '1.25rem', display: 'flex',
+                    flexDirection: 'column', gap: '0.75rem',
+                  }}>
+                    {[160, 120, 80, 52].map((w, j) => (
+                      <div key={j} style={{
+                        height: j === 3 ? 44 : 14, width: `${Math.min(100, w / 2)}%`, background: P.cardSoft,
+                        borderRadius: '9999px', animation: 'floatY 1.5s ease-in-out infinite', animationDelay: `${j * 0.1}s`,
+                      }} />
+                    ))}
+                  </div>
+                ))}
               </div>
             ) : visible.length === 0 ? (
-              <div style={{
-                background: T.navyCard,
-                borderRadius: '1.25rem',
-                padding: '3rem 2rem',
-                textAlign: 'center',
-              }}>
+              <div style={{ background: P.card, borderRadius: '1.25rem', padding: '3rem 2rem', textAlign: 'center', border: `1px solid ${P.border}` }}>
                 <p style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>✅</p>
-                <p style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.4rem', fontWeight: 800, color: T.textPrimary }}>
-                  No alerts here
-                </p>
-                <p style={{ fontSize: '0.9rem', color: T.muted, marginTop: '4px' }}>
+                <p style={{ fontSize: '1.4rem', fontWeight: 800, color: P.ink }}>No alerts here</p>
+                <p style={{ fontSize: '0.9rem', color: P.muted, marginTop: '4px' }}>
                   {filter !== 'all' ? `No ${filter} alerts for this selection.` : 'All clear!'}
                 </p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '2rem' }}>
                 {visible.map(alert => (
-                  <AlertCard key={alert.id} alert={alert} onAction={handleAction} />
+                  <AlertCard key={alert.id} alert={alert} onAction={handleAction} highlighted={highlightId === alert.id} />
                 ))}
               </div>
             )}
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
     </>
   )
