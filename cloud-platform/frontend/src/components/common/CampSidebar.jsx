@@ -6,7 +6,7 @@ import { C } from './theme'
 // `counts` is optional — a map of campId → badge count (e.g. open alerts).
 export default function CampSidebar({ camps, selectedCamp, onSelect, counts }) {
   return (
-    <aside style={{
+    <aside className="camp-sidebar" style={{
       width: '240px',
       background: '#071B30',
       borderRight: `1px solid ${C.border}`,

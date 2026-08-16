@@ -49,7 +49,7 @@ export default function ResourcesPage() {
         </div>
 
         {/* ── Cloud overview panel ───────────────────────── */}
-        <main style={{ maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <main style={{ width: '100%' }}>
           <OverviewPanel />
         </main>
       </div>

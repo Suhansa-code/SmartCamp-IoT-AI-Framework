@@ -72,3 +72,13 @@ export function syncSessions(sessions) {
   const count = alertModel.syncSessions(sessions);
   return { synced: count, message: `Synced ${count} sessions` };
 }
+
+/** Education Insights — per-camp summaries for the camps list. */
+export function listCampSummaries() {
+  return alertModel.getCampSummaries();
+}
+
+/** Education Insights — full detail for a single camp. */
+export function getCampEducation(campId) {
+  return alertModel.getCampEducation(campId);
+}

@@ -372,8 +372,8 @@ export default function DisasterCampDetailPage() {
       </header>
 
       {/* Main Content */}
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: 18 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 16, alignItems: 'stretch' }}>
+      <div style={{ width: '100%', padding: 18 }}>
+        <div className="detail-grid" style={{ display: 'grid', gap: 16, alignItems: 'stretch' }}>
           {/* Left Column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%' }}>
             <div style={{ position: 'relative', minHeight: 320, borderRadius: 18, overflow: 'hidden', border: `1px solid ${theme.border}`, background: `linear-gradient(180deg, ${theme.surface} 0%, ${theme.bg} 100%)`, boxShadow: mode === 'dark' ? '0 18px 42px rgba(0,0,0,0.28)' : '0 18px 42px rgba(19,47,74,0.1)' }}>
@@ -530,7 +530,7 @@ export default function DisasterCampDetailPage() {
             <div style={{ position: 'relative', minHeight: 232, borderRadius: 18, overflow: 'hidden', border: `1px solid ${theme.border}`, background: theme.surface, boxShadow: mode === 'dark' ? '0 18px 42px rgba(0,0,0,0.22)' : '0 18px 42px rgba(19,47,74,0.08)' }}>
               <img src={mode === 'light' ? '/disaster/terrain-topography-light.png' : '/disaster/terrain-topography.jpg'} alt="Terrain reference" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(3,8,15,0.86) 0%, rgba(3,8,15,0.56) 50%, rgba(3,8,15,0.12) 100%)' }} />
-              <div style={{ position: 'absolute', inset: 0, padding: '16px 18px', display: 'grid', gridTemplateColumns: '1fr 328px', gap: 14, alignItems: 'stretch' }}>
+              <div className="detail-terrain" style={{ position: 'absolute', inset: 0, padding: '16px 18px', display: 'grid', gap: 14, alignItems: 'stretch' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div>
                     <div style={{ fontSize: 9, color: theme.cyan, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 700 }}>Terrain reference</div>
@@ -586,7 +586,7 @@ export default function DisasterCampDetailPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+            <div className="detail-stats5" style={{ display: 'grid', gap: 8 }}>
               {[
                 { label: 'Displaced', value: camp.displaced.toLocaleString(), color: theme.orange },
                 { label: 'Capacity', value: camp.capacity.toLocaleString(), color: theme.t0 },
@@ -601,7 +601,7 @@ export default function DisasterCampDetailPage() {
               ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'stretch' }}>
+            <div className="detail-sections" style={{ display: 'grid', gap: 14, alignItems: 'stretch' }}>
               <Section title="Hydrology details" theme={theme} compact>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, height: '100%' }}>
                   <InfoCard label="Gauge lat" value={`${detail.gauLat.toFixed(4)}°`} tone={theme.cyan} theme={theme} style={{ height: '100%' }} />

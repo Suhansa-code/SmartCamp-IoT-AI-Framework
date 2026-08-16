@@ -446,7 +446,7 @@ export default function AlertsPage() {
         <PageHeader title="PAGES" subtitle="Admin Console" adminName={adminName} />
 
         {/* ══ Body: sidebar + main ═════════════════════════════════════════════ */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+        <div className="dash-body" style={{ overflow: 'hidden' }}>
 
           {/* ── Sidebar ── */}
           <CampSidebar

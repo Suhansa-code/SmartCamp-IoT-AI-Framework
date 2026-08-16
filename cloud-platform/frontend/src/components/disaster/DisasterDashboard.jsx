@@ -173,7 +173,7 @@ export default function DisasterDashboard() {
   return (
     <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, paddingLeft: 'calc(var(--rail-width, 236px) + 18px)', transition: 'background 0.3s, padding-left 0.2s ease', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
       <SideNav />
-      <div style={{ width: '100%', maxWidth: 1280, margin: '0 auto', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
+      <div style={{ width: '100%', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -217,7 +217,7 @@ export default function DisasterDashboard() {
           </div>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr 320px', flex: 1, minHeight: 720 }}>
+        <div className="disaster-grid" style={{ display: 'grid', flex: 1, minHeight: 720 }}>
           <aside style={{ borderRight: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>ACTIVE CAMPS</div>
@@ -314,7 +314,7 @@ export default function DisasterDashboard() {
                 <Ring value={65} label="POWER" color={theme.yellow} theme={theme} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+              <div className="disaster-grid-5" style={{ display: 'grid', gap: 10 }}>
                 {[
                   { label: 'DISPLACED', value: '12,480', tone: theme.orange, fill: theme.orange, percent: 72 },
                   { label: 'EVACUATED', value: '8,340', tone: theme.green, fill: theme.green, percent: 55 },
@@ -345,7 +345,7 @@ export default function DisasterDashboard() {
 
             <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}` }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>STATISTICS</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="disaster-grid-2" style={{ display: 'grid', gap: 14 }}>
                 {[
                   { label: 'DISPLACED', value: '12,480', arrow: '↑ 8.4%', accent: theme.orange, data: DISPLACED_SPARK, sparkColor: theme.orange },
                   { label: 'AIDED', value: '9,340', arrow: '↑ 12.1%', accent: theme.green, data: AIDED_SPARK, sparkColor: theme.cyan },

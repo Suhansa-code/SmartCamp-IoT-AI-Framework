@@ -294,7 +294,7 @@ export default function WelfarePage() {
         <PageHeader title="PAGES" subtitle="Welfare Anomalies" adminName={adminName} fixed />
 
         {/* Main layout */}
-        <div style={{ display: 'flex', width: '100%', maxWidth: 1280, margin: '60px auto 0' }}>
+        <div className="dash-body" style={{ marginTop: 60 }}>
           {/* Sidebar */}
           <CampSidebar camps={MOCK_CAMPS} selectedCamp={selectedCamp} onSelect={setSelectedCamp} />
 
@@ -310,12 +310,12 @@ export default function WelfarePage() {
 
             {/* Loading skeletons */}
             {loading ? (
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(400px,1fr))', gap:'1rem' }}>
+              <div className="grid-auto">
                 {[1,2,3].map(i => <SkeletonCard key={i} />)}
               </div>
             ) : (
               /* Welfare anomaly cards */
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(400px,1fr))', gap:'1rem' }}>
+              <div className="grid-auto">
                 {sortedWelfare.length > 0 ? (
                   sortedWelfare.map(alert => (
                     <WelfareCard key={alert.id} alert={alert} />

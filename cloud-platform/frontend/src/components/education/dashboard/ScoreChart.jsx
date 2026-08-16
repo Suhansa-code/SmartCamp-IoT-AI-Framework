@@ -22,7 +22,7 @@ export default function ScoreChart({ data = [], darkMode = false }) {
   if (!data.length) {
     return (
       <div style={{ textAlign:'center', padding:'2rem', color: '#0D9488' }}>
-        <p style={{ fontWeight:600 }}>No data yet · දත්ත නොමැත</p>
+        <p style={{ fontWeight:600 }}>No data yet</p>
       </div>
     )
   }

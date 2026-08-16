@@ -167,7 +167,8 @@ SmartCamp-IoT-AI-Framework/
 │   │       │   ├── page.js                 # Dashboard (All Camps Overview) + side rail
 │   │       │   ├── camps/                  # Redirects → / (dashboard)
 │   │       │   ├── alert/                  # PAGES alerts
-│   │       │   ├── analytics/              # Education analytics
+│   │       │   ├── education/               # Education Insights (camp selector + per-camp detail)
+│   │       │   ├── analytics/               # Redirects → /education
 │   │       │   ├── disaster/               # Flood disaster dashboards (+ [campId])
 │   │       │   ├── network/                # Network monitoring
 │   │       │   ├── resources/              # Resource overview

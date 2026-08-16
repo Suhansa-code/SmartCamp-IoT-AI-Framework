@@ -8,7 +8,7 @@ export default function PageHeader({ logoText = 'P', title, subtitle, right, hei
   const big = height >= 72
 
   return (
-    <header style={{
+    <header className="smartcamp-header" style={{
       background: C.navyDeep,
       borderBottom: `1px solid ${C.border}`,
       padding: '0 1.5rem',

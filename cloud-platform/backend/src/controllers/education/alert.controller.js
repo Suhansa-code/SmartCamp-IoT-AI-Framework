@@ -87,3 +87,29 @@ export function syncSessions(req, res, next) {
     next(err);
   }
 }
+
+/** Education Insights — list per-camp summaries. */
+export function listEducationCamps(_req, res, next) {
+  try {
+    const camps = alertService.listCampSummaries();
+    res.json({ success: true, camps });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Education Insights — full detail for a single camp. */
+export function getEducationCamp(req, res, next) {
+  try {
+    const { campId } = req.params;
+    const camp = alertService.getCampEducation(campId);
+
+    if (!camp) {
+      return res.status(404).json({ success: false, message: 'Camp not found' });
+    }
+
+    res.json({ success: true, camp });
+  } catch (err) {
+    next(err);
+  }
+}
