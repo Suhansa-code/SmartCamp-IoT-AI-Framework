@@ -160,18 +160,24 @@ SmartCamp-IoT-AI-Framework/
 │   ├── frontend/                           # Admin dashboard
 │   │   ├── package.json                    # Next.js 16 + React 19
 │   │   ├── next.config.mjs                 # Standalone output
+│   │   ├── tailwind.config.js              # Content globs; theme lives in @theme (globals.css)
 │   │   └── src/
 │   │       ├── app/
-│   │       │   ├── layout.js
-│   │       │   ├── page.js                 # Landing + enrollment
-│   │       │   ├── admin/                  # Admin dashboard pages
-│   │       │   └── child/                  # Child edu pages
+│   │       │   ├── layout.js               # Fonts (Inter) + SideNavProvider (--rail-width)
+│   │       │   ├── page.js                 # Dashboard (All Camps Overview) + side rail
+│   │       │   ├── camps/                  # Redirects → / (dashboard)
+│   │       │   ├── alert/                  # PAGES alerts
+│   │       │   ├── analytics/              # Education analytics
+│   │       │   ├── disaster/               # Flood disaster dashboards (+ [campId])
+│   │       │   ├── network/                # Network monitoring
+│   │       │   ├── resources/              # Resource overview
+│   │       │   └── welfare/                # Welfare anomalies
 │   │       └── components/
+│   │           ├── common/                 # Shared: theme.js, utils.js, SideNav (collapsible nav rail), PageHeader, CampSidebar, SkeletonCard
 │   │           ├── disaster/               # Flood maps, camp summary
 │   │           ├── resources/              # Resource overview
-│   │           ├── psychoedu/              # Edu dashboards + games
-│   │           ├── mqtt-manager/           # Network monitoring UI
-│   │           └── general/
+│   │           ├── education/              # Edu dashboards + games (was psychoedu/)
+│   │           └── network/                # Network monitoring UI (was mqtt-manager/)
 │   │
 │   └── prediction-models/                  # ML training pipeline
 │       ├── requirements.txt

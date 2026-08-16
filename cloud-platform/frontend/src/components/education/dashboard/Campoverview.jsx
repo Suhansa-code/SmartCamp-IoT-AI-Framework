@@ -1,4 +1,4 @@
-import AlertBadge from '@/components/psychoedu/ui/AlertBadge'
+import AlertBadge from '@/components/education/ui/AlertBadge'
 
 export default function CampOverview({ camp, onCampClick, darkMode = false }) {
   const alertCount = camp.alerts?.length ?? 0
@@ -38,7 +38,7 @@ export default function CampOverview({ camp, onCampClick, darkMode = false }) {
         <div>
           <h3
             className="text-xl font-extrabold"
-            style={{ fontFamily: "'Baloo 2', cursive", color: textColor }}
+            style={{ fontFamily: "'Inter', sans-serif", color: textColor }}
           >
             🏕️ {camp.name}
           </h3>
@@ -69,7 +69,7 @@ export default function CampOverview({ camp, onCampClick, darkMode = false }) {
             <span style={{ fontSize: '22px' }}>{stat.icon}</span>
             <span
               className="text-2xl font-extrabold"
-              style={{ color: stat.label === 'Alerts' && alertCount > 0 ? '#DC2626' : textColor, fontFamily: "'Baloo 2', cursive" }}
+              style={{ color: stat.label === 'Alerts' && alertCount > 0 ? '#DC2626' : textColor, fontFamily: "'Inter', sans-serif" }}
             >
               {stat.value}
             </span>

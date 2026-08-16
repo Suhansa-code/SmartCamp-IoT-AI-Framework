@@ -3,6 +3,17 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { STATUS_META, statusColor } from '@/components/disaster/disasterData'
+import SideNav from '@/components/common/SideNav'
+
+// Applies the global navigation rail + offsets content to the right of it.
+function WithRail({ children }) {
+  return (
+    <div style={{ minHeight: '100vh', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+      <SideNav />
+      {children}
+    </div>
+  )
+}
 
 const DARK = {
   mode: 'dark',
@@ -106,7 +117,7 @@ export default function DisasterCampDetailPage() {
 
     async function loadCamp() {
       if (campId === 'overview') {
-        router.replace('/admin/disaster')
+        router.replace('/disaster')
         return
       }
 
@@ -290,16 +301,18 @@ export default function DisasterCampDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: theme.bg, display: 'grid', placeItems: 'center', color: theme.t0, fontFamily: "'Inter','Segoe UI',sans-serif", padding: 24, transition: 'background 0.3s' }}>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ maxWidth: 560, width: '100%', border: `1px solid ${theme.border}`, borderRadius: 20, padding: 28, background: theme.surface, textAlign: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 48, height: 48, border: `4px solid ${theme.border}`, borderTop: `4px solid ${theme.cyan}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Loading camp details…</div>
-            <div style={{ color: theme.t2, lineHeight: 1.6, marginBottom: 8, fontSize: 13 }}>Fetching latest camp data for {campId}</div>
+      <WithRail>
+        <div style={{ minHeight: '100vh', background: theme.bg, display: 'grid', placeItems: 'center', color: theme.t0, fontFamily: "'Inter','Segoe UI',sans-serif", padding: 24, transition: 'background 0.3s' }}>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{ maxWidth: 560, width: '100%', border: `1px solid ${theme.border}`, borderRadius: 20, padding: 28, background: theme.surface, textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, border: `4px solid ${theme.border}`, borderTop: `4px solid ${theme.cyan}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Loading camp details…</div>
+              <div style={{ color: theme.t2, lineHeight: 1.6, marginBottom: 8, fontSize: 13 }}>Fetching latest camp data for {campId}</div>
+            </div>
           </div>
         </div>
-      </div>
+      </WithRail>
     )
   }
 
@@ -312,7 +325,7 @@ export default function DisasterCampDetailPage() {
             <div style={{ width: 44, height: 44, border: `5px solid ${theme.border}`, borderTop: `5px solid ${theme.cyan}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
             <div style={{ fontSize: 18, fontWeight: 800 }}>Loading camp details…</div>
             <div style={{ color: theme.t2, lineHeight: 1.7, marginTop: 8, fontSize: 14 }}>Fetching latest camp data before showing details.</div>
-            <button onClick={() => router.push('/admin/disaster')} style={{ marginTop: 12, border: 'none', borderRadius: 8, padding: '10px 18px', background: `linear-gradient(135deg, ${theme.cyan}, ${theme.green})`, color: '#07111b', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Back to disaster dashboard</button>
+            <button onClick={() => router.push('/disaster')} style={{ marginTop: 12, border: 'none', borderRadius: 8, padding: '10px 18px', background: `linear-gradient(135deg, ${theme.cyan}, ${theme.green})`, color: '#07111b', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Back to disaster dashboard</button>
           </div>
         </div>
       </div>
@@ -320,10 +333,11 @@ export default function DisasterCampDetailPage() {
   }
 
   if (!camp) {
-    return <div style={{ minHeight: '100vh', background: theme.bg, display: 'grid', placeItems: 'center', color: theme.t0, fontFamily: "'Inter','Segoe UI',sans-serif", padding: 24, transition: 'background 0.3s' }}><div style={{ maxWidth: 560, width: '100%', border: `1px solid ${theme.border}`, borderRadius: 20, padding: 28, background: theme.surface, textAlign: 'center' }}><div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Camp not found</div><div style={{ color: theme.t2, lineHeight: 1.7, marginBottom: 18, fontSize: 14 }}>The selected camp id is not available in the disaster dashboard data set.</div><button onClick={() => router.push('/admin/disaster')} style={{ border: 'none', borderRadius: 8, padding: '11px 20px', background: `linear-gradient(135deg, ${theme.cyan}, ${theme.green})`, color: '#07111b', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Back to disaster dashboard</button></div></div>
+    return <WithRail><div style={{ minHeight: '100vh', background: theme.bg, display: 'grid', placeItems: 'center', color: theme.t0, fontFamily: "'Inter','Segoe UI',sans-serif", padding: 24, transition: 'background 0.3s' }}><div style={{ maxWidth: 560, width: '100%', border: `1px solid ${theme.border}`, borderRadius: 20, padding: 28, background: theme.surface, textAlign: 'center' }}><div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Camp not found</div><div style={{ color: theme.t2, lineHeight: 1.7, marginBottom: 18, fontSize: 14 }}>The selected camp id is not available in the disaster dashboard data set.</div><button onClick={() => router.push('/disaster')} style={{ border: 'none', borderRadius: 8, padding: '11px 20px', background: `linear-gradient(135deg, ${theme.cyan}, ${theme.green})`, color: '#07111b', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Back to disaster dashboard</button></div></div></WithRail>
   }
 
   return (
+    <WithRail>
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: "'Inter','Segoe UI',sans-serif", transition: 'background 0.3s' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -353,7 +367,7 @@ export default function DisasterCampDetailPage() {
             <span style={{ fontSize: 12 }}>{mode === 'dark' ? '☀' : '🌙'}</span>
             {mode === 'dark' ? 'LIGHT' : 'DARK'}
           </button>
-          <button onClick={() => router.push('/admin/disaster')} style={{ border: `1px solid ${theme.border}`, background: theme.surface, color: theme.t1, borderRadius: 6, padding: '8px 14px', fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>← Back</button>
+          <button onClick={() => router.push('/disaster')} style={{ border: `1px solid ${theme.border}`, background: theme.surface, color: theme.t1, borderRadius: 6, padding: '8px 14px', fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>← Back</button>
         </div>
       </header>
 
@@ -646,11 +660,12 @@ export default function DisasterCampDetailPage() {
 
         {/* Footer Button */}
         <div style={{ marginTop: 24, display: 'flex', gap: 10, justifyContent: 'center' }}>
-          <button onClick={() => router.push('/admin/disaster')} style={{ border: `1px solid ${theme.border}`, background: theme.surface, color: theme.t1, borderRadius: 6, padding: '10px 20px', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>Back to overview</button>
+          <button onClick={() => router.push('/disaster')} style={{ border: `1px solid ${theme.border}`, background: theme.surface, color: theme.t1, borderRadius: 6, padding: '10px 20px', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>Back to overview</button>
         </div>
       </div>
 
       {/* weather snapshot moved into terrain card */}
     </div>
+    </WithRail>
   )
 }

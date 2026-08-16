@@ -6,6 +6,7 @@ import { DONUT_SEGS, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disaster
 import { DisasterGeoMap } from './DisasterGeoMap'
 import { DisasterCampSummaryPanel } from './DisasterCampSummaryPanel'
 import { DonutChart, Ring, Sparkline, ThemeToggle, TrendChart } from './DisasterVisuals'
+import SideNav from '@/components/common/SideNav'
 
 const DARK = {
   mode: 'dark',
@@ -166,11 +167,12 @@ export default function DisasterDashboard() {
 
   const handleNavigate = () => {
     if (!selectedCamp) return
-    router.push(`/admin/disaster/${selectedCamp.id}`)
+    router.push(`/disaster/${selectedCamp.id}`)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, transition: 'background 0.3s', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, paddingLeft: 'calc(var(--rail-width, 236px) + 18px)', transition: 'background 0.3s, padding-left 0.2s ease', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
+      <SideNav />
       <div style={{ width: '100%', maxWidth: 1280, margin: '0 auto', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');

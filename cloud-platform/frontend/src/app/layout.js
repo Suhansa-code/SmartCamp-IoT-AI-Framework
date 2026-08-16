@@ -1,4 +1,5 @@
 import "./globals.css";
+import { SideNavProvider } from "@/components/common/SideNav";
 
 export const metadata = {
   title: "Smart Camp Box",
@@ -12,7 +13,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@400;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Sinhala:wght@400;600;700&display=swap"
           rel="stylesheet"
         />
         {/* Critical for correct scaling on every mobile + tablet */}
@@ -21,8 +22,8 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body style={{ fontFamily: "'Nunito', sans-serif", margin: 0, padding: 0, WebkitTapHighlightColor: 'transparent' }} className="min-h-full flex flex-col">
-        {children}
+      <body style={{ fontFamily: "'Inter', 'Noto Sans Sinhala', sans-serif", margin: 0, padding: 0, WebkitTapHighlightColor: 'transparent' }} className="min-h-full flex flex-col">
+        <SideNavProvider>{children}</SideNavProvider>
       </body>
     </html>
   );

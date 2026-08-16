@@ -1,40 +1,21 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// app/admin/alerts/page.jsx — PAGES Admin Welfare Alert Dashboard
-// Next.js 14 App Router · Requires Cognito auth (middleware-guarded)
-//
-// Layout
-//  · bg #0A2540 (dark navy) · sidebar camp list · main alert cards
-//
-// Alert cards
-//  · card bg #1E3A5F · left border amber (pending) / green (resolved)
-//  · Child ID anonymised (e.g. HMG-012)
-//  · Score trend: recharts ResponsiveContainer → LineChart sparkline
-//  · Actions: Mark Reviewed (teal) · Escalate (amber)
-//
-// Data: GET /api/admin/alerts → loading skeleton → filter + sort
-// Filters: All · Pending · Resolved · Escalated
-// Sort:    Most recent · Oldest · Camp
-// ─────────────────────────────────────────────────────────────────────────────
+// Welfare Alert Dashboard
+// Layout: dark navy bg · sidebar camp list · main alert cards
+// Alert cards: card bg #1E3A5F · left border amber (pending) / green (resolved)
+//   · Child ID anonymised · Score trend sparkline · Actions: Review / Escalate
+// Data: GET /api/alerts → loading skeleton → filter + sort
 
 import { useState, useEffect, useCallback } from 'react'
 import {
   LineChart, Line, ResponsiveContainer, Tooltip, ReferenceLine,
 } from 'recharts'
-
-// ── Colour tokens ─────────────────────────────────────────────────────────────
-const C = {
-  navy:        '#0A2540',
-  navyCard:    '#1E3A5F',
-  navyLight:   '#243B5E',
-  teal:        '#0D9488',
-  amber:       '#F59E0B',
-  green:       '#10B981',
-  textPrimary: '#FFFFFF',
-  textMuted:   '#94A3B8',
-  border:      '#2D4A70',
-}
+import PageHeader from '@/components/common/PageHeader'
+import CampSidebar from '@/components/common/CampSidebar'
+import SkeletonCard from '@/components/common/SkeletonCard'
+import SideNav from '@/components/common/SideNav'
+import { C } from '@/components/common/theme'
+import { daysSince } from '@/components/common/utils'
 
 // ── Mock camp list (replace with API data) ────────────────────────────────────
 const MOCK_CAMPS = [
@@ -105,14 +86,6 @@ function mockAlerts() {
   ]
 }
 
-// ── Days since helper ─────────────────────────────────────────────────────────
-function daysSince(ts) {
-  const d = Math.floor((Date.now() - ts) / 86400000)
-  if (d === 0) return 'Today'
-  if (d === 1) return '1 day ago'
-  return `${d} days ago`
-}
-
 // ── Severity badge ────────────────────────────────────────────────────────────
 function SeverityBadge({ severity }) {
   const map = {
@@ -143,7 +116,7 @@ function ScoreSparkline({ scores }) {
   const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null
     return (
-      <div style={{ background: '#0A2540', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '4px 10px' }}>
+      <div style={{ background: C.navy, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '4px 10px' }}>
         <p style={{ color: 'white', fontSize: '0.78rem', fontWeight: 700, margin: 0 }}>
           S{payload[0]?.payload?.session}: {payload[0]?.value}
         </p>
@@ -172,32 +145,6 @@ function ScoreSparkline({ scores }) {
   )
 }
 
-// ── Skeleton card ─────────────────────────────────────────────────────────────
-function SkeletonCard() {
-  return (
-    <div style={{
-      background: C.navyCard,
-      borderRadius: '1rem',
-      borderLeft: `6px solid ${C.border}`,
-      padding: '1.25rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.75rem',
-    }}>
-      {[160, 120, 80, 64].map((w, i) => (
-        <div key={i} style={{
-          height: i === 3 ? 52 : 14,
-          width: `${Math.min(100, (w / 2))}%`,
-          background: C.navyLight,
-          borderRadius: '9999px',
-          animation: 'skeletonPulse 1.5s ease-in-out infinite',
-          animationDelay: `${i * 0.15}s`,
-        }} />
-      ))}
-    </div>
-  )
-}
-
 // ── Alert card ────────────────────────────────────────────────────────────────
 function AlertCard({ alert, onAction }) {
   const [actionLoading, setActionLoading] = useState(null)
@@ -212,7 +159,7 @@ function AlertCard({ alert, onAction }) {
       let endpoint = `/api/alerts/${alert.id}/resolve`
       let method = 'POST'
       let body = {}
-      
+
       if (action === 'review') {
         // Mark as resolved
         body = { notes: 'Reviewed by admin' }
@@ -220,13 +167,13 @@ function AlertCard({ alert, onAction }) {
         // Escalate - for future implementation
         body = { notes: 'Escalated by admin' }
       }
-      
-      const res = await fetch(`http://localhost:3001${endpoint}`, { 
+
+      const res = await fetch(`http://localhost:3001${endpoint}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
-      
+
       if (res.ok) {
         onAction(alert.id, action)
       }
@@ -260,9 +207,9 @@ function AlertCard({ alert, onAction }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{
-              fontFamily: "'Baloo 2',cursive",
+              fontFamily: "'Inter',sans-serif",
               fontSize: '1.35rem',
-              fontWeight: 900,
+              fontWeight: 800,
               color: C.textPrimary,
             }}>
               {alert.childId}
@@ -373,71 +320,8 @@ function AlertCard({ alert, onAction }) {
   )
 }
 
-// ── Sidebar ────────────────────────────────────────────────────────────────────
-function Sidebar({ camps, selectedCamp, onSelect, alertCounts }) {
-  return (
-    <aside style={{
-      width: '240px',
-      background: '#071B30',
-      borderRight: `1px solid ${C.border}`,
-      display: 'flex',
-      flexDirection: 'column',
-      flexShrink: 0,
-      overflowY: 'auto',
-    }}>
-      {/* Sidebar header */}
-      <div style={{ padding: '1.25rem 1rem 0.75rem' }}>
-        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Camps
-        </p>
-      </div>
-
-      {/* Camp list */}
-      {camps.map(camp => {
-        const count   = alertCounts[camp.id] ?? camp.count
-        const active  = selectedCamp === camp.id
-        return (
-          <button
-            key={camp.id}
-            onClick={() => onSelect(camp.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.75rem 1rem',
-              background: active ? C.navyCard : 'transparent',
-              border: 'none',
-              borderLeft: active ? `3px solid ${C.teal}` : '3px solid transparent',
-              cursor: 'pointer',
-              transition: 'background 0.15s',
-              width: '100%',
-              textAlign: 'left',
-            }}
-          >
-            <span style={{ fontWeight: active ? 700 : 600, color: active ? 'white' : C.textMuted, fontSize: '0.9rem' }}>
-              {camp.name}
-            </span>
-            {count > 0 && (
-              <span style={{
-                background: C.amber,
-                color: '#1C1917',
-                borderRadius: '9999px',
-                padding: '1px 8px',
-                fontSize: '0.72rem',
-                fontWeight: 800,
-              }}>
-                {count}
-              </span>
-            )}
-          </button>
-        )
-      })}
-    </aside>
-  )
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
-export default function AdminAlertsPage() {
+export default function AlertsPage() {
   const [alerts,      setAlerts]      = useState([])
   const [loading,     setLoading]     = useState(true)
   const [filter,      setFilter]      = useState('all')      // all|pending|resolved|escalated
@@ -483,9 +367,6 @@ export default function AdminAlertsPage() {
 
   // ── Cognito name (stub — replace with actual Cognito SDK call) ─────────────
   useEffect(() => {
-    // Example: import { fetchAuthSession } from 'aws-amplify/auth'
-    // const session = await fetchAuthSession()
-    // setAdminName(session.tokens.idToken.payload.name)
     setAdminName('Dr. Perera')
   }, [])
 
@@ -542,7 +423,7 @@ export default function AdminAlertsPage() {
           0%,100% { opacity: 0.5; }
           50%      { opacity: 1; }
         }
-        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #071B30; }
@@ -554,72 +435,25 @@ export default function AdminAlertsPage() {
         background: C.navy,
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: "'Nunito', sans-serif",
+        fontFamily: "'Inter', sans-serif",
         color: C.textPrimary,
+        paddingLeft: 'var(--rail-width, 236px)',
+        transition: 'padding-left 0.2s ease',
       }}>
 
-        {/* ══ Header bar ══════════════════════════════════════════════════════ */}
-        <header style={{
-          background: '#071B30',
-          borderBottom: `1px solid ${C.border}`,
-          padding: '0 1.5rem',
-          height: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-          zIndex: 10,
-        }}>
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: 34, height: 34,
-              borderRadius: '0.6rem',
-              background: C.teal,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 900, fontSize: '1rem', color: 'white',
-              fontFamily: "'Baloo 2',cursive",
-            }}>
-              P
-            </div>
-            <div>
-              <span style={{ fontFamily: "'Baloo 2',cursive", fontWeight: 800, fontSize: '1.15rem', color: 'white' }}>
-                PAGES
-              </span>
-              <span style={{ fontSize: '0.72rem', color: C.textMuted, marginLeft: '8px', fontWeight: 600 }}>
-                Admin Console
-              </span>
-            </div>
-          </div>
+        <SideNav />
 
-          {/* Admin info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white' }}>{adminName}</p>
-              <p style={{ fontSize: '0.72rem', color: C.textMuted }}>Administrator</p>
-            </div>
-            <div style={{
-              width: 36, height: 36,
-              borderRadius: '50%',
-              background: C.navyCard,
-              border: `2px solid ${C.teal}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.1rem',
-            }}>
-              👤
-            </div>
-          </div>
-        </header>
+        <PageHeader title="PAGES" subtitle="Admin Console" adminName={adminName} />
 
         {/* ══ Body: sidebar + main ═════════════════════════════════════════════ */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
 
           {/* ── Sidebar ── */}
-          <Sidebar
+          <CampSidebar
             camps={MOCK_CAMPS}
             selectedCamp={selectedCamp}
             onSelect={setSelectedCamp}
-            alertCounts={alertCounts}
+            counts={alertCounts}
           />
 
           {/* ── Main content ── */}
@@ -627,7 +461,7 @@ export default function AdminAlertsPage() {
 
             {/* Page title */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <h1 style={{ fontFamily: "'Baloo 2',cursive", fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>
+              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.6rem', fontWeight: 800, color: 'white' }}>
                 ⚠️ Welfare Alerts
               </h1>
               <p style={{ fontSize: '0.85rem', color: C.textMuted, marginTop: '2px', fontWeight: 600 }}>
@@ -721,7 +555,7 @@ export default function AdminAlertsPage() {
                 textAlign: 'center',
               }}>
                 <p style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>✅</p>
-                <p style={{ fontFamily: "'Baloo 2',cursive", fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
+                <p style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
                   No alerts here
                 </p>
                 <p style={{ fontSize: '0.9rem', color: C.textMuted, marginTop: '4px' }}>

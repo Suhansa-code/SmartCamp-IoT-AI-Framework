@@ -1,329 +1,218 @@
-"use client";
+'use client'
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import Link from 'next/link';
-import Image from 'next/image';
+import { useState, useEffect, useMemo } from 'react'
+import PageHeader from '@/components/common/PageHeader'
+import SideNav from '@/components/common/SideNav'
+import Campoverview from '@/components/education/dashboard/Campoverview'
+import { C } from '@/components/common/theme'
 
+export default function DashboardPage() {
+  const [camps, setCamps]     = useState([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [adminName, setAdminName] = useState('Admin')
+  const [searchText, setSearchText] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('alertsDesc')
 
-export default function Home() {
-  const router = useRouter();
-  const [selectedEndpoint, setSelectedEndpoint] = useState('/api/child/enrol');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [enrolledChildId, setEnrolledChildId] = useState('');
-  const [statusMsg, setStatusMsg] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [manualChildId, setManualChildId] = useState('');
-  const [isValidatingChildId, setIsValidatingChildId] = useState(false);
-  const [mode, setMode] = useState('enrol'); // 'enrol' or 'existing'
-  const [formData, setFormData] = useState({
-    res_id: 'TEST-RES-001',
-    grade: '3',
-    zone_id: 'ZONE-A',
-    language: 'si',
-  });
-
-  const apiBase = useMemo(
-    () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-    []
-  );
-
-  async function handleEnrolStudent() {
-    setIsSubmitting(true);
-    setErrorMsg('');
-    setStatusMsg('Contacting backend endpoint...');
+  async function loadCamps(isRefresh = false) {
+    if (isRefresh) setRefreshing(true)
+    else setLoading(true)
 
     try {
-      const response = await fetch(`${apiBase}${selectedEndpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          res_id: formData.res_id.trim(),
-          grade: Number(formData.grade),
-          zone_id: formData.zone_id.trim() || null,
-          language: formData.language,
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || !payload.child_id) {
-        throw new Error(payload.message || 'Enrollment failed');
-      }
-
-      setEnrolledChildId(payload.child_id);
-      setStatusMsg(payload.already_enrolled ? 'Student already enrolled.' : 'Student enrolled successfully.');
-    } catch (err) {
-      setErrorMsg(err.message || 'Unable to enroll student right now.');
-      setStatusMsg('');
-      setEnrolledChildId('');
+      const r = await fetch('/api/admin/camps')
+      const payload = r.ok ? await r.json() : []
+      setCamps(Array.isArray(payload) ? payload : [])
+    } catch {
+      setCamps([])
     } finally {
-      setIsSubmitting(false);
+      if (isRefresh) setRefreshing(false)
+      else setLoading(false)
     }
   }
 
-  function handleContinueWithSelectedUser() {
-    if (!enrolledChildId) return;
-    sessionStorage.setItem('selectedChildId', enrolledChildId);
-    router.push('/child');
-  }
+  useEffect(() => {
+    loadCamps(false)
 
-async function handleUseExistingChildId() {
-  const childId = manualChildId.trim();
-  if (!childId) {
-    setErrorMsg('Please enter a child ID');
-    return;
-  }
+    // Stub Cognito name — replace with actual Amplify call
+    setAdminName('Dr. Perera')
+  }, [])
 
-  setIsValidatingChildId(true);
-  setErrorMsg('');
-  setStatusMsg('Validating child ID...');
-
-  try {
-    const response = await fetch(`${apiBase}/api/child/${encodeURIComponent(childId)}`);
-    const payload = await response.json().catch(() => ({}));
-
-    console.log('Validation response:', { status: response.status, payload });
-
-    if (!response.ok || !payload.child?.child_id) {
-      if (response.status === 404) {
-        throw new Error('Child ID not found');
-      } else {
-        throw new Error(payload.message || 'Unable to verify child ID right now.');
+  const normalizedCamps = useMemo(() => {
+    return camps.map((camp) => {
+      const alertCount = camp.alerts?.length ?? 0
+      const status = alertCount === 0 ? 'clear' : alertCount <= 2 ? 'watch' : 'urgent'
+      return {
+        ...camp,
+        alertCount,
+        status,
+        childCount: Number(camp.childCount ?? 0),
+        sessionCount: Number(camp.sessionCount ?? 0),
       }
-    }
+    })
+  }, [camps])
 
-    setEnrolledChildId(payload.child.child_id);
-    setStatusMsg('Child ID verified. Ready to continue.');
-    setErrorMsg('');
-  } catch (err) {
-    setEnrolledChildId('');
-    setStatusMsg('');
-    setErrorMsg(err.message || 'Unable to verify child ID right now.');
-  } finally {
-    setIsValidatingChildId(false);
-  }
-}
+  const stats = useMemo(() => {
+    const totalCamps = normalizedCamps.length
+    const totalChildren = normalizedCamps.reduce((s, c) => s + c.childCount, 0)
+    const totalSessions = normalizedCamps.reduce((s, c) => s + c.sessionCount, 0)
+    const totalAlerts = normalizedCamps.reduce((s, c) => s + c.alertCount, 0)
+    return { totalCamps, totalChildren, totalSessions, totalAlerts }
+  }, [normalizedCamps])
 
-  // Show loading while redirecting
+  const filteredCamps = useMemo(() => {
+    const q = searchText.trim().toLowerCase()
+    let list = normalizedCamps.filter((camp) => {
+      const matchesText = !q
+        || camp.name?.toLowerCase().includes(q)
+        || camp.code?.toLowerCase().includes(q)
+        || camp.location?.toLowerCase().includes(q)
+
+      const matchesStatus = statusFilter === 'all' || camp.status === statusFilter
+      return matchesText && matchesStatus
+    })
+
+    list = [...list].sort((a, b) => {
+      if (sortBy === 'nameAsc') return (a.name || '').localeCompare(b.name || '')
+      if (sortBy === 'sessionsDesc') return b.sessionCount - a.sessionCount
+      if (sortBy === 'childrenDesc') return b.childCount - a.childCount
+      return b.alertCount - a.alertCount
+    })
+
+    return list
+  }, [normalizedCamps, searchText, statusFilter, sortBy])
+
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 py-12 lg:px-10">
-        <div className="space-y-4 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">Smart Camp Box</p>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            One integrated platform for field safety, operations, and learning support
-          </h1>
-          <p className="mx-auto max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
-            Smart Camp Box combines disaster intelligence, resource optimization, and psycho-attentional educational support into one coordinated
-            system.
-          </p>
-        </div>
-        <Link
-          href="/child"
-          className="hidden mx-auto rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-        >
-          Child Mode
-        </Link>
-        <div className="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <Image
-            src="/smart-camp-box.svg"
-            alt="Smart Camp Box full system overview"
-            width={1920}
-            height={1080}
-            priority
-            className="h-auto w-full object-contain"
-          />
-        </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width:6px; }
+        ::-webkit-scrollbar-track { background: #071B30; }
+        ::-webkit-scrollbar-thumb { background: #2D4A70; border-radius:9999px; }
+      `}</style>
 
-        <div className="relative overflow-hidden rounded-3xl border border-cyan-200 bg-linear-to-br from-cyan-50 via-white to-emerald-50 p-6 shadow-lg sm:p-8">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-cyan-200/40 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl" />
+      <div style={{ minHeight: '100svh', background: C.navy, fontFamily: "'Inter',sans-serif", color: 'white', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
 
-          <div className="relative grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">Live Endpoint Runner</p>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">Student Enrollment Launcher</h2>
-              <p className="text-sm leading-6 text-slate-600">
-                Run the selected backend endpoint from the home screen, capture the generated student ID, and continue directly to child mode without typing IDs manually.
-              </p>
+        <SideNav />
 
-              {/* Mode Tabs */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  suppressHydrationWarning
-                  onClick={() => { setMode('enrol'); setManualChildId(''); setEnrolledChildId(''); setStatusMsg(''); setErrorMsg(''); }}
-                  className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                    mode === 'enrol'
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200'
-                  }`}
-                >
-                  📝 Enrol New Student
-                </button>
-                <button
-                  suppressHydrationWarning
-                  onClick={() => { setMode('existing'); setSelectedEndpoint('/api/child/enrol'); setFormData({ res_id: 'TEST-RES-001', grade: '3', zone_id: 'ZONE-A', language: 'si' }); setStatusMsg(''); setErrorMsg(''); }}
-                  className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                    mode === 'existing'
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200'
-                  }`}
-                >
-                  🔑 Use Existing ID
-                </button>
-              </div>
+        <PageHeader title="PAGES" subtitle="Admin Console" adminName={adminName} />
 
-              {/* Enrol Mode */}
-              {mode === 'enrol' && (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">Selected endpoint</span>
-                      <select
-                        suppressHydrationWarning
-                        value={selectedEndpoint}
-                        onChange={(e) => setSelectedEndpoint(e.target.value)}
-                        className="w-full rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm outline-none ring-cyan-500 transition focus:ring-2"
-                      >
-                        <option value="/api/child/enrol">POST /api/child/enrol</option>
-                        <option value="/api/child/test-child-generation">POST /api/child/test-child-generation</option>
-                      </select>
-                    </label>
+        <main style={{ padding: '1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.6rem', fontWeight: 900 }}>🏕️ All Camps Overview</h1>
+            <p style={{ color: C.muted, fontSize: '0.85rem', marginTop: '2px', fontWeight: 600 }}>
+              {loading ? 'Loading…' : `${filteredCamps.length} of ${stats.totalCamps} camp${stats.totalCamps !== 1 ? 's' : ''} shown`}
+            </p>
+          </div>
 
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">Language</span>
-                      <select
-                        suppressHydrationWarning
-                        value={formData.language}
-                        onChange={(e) => setFormData((s) => ({ ...s, language: e.target.value }))}
-                        className="w-full rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm outline-none ring-cyan-500 transition focus:ring-2"
-                      >
-                        <option value="si">Sinhala</option>
-                        <option value="ta">Tamil</option>
-                        <option value="en">English</option>
-                      </select>
-                    </label>
-
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">Resident ID</span>
-                      <input
-                        suppressHydrationWarning
-                        value={formData.res_id}
-                        onChange={(e) => setFormData((s) => ({ ...s, res_id: e.target.value }))}
-                        className="w-full rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm outline-none ring-cyan-500 transition focus:ring-2"
-                        placeholder="TEST-RES-001"
-                      />
-                    </label>
-
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">Grade</span>
-                      <input
-                        suppressHydrationWarning
-                        value={formData.grade}
-                        onChange={(e) => setFormData((s) => ({ ...s, grade: e.target.value }))}
-                        className="w-full rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm outline-none ring-cyan-500 transition focus:ring-2"
-                        placeholder="3"
-                      />
-                    </label>
-
-                    <label className="space-y-1 text-sm sm:col-span-2">
-                      <span className="font-medium text-slate-700">Zone ID</span>
-                      <input
-                        suppressHydrationWarning
-                        value={formData.zone_id}
-                        onChange={(e) => setFormData((s) => ({ ...s, zone_id: e.target.value }))}
-                        className="w-full rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm outline-none ring-cyan-500 transition focus:ring-2"
-                        placeholder="ZONE-A"
-                      />
-                    </label>
+          {/* KPI row */}
+          {!loading && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+              {[
+                { label: 'Total Camps', value: stats.totalCamps, icon: '🏕️', color: '#60A5FA' },
+                { label: 'Children', value: stats.totalChildren, icon: '🧒', color: '#4ADE80' },
+                { label: 'Sessions', value: stats.totalSessions, icon: '📋', color: '#FACC15' },
+                { label: 'Alerts', value: stats.totalAlerts, icon: '⚠️', color: '#F87171' },
+              ].map((kpi) => (
+                <div key={kpi.label} style={{ background: '#102E4D', border: `1px solid ${C.border}`, borderRadius: '0.9rem', padding: '0.85rem 1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: C.muted, fontSize: '0.78rem', fontWeight: 700 }}>{kpi.label}</span>
+                    <span>{kpi.icon}</span>
                   </div>
-
-                  <button
-                    suppressHydrationWarning
-                    onClick={handleEnrolStudent}
-                    disabled={isSubmitting}
-                    className="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-cyan-300"
-                  >
-                    {isSubmitting ? 'Enrolling...' : 'Enrol Student'}
-                  </button>
-                </>
-              )}
-
-              {/* Existing ID Mode */}
-              {mode === 'existing' && (
-                <>
-                  <div className="space-y-3">
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">Enter Existing Child ID</span>
-                      <input
-                        suppressHydrationWarning
-                        value={manualChildId}
-                        onChange={(e) => setManualChildId(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && manualChildId.trim()) {
-                            handleUseExistingChildId();
-                          }
-                        }}
-                        className="w-full rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm outline-none ring-cyan-500 transition focus:ring-2"
-                        placeholder="e.g., CHILD-001"
-                      />
-                    </label>
-                  </div>
-
-                  <button
-                    suppressHydrationWarning
-                    onClick={handleUseExistingChildId}
-                    disabled={!manualChildId.trim() || isValidatingChildId}
-                    className="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-cyan-300"
-                  >
-                    {isValidatingChildId ? 'Checking Child ID...' : 'Load Child ID'}
-                  </button>
-                </>
-              )}
+                  <p style={{ marginTop: '0.35rem', fontSize: '1.5rem', fontWeight: 900, color: kpi.color }}>{kpi.value}</p>
+                </div>
+              ))}
             </div>
+          )}
 
-            <div className="flex flex-col justify-between rounded-2xl border border-cyan-200/80 bg-white/90 p-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700">Enrollment Output</p>
-                <p className="mt-3 text-sm text-slate-600">Student ID:</p>
-                <p className="mt-1 min-h-8 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm font-semibold text-slate-900">
-                  {enrolledChildId || 'Not enrolled yet'}
-                </p>
-                {statusMsg ? <p className="mt-3 text-sm text-emerald-700">{statusMsg}</p> : null}
-                {errorMsg ? <p className="mt-3 text-sm text-rose-700">{errorMsg}</p> : null}
-              </div>
+          {/* Toolbar */}
+          {!loading && (
+            <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.75rem', gridTemplateColumns: '2fr 1fr auto', alignItems: 'center' }}>
+              <input
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search by camp name, code, or location"
+                style={{
+                  width: '100%', border: `1px solid ${C.border}`, background: '#102E4D', color: 'white',
+                  borderRadius: '0.75rem', padding: '0.65rem 0.85rem', outline: 'none',
+                }}
+              />
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{
+                  width: '100%', border: `1px solid ${C.border}`, background: '#102E4D', color: 'white',
+                  borderRadius: '0.75rem', padding: '0.65rem 0.85rem', outline: 'none',
+                }}
+              >
+                <option value="alertsDesc">Sort: Alerts (high to low)</option>
+                <option value="sessionsDesc">Sort: Sessions (high to low)</option>
+                <option value="childrenDesc">Sort: Children (high to low)</option>
+                <option value="nameAsc">Sort: Name (A-Z)</option>
+              </select>
 
               <button
-                suppressHydrationWarning
-                onClick={handleContinueWithSelectedUser}
-                disabled={!enrolledChildId}
-                className="mt-6 rounded-xl border border-emerald-300 bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-300"
+                onClick={() => loadCamps(true)}
+                disabled={refreshing}
+                style={{
+                  border: `1px solid ${C.teal}`, background: refreshing ? '#115E59' : C.teal, color: 'white',
+                  borderRadius: '0.75rem', padding: '0.65rem 0.95rem', fontWeight: 800, cursor: 'pointer',
+                }}
               >
-                Continue With Selected User
+                {refreshing ? 'Refreshing…' : 'Refresh'}
               </button>
             </div>
-          </div>
-        </div>
+          )}
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-2xl border border-teal-200 bg-teal-50 p-5">
-            <h2 className="text-lg font-semibold text-teal-900">Hazard</h2>
-            <p className="mt-2 text-sm leading-6 text-teal-800">Disaster management with flood location and flow/LUT prediction support.</p>
-          </article>
+          {/* Status quick filters */}
+          {!loading && (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+              {[
+                { key: 'all', label: 'All' },
+                { key: 'urgent', label: 'Urgent' },
+                { key: 'watch', label: 'Watch' },
+                { key: 'clear', label: 'Clear' },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setStatusFilter(f.key)}
+                  style={{
+                    border: `1px solid ${C.border}`,
+                    background: statusFilter === f.key ? C.teal : '#102E4D',
+                    color: 'white',
+                    borderRadius: '9999px',
+                    padding: '0.35rem 0.8rem',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <article className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="text-lg font-semibold text-amber-900">Resources</h2>
-            <p className="mt-2 text-sm leading-6 text-amber-800">Intelligent resource management for inventory, logistics, and response planning.</p>
-          </article>
-
-          <article className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
-            <h2 className="text-lg font-semibold text-indigo-900">PsychoEdu</h2>
-            <p className="mt-2 text-sm leading-6 text-indigo-800">Psycho-attentional gated educational workflows for targeted learner support.</p>
-          </article>
-        </div>
-
-        <p className="text-center text-sm text-slate-500">Replace public/smart-camp-box.svg with your final full Smart Camp Box image when ready.</p>
-      </section>
-    </main>
-  );
+          {loading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: '1rem' }}>
+              {[1,2,3].map(i => (
+                <div key={i} style={{ background: C.navyCard, borderRadius: '1rem', height: 220, animation: 'pulse 1.5s ease-in-out infinite' }} />
+              ))}
+            </div>
+          ) : filteredCamps.length === 0 ? (
+            <div style={{ background: C.navyCard, borderRadius: '1.25rem', padding: '3rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '3rem' }}>🏕️</p>
+              <p style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.4rem', fontWeight: 800, marginTop: '0.75rem' }}>No camps match the current filters</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: '1rem' }}>
+              {filteredCamps.map(camp => <Campoverview key={camp.id} camp={camp} darkMode />)}
+            </div>
+          )}
+        </main>
+      </div>
+    </>
+  )
 }

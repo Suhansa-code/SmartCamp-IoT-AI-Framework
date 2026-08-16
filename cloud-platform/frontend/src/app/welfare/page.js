@@ -1,26 +1,14 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// app/admin/welfare/page.js — PAGES Admin Welfare Anomalies Dashboard
-// Data-focused behavioral and performance anomalies for welfare monitoring
-// ─────────────────────────────────────────────────────────────────────────────
+// Welfare Anomalies Dashboard — data-focused behavioral and performance anomalies
 
 import { useState, useEffect, useCallback } from 'react'
-
-// ── Colour tokens ─────────────────────────────────────────────────────────────
-const C = {
-  navy:        '#0A2540',
-  navyCard:    '#1E3A5F',
-  navyLight:   '#243B5E',
-  teal:        '#0D9488',
-  purple:      '#A78BFA',
-  amber:       '#F59E0B',
-  green:       '#10B981',
-  red:         '#F87171',
-  textPrimary: '#FFFFFF',
-  textMuted:   '#94A3B8',
-  border:      '#2D4A70',
-}
+import PageHeader from '@/components/common/PageHeader'
+import CampSidebar from '@/components/common/CampSidebar'
+import SkeletonCard from '@/components/common/SkeletonCard'
+import SideNav from '@/components/common/SideNav'
+import { C } from '@/components/common/theme'
+import { daysSince } from '@/components/common/utils'
 
 // ── Mock camp list ────────────────────────────────────────────────────────────
 const MOCK_CAMPS = [
@@ -84,14 +72,6 @@ function mockWelfareAnomalies() {
       lastSession: Date.now() - 86400000 * 5,
     },
   ]
-}
-
-// ── Days since helper ─────────────────────────────────────────────────────────
-function daysSince(ts) {
-  const d = Math.floor((Date.now() - ts) / 86400000)
-  if (d === 0) return 'Today'
-  if (d === 1) return '1 day ago'
-  return `${d} days ago`
 }
 
 // ── Risk level badge ──────────────────────────────────────────────────────────
@@ -170,32 +150,6 @@ function AnomalyMetric({ anomaly }) {
   )
 }
 
-// ── Skeleton card ─────────────────────────────────────────────────────────────
-function SkeletonCard() {
-  return (
-    <div style={{
-      background: C.navyCard,
-      borderRadius: '1rem',
-      borderLeft: `6px solid ${C.border}`,
-      padding: '1.25rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.75rem',
-    }}>
-      {[160, 120, 80, 64].map((w, i) => (
-        <div key={i} style={{
-          height: i === 3 ? 52 : 14,
-          width: `${Math.min(100, (w / 2))}%`,
-          background: C.navyLight,
-          borderRadius: '9999px',
-          animation: 'skeletonPulse 1.5s ease-in-out infinite',
-          animationDelay: `${i * 0.15}s`,
-        }} />
-      ))}
-    </div>
-  )
-}
-
 // ── Welfare anomaly card ──────────────────────────────────────────────────────
 function WelfareCard({ alert }) {
   const borderColor = alert.riskLevel === 'GOOD' ? C.green
@@ -217,9 +171,9 @@ function WelfareCard({ alert }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
         <div>
           <span style={{
-            fontFamily: "'Baloo 2',cursive",
+            fontFamily: "'Inter',sans-serif",
             fontSize: '1.25rem',
-            fontWeight: 900,
+            fontWeight: 800,
             color: C.textPrimary,
           }}>
             {alert.childId}
@@ -278,56 +232,8 @@ function WelfareCard({ alert }) {
   )
 }
 
-// ── Sidebar ────────────────────────────────────────────────────────────────────
-function Sidebar({ camps, selectedCamp, onSelect }) {
-  return (
-    <aside style={{
-      width: '240px',
-      background: '#071B30',
-      borderRight: `1px solid ${C.border}`,
-      display: 'flex',
-      flexDirection: 'column',
-      flexShrink: 0,
-      overflowY: 'auto',
-    }}>
-      <div style={{ padding: '1.25rem 1rem 0.75rem' }}>
-        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Camps
-        </p>
-      </div>
-
-      {camps.map(camp => {
-        const active = selectedCamp === camp.id
-        return (
-          <button
-            key={camp.id}
-            onClick={() => onSelect(camp.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.75rem 1rem',
-              background: active ? C.navyCard : 'transparent',
-              border: 'none',
-              borderLeft: active ? `3px solid ${C.teal}` : '3px solid transparent',
-              cursor: 'pointer',
-              transition: 'background 0.15s',
-              width: '100%',
-              textAlign: 'left',
-            }}
-          >
-            <span style={{ fontWeight: active ? 700 : 600, color: active ? 'white' : C.textMuted, fontSize: '0.9rem' }}>
-              {camp.name}
-            </span>
-          </button>
-        )
-      })}
-    </aside>
-  )
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
-export default function AdminWelfarePage() {
+export default function WelfarePage() {
   const [welfare,     setWelfare]     = useState([])
   const [loading,     setLoading]     = useState(true)
   const [selectedCamp,setSelectedCamp]= useState('all')
@@ -370,7 +276,7 @@ export default function AdminWelfarePage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width:6px; }
         ::-webkit-scrollbar-track { background: #071B30; }
@@ -381,45 +287,22 @@ export default function AdminWelfarePage() {
         }
       `}</style>
 
-      <div style={{ minHeight: '100svh', background: C.navy, fontFamily: "'Nunito',sans-serif", color: 'white', display: 'flex' }}>
-        {/* Header */}
-        <header style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          background: '#071B30',
-          borderBottom: '1px solid #2D4A70',
-          padding: '0 1.5rem',
-          height: 60,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width:34, height:34, borderRadius:'0.6rem', background:'#0D9488', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Baloo 2',cursive", fontWeight:900, fontSize:'1rem', color:'white' }}>P</div>
-            <span style={{ fontFamily:"'Baloo 2',cursive", fontWeight:800, fontSize:'1.15rem' }}>PAGES <span style={{ fontSize:'0.72rem', color:'#94A3B8', fontWeight:600 }}>Welfare Anomalies</span></span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-            <div style={{ textAlign:'right' }}>
-              <p style={{ fontSize:'0.85rem', fontWeight:700 }}>{adminName}</p>
-              <p style={{ fontSize:'0.72rem', color:'#94A3B8' }}>Administrator</p>
-            </div>
-            <div style={{ width:36, height:36, borderRadius:'50%', background:'#1E3A5F', border:'2px solid #0D9488', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem' }}>👤</div>
-          </div>
-        </header>
+      <div style={{ minHeight: '100svh', background: C.navy, fontFamily: "'Inter',sans-serif", color: 'white', display: 'flex', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+
+        <SideNav />
+
+        <PageHeader title="PAGES" subtitle="Welfare Anomalies" adminName={adminName} fixed />
 
         {/* Main layout */}
         <div style={{ display: 'flex', width: '100%', maxWidth: 1280, margin: '60px auto 0' }}>
           {/* Sidebar */}
-          <Sidebar camps={MOCK_CAMPS} selectedCamp={selectedCamp} onSelect={setSelectedCamp} />
+          <CampSidebar camps={MOCK_CAMPS} selectedCamp={selectedCamp} onSelect={setSelectedCamp} />
 
           {/* Main content */}
           <main style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
             {/* Title & info */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <h1 style={{ fontFamily:"'Baloo 2',cursive", fontSize:'1.6rem', fontWeight:900 }}>📊 Behavioral Anomalies</h1>
+              <h1 style={{ fontFamily:"'Inter',sans-serif", fontSize:'1.6rem', fontWeight:800 }}>📊 Behavioral Anomalies</h1>
               <p style={{ color: C.textMuted, fontSize:'0.85rem', marginTop:'2px', fontWeight:600 }}>
                 {loading ? 'Loading…' : `${sortedWelfare.length} child${sortedWelfare.length !== 1 ? 'ren' : ''} with anomalies`}
               </p>
@@ -450,4 +333,3 @@ export default function AdminWelfarePage() {
     </>
   )
 }
-

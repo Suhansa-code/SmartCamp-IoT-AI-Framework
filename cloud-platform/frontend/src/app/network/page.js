@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import Header from '@/components/mqtt-manager/Header'
-import StatCards from '@/components/mqtt-manager/StatCards'
-import MessageLog from '@/components/mqtt-manager/MessageLog'
-import NetworkPanel from '@/components/mqtt-manager/NetworkPanel'
-import StatsPanel from '@/components/mqtt-manager/StatsPanel'
-import BottomBar from '@/components/mqtt-manager/BottomBar'
-import { C } from '@/components/App.jsx'
+import PageHeader from '@/components/common/PageHeader'
+import SideNav from '@/components/common/SideNav'
+import Header from '@/components/network/Header'
+import StatCards from '@/components/network/StatCards'
+import MessageLog from '@/components/network/MessageLog'
+import NetworkPanel from '@/components/network/NetworkPanel'
+import StatsPanel from '@/components/network/StatsPanel'
+import BottomBar from '@/components/network/BottomBar'
+import { C } from '@/components/common/theme'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -19,7 +20,6 @@ async function fetchNetworkMetrics() {
 }
 
 export default function NetworkPage() {
-  const router = useRouter()
   const [adminName] = useState('Dr. Perera')
   const [connected, setConnected] = useState(false)
   const [networkState, setNetworkState] = useState('GOOD')
@@ -66,54 +66,11 @@ export default function NetworkPage() {
         .slide { animation: slide 0.15s ease; }
       `}</style>
 
-      <div style={{ minHeight: '100svh', background: '#0A2540', fontFamily: "'Nunito',sans-serif", color: 'white' }}>
+      <div style={{ minHeight: '100svh', background: '#0A2540', fontFamily: "'Inter',sans-serif", color: 'white', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
 
-        {/* Header */}
-        <header style={{
-          background: '#071B30',
-          borderBottom: '1px solid #2D4A70',
-          padding: '0 2rem',
-          height: 72,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ width:44, height:44, borderRadius:'0.8rem', background:'#0D9488', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Baloo 2',cursive", fontWeight:900, fontSize:'1.3rem', color:'white' }}>P</div>
-            <span style={{ fontFamily:"'Baloo 2',cursive", fontWeight:800, fontSize:'1.4rem' }}>PAGES <span style={{ fontSize:'0.9rem', color:'#94A3B8', fontWeight:600 }}>Admin Console</span></span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:'1rem' }}>
-            <div style={{ textAlign:'right' }}>
-              <p style={{ fontSize:'1rem', fontWeight:700 }}>{adminName}</p>
-              <p style={{ fontSize:'0.85rem', color:'#94A3B8' }}>Administrator</p>
-            </div>
-            <div style={{ width:44, height:44, borderRadius:'50%', background:'#1E3A5F', border:'2px solid #0D9488', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.3rem' }}>👤</div>
-          </div>
-        </header>
+        <SideNav />
 
-        {/* Nav tabs */}
-        <nav style={{ background:'#071B30', borderBottom:'1px solid #2D4A70', padding:'0 2rem', display:'flex', gap:'0' }}>
-          {[
-            { label:'All Camps', path:'/admin', active: false },
-            { label:'Alerts',    path:'/admin/alerts', active: false },
-            { label:'Analytics', path:'/admin/analytics', active: false },
-            { label:'Network',   path:'/admin/network', active: true },
-          ].map(tab => (
-            <button key={tab.path} onClick={() => router.push(tab.path)} style={{
-              padding:'1rem 1.5rem',
-              background:'transparent',
-              border:'none',
-              borderBottom: tab.active ? '4px solid #0D9488' : '4px solid transparent',
-              color: tab.active ? 'white' : '#94A3B8',
-              fontWeight: tab.active ? 800 : 600,
-              fontSize:'1rem',
-              cursor:'pointer',
-              transition:'color 0.15s',
-            }}>
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        <PageHeader title="PAGES" subtitle="Admin Console" adminName={adminName} height={72} />
 
         {/* SAAMP Network Monitor Content */}
         <div className={isDarkMode ? 'dark' : ''}>

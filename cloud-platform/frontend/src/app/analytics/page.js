@@ -5,7 +5,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import ScoreChart from '@/components/psychoedu/dashboard/ScoreChart'
+import ScoreChart from '@/components/education/dashboard/ScoreChart'
+import SideNav from '@/components/common/SideNav'
 
 export default function AnalyticsPage() {
   const [data, setData]     = useState(null)
@@ -19,12 +20,14 @@ export default function AnalyticsPage() {
   }, [])
 
   return (
-    <main className="min-h-screen px-4 py-8" style={{ background: '#F0F9FF' }}>
-      <div className="max-w-7xl mx-auto">
-        <h1
-          className="text-3xl font-extrabold mb-2"
-          style={{ fontFamily: "'Baloo 2', cursive", color: '#1E3A5F' }}
-        >
+    <>
+      <SideNav />
+      <main className="min-h-screen px-4 py-8" style={{ background: '#F0F9FF', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+        <div className="max-w-7xl mx-auto">
+          <h1
+            className="text-3xl font-extrabold mb-2"
+            style={{ fontFamily: "'Inter', sans-serif", color: '#1E3A5F' }}
+          >
           📊 Analytics · Score Trends
         </h1>
         <p className="font-semibold mb-8" style={{ color: '#0D9488' }}>
@@ -44,7 +47,7 @@ export default function AnalyticsPage() {
               <div key={camp.id} className="card-soft">
                 <h2
                   className="text-xl font-bold mb-4"
-                  style={{ fontFamily: "'Baloo 2', cursive", color: '#1E3A5F' }}
+                  style={{ fontFamily: "'Inter', sans-serif", color: '#1E3A5F' }}
                 >
                   🏕️ {camp.name}
                 </h2>
@@ -61,5 +64,6 @@ export default function AnalyticsPage() {
         )}
       </div>
     </main>
+    </>
   )
 }
