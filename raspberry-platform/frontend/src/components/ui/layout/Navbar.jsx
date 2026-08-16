@@ -15,6 +15,7 @@ import {
   X,
   Radar,
   Layers,
+  Cpu,
 } from 'lucide-react'
 import { COLORS, SHADOW_CARD } from '../../../lib/tokens'
 
@@ -25,6 +26,7 @@ const tabs = [
   { id: 'wristbands', label: 'Wristbands', path: '/wristbands', icon: Layers },
   { id: 'educationscreen', label: 'Education', path: '/educationscreen', icon: BrainCircuit },
   { id: 'network', label: 'Network', path: '/network', icon: Activity },
+  { id: 'devices', label: 'Devices', path: '/devices', icon: Cpu },
   { id: 'disaster', label: 'Disaster', path: '/disaster', icon: Map },
 ]
 
