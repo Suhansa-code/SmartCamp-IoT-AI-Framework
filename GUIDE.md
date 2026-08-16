@@ -112,34 +112,50 @@ SmartCamp-IoT-AI-Framework/
 ├── cloud-platform/                         # [AWS VM] Cloud services
 │   ├── backend/
 │   │   ├── package.json                    # Express + ESM
-│   │   ├── src/
-│   │   │   ├── server.js                   # Main entry (:3001)
-│   │   │   ├── routes/
-│   │   │   │   ├── network.js
-│   │   │   │   ├── resources.js
-│   │   │   │   └── disaster.js
-│   │   │   └── services/
-│   │   │       ├── mqtt.js                 # MQTT client
-│   │   │       ├── networkMonitor.js       # QoS monitoring
-│   │   │       ├── simulation.js           # Network simulation
-│   │   │       ├── realNetworkMonitor.js
-│   │   │       ├── campDataService.js      # EMQX subscriber
-│   │   │       ├── predictionService.js    # Weighted linear pred
-│   │   │       ├── floodPredictionService.js
-│   │   │       └── waterLevelHistoryService.js
-│   │   │
-│   │   ├── disaster-management/            # Disaster data
-│   │   ├── pages-backend/                  # ★ PAGES edu system (legacy; migrated to RPi)
-│   │   │   ├── package.json                # Express + Turso/SQLite + JWT
-│   │   │   ├── database/
-│   │   │   ├── models/
-│   │   │   └── src/
-│   │   │
-│   │   └── pages-flask/                    # PAGES ML scoring (moved to RPi; removed from cloud)
-│   │       ├── app.py                      # Flask (:5001)
-│   │       ├── requirements.txt            # Flask + numpy + sklearn
-│   │       ├── train_model.py
-│   │       └── data/
+│   │   ├── .env.example                    # Config template
+│   │   ├── tests/                          # node:test unit + integration
+│   │   │   ├── app.test.js
+│   │   │   ├── disaster/
+│   │   │   ├── education/
+│   │   │   ├── resources/
+│   │   │   └── network/
+│   │   └── src/
+│   │       ├── server.js                   # Bootstrap (:3001)
+│   │       ├── app.js                      # Express app factory
+│   │       ├── config/
+│   │       │   ├── env.js                  # Central env/config source
+│   │       │   └── database.js             # SQLite connection + schema
+│   │       ├── middleware/                 # errorHandler, notFound, requestLogger
+│   │       ├── routers/
+│   │       │   ├── index.js
+│   │       │   ├── disaster.routes.js
+│   │       │   ├── education.routes.js     # PAGES alerts
+│   │       │   ├── resources.routes.js
+│   │       │   └── network.routes.js
+│   │       ├── controllers/                # disaster/, education/, resources/, network/
+│   │       ├── services/                   # disaster/, education/, resources/, network/
+│   │       │   ├── network/mqtt.js         # MQTT client
+│   │       │   ├── network/networkMonitor.js   # QoS monitoring
+│   │       │   ├── network/simulation.js   # Network simulation
+│   │       │   ├── network/realNetworkMonitor.js
+│   │       │   ├── resources/campDataService.js  # EMQX subscriber
+│   │       │   ├── resources/predictionService.js # Weighted linear pred
+│   │       │   ├── disaster/floodPredictionService.js
+│   │       │   └── disaster/waterLevelHistoryService.js
+│   │       ├── models/education/alert.model.js  # SQL
+│   │       └── data/disaster/camps.data.js # Static camp data
+│   │
+│   ├── ml-service/                         # PAGES ML scoring (Flask)
+│   │   ├── run.py                          # Flask entry (:5001)
+│   │   ├── requirements.txt                # Flask + numpy + sklearn + pytest
+│   │   ├── app/
+│   │   │   ├── __init__.py                 # create_app factory
+│   │   │   ├── config.py                   # Config class
+│   │   │   ├── database.py                 # SQLAlchemy metadata/tables
+│   │   │   ├── api/                        # health, score, history, reset
+│   │   │   └── services/                   # scoring_service, history_service
+│   │   ├── tests/                          # pytest suite
+│   │   └── data/, models/                  # Runtime persistence dirs
 │   │
 │   ├── frontend/                           # Admin dashboard
 │   │   ├── package.json                    # Next.js 16 + React 19
