@@ -1,8 +1,39 @@
 import axios from 'axios';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
+import { round } from '../../utils/helpers.js';
+import { sqliteRetrieve } from '../../config/database.js';
 
 const flaskUrl = C.FLASK_URL;
+
+const ZSCORE_MIN_SESSIONS = 3;
+
+export async function computeLocalZScore(childId, compositeScore) {
+  try {
+    const rows = sqliteRetrieve(
+      'pages_sessions',
+      'composite_score',
+      'child_id = ? AND composite_score IS NOT NULL',
+      [childId]
+    );
+
+    const scores = rows
+      .map((r) => Number(r.composite_score))
+      .filter((n) => Number.isFinite(n));
+
+    if (scores.length < ZSCORE_MIN_SESSIONS - 1) return null;
+
+    const meanScore = scores.reduce((sum, n) => sum + n, 0) / scores.length;
+    const varianceScore = scores.reduce((sum, n) => sum + (n - meanScore) ** 2, 0) / scores.length;
+    const stdDev = varianceScore > 0 ? Math.sqrt(varianceScore) : 1;
+    const z = (compositeScore - meanScore) / stdDev;
+
+    return round(z < 0 ? Math.max(z, -5) : z, 4);
+  } catch (err) {
+    logger.warn(`[SCORING] Local z-score computation failed for child ${childId}: ${err.message}`);
+    return null;
+  }
+}
 
 export async function checkFlaskHealth() {
   try {
@@ -20,19 +51,30 @@ export async function getScore(childId, sessionId, taskMetrics, passiveSignals, 
       headers: { 'Content-Type': 'application/json' },
     });
     const d = res.data;
+    const localZScore = await computeLocalZScore(childId, d.compositeScore);
+    const ifScore = d.ifScore ?? null;
+    const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
+    const anomalyByIF = ifScore !== null && ifScore < C.IF_SCORE_THRESHOLD;
     return {
-      compositeScore: d.compositeScore,
-      taskScore: d.taskScore,
-      passiveScore: d.passiveScore,
-      baselineScore: d.baselineScore,
-      zScore: d.zScore,
-      ifScore: d.ifScore,
-      anomalyFlagged: d.anomalyFlagged,
+      compositeScore: round(d.compositeScore, 2),
+      taskScore: round(d.taskScore, 2),
+      passiveScore: round(d.passiveScore, 2),
+      baselineScore: d.baselineScore || null,
+      zScore: localZScore,
+      ifScore,
+      anomalyFlagged: anomalyByZ || anomalyByIF,
       gateDecision: d.gateDecision,
     };
   } catch (err) {
     logger.warn(`[SCORING] Flask unreachable — using fallback scoring: ${err.message}`);
-    return fallbackScore(taskMetrics, passiveSignals, baselineOverride);
+    const fallback = fallbackScore(taskMetrics, passiveSignals, baselineOverride);
+    const localZScore = await computeLocalZScore(childId, fallback.compositeScore);
+    const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
+    return {
+      ...fallback,
+      zScore: localZScore,
+      anomalyFlagged: anomalyByZ,
+    };
   }
 }
 

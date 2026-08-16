@@ -18,13 +18,20 @@ export default function AuthorizePage() {
     setError('')
     if (val && idx < 5) {
       inputRefs.current[idx + 1]?.focus()
+    } else if (!val && digits[idx] && idx > 0) {
+      inputRefs.current[idx - 1]?.focus()
     }
   }
 
   const handleKeyDown = (idx, e) => {
-    if (e.key === 'Backspace' && !digits[idx] && idx > 0) {
-      inputRefs.current[idx - 1]?.focus()
-    }
+    if (e.key !== 'Backspace') return
+    if (e.currentTarget.value !== '') return
+    if (idx === 0) return
+    e.preventDefault()
+    const next = [...digits]
+    next[idx - 1] = ''
+    setDigits(next)
+    inputRefs.current[idx - 1]?.focus()
   }
 
   const handleSubmit = (e) => {
