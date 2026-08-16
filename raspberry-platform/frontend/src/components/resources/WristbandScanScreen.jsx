@@ -22,9 +22,13 @@ import {
   CalendarDays,
   Sparkles,
   RefreshCw,
+  Camera,
+  HeartPulse,
+  AlertTriangle,
 } from "lucide-react";
 import { COLORS, SHADOW_CARD } from "../../lib/tokens";
 import { API } from "../ui/config";
+import QRScanner from "./QRScanner";
 
 /* ------------------------------------------------------------------ */
 /*  STATUS / SEMANTIC COLOUR MAP — mirrors the RISK map on FloodWatch   */
@@ -155,7 +159,11 @@ function TabSwitcher({ active, onChange }) {
 /*  DISTRIBUTION TILE                                                   */
 /* ------------------------------------------------------------------ */
 
-function DistributionTile({ label, icon: Icon, quantity, given, onGive }) {
+function DistributionTile({ label, icon: Icon, item, onGive }) {
+  const given = !!item?.given;
+  const quantity = item?.quantity;
+  const left = item?.left;
+  const unit = item?.unit;
   return (
     <div
       className="rounded-xl border p-4 sm:p-5 flex flex-col items-center text-center transition-colors"
@@ -176,9 +184,15 @@ function DistributionTile({ label, icon: Icon, quantity, given, onGive }) {
       <p className="text-[13px] sm:text-[13.5px] font-semibold" style={{ color: COLORS.ink }}>
         {label}
       </p>
-      <p className="text-[10.5px] font-mono mt-0.5 mb-4" style={{ color: COLORS.muted }}>
-        {quantity}
+      <p className="text-[10.5px] font-mono mt-0.5 mb-1" style={{ color: COLORS.muted }}>
+        {quantity != null ? `${quantity} ${unit || ""} / day` : "\u00A0"}
       </p>
+      {!given && left != null && (
+        <p className="text-[11px] font-mono mb-3" style={{ color: left > 0 ? "#0284C7" : COLORS.muted }}>
+          {left} {unit || ""} left today
+        </p>
+      )}
+      {given && <p className="text-[11px] font-mono mb-3" style={{ color: COLORS.muted }}>0 left today</p>}
       <div className="mt-auto w-full">
         {given ? (
           <div
@@ -201,34 +215,109 @@ function DistributionTile({ label, icon: Icon, quantity, given, onGive }) {
 /*  DISTRIBUTION PANEL                                                  */
 /* ------------------------------------------------------------------ */
 
+const DAILY_DEFAULTS = [
+  { key: "breakfast", label: "Breakfast", unit: "kg", quantity: 0.5 },
+  { key: "lunch", label: "Lunch", unit: "kg", quantity: 0.6 },
+  { key: "dinner", label: "Dinner", unit: "kg", quantity: 0.5 },
+  { key: "water", label: "Water", unit: "L", quantity: 15 },
+];
+
+const DAILY_EXTRAS = { breakfast: 0.2, lunch: 0.2, dinner: 0.2, water: 2 };
+
+function todayStatusToDaily(person, flags = {}) {
+  return DAILY_DEFAULTS.map((d) => {
+    const quantity = person?.is_pregnant === 1 ? d.quantity + (DAILY_EXTRAS[d.key] || 0) : d.quantity;
+    const given = Boolean(flags[d.key]);
+    return { ...d, quantity, given, left: given ? 0 : quantity };
+  });
+}
+
+async function resolveWristband(raw) {
+  let res = await fetch(`${API}/api/qr/${encodeURIComponent(raw)}`);
+  let data = await res.json();
+  if (data && (data.success === false || data.message || !data.person)) {
+    res = await fetch(`${API}/api/wristband/${encodeURIComponent(raw)}`);
+    data = await res.json();
+  }
+  return data;
+}
+
 function DistributionPanel() {
   const [barcode, setBarcode] = useState("");
   const [profile, setProfile] = useState(null);
   const [todayStatus, setTodayStatus] = useState(null);
+  const [daily, setDaily] = useState(null);
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrVisible, setQrVisible] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [statusType, setStatusType] = useState("error");
   const [qosInfo, setQosInfo] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+
+  const applyLookup = (data, raw) => {
+    const person = data.person;
+    if (!person) {
+      setStatusMessage(data.message || data.error || "No profile found for this code.");
+      setStatusType("error");
+      setProfile(null);
+      setTodayStatus(null);
+      setDaily(null);
+      return;
+    }
+    const flags = data.today_distributions || data.today?.meals || {};
+    setProfile(person);
+    setTodayStatus(flags);
+    setDaily(data.daily || todayStatusToDaily(person, flags));
+    setBarcode(data.wristband?.wristband_id || raw || person.wristband_barcode || "");
+    setStatusMessage("");
+    setQosInfo(null);
+  };
 
   const handleScan = async (e) => {
     e.preventDefault();
     if (!barcode.trim()) return;
     setIsScanning(true);
     try {
-      const res = await fetch(`${API}/api/wristband/${barcode.trim()}`);
-      const data = await res.json();
+      const data = await resolveWristband(barcode.trim());
       setTimeout(() => {
         setIsScanning(false);
-        if (data.error) {
-          setStatusMessage(data.error);
+        if (data.error || data.success === false || !data.person) {
+          setStatusMessage(data.message || data.error || "Not found.");
           setStatusType("error");
           setProfile(null);
+          setTodayStatus(null);
+          setDaily(null);
           return;
         }
-        setProfile(data.person);
-        setTodayStatus(data.today_distributions);
-        setStatusMessage("");
-        setQosInfo(null);
+        applyLookup(data, barcode.trim());
+      }, 600);
+    } catch (err) {
+      setIsScanning(false);
+      setStatusMessage("Lookup failed: " + err.message);
+      setStatusType("error");
+    }
+  };
+
+  const handleQrScan = async (value) => {
+    setScannerOpen(false);
+    const raw = (value || "").trim();
+    if (!raw) return;
+    setIsScanning(true);
+    try {
+      const data = await resolveWristband(raw);
+      setTimeout(() => {
+        setIsScanning(false);
+        if (data.error || data.success === false || !data.person) {
+          setStatusMessage(data.message || data.error || "QR code not recognized.");
+          setStatusType("error");
+          setProfile(null);
+          setTodayStatus(null);
+          setDaily(null);
+          return;
+        }
+        applyLookup(data, raw);
       }, 600);
     } catch (err) {
       setIsScanning(false);
@@ -250,7 +339,15 @@ function DistributionPanel() {
         setStatusType("error");
         return;
       }
-      setTodayStatus(data.today_distributions);
+      const flags = data.today_distributions || {};
+      setTodayStatus(flags);
+      setDaily((prev) =>
+        (prev || todayStatusToDaily(profile, flags)).map((item) => ({
+          ...item,
+          given: Boolean(flags[item.key]),
+          left: flags[item.key] ? 0 : item.quantity,
+        }))
+      );
       setQosInfo(data.mqtt);
       setStatusMessage(`${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)} distributed successfully.`);
       setStatusType("success");
@@ -265,8 +362,10 @@ function DistributionPanel() {
     setBarcode("");
     setProfile(null);
     setTodayStatus(null);
+    setDaily(null);
     setStatusMessage("");
     setQosInfo(null);
+    setScannerOpen(false);
   };
 
   const priorityTone = (priority) => {
@@ -280,50 +379,78 @@ function DistributionPanel() {
     }
   };
 
+  const dailyMap = {};
+  (daily || []).forEach((d) => {
+    dailyMap[d.key] = d;
+  });
+  const foodItems = (daily || []).filter((d) => d.key !== "water");
+  const foodEntitlement = foodItems.reduce((sum, d) => sum + (d.quantity || 0), 0);
+  const foodLeft = foodItems.reduce((sum, d) => sum + (d.left || 0), 0);
+  const waterItem = dailyMap.water;
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Barcode lookup */}
-      <form onSubmit={handleScan} className="rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
-        <p className="text-[11px] uppercase tracking-widest font-mono mb-3" style={{ color: COLORS.muted }}>
-          Wristband barcode
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none">
-              <Search className="w-4 h-4" style={{ color: isScanning ? COLORS.brand : COLORS.muted }} />
-            </div>
-            <input
-              type="text"
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              placeholder="Scan or type barcode (e.g. WB000001)"
-              autoFocus
-              className="w-full pl-10 pr-11 py-2.5 rounded-lg border text-[13px] font-mono font-medium focus:outline-none transition-colors"
-              style={{ borderColor: COLORS.line, color: COLORS.ink, backgroundColor: "#FAFAF9" }}
-            />
-            <AnimatePresence>
-              {barcode && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
+      {scannerOpen ? (
+        <QRScanner onScan={handleQrScan} onCancel={() => setScannerOpen(false)} />
+      ) : (
+        <>
+          {/* Barcode lookup */}
+          <form onSubmit={handleScan} className="rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
+            <p className="text-[11px] uppercase tracking-[0.1em] font-mono mb-3" style={{ color: COLORS.muted }}>
+              Wristband barcode
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none">
+                  <Search className="w-4 h-4" style={{ color: isScanning ? COLORS.brand : COLORS.muted }} />
+                </div>
+                <input
+                  type="text"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  placeholder="Scan or type barcode (e.g. WB000001)"
+                  autoFocus
+                  className="w-full pl-10 pr-11 py-2.5 rounded-lg border text-[13px] font-mono font-medium focus:outline-none transition-colors"
+                  style={{ borderColor: COLORS.line, color: COLORS.ink, backgroundColor: "#FAFAF9" }}
+                />
+                <AnimatePresence>
+                  {barcode && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      type="button"
+                      onClick={handleReset}
+                      className="absolute inset-y-0 right-3 flex items-center justify-center"
+                      aria-label="Clear barcode"
+                    >
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: "#EFEFEE", color: COLORS.body }}>
+                        <X className="w-3 h-3" />
+                      </div>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </div>
+              <div className="flex gap-2">
+                <PrimaryButton type="submit" loading={isScanning} loadingText="Looking up" disabled={!barcode.trim()} className="sm:w-auto">
+                  Lookup
+                </PrimaryButton>
+                <button
                   type="button"
-                  onClick={handleReset}
-                  className="absolute inset-y-0 right-3 flex items-center justify-center"
-                  aria-label="Clear barcode"
+                  onClick={() => setScannerOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg text-[12.5px] font-semibold py-2.5 px-4 border transition-colors hover:opacity-80"
+                  style={{ borderColor: COLORS.line, color: COLORS.brand, backgroundColor: "#fff" }}
                 >
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: "#EFEFEE", color: COLORS.body }}>
-                    <X className="w-3 h-3" />
-                  </div>
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
-          <PrimaryButton type="submit" loading={isScanning} loadingText="Looking up" disabled={!barcode.trim()} className="sm:w-auto">
-            Lookup
-          </PrimaryButton>
-        </div>
-      </form>
+                  <Camera className="w-3.5 h-3.5" strokeWidth={2} /> Scan QR
+                </button>
+              </div>
+            </div>
+            <p className="mt-2.5 text-[11px]" style={{ color: COLORS.muted }}>
+              Scanned QR codes are resolved automatically — profile and daily availability are shown instantly.
+            </p>
+          </form>
+        </>
+      )}
 
       {/* Standalone status (no profile yet) */}
       <AnimatePresence mode="wait">
@@ -367,9 +494,29 @@ function DistributionPanel() {
                     <Chip tone="success">
                       <UserCircle2 className="w-3 h-3" /> Family {profile.family_unit_id}
                     </Chip>
-                    {profile.is_pregnant === 1 && <Chip tone="info">Pregnant</Chip>}
-                    {profile.has_chronic_illness === 1 && <Chip tone="pending">Chronic illness</Chip>}
                     <Chip>{profile.gender}</Chip>
+                    <button
+                      onClick={async () => {
+                        setQrLoading(true);
+                        try {
+                          const id = encodeURIComponent(barcode || profile.wristband_barcode || '');
+                          const res = await fetch(`${API}/api/wristbands/${id}/qrcode`);
+                          const data = await res.json();
+                          if (data.success && data.data_url) {
+                            setQrDataUrl(data.data_url);
+                            setQrVisible(true);
+                          }
+                        } catch (e) {
+                          // ignore silently
+                        } finally {
+                          setQrLoading(false);
+                        }
+                      }}
+                      className="ml-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-md border text-[12px] font-semibold"
+                      style={{ borderColor: COLORS.line }}
+                    >
+                      {qrLoading ? 'Loading…' : 'Show QR'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -391,23 +538,59 @@ function DistributionPanel() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-              <DistributionTile
-                label="Breakfast"
-                icon={Coffee}
-                quantity="500 g"
-                given={todayStatus.breakfast}
-                onGive={() => handleDistribute("breakfast")}
-              />
-              <DistributionTile label="Lunch" icon={Utensils} quantity="600 g" given={todayStatus.lunch} onGive={() => handleDistribute("lunch")} />
-              <DistributionTile
-                label="Dinner"
-                icon={Utensils}
-                quantity="500 g"
-                given={todayStatus.dinner}
-                onGive={() => handleDistribute("dinner")}
-              />
-              <DistributionTile label="Water" icon={Droplets} quantity="15 L" given={todayStatus.water} onGive={() => handleDistribute("water")} />
+            {/* Health status */}
+            {(profile.is_pregnant === 1 || profile.has_chronic_illness === 1 || profile.medical_notes) && (
+              <div className="rounded-xl border p-4 sm:p-5" style={{ borderColor: COLORS.line }}>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <HeartPulse className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
+                  <span className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: COLORS.muted }}>
+                    Health status
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.is_pregnant === 1 && <Chip tone="info"><Baby className="w-3 h-3" /> Pregnant</Chip>}
+                  {profile.has_chronic_illness === 1 && <Chip tone="pending"><AlertTriangle className="w-3 h-3" /> Chronic illness</Chip>}
+                </div>
+                {profile.medical_notes && (
+                  <p className="text-[12.5px] mt-2" style={{ color: COLORS.body }}>{profile.medical_notes}</p>
+                )}
+              </div>
+            )}
+
+            {/* Daily availability left */}
+            <div className="rounded-xl border p-4 sm:p-5" style={{ borderColor: COLORS.line }}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <Droplets className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
+                  <span className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: COLORS.muted }}>
+                    Daily availability left
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Chip tone="info">
+                    Food left: {foodLeft.toFixed(1)} / {foodEntitlement.toFixed(1)} kg
+                  </Chip>
+                  <Chip tone="info">
+                    Water left: {waterItem ? `${waterItem.left} / ${waterItem.quantity}` : "—"} L
+                  </Chip>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                <DistributionTile
+                  label="Breakfast"
+                  icon={Coffee}
+                  item={dailyMap.breakfast}
+                  onGive={() => handleDistribute("breakfast")}
+                />
+                <DistributionTile label="Lunch" icon={Utensils} item={dailyMap.lunch} onGive={() => handleDistribute("lunch")} />
+                <DistributionTile
+                  label="Dinner"
+                  icon={Utensils}
+                  item={dailyMap.dinner}
+                  onGive={() => handleDistribute("dinner")}
+                />
+                <DistributionTile label="Water" icon={Droplets} item={dailyMap.water} onGive={() => handleDistribute("water")} />
+              </div>
             </div>
 
             {qosInfo && (
@@ -425,6 +608,25 @@ function DistributionPanel() {
                     </>
                   ) : (
                     "Buffered locally"
+                  )}
+                  {/* QR Modal */}
+                  {qrVisible && qrDataUrl && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                      <div className="absolute inset-0 bg-black/50" onClick={() => setQrVisible(false)} />
+                      <div className="relative bg-white rounded-lg p-4 max-w-sm w-full" style={{ boxShadow: SHADOW_CARD }}>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold">Wristband QR</h3>
+                          <button onClick={() => setQrVisible(false)} className="text-sm">Close</button>
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <img src={qrDataUrl} alt="wristband-qr" style={{ width: 240, height: 240 }} />
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
+                          <a href={qrDataUrl} download={`qr-${barcode || 'wristband'}.png`} className="text-sm font-semibold" style={{ color: COLORS.brand }}>Download PNG</a>
+                          <button onClick={() => setQrVisible(false)} className="text-sm">Done</button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </Chip>
               </div>
@@ -449,7 +651,7 @@ function StatTile({ label, value, unit, icon: Icon }) {
         </span>
         {Icon && <Icon className="w-3.5 h-3.5" style={{ color: COLORS.chip }} />}
       </div>
-      </div>
+    </div>
   );
 }
 
@@ -473,11 +675,7 @@ function ForecastRow({ row, isToday, index }) {
       className="border-t"
     >
       <td className="px-4 sm:px-5 py-3.5">
-        <p className="text-[12.5px] font-semibold" style={{ color: isToday ? COLORS.brand : COLORS.ink }}>
-          {dayName}
-        </p>
         <p className="text-[10.5px] font-mono" style={{ color: COLORS.muted }}>
-          {dateStr}
         </p>
       </td>
       <td className="px-4 sm:px-5 py-3.5">

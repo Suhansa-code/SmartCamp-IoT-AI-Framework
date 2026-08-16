@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Radar,
+  Layers,
 } from 'lucide-react'
 import { COLORS, SHADOW_CARD } from '../../../lib/tokens'
 
@@ -21,6 +22,7 @@ const tabs = [
   { id: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
   { id: 'registration', label: 'Registration', path: '/registration', icon: Fingerprint },
   { id: 'wristband', label: 'Distribution', path: '/wristband', icon: ScanBarcode },
+  { id: 'wristbands', label: 'Wristbands', path: '/wristbands', icon: Layers },
   { id: 'educationscreen', label: 'Education', path: '/educationscreen', icon: BrainCircuit },
   { id: 'network', label: 'Network', path: '/network', icon: Activity },
   { id: 'disaster', label: 'Disaster', path: '/disaster', icon: Map },

@@ -97,10 +97,95 @@ function initializeCampDb() {
   try { campDb.exec('ALTER TABLE persons ADD COLUMN mqtt_client_id TEXT'); } catch (_) {}
   try { campDb.exec('ALTER TABLE persons ADD COLUMN mqtt_password TEXT'); } catch (_) {}
   try { campDb.exec('ALTER TABLE persons ADD COLUMN is_active INTEGER DEFAULT 1'); } catch (_) {}
+  try { campDb.exec("ALTER TABLE persons ADD COLUMN registration_date TEXT"); } catch (_) {}
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_persons_registration_date ON persons(registration_date)');
   campDb.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_persons_mqtt_client_id
       ON persons(mqtt_client_id) WHERE mqtt_client_id IS NOT NULL
   `);
+
+  // ── Wristband upgrades: QR identifier, lifecycle status, assignment tracking ──
+  try { campDb.exec('ALTER TABLE wristbands ADD COLUMN qr_identifier TEXT'); } catch (_) {}
+  try { campDb.exec("ALTER TABLE wristbands ADD COLUMN status TEXT DEFAULT 'AVAILABLE'"); } catch (_) {}
+  try { campDb.exec('ALTER TABLE wristbands ADD COLUMN assigned_at TEXT'); } catch (_) {}
+  try { campDb.exec('ALTER TABLE wristbands ADD COLUMN updated_at TEXT'); } catch (_) {}
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_wristbands_qr_identifier ON wristbands(qr_identifier)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_wristbands_status ON wristbands(status)');
+
+  campDb.exec(`
+    CREATE TABLE IF NOT EXISTS wristband_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      wristband_id INTEGER REFERENCES wristbands(id),
+      person_id INTEGER REFERENCES persons(id),
+      assigned_at TEXT DEFAULT (datetime('now')),
+      unassigned_at TEXT,
+      synced INTEGER DEFAULT 0
+    );
+  `);
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_assignments_wristband ON wristband_assignments(wristband_id)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_assignments_person ON wristband_assignments(person_id)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_assignments_active ON wristband_assignments(wristband_id, unassigned_at)');
+
+  // ── Resource catalog (dynamic, not hard-coded) ──
+  campDb.exec(`
+    CREATE TABLE IF NOT EXISTS resources (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      resource_name TEXT NOT NULL,
+      category TEXT,
+      unit TEXT DEFAULT 'portion',
+      total_quantity REAL NOT NULL DEFAULT 0,
+      available_quantity REAL NOT NULL DEFAULT 0,
+      minimum_threshold REAL DEFAULT 0,
+      status TEXT DEFAULT 'AVAILABLE',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      synced INTEGER DEFAULT 0
+    );
+  `);
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_resources_name ON resources(resource_name)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status)');
+
+  // ── Per-person resource consumption (inventory-aware) ──
+  campDb.exec(`
+    CREATE TABLE IF NOT EXISTS resource_usage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      person_id INTEGER NOT NULL REFERENCES persons(id),
+      resource_id INTEGER NOT NULL REFERENCES resources(id),
+      meal TEXT,
+      quantity REAL NOT NULL,
+      date TEXT NOT NULL DEFAULT (date('now')),
+      time TEXT NOT NULL DEFAULT (time('now')),
+      recorded_by TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      synced INTEGER DEFAULT 0
+    );
+  `);
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_usage_person ON resource_usage(person_id, date)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_usage_resource ON resource_usage(resource_id)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_usage_date ON resource_usage(date)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_usage_meal ON resource_usage(person_id, meal, date)');
+
+  // ── Audit log (who / what / whom / how much / when) ──
+  campDb.exec(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      actor TEXT,
+      action TEXT NOT NULL,
+      person_id INTEGER,
+      resource_id INTEGER,
+      wristband_id INTEGER,
+      quantity REAL,
+      details TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      synced INTEGER DEFAULT 0
+    );
+  `);
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_audit_person ON audit_logs(person_id)');
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at)');
+
+  backfillCampData();
+  seedResources();
 
   const count = campDb.prepare('SELECT COUNT(*) as c FROM persons').get().c;
   if (count === 0) {
@@ -120,6 +205,82 @@ function initializeCampDb() {
   }
 
   logger.info(`[CAMP DB] Initialised at ${C.CAMP_DB_PATH}`);
+}
+
+/**
+ * One-time backfill so pre-existing wristbands work with the new QR + assignment
+ * model. Keeps the legacy `barcode` / `person_id` columns authoritative so no
+ * existing functionality breaks.
+ */
+function backfillCampData() {
+  const rows = campDb.prepare('SELECT id, barcode, person_id FROM wristbands').all();
+  const setQr = campDb.prepare('UPDATE wristbands SET qr_identifier = ?, updated_at = datetime(\'now\') WHERE id = ?');
+  const openAssignment = campDb.prepare(`
+    INSERT INTO wristband_assignments (wristband_id, person_id, assigned_at) VALUES (?, ?, datetime('now'))
+  `);
+
+  for (const w of rows) {
+    if (!w.barcode) continue;
+    if (!w.qr_identifier) {
+      // CAMP-WB000001 style — the QR contains ONLY this opaque identifier.
+      setQr.run(`CAMP-${w.barcode}`, w.id);
+    }
+    // Backfill lifecycle status + an open assignment for legacy-issued bands.
+    if (w.person_id) {
+      campDb.prepare(
+        "UPDATE wristbands SET status = 'ASSIGNED', assigned_at = COALESCE(assigned_at, datetime('now')) WHERE id = ? AND (status IS NULL OR status = 'AVAILABLE')"
+      ).run(w.id);
+      const active = campDb.prepare(
+        'SELECT id FROM wristband_assignments WHERE wristband_id = ? AND unassigned_at IS NULL'
+      ).get(w.id);
+      if (!active) openAssignment.run(w.id, w.person_id);
+    }
+  }
+
+  // Fixed reusable pool WB-0001 … WB-0100 (QR: CAMP-WB-0001 …) — idempotent.
+  const poolCount = campDb.prepare("SELECT COUNT(*) as c FROM wristbands WHERE barcode LIKE 'WB-%'").get().c;
+  if (poolCount === 0) {
+    const insert = campDb.prepare(`
+      INSERT INTO wristbands (barcode, qr_identifier, status, issued_at, updated_at)
+      VALUES (?, ?, 'AVAILABLE', datetime('now'), datetime('now'))
+    `);
+    const pool = campDb.transaction(() => {
+      for (let i = 1; i <= 100; i += 1) {
+        const label = `WB-${String(i).padStart(4, '0')}`;
+        insert.run(label, `CAMP-${label}`);
+      }
+    });
+    pool();
+    logger.info('[CAMP DB] Seeded wristband pool WB-0001 … WB-0100 (AVAILABLE).');
+  }
+}
+
+/**
+ * Seed a sensible default resource catalog on first boot (idempotent).
+ */
+function seedResources() {
+  const count = campDb.prepare('SELECT COUNT(*) as c FROM resources').get().c;
+  if (count > 0) return;
+
+  const defaults = [
+    { name: 'Rice',         category: 'Food',        unit: 'portion', total: 500, threshold: 50 },
+    { name: 'Chicken',      category: 'Food',        unit: 'portion', total: 200, threshold: 30 },
+    { name: 'Vegetables',   category: 'Food',        unit: 'portion', total: 300, threshold: 40 },
+    { name: 'Water',        category: 'Beverage',    unit: 'bottle',  total: 1000, threshold: 100 },
+    { name: 'Milk',         category: 'Beverage',    unit: 'packet',  total: 150, threshold: 25 },
+    { name: 'Bread',        category: 'Food',        unit: 'loaf',    total: 120, threshold: 20 },
+    { name: 'Paracetamol',  category: 'Medicine',    unit: 'strip',   total: 80, threshold: 15 },
+  ];
+
+  const insert = campDb.prepare(`
+    INSERT INTO resources (resource_name, category, unit, total_quantity, available_quantity, minimum_threshold)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const seed = campDb.transaction(() => {
+    for (const r of defaults) insert.run(r.name, r.category, r.unit, r.total, r.total, r.threshold);
+  });
+  seed();
+  logger.info('[CAMP DB] Seeded default resource catalog.');
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

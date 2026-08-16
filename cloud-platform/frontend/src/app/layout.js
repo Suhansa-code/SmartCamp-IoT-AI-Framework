@@ -1,5 +1,3 @@
-import { LanguageProvider } from '@/components/psychoedu/context/LanguageContext'
-
 import "./globals.css";
 
 export const metadata = {
@@ -24,13 +22,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body style={{ fontFamily: "'Nunito', sans-serif", margin: 0, padding: 0, WebkitTapHighlightColor: 'transparent' }} className="min-h-full flex flex-col">
-        {/*
-          LanguageProvider reads ?lang= URL param and localStorage on mount.
-          It makes { lang, setLang } available to all child components via useLang().
-        */}
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+        {children}
       </body>
     </html>
   );

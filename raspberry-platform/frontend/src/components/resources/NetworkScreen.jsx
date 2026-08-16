@@ -19,6 +19,13 @@ const TONE = {
   neutral: { color: COLORS.body,  bg: '#F5F6F5',            border: COLORS.line },
 };
 
+const STATE_TONE = {
+  STABLE: 'brand',
+  DEGRADED: 'warning',
+  CRITICAL: 'danger',
+  UNKNOWN: 'neutral',
+};
+
 const STATE_DESC = {
   STABLE:   'Network healthy — full QoS 2 for critical messages.',
   DEGRADED: 'Network congested — QoS automatically upgraded to protect delivery.',
@@ -60,6 +67,18 @@ function IconTile({ icon: Icon, tone = "brand", size = "md" }) {
     <div className={`${dims} rounded-lg flex items-center justify-center shrink-0 border`} style={{ backgroundColor: t.bg, borderColor: t.border }}>
       <Icon className={size === "lg" ? "w-5 h-5" : "w-4 h-4"} style={{ color: t.color }} strokeWidth={1.7} />
     </div>
+  );
+}
+
+function Chip({ children, tone = 'neutral' }) {
+  const t = TONE[tone] || TONE.neutral;
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+      style={{ color: t.color, backgroundColor: t.bg, borderColor: t.border }}
+    >
+      {children}
+    </span>
   );
 }
 

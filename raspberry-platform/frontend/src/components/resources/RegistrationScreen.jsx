@@ -21,11 +21,15 @@ import {
   List,
   RefreshCw,
   X,
+  QrCode,
+  Camera,
 } from "lucide-react";
 import DataTable from "../ui/display/DataTable";
 import ConfirmDialog from "../ui/feedback/ConfirmDialog";
 import ErrorState from "../ui/feedback/ErrorState";
 import PersonProfileScreen from "./PersonProfileScreen";
+import QrCardModal from "./QrCardModal";
+import QRScanner from "./QRScanner";
 import { useToast } from "../ui/feedback/Toast";
 import { API, inputClass as inputClassBase } from "../ui/config";
 import { COLORS, SHADOW_CARD } from "../../lib/tokens";
@@ -303,6 +307,7 @@ function Field({ label, required, children, hint }) {
 
 function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error }) {
   const [errors, setErrors] = useState({});
+  const [scanningQr, setScanningQr] = useState(false);
 
   const update = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -335,6 +340,54 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
       {error && <InlineBanner tone="danger">{error}</InlineBanner>}
 
       <div className="grid grid-cols-2 gap-3">
+        {form.wristband_qr && (
+          <div className="col-span-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border text-[12.5px] font-medium" style={{ color: TONE.brand.color, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>
+              <QrCode className="w-4 h-4 shrink-0" />
+              Wristband <span className="font-mono font-semibold">{form.wristband_qr}</span> is empty — it will be activated for this person on registration.
+            </div>
+          </div>
+        )}
+
+        <div className="col-span-2">
+          <Field
+            label="Printed Wristband QR"
+            hint={form.wristband_qr
+              ? `Will assign wristband ${form.wristband_qr} on registration`
+              : "Optional — scan the printed card, or skip to auto-issue a new wristband"}
+          >
+            {scanningQr ? (
+              <QRScanner
+                onScan={(val) => { update("wristband_qr", val); setScanningQr(false); }}
+                onCancel={() => setScanningQr(false)}
+              />
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  placeholder="e.g. CAMP-WB-0001"
+                  value={form.wristband_qr || ""}
+                  onChange={(e) => update("wristband_qr", e.target.value)}
+                  className={inputClassBase}
+                />
+                <Button type="button" variant="secondary" onClick={() => setScanningQr(true)} className="shrink-0 px-3" aria-label="Scan QR">
+                  <Camera className="w-4 h-4" />
+                </Button>
+                {form.wristband_qr && (
+                  <button
+                    type="button"
+                    onClick={() => update("wristband_qr", "")}
+                    aria-label="Clear QR"
+                    className="shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center"
+                    style={{ borderColor: COLORS.line, color: COLORS.muted }}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </Field>
+        </div>
+
         <div className="col-span-2">
           <Field label="Full Name" required>
             <input placeholder="e.g. John Doe" value={form.full_name} onChange={(e) => update("full_name", e.target.value)} className={inputClassBase} />
@@ -594,6 +647,7 @@ function RegistrationScreen() {
   const [newPersonForm, setNewPersonForm] = useState({
     full_name: "", age: "", gender: "M", person_type: "refugee",
     family_size: 1, is_pregnant: 0, has_chronic_illness: 0, medical_notes: "",
+    wristband_qr: "",
   });
 
   const [persons, setPersons] = useState([]);
@@ -601,6 +655,11 @@ function RegistrationScreen() {
   const [personsError, setPersonsError] = useState("");
   const [viewingPersonId, setViewingPersonId] = useState(null);
   const [showReenrollConfirm, setShowReenrollConfirm] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrData, setQrData] = useState(null);
+  const [qrScanning, setQrScanning] = useState(false);
+  const [qrBound, setQrBound] = useState(false);
+  const [qrCode, setQrCode] = useState("");
   const abortRef = useRef(null);
 
   const fetchPersons = useCallback(() => {
@@ -667,6 +726,54 @@ function RegistrationScreen() {
     setSearchResults([]);
     setNotFoundView("returning_profile");
     setStatusMessage(`Found: ${person.full_name}`);
+  };
+
+  const openPersonQr = async (personId) => {
+    setQrLoading(true);
+    try {
+      const res = await fetch(`${API}/api/register/${personId}/qrcode`);
+      const data = await res.json();
+      if (!res.ok) {
+        addToast(data.error || "Failed to load QR", "error");
+        return;
+      }
+      setQrData(data);
+    } catch (err) {
+      addToast("Network error", "error");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleQrScan = async (code) => {
+    setQrScanning(false);
+    if (!code) return;
+    setQrCode(code);
+    setStatusMessage("");
+    try {
+      const res = await fetch(`${API}/api/qr/${encodeURIComponent(code)}/lookup`);
+      const data = await res.json();
+      if (data.state === "assigned") {
+        setProfile(data.person);
+        setQrBound(true);
+        setScanState("found");
+        setStatusMessage(`Profile loaded: ${data.person.full_name}`);
+      } else if (data.state === "available") {
+        setNewPersonForm((f) => ({ ...f, wristband_qr: code }));
+        setScanState("not_found");
+        setNotFoundView("new");
+        setStatusMessage("This wristband is empty — register the person to activate it");
+      } else if (data.state === "inactive") {
+        addToast("Wristband is inactive", "error");
+        setStatusMessage("This wristband is inactive");
+      } else {
+        addToast("QR not recognized", "error");
+        setStatusMessage("QR code not recognized");
+      }
+    } catch (err) {
+      addToast("QR lookup failed", "error");
+      setStatusMessage("QR lookup failed");
+    }
   };
 
   const handleReenroll = async () => {
@@ -765,6 +872,10 @@ function RegistrationScreen() {
     setSearchResults([]);
     setSearchError("");
     setReturningPerson(null);
+    setQrScanning(false);
+    setQrBound(false);
+    setQrCode("");
+    setQrData(null);
   };
 
   const currentStep = stateStep(scanState);
@@ -800,9 +911,14 @@ function RegistrationScreen() {
               <ScanningVisual scanState={scanState} />
 
               {scanState === "idle" && (
-                <Button onClick={handleScanFingerprint} size="lg" className="mt-7 w-full">
-                  <Fingerprint className="w-4 h-4" /> Initiate Scan
-                </Button>
+                <div className="mt-7 w-full grid gap-3">
+                  <Button onClick={handleScanFingerprint} size="lg" className="w-full">
+                    <Fingerprint className="w-4 h-4" /> Initiate Scan
+                  </Button>
+                  <Button variant="secondary" size="lg" onClick={() => setQrScanning(true)} className="w-full">
+                    <Camera className="w-4 h-4" /> Scan Wristband QR
+                  </Button>
+                </div>
               )}
               {scanState === "idle" && import.meta.env.DEV && (
                 <Button
@@ -823,21 +939,27 @@ function RegistrationScreen() {
             <Card className="p-5 sm:p-6 lg:p-8 min-h-70 lg:min-h-105 flex flex-col justify-center">
               <AnimatePresence mode="wait">
                 {(scanState === "idle" || scanState === "scanning") && (
-                  <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center text-center h-full space-y-5">
-                    <div className="w-20 h-20 rounded-full flex items-center justify-center border" style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line }}>
-                      <ShieldCheck className="w-8 h-8" style={{ color: "#D4D8D5" }} />
-                    </div>
-                    <div>
-                      <h3 className="text-[15px] font-semibold" style={{ color: COLORS.muted }}>Awaiting Input</h3>
-                      <p className="text-[13px] mt-1 max-w-xs" style={{ color: COLORS.muted }}>Scan a fingerprint to pull up a profile or create a new registration.</p>
-                    </div>
-                    {scanState === "scanning" && (
-                      <div className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: COLORS.brand }}>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Contacting biometric scanner…
+                  <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+                    {qrScanning ? (
+                      <QRScanner onScan={handleQrScan} onCancel={() => setQrScanning(false)} />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center h-full space-y-5">
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center border" style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line }}>
+                          <ShieldCheck className="w-8 h-8" style={{ color: "#D4D8D5" }} />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold" style={{ color: COLORS.muted }}>Awaiting Input</h3>
+                          <p className="text-[13px] mt-1 max-w-xs" style={{ color: COLORS.muted }}>Scan a fingerprint or a wristband QR code to pull up a profile or create a new registration.</p>
+                        </div>
+                        {scanState === "scanning" && (
+                          <div className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: COLORS.brand }}>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Contacting biometric scanner…
+                          </div>
+                        )}
+                        {scanState === "idle" && statusMessage && (
+                          <div className="w-full"><InlineBanner tone="danger">{statusMessage}</InlineBanner></div>
+                        )}
                       </div>
-                    )}
-                    {scanState === "idle" && statusMessage && (
-                      <div className="w-full"><InlineBanner tone="danger">{statusMessage}</InlineBanner></div>
                     )}
                   </motion.div>
                 )}
@@ -848,7 +970,13 @@ function RegistrationScreen() {
                       <Avatar name={profile.full_name} size="lg" />
                       <div>
                         <h2 className="font-serif font-medium text-[20px] tracking-tight" style={{ color: COLORS.ink }}>{profile.full_name}</h2>
-                        <div className="mt-1.5"><Chip tone="brand"><CheckCircle className="w-3.5 h-3.5" /> Identity Verified</Chip></div>
+                        <div className="mt-1.5">
+                          {qrBound ? (
+                            <Chip tone="brand"><QrCode className="w-3.5 h-3.5" /> Profile Loaded{qrCode ? ` · ${qrCode}` : ""}</Chip>
+                          ) : (
+                            <Chip tone="brand"><CheckCircle className="w-3.5 h-3.5" /> Identity Verified</Chip>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -873,9 +1001,18 @@ function RegistrationScreen() {
                       </div>
                     )}
 
-                    <Button onClick={handleCheckin} loading={submitting} loadingText="Processing…" className="w-full">
-                      Confirm Check-in &amp; Assign Wristband <ArrowRight className="w-4 h-4" />
-                    </Button>
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                      {qrBound ? (
+                        <Button onClick={reset} className="w-full">Done — Next Person</Button>
+                      ) : (
+                        <Button onClick={handleCheckin} loading={submitting} loadingText="Processing…" className="w-full">
+                          Confirm Check-in &amp; Assign Wristband <ArrowRight className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button variant="secondary" onClick={() => openPersonQr(profile.id)} loading={qrLoading} loadingText="…" className="px-3" aria-label="Show QR">
+                        <QrCode className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </motion.div>
                 )}
 
@@ -920,6 +1057,9 @@ function RegistrationScreen() {
 
                         <Button onClick={() => setShowReenrollConfirm(true)} loading={submitting} loadingText="Re-enrolling fingerprint…" className="w-full">
                           <Link2 className="w-4 h-4" /> Re-enroll Fingerprint
+                        </Button>
+                        <Button variant="secondary" onClick={() => openPersonQr(profile.id)} loading={qrLoading} loadingText="Loading QR…" className="w-full">
+                          <QrCode className="w-4 h-4" /> Show QR
                         </Button>
                         <Button variant="secondary" onClick={() => { setReturningPerson(null); setNotFoundView("returning"); }} className="w-full">
                           Not this person — search again
@@ -1076,6 +1216,8 @@ function RegistrationScreen() {
           confirmText="Re-enroll"
           variant="warning"
         />
+
+        <QrCardModal data={qrData} onClose={() => setQrData(null)} />
       </div>
     </div>
   );
