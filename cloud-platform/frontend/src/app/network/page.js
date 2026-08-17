@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Radio, RefreshCw, Activity, Gauge, Layers, Zap, Cpu, Network, ShieldCheck, Server, Terminal, CheckCircle2, ArrowDown } from 'lucide-react'
+import { Radio, Activity, Gauge, Layers, Zap, Server, Terminal, CheckCircle2, ShieldCheck } from 'lucide-react'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
-import Button from '@/components/common/Button'
 import KpiCard from '@/components/dashboard/KpiCard'
-import MiniStat from '@/components/dashboard/MiniStat'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import StatusDonut from '@/components/dashboard/StatusDonut'
 import { P } from '@/components/alert/alertPalette'
@@ -49,19 +47,6 @@ function Chip({ children, color = P.muted, style }) {
     }}>
       {children}
     </span>
-  )
-}
-
-function FeatureRow({ num, title, body }) {
-  return (
-    <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
-      <span style={{ fontSize: '1.4rem', fontWeight: 300, color: P.muted, flexShrink: 0 }}>{num}</span>
-      <div style={{ width: 34, height: 2, background: P.muted, marginTop: '0.9rem', flexShrink: 0 }} />
-      <div>
-        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: P.ink, margin: 0 }}>{title}</p>
-        <p style={{ fontSize: '0.82rem', color: P.muted, marginTop: '2px', lineHeight: 1.5 }}>{body}</p>
-      </div>
-    </div>
   )
 }
 
@@ -186,17 +171,13 @@ export default function NetworkPage() {
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${P.border}; border-radius: 9999px; }
         @keyframes netPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        @keyframes netSpin { to { transform: rotate(360deg); } }
         .net-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
         .net-hero { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.25rem; }
         .net-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .net-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.9rem; }
         @media (max-width: 1150px) { .net-hero, .net-two { grid-template-columns: 1fr; } }
         @media (max-width: 900px) { .net-kpi { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 560px) {
-          .net-kpi { grid-template-columns: 1fr; }
-          .net-strip { grid-template-columns: repeat(2, 1fr); }
-        }
+        @media (max-width: 640px) { .net-donut-wrap { display: none !important; } }
+        @media (max-width: 560px) { .net-kpi { grid-template-columns: 1fr; } }
       `}</style>
 
       <div style={{ minHeight: '100svh', background: P.outer, fontFamily: "'Inter',sans-serif", color: P.ink, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
@@ -231,84 +212,48 @@ export default function NetworkPage() {
                 {kpis.map((k) => <KpiCard key={k.label} {...k} />)}
               </div>
 
-              {/* ── Hero — alert-page composition ─────────────────────── */}
+              {/* ── Hero — Live Link Quality with embedded delivery donut ── */}
               <div className="net-hero">
                 {/* left copy panel */}
-                <div style={{ position: 'relative', overflow: 'hidden', background: P.panel, border: `1px solid ${P.border}`, borderRadius: '1.75rem', padding: 'clamp(1.1rem, 2.5vw, 1.75rem)', boxShadow: '0 30px 70px rgba(20,30,40,0.18)', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-                  <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>
-                      <Radio size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Live Link Quality
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-                      <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: '2.1rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: stateColor }}>
-                        {networkState}
-                      </h2>
-                      <span style={{ width: 12, height: 12, borderRadius: '50%', background: stateColor, boxShadow: `0 0 14px ${stateColor}`, animation: 'netPulse 2s infinite' }} />
-                    </div>
-                    <p style={{ fontSize: '0.72rem', fontWeight: 700, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>
-                      Predicted state · 60 seconds ahead
-                    </p>
+                <div style={{ position: 'relative', overflow: 'hidden', background: P.panelSoft, borderRadius: '1.5rem', padding: 'clamp(1.25rem, 3vw, 2.25rem)', minHeight: 250, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', width: 'fit-content', background: P.card, borderRadius: 999, padding: '5px 14px', fontSize: '0.78rem', fontWeight: 700, color: P.inkSoft, border: `1px solid ${P.border}` }}>
+                    <Radio size={13} color={P.teal} /> Live Link Quality
+                  </span>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: 'clamp(2rem, 3vw, 2.6rem)', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: stateColor }}>
+                      {networkState}
+                    </h2>
+                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: stateColor, boxShadow: `0 0 14px ${stateColor}`, animation: 'netPulse 2s infinite' }} />
                   </div>
 
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: P.ink, lineHeight: 1.35, margin: 0 }}>
-                    Adaptive MQTT routing that never drops a critical message.
-                  </h3>
-                  <p style={{ fontSize: '0.85rem', color: P.muted, lineHeight: 1.6, margin: 0 }}>
-                    The Semantic-Aware Adaptive Message Protocol inspects every hop in near real-time, classifies link health, and re-routes priority traffic before quality degrades.
+                  <p style={{ fontSize: '0.8rem', color: P.muted, fontWeight: 600, margin: 0, maxWidth: 300, lineHeight: 1.5 }}>
+                    Predicted 60s ahead by a Random Forest over 19 live link features.
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginTop: '0.25rem' }}>
-                    <FeatureRow num="01" title="ML Classification" body="A Random Forest model scores 19 live link features to forecast state 60s ahead." />
-                    <FeatureRow num="02" title="Adaptive QoS" body="Delivery guarantees adapt per priority class and predicted state, from QoS 0 to QoS 2." />
-                    <FeatureRow num="03" title="Smart Buffering" body="Critical records queue locally and flush in priority order the moment the bridge reconnects." />
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxWidth: 300 }}>
+                    <Chip color={P.green}>✓ {delivered} sent</Chip>
+                    <Chip color={P.amber}>⟳ {buffered} buffered</Chip>
+                    <Chip color={P.red}>✕ {dropped} dropped</Chip>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                    <Chip color={P.teal}><Cpu size={11} /> Random Forest · 19 features</Chip>
-                    <Chip color={P.purple}><Zap size={11} /> &lt;5ms inference · Pi 5</Chip>
-                    <Chip color={BLUE}><Network size={11} /> QoS 0–2</Chip>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                    <Button onClick={() => document.getElementById('net-log')?.scrollIntoView({ behavior: 'smooth' })} icon={<ArrowDown size={15} />}>
-                      Follow Live Log
-                    </Button>
-                    <MiniStat label="Inference" value="<5ms" icon={<Zap size={12} />} color={P.purple} />
-                    <MiniStat label="Features" value="19" icon={<Cpu size={12} />} color={P.teal} />
-                    <MiniStat label="Bridge" value={bridgeAlive ? 'UP' : 'DOWN'} icon={<Server size={12} />} color={bridgeAlive ? P.green : P.red} />
-                  </div>
-
-                  {/* floating decor dots */}
-                  <span style={{ position: 'absolute', top: 34, right: 44, width: 12, height: 12, borderRadius: '50%', background: P.teal, opacity: 0.5, animation: 'netPulse 4s ease-in-out infinite' }} />
-                  <span style={{ position: 'absolute', top: 74, right: 70, width: 7, height: 7, borderRadius: '50%', background: P.lime, opacity: 0.8, animation: 'netPulse 5s ease-in-out infinite' }} />
-                  <span style={{ position: 'absolute', bottom: 46, right: 36, width: 9, height: 9, borderRadius: '50%', background: P.purple, opacity: 0.35, animation: 'netPulse 4.5s ease-in-out infinite' }} />
-                </div>
-
-                {/* right widget stack */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-                  <DashboardCard
-                    title="Delivery Rate"
-                    subtitle="Critical messages · target ≥ 95%"
-                    right={<Chip color={drColor}>{deliveryRate}%</Chip>}
-                    bodyStyle={{ alignItems: 'center' }}
-                  >
+                  {/* embedded delivery donut */}
+                  <div className="net-donut-wrap" style={{ position: 'absolute', right: 'clamp(0.5rem, 3vw, 2.5rem)', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <StatusDonut
                       segments={[
                         { color: P.green, value: delivered },
                         { color: P.amber, value: buffered },
                         { color: P.red, value: dropped },
                       ]}
-                      size={176}
+                      size={190}
                       center={`${deliveryRate}%`}
                       label="Delivered"
                     />
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                      <Chip color={P.green}>✓ {delivered} sent</Chip>
-                      <Chip color={P.amber}>⟳ {buffered} buffered</Chip>
-                      <Chip color={P.red}>✕ {dropped} dropped</Chip>
-                    </div>
-                  </DashboardCard>
+                  </div>
+                </div>
 
+                {/* right widget stack */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
                   <div style={{ background: P.dark, color: '#fff', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', boxShadow: '0 30px 70px rgba(20,30,40,0.25)' }}>
                     <div style={{ fontSize: '0.66rem', fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
                       ML Prediction · 60s ahead
@@ -317,12 +262,10 @@ export default function NetworkPage() {
                       <span style={{ fontSize: '1.9rem', fontWeight: 800, color: stateColor, letterSpacing: '-0.02em' }}>{networkState}</span>
                       <span style={{ width: 9, height: 9, borderRadius: '50%', background: stateColor, boxShadow: `0 0 12px ${stateColor}`, animation: 'netPulse 2s infinite' }} />
                     </div>
-                    <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', margin: '6px 0 0', lineHeight: 1.5 }}>
-                      Random Forest classification over 19 live link features, inferring on-device in under five milliseconds.
-                    </p>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
                       <span style={{ background: P.lime, color: P.dark, borderRadius: 999, padding: '3px 11px', fontSize: '0.62rem', fontWeight: 800 }}><Zap size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> Pi 5</span>
                       <span style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', color: '#fff', borderRadius: 999, padding: '3px 11px', fontSize: '0.62rem', fontWeight: 800 }}>19 features</span>
+                      <span style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', color: '#fff', borderRadius: 999, padding: '3px 11px', fontSize: '0.62rem', fontWeight: 800 }}>&lt;5ms</span>
                     </div>
                   </div>
 
@@ -339,8 +282,7 @@ export default function NetworkPage() {
               <div className="net-two">
                 <DashboardCard
                   title="QoS Decision Matrix"
-                  subtitle="How each priority class is treated per predicted link state"
-                  right={<Chip color={P.teal}><Network size={11} /> Adaptive</Chip>}
+                  subtitle="Priority handling per predicted link state"
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: '82px repeat(4, 1fr)', gap: 6 }}>
                     <div />
@@ -372,7 +314,7 @@ export default function NetworkPage() {
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.4rem' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.2rem' }}>
                     Buffer flush order on reconnect
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -391,19 +333,9 @@ export default function NetworkPage() {
 
                 <DashboardCard
                   title="Delivery Statistics"
-                  subtitle="Message outcomes since session start"
+                  subtitle="Session totals · target ≥ 95% critical delivery"
                   right={<Chip color={drColor}>{+deliveryRate >= 95 ? 'ON TARGET' : 'BELOW TARGET'}</Chip>}
                 >
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>Critical Delivery Rate</div>
-                    <div style={{ fontSize: '2.6rem', fontWeight: 800, color: drColor, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-                      {deliveryRate}<span style={{ fontSize: '1.3rem' }}>%</span>
-                    </div>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>target ≥ 95%</div>
-                    <div style={{ height: 8, borderRadius: 99, background: P.cardSoft, overflow: 'hidden', marginTop: 12 }}>
-                      <div style={{ width: `${Math.min(+deliveryRate, 100)}%`, height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${drColor}88, ${drColor})`, transition: 'width 1.2s ease' }} />
-                    </div>
-                  </div>
                   <div>
                     {[
                       { label: 'Total Sent',        value: s.total_sent || 0,        color: P.green },
@@ -425,7 +357,7 @@ export default function NetworkPage() {
               <div className="net-two">
                 <DashboardCard
                   title="Live Message Log"
-                  subtitle="SAAMP semantic classification in action"
+                  subtitle="Semantic classification in action"
                   right={
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', fontWeight: 800, color: P.green, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '3px 10px' }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: P.green, boxShadow: `0 0 6px ${P.green}`, animation: 'netPulse 2s infinite' }} />
@@ -485,16 +417,6 @@ export default function NetworkPage() {
                     </div>
                   )}
                 </DashboardCard>
-              </div>
-
-              {/* ── bottom metric strip ───────────────────────────────── */}
-              <div className="net-strip">
-                <MiniStat label="Jitter" value={`${fmt(m.jitter)}ms`} icon={<Activity size={12} />} color={valColor(m.jitter || 0, 15, 50)} />
-                <MiniStat label="Bandwidth" value={`${m.bandwidth || 0} Mbps`} icon={<Activity size={12} />} color={BLUE} />
-                <MiniStat label="Drop Rate" value={`${m.drop_rate || 0}/s`} icon={<Layers size={12} />} color={m.drop_rate > 2 ? P.red : m.drop_rate > 0 ? '#F97316' : P.green} />
-                <MiniStat label="WiFi Clients" value={m.clients || 0} icon={<Radio size={12} />} color={P.green} />
-                <MiniStat label="Throughput" value={`${fmt(m.throughput)} msg/s`} icon={<Zap size={12} />} color={valColor(m.throughput || 0, 5, 12, true)} />
-                <MiniStat label="Queue Δ" value={`${(m.queue_delta || 0) >= 0 ? '+' : ''}${m.queue_delta || 0}`} icon={<Gauge size={12} />} color={m.queue_delta > 10 ? '#F97316' : m.queue_delta > 0 ? P.amber : P.green} />
               </div>
             </div>
           </main>
