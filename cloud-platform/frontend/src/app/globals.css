@@ -1,5 +1,54 @@
 @import "tailwindcss";
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Design tokens — single source of truth for the colour palette.
+   Generated as Tailwind v4 theme (via @theme) + CSS variables (:root).
+   Mirror the JS tokens in @/components/common/theme.js.
+   ══════════════════════════════════════════════════════════════════════════ */
+@theme {
+  /* Neutrals / backgrounds */
+  --color-navy: #0A2540;          /* page background (admin) */
+  --color-navy-deep: #071B30;     /* header / chrome background */
+  --color-navy-card: #1E3A5F;     /* card surfaces */
+  --color-navy-light: #243B5E;    /* skeleton / lighter card surface */
+  --color-panel: #0D1F35;         /* sub-panel surface */
+  --color-sky: #F0F9FF;           /* light page background */
+  --color-surface: #FFFFFF;
+
+  /* Borders / lines */
+  --color-border: #2D4A70;        /* dark chrome border */
+  --color-line: #1E3A5F;          /* panel inner border */
+
+  /* Brand accents */
+  --color-teal: #0D9488;
+  --color-teal-mid: #14B8A6;
+  --color-teal-light: #CCFBF1;
+  --color-coral: #F97316;
+  --color-coral-light: #FED7AA;
+
+  /* Status */
+  --color-amber: #F59E0B;
+  --color-warn: #F59E0B;
+  --color-yellow: #FACC15;
+  --color-green: #22C55E;
+  --color-good: #22C55E;
+  --color-red: #F87171;
+  --color-danger: #EF4444;
+  --color-offline: #EF4444;
+  --color-purple: #A78BFA;
+  --color-blue: #60A5FA;
+  --color-weak: #F59E0B;
+  --color-poor: #F97316;
+  --color-routine: #4A90D9;
+
+  /* Text */
+  --color-text: #E2E8F0;
+  --color-text-primary: #FFFFFF;
+  --color-muted: #94A3B8;
+  --color-dim: #94A3B8;
+  --color-slate: #64748B;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -36,64 +85,29 @@
 
 @layer base {
   body {
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
     background-color: var(--sky-bg);
     color: var(--navy);
-    font-size: 24px;
-    line-height: 1.6;
-  }
-
-  /* Mobile-first font scaling */
-  @media (max-width: 640px) {
-    body {
-      font-size: 28px;
-    }
-    h1 {
-      font-size: 3.25rem;
-      line-height: 1.2;
-    }
-    h2 {
-      font-size: 2.75rem;
-      line-height: 1.3;
-    }
-    h3 {
-      font-size: 2rem;
-      line-height: 1.4;
-    }
-  }
-
-  /* Tablet */
-  @media (min-width: 641px) and (max-width: 1024px) {
-    body {
-      font-size: 25px;
-    }
-    h1 {
-      font-size: 2.8rem;
-    }
-    h2 {
-      font-size: 2.3rem;
-    }
-    h3 {
-      font-size: 1.7rem;
-    }
-  }
-
-  /* Desktop */
-  @media (min-width: 1025px) {
-    h1 {
-      font-size: 2.5rem;
-    }
-    h2 {
-      font-size: 2rem;
-    }
-    h3 {
-      font-size: 1.6rem;
-    }
+    font-size: 16px;
+    line-height: 1.5;
   }
 
   h1, h2, h3 {
-    font-family: 'Baloo 2', cursive;
+    font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
     color: var(--navy);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.1rem; }
+
+  /* Mobile-first font scaling */
+  @media (max-width: 640px) {
+    body { font-size: 15px; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.15rem; }
+    h3 { font-size: 1rem; }
   }
 }
 
@@ -149,7 +163,7 @@
 
   .label-sinhala {
     @apply text-3xl font-bold;
-    font-family: 'Baloo 2', cursive;
+    font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
     color: var(--navy);
   }
 
@@ -396,4 +410,52 @@
       font-size: 3.25rem;
     }
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Responsive full-width dashboard layout helpers (Tailwind v4 utilities).
+   ══════════════════════════════════════════════════════════════════════════ */
+@layer utilities {
+  .grid-auto   { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+  .grid-2      { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .grid-3      { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .grid-kpi    { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; }
+  .grid-toolbar { display: grid; grid-template-columns: 1fr 200px auto; gap: 0.75rem; align-items: center; }
+  .grid-panel  { display: grid; grid-template-columns: 1fr 380px; gap: 18px; }
+  .dash-body   { display: flex; flex: 1; width: 100%; }
+  .disaster-grid   { grid-template-columns: 250px 1fr 320px; }
+  .disaster-grid-5 { grid-template-columns: repeat(5, 1fr); }
+  .disaster-grid-2 { grid-template-columns: 1fr 1fr; }
+  .detail-grid      { grid-template-columns: 420px 1fr; }
+  .detail-terrain   { grid-template-columns: 1fr 328px; }
+  .detail-stats5    { grid-template-columns: repeat(5, 1fr); }
+  .detail-sections  { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 1100px) {
+  .grid-kpi   { grid-template-columns: repeat(2, 1fr); }
+  .grid-3     { grid-template-columns: repeat(2, 1fr); }
+  .grid-panel { grid-template-columns: 1fr; }
+  .disaster-grid   { grid-template-columns: 1fr; }
+  .disaster-grid-5 { grid-template-columns: repeat(3, 1fr); }
+  .detail-grid     { grid-template-columns: 1fr; }
+  .detail-stats5   { grid-template-columns: repeat(3, 1fr); }
+  .detail-sections { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .grid-2, .grid-3, .grid-kpi { grid-template-columns: 1fr; }
+  .grid-toolbar { grid-template-columns: 1fr; }
+  .dash-body { flex-direction: column; overflow: visible; }
+  .camp-sidebar { width: 100% !important; max-height: 200px; flex-direction: row !important; overflow-x: auto; overflow-y: hidden; }
+  .camp-sidebar > div:first-child { display: none; }
+  .camp-sidebar button { flex: 0 0 auto; }
+  header.smartcamp-header { padding-left: 56px !important; }
+  .pad-top-rail { padding-top: 56px; }
+  .disaster-grid-5 { grid-template-columns: repeat(2, 1fr); }
+  .disaster-grid-2 { grid-template-columns: 1fr; }
+  .detail-grid     { grid-template-columns: 1fr; }
+  .detail-terrain  { grid-template-columns: 1fr; }
+  .detail-stats5   { grid-template-columns: repeat(2, 1fr); }
+  .detail-sections { grid-template-columns: 1fr; }
 }

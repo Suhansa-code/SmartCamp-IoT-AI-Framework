@@ -167,8 +167,6 @@ function ChildEducationScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [payload, setPayload] = useState(null);
-  const [autoLoaded, setAutoLoaded] = useState(false);
-
   const [children, setChildren] = useState([]);
   const [childrenLoading, setChildrenLoading] = useState(true);
   const [childrenError, setChildrenError] = useState("");
@@ -219,18 +217,6 @@ function ChildEducationScreen() {
     }
   };
 
-  useEffect(() => {
-    if (autoLoaded) return;
-    const cachedChild =
-      localStorage.getItem("selectedChildId") ||
-      sessionStorage.getItem("selectedChildId");
-    if (cachedChild) {
-      setChildId(cachedChild);
-      setAutoLoaded(true);
-      loadChild(cachedChild);
-    }
-  }, [autoLoaded]);
-
   const stats = payload?.stats || {};
   const child = payload?.child || null;
   const sessions = payload?.sessions || [];
@@ -268,7 +254,7 @@ function ChildEducationScreen() {
           <AnimatePresence>
             {error && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                <ErrorState message={error} className="mt-3 border-0 p-3" style={{ backgroundColor: TONE.danger.bg, color: TONE.danger.color }} />
+                <ErrorState title="Could not load child" message={error} className="mt-3 border-0 p-3" style={{ backgroundColor: TONE.danger.bg, color: TONE.danger.color }} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -400,7 +386,7 @@ function ChildEducationScreen() {
 
             {childrenError && (
               <div className="mb-3">
-                <ErrorState message={childrenError} onRetry={fetchChildren} retryText="Retry" className="border-0 p-3" style={{ backgroundColor: TONE.danger.bg, color: TONE.danger.color }} />
+                <ErrorState title="Could not load children" message={childrenError} onRetry={fetchChildren} retryText="Retry" className="border-0 p-3" style={{ backgroundColor: TONE.danger.bg, color: TONE.danger.color }} />
               </div>
             )}
 
