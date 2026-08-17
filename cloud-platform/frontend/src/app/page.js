@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import SideNav from '@/components/common/SideNav'
-import PageHeader from '@/components/common/PageHeader'
+import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
@@ -260,17 +260,20 @@ export default function DashboardPage() {
       }}>
         <SideNav />
 
-        <main style={{ padding: '1.5rem 2rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* ── Shared header ── */}
+        <HeaderShell>
           <PageHeader
             search={{
               value: searchText,
               onChange: setSearchText,
               placeholder: 'Search by camp name, code, or location…',
+              onRefresh: () => loadAll(true),
+              refreshing,
             }}
             pendingCount={overallAlerts}
           />
+        </HeaderShell>
 
+        <main style={{ padding: '1.5rem 2rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* ── Title strip ── */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>

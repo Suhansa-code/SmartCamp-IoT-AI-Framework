@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import SideNav from '@/components/common/SideNav'
-import PageHeader from '@/components/common/PageHeader'
+import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { GraduationCap, Users, BookOpen, BellRing, ArrowLeft, AlertTriangle, CheckCircle2, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
 
@@ -258,6 +258,7 @@ export default function EducationPage() {
   const [loadingCamps, setLoadingCamps] = useState(true)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [search, setSearch] = useState('')
 
   async function loadCamps(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -338,6 +339,17 @@ export default function EducationPage() {
 
   const meta = selectedId ? campMeta(selectedId) : null
 
+  const visibleCamps = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return camps
+    return camps.filter((c) => {
+      const m = campMeta(c.id)
+      return m.name.toLowerCase().includes(q)
+        || m.code.toLowerCase().includes(q)
+        || m.location.toLowerCase().includes(q)
+    })
+  }, [camps, search])
+
   return (
     <>
       <style>{`
@@ -352,12 +364,20 @@ export default function EducationPage() {
 
         <SideNav />
 
-        <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
+        <HeaderShell>
+          <PageHeader
+            pendingCount={totals.alerts}
+            search={{
+              value: search,
+              onChange: setSearch,
+              placeholder: 'Search camps by name, code, location…',
+              onRefresh: () => loadCamps(true),
+              refreshing,
+            }}
+          />
+        </HeaderShell>
 
-          {/* Shared header */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <PageHeader pendingCount={totals.alerts} />
-          </div>
+        <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
 
           {/* Page heading */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: '1.25rem' }}>
@@ -624,7 +644,7 @@ export default function EducationPage() {
 
               {/* Camp cards */}
               <div className="grid-auto">
-                {camps.map((camp) => {
+                {visibleCamps.map((camp) => {
                   const m = campMeta(camp.id)
                   const alertTone = (camp.pending_alerts || 0) > 0 ? T.red : T.green
                   return (

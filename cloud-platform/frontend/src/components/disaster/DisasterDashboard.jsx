@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DONUT_SEGS, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disasterData'
 import { DisasterGeoMap } from './DisasterGeoMap'
 import { DisasterCampSummaryPanel } from './DisasterCampSummaryPanel'
 import { DonutChart, Ring, Sparkline, ThemeToggle, TrendChart } from './DisasterVisuals'
 import SideNav from '@/components/common/SideNav'
-import PageHeader from '@/components/common/PageHeader'
+import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 
 const DARK = {
   mode: 'dark',
@@ -77,10 +77,28 @@ export default function DisasterDashboard() {
   const [selectedDetail, setSelectedDetail] = useState(null)
   const [selectedDetailLoading, setSelectedDetailLoading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [utc, setUtc] = useState('')
   const [tick, setTick] = useState(0)
+  const [search, setSearch] = useState('')
   const theme = mode === 'dark' ? DARK : LIGHT
+
+  const loadOverview = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`${DISASTER_API_BASE}/api/disaster/overview`)
+      const payload = res.ok ? await res.json() : null
+      setOverview(payload)
+    } catch (err) {
+      setOverview(null)
+      setError(err instanceof Error ? err.message : 'Failed to load disaster overview')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
 
   useEffect(() => {
     setUtc(formatSriLankaTime())
@@ -92,32 +110,8 @@ export default function DisasterDashboard() {
   }, [])
 
   useEffect(() => {
-    let active = true
-
-    async function loadOverview() {
-      setLoading(true)
-      setError('')
-
-      try {
-        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/overview`)
-        const payload = res.ok ? await res.json() : null
-        if (!active) return
-        setOverview(payload)
-      } catch (err) {
-        if (!active) return
-        setOverview(null)
-        setError(err instanceof Error ? err.message : 'Failed to load disaster overview')
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
     loadOverview()
-
-    return () => {
-      active = false
-    }
-  }, [])
+  }, [loadOverview])
 
   useEffect(() => {
     let active = true
@@ -155,6 +149,15 @@ export default function DisasterDashboard() {
 
   const camps = overview?.camps || []
   const mapNodes = overview?.map_nodes || camps
+  const filteredCamps = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return camps
+    return camps.filter((camp) =>
+      camp.name.toLowerCase().includes(q)
+      || camp.code.toLowerCase().includes(q)
+      || camp.type.toLowerCase().includes(q),
+    )
+  }, [camps, search])
   const selectedCamp = useMemo(() => camps.find((camp) => camp.id === selected) || null, [camps, selected])
   const totalDisplaced = overview?.total_displaced || camps.reduce((sum, camp) => sum + camp.displaced, 0)
   const totalWorkers = overview?.total_workers || camps.reduce((sum, camp) => sum + camp.workers, 0)
@@ -172,12 +175,26 @@ export default function DisasterDashboard() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, paddingLeft: 'calc(var(--rail-width, 236px) + 18px)', transition: 'background 0.3s, padding-left 0.2s ease', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: theme.bg, paddingLeft: 'var(--rail-width, 236px)', transition: 'background 0.3s, padding-left 0.2s ease', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
       <SideNav />
-      <div style={{ padding: '18px 18px 4px' }}>
-        <PageHeader pendingCount={statusCounts.high} escalatedCount={statusCounts.critical} />
-      </div>
-      <div style={{ width: '100%', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
+      <HeaderShell>
+        <PageHeader
+          pendingCount={statusCounts.high}
+          escalatedCount={statusCounts.critical}
+          search={{
+            value: search,
+            onChange: setSearch,
+            placeholder: 'Search active camps…',
+            onRefresh: () => {
+              setRefreshing(true)
+              loadOverview()
+            },
+            refreshing: refreshing || loading,
+          }}
+        />
+      </HeaderShell>
+      <div style={{ padding: 18 }}>
+      <div style={{ width: '100%', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 104px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -226,7 +243,7 @@ export default function DisasterDashboard() {
             <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
               <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>ACTIVE CAMPS</div>
               <div style={{ maxHeight: 284, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${theme.border} ${theme.bg}` }}>
-                {camps.map((camp) => {
+                {filteredCamps.map((camp) => {
                   const isSelected = selected === camp.id
                   const color = { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[camp.status]
 
@@ -382,6 +399,7 @@ export default function DisasterDashboard() {
             </div>
           </aside>
         </div>
+      </div>
       </div>
 
       <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }`}</style>

@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import SideNav from '@/components/common/SideNav'
-import PageHeader from '@/components/common/PageHeader'
+import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import OverviewPanel from '@/components/resources/OverviewPanel'
 import { useTheme } from '@/components/common/ThemeProvider'
 
@@ -12,6 +13,9 @@ import { useTheme } from '@/components/common/ThemeProvider'
 
 export default function ResourcesPage() {
   const { T } = useTheme()
+  const [search, setSearch] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const LiveBadge = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6,
@@ -38,9 +42,17 @@ export default function ResourcesPage() {
         <SideNav />
 
         {/* ── Shared header ──────────────────────────────── */}
-        <div style={{ padding: '1.25rem 2rem 0' }}>
-          <PageHeader />
-        </div>
+        <HeaderShell>
+          <PageHeader
+            search={{
+              value: search,
+              onChange: setSearch,
+              placeholder: 'Search registrations & events…',
+              onRefresh: () => setRefreshKey((k) => k + 1),
+              refreshing,
+            }}
+          />
+        </HeaderShell>
 
         {/* ── Section label ──────────────────────────────── */}
         <div style={{ padding: '1.25rem 2rem 0', display: 'flex', alignItems: 'center', flexWrap: 'wrap',
@@ -62,7 +74,7 @@ export default function ResourcesPage() {
 
         {/* ── Cloud overview panel ───────────────────────── */}
         <main style={{ width: '100%' }}>
-          <OverviewPanel />
+          <OverviewPanel search={search} refreshKey={refreshKey} onLoading={setRefreshing} />
         </main>
       </div>
     </>

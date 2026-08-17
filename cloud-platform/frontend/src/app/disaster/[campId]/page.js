@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { STATUS_META, statusColor } from '@/components/disaster/disasterData'
 import SideNav from '@/components/common/SideNav'
-import PageHeader from '@/components/common/PageHeader'
+import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import { useTheme } from '@/components/common/ThemeProvider'
 
 // Applies the global navigation rail + offsets content to the right of it.
@@ -70,6 +70,8 @@ export default function DisasterCampDetailPage() {
   const [camp, setCamp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
 
   const campId = Array.isArray(params?.campId) ? params.campId[0] : params?.campId
   const { T, mode } = useTheme()
@@ -280,6 +282,28 @@ export default function DisasterCampDetailPage() {
     }
   }
 
+  const refreshCamp = useCallback(async () => {
+    if (!campId) return
+    setRefreshing(true)
+    setError('')
+    try {
+      const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}`)
+      const payload = res.ok ? await res.json() : null
+      setCamp(payload)
+      if (!payload) setError('Camp not found')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reload camp detail')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [campId])
+
+  const detailMatch = (label, value) => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return String(label).toLowerCase().includes(q) || String(value ?? '').toLowerCase().includes(q)
+  }
+
   if (loading) {
     return (
       <WithRail>
@@ -319,9 +343,17 @@ export default function DisasterCampDetailPage() {
 
   return (
     <WithRail>
-    <div style={{ padding: '18px 18px 0' }}>
-      <PageHeader />
-    </div>
+    <HeaderShell>
+      <PageHeader
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Search camp detail…',
+          onRefresh: refreshCamp,
+          refreshing,
+        }}
+      />
+    </HeaderShell>
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: "'Inter','Segoe UI',sans-serif", transition: 'background 0.3s' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -485,20 +517,20 @@ export default function DisasterCampDetailPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                 <Section title="Camp snapshot" theme={theme}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, height: '100%' }}>
-                    <InfoCard label="Displaced" value={camp.displaced.toLocaleString()} tone={theme.orange} theme={theme} style={{ height: '100%' }} />
-                    <InfoCard label="Capacity" value={camp.capacity.toLocaleString()} tone={theme.t0} theme={theme} style={{ height: '100%' }} />
-                    <InfoCard label="Occupancy" value={`${occupancy}%`} tone={theme.yellow} theme={theme} style={{ height: '100%' }} />
-                    <InfoCard label="Aid coverage" value={`${camp.aid}%`} tone={theme.green} theme={theme} style={{ height: '100%' }} />
+                    {detailMatch('Displaced', camp.displaced.toLocaleString()) && <InfoCard label="Displaced" value={camp.displaced.toLocaleString()} tone={theme.orange} theme={theme} style={{ height: '100%' }} />}
+                    {detailMatch('Capacity', camp.capacity.toLocaleString()) && <InfoCard label="Capacity" value={camp.capacity.toLocaleString()} tone={theme.t0} theme={theme} style={{ height: '100%' }} />}
+                    {detailMatch('Occupancy', `${occupancy}%`) && <InfoCard label="Occupancy" value={`${occupancy}%`} tone={theme.yellow} theme={theme} style={{ height: '100%' }} />}
+                    {detailMatch('Aid coverage', `${camp.aid}%`) && <InfoCard label="Aid coverage" value={`${camp.aid}%`} tone={theme.green} theme={theme} style={{ height: '100%' }} />}
                   </div>
                 </Section>
 
                 <Section title="Camp details" theme={theme}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <Row label="Camp code" value={camp.code} tone={theme.t0} theme={theme} />
-                    <Row label="Disaster type" value={camp.type} tone={theme.t0} theme={theme} />
-                    <Row label="Camp elevation" value={campElevation} tone={theme.cyan} theme={theme} />
-                    <Row label="Workers" value={camp.workers} tone={theme.cyan} theme={theme} />
-                    <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={theme.t0} theme={theme} />
+                    {detailMatch('Camp code', camp.code) && <Row label="Camp code" value={camp.code} tone={theme.t0} theme={theme} />}
+                    {detailMatch('Disaster type', camp.type) && <Row label="Disaster type" value={camp.type} tone={theme.t0} theme={theme} />}
+                    {detailMatch('Camp elevation', campElevation) && <Row label="Camp elevation" value={campElevation} tone={theme.cyan} theme={theme} />}
+                    {detailMatch('Workers', camp.workers) && <Row label="Workers" value={camp.workers} tone={theme.cyan} theme={theme} />}
+                    {detailMatch('Location', `${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`) && <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={theme.t0} theme={theme} />}
                   </div>
                 </Section>
               </div>

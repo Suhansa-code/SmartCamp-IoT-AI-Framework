@@ -113,15 +113,17 @@ function EventRow({ event }) {
 
 // ── main component ─────────────────────────────────────────────────────────────
 
-export default function OverviewPanel() {
+export default function OverviewPanel({ search = '', refreshKey = 0, onLoading }) {
   const { T } = useTheme()
   const [data,       setData]       = useState(null)
   const [loading,    setLoading]    = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error,      setError]      = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [,           setTick]       = useState(0)
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async ({ refresh = false } = {}) => {
+    if (refresh) setRefreshing(true)
     try {
       const res = await fetch(`${API}/api/resources/overview`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -132,6 +134,7 @@ export default function OverviewPanel() {
       setError('Cannot reach cloud backend on port 3001')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [])
 
@@ -140,6 +143,14 @@ export default function OverviewPanel() {
     const id = setInterval(fetchStats, 30_000)
     return () => clearInterval(id)
   }, [fetchStats])
+
+  useEffect(() => {
+    if (refreshKey) fetchStats({ refresh: true })
+  }, [refreshKey, fetchStats])
+
+  useEffect(() => {
+    onLoading?.(refreshing || loading)
+  }, [refreshing, loading, onLoading])
 
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 15_000)
@@ -180,6 +191,11 @@ export default function OverviewPanel() {
   const servedAny   = Object.values(distribution_today).reduce((s, d) => s + d.served, 0)
   const totalSlots  = eligible_for_distribution * 4
   const overallPct  = totalSlots > 0 ? Math.round((servedAny / totalSlots) * 100) : 0
+
+  const q = search.trim().toLowerCase()
+  const matches = (s) => !q || String(s ?? '').toLowerCase().includes(q)
+  const filteredEvents = (recent_events || []).filter((e) => matches(e.summary) || matches(e.type))
+  const filteredRegistrations = recent_registrations.filter((p) => matches(p.full_name) || matches(p.wristband_barcode) || matches(p.age))
 
   return (
     <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -299,13 +315,13 @@ export default function OverviewPanel() {
             letterSpacing: 1, marginBottom: 10 }}>
             📡 Live EMQX Events
           </div>
-          {!recent_events || recent_events.length === 0 ? (
+          {!recent_events || filteredEvents.length === 0 ? (
             <div style={{ fontSize: 13, color: T.slate, textAlign: 'center', padding: '1rem 0' }}>
-              Waiting for events from the camp…
+              {q ? 'No matching events' : 'Waiting for events from the camp…'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {recent_events.slice(0, 10).map((ev, i) => <EventRow key={i} event={ev} />)}
+              {filteredEvents.slice(0, 10).map((ev, i) => <EventRow key={i} event={ev} />)}
             </div>
           )}
         </div>
@@ -316,13 +332,13 @@ export default function OverviewPanel() {
             letterSpacing: 1, marginBottom: 10 }}>
             Recent Registrations
           </div>
-          {recent_registrations.length === 0 ? (
+          {filteredRegistrations.length === 0 ? (
             <div style={{ fontSize: 13, color: T.slate, textAlign: 'center', padding: '1rem 0' }}>
-              No registrations yet
+              {q ? 'No matching registrations' : 'No registrations yet'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {recent_registrations.map(p => (
+              {filteredRegistrations.map(p => (
                 <div key={p.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '8px 12px', background: T.bgSoft,

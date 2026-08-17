@@ -6,6 +6,15 @@ import { Bell, TriangleAlert } from 'lucide-react'
 import { P } from '@/components/alert/alertPalette'
 import SearchBar from '@/components/common/SearchBar'
 
+// Standard offset for the header slot — identical to the alert page's panel
+// padding so the header never shifts when navigating between pages.
+export const HEADER_PADDING = 'clamp(1rem, 2vw, 1.75rem) clamp(1rem, 2vw, 1.75rem) 0'
+
+// Shared header slot — every page renders the header at the same position.
+export function HeaderShell({ children, style }) {
+  return <div style={{ padding: HEADER_PADDING, ...style }}>{children}</div>
+}
+
 // Shared app header — logo · search · alert icons · profile avatar.
 // Mirrors the alert page header exactly; no border (sits directly on the page background).
 // Props:

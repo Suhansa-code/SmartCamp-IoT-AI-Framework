@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import SideNav from '@/components/common/SideNav'
-import PageHeader from '@/components/common/PageHeader'
+import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import Header from '@/components/network/Header'
 import StatCards from '@/components/network/StatCards'
 import MessageLog from '@/components/network/MessageLog'
@@ -28,6 +28,8 @@ export default function NetworkPage() {
   const [stats, setStats] = useState({})
   const [buffer, setBuffer] = useState([])
   const [history, setHistory] = useState([])
+  const [search, setSearch] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
 
   const updateData = useCallback(async () => {
     try {
@@ -48,11 +50,29 @@ export default function NetworkPage() {
     }
   }, [])
 
+  const refresh = useCallback(async () => {
+    setRefreshing(true)
+    await updateData()
+    setRefreshing(false)
+  }, [updateData])
+
   useEffect(() => {
     updateData()
     const interval = setInterval(updateData, 5000)
     return () => clearInterval(interval)
   }, [updateData])
+
+  const filteredMessages = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return messages
+    return messages.filter((m) =>
+      `${m.source || m.source_type || ''}`.toLowerCase().includes(q)
+      || `${m.action || ''}`.toLowerCase().includes(q)
+      || `${m.topic || ''}`.toLowerCase().includes(q)
+      || `${m.priority || ''}`.toLowerCase().includes(q)
+      || `${m.status || ''}`.toLowerCase().includes(q),
+    )
+  }, [messages, search])
 
   return (
     <>
@@ -68,11 +88,19 @@ export default function NetworkPage() {
 
         <SideNav />
 
-        <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <PageHeader />
-          </div>
+        <HeaderShell>
+          <PageHeader
+            search={{
+              value: search,
+              onChange: setSearch,
+              placeholder: 'Filter log by source, action, topic…',
+              onRefresh: refresh,
+              refreshing,
+            }}
+          />
+        </HeaderShell>
 
+        <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
           <Header
             networkState={networkState}
             connected={connected}
@@ -82,7 +110,7 @@ export default function NetworkPage() {
           <StatCards metrics={metrics} history={history} />
 
           <div className="grid-panel" style={{ alignItems: 'start' }}>
-            <MessageLog messages={messages} networkState={networkState} />
+            <MessageLog messages={filteredMessages} networkState={networkState} />
             <NetworkPanel networkState={networkState} metrics={metrics} />
           </div>
 
