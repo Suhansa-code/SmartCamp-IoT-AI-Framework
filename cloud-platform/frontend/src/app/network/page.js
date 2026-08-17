@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Radio, RefreshCw, Activity, Gauge, Layers, Zap, Cpu, Network, ShieldCheck, Server, Terminal, CheckCircle2, ArrowDown } from 'lucide-react'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
+import PageTitle from '@/components/common/PageTitle'
 import Button from '@/components/common/Button'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
@@ -224,35 +225,26 @@ export default function NetworkPage() {
             <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
               {/* ── Title row ─────────────────────────────────────────── */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>
-                    Network Intelligence · Semantic-Aware
-                  </div>
-                  <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: P.ink }}>
-                    SAAMP Network Monitor
-                  </h1>
-                  <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
-                    {connected
-                      ? `Predictive MQTT link quality · Random Forest · 19 features · 60s ahead`
-                      : `Awaiting cloud backend on port ${API_BASE.replace('http://localhost:', '')}…`}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: connected ? P.green : P.red }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: connected ? P.green : P.red, boxShadow: `0 0 8px ${connected ? P.green : P.red}`, animation: 'netPulse 2s infinite' }} />
-                    {connected ? 'LIVE' : 'DISCONNECTED'}
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: `${stateColor}14`, border: `1px solid ${stateColor}44`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 800, color: stateColor }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor, boxShadow: `0 0 8px ${stateColor}` }} />
-                    {networkState}
-                  </span>
-                  <Button variant="circle" onClick={refresh} disabled={refreshing} aria-label="Refresh data">
-                    <RefreshCw size={16} style={refreshing ? { animation: 'netSpin 0.8s linear infinite' } : undefined} />
-                  </Button>
-                </div>
-              </div>
+              <PageTitle
+                title="SAAMP Network Monitor"
+                subtitle={
+                  connected
+                    ? `Predictive MQTT link quality · Random Forest · 19 features · 60s ahead`
+                    : `Awaiting cloud backend on port ${API_BASE.replace('http://localhost:', '')}…`
+                }
+                right={
+                  <>
+                    <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: `${stateColor}14`, border: `1px solid ${stateColor}44`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 800, color: stateColor }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor, boxShadow: `0 0 8px ${stateColor}` }} />
+                      {networkState}
+                    </span>
+                    <Button variant="circle" onClick={refresh} disabled={refreshing} aria-label="Refresh data">
+                      <RefreshCw size={16} style={refreshing ? { animation: 'netSpin 0.8s linear infinite' } : undefined} />
+                    </Button>
+                  </>
+                }
+              />
 
               {/* ── KPI row ────────────────────────────────────────────── */}
               <div className="net-kpi">

@@ -9,6 +9,7 @@ import {
 import { STATUS_META, statusColor, getCampById, CAMP_DETAIL } from '@/components/disaster/disasterData'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
+import PageTitle from '@/components/common/PageTitle'
 import Button from '@/components/common/Button'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
@@ -446,32 +447,26 @@ export default function DisasterCampDetailPage() {
             <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
               {/* ── Title row ─────────────────────────────────────────── */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>
-                    {camp.code} · {camp.type} · Camp Disaster Detail
-                  </div>
-                  <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: P.ink }}>
-                    {camp.name}
-                  </h1>
-                  <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
-                    Past hourly gauging-station water levels · {detail?.station || 'gauging station'}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green, fontFamily: 'monospace' }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'disPulse 2s infinite' }} />
-                    LIVE LK {utc}
-                  </span>
-                  {statusPill}
-                  <Button variant="circle" onClick={refreshCamp} disabled={refreshing} aria-label="Refresh camp data">
-                    <RefreshCw size={16} style={refreshing ? { animation: 'disSpin 0.8s linear infinite' } : undefined} />
-                  </Button>
-                  <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>
-                    Back to Overview
-                  </Button>
-                </div>
-              </div>
+              <PageTitle
+                eyebrow={`${camp.code} · ${camp.type} · Camp Disaster Detail`}
+                title={camp.name}
+                subtitle={`Past hourly gauging-station water levels · ${detail?.station || 'gauging station'}`}
+                right={
+                  <>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green, fontFamily: 'monospace' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'disPulse 2s infinite' }} />
+                      LIVE LK {utc}
+                    </span>
+                    {statusPill}
+                    <Button variant="circle" onClick={refreshCamp} disabled={refreshing} aria-label="Refresh camp data">
+                      <RefreshCw size={16} style={refreshing ? { animation: 'disSpin 0.8s linear infinite' } : undefined} />
+                    </Button>
+                    <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>
+                      Back to Overview
+                    </Button>
+                  </>
+                }
+              />
 
               {/* ── KPI row ────────────────────────────────────────────── */}
               <div className="det-kpi">

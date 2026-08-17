@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ResponsiveContainer, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
+import PageTitle from '@/components/common/PageTitle'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
@@ -350,37 +351,22 @@ export default function EducationPage() {
           />
         </HeaderShell>
 
-        <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{  display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           {/* ══ Big rounded panel — alert-page composition ══ */}
-          <div style={{ background: P.panel, padding: 'clamp(1rem, 2vw, 1.75rem)', boxShadow: '0 30px 70px rgba(20,30,40,0.25)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: P.panel, padding: 'clamp(1rem, 2vw, 1.75rem)',  display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* ── Title row ── */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>Pages Learning Analytics</div>
-                <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: P.ink }}>
-                  {detail ? meta?.name || 'Camp Details' : 'Education Insights'}
-                </h1>
-                <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
-                  {loadingCamps
-                    ? 'Loading camp data…'
-                    : detail
-                      ? `${meta?.code || ''} · ${meta?.location || 'Sector'} · ${detail.children_count} children tracked`
-                      : `${camps.length} camps · ${totals.children.toLocaleString()} children · ${totals.sessions.toLocaleString()} sessions`}
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'eduPulse 2s infinite' }} />
-                  Synced
-                </span>
-                <Button variant="circle" onClick={() => loadCamps(true)} disabled={refreshing} aria-label="Refresh data">
-                  <RefreshCw size={16} style={refreshing ? { animation: 'eduSpin 0.8s linear infinite' } : undefined} />
-                </Button>
-              </div>
-            </div>
+            <PageTitle
+              title={detail ? meta?.name || 'Camp Details' : 'Education Insights'}
+              subtitle={
+                loadingCamps
+                  ? 'Loading camp data…'
+                  : detail
+                    ? `${meta?.code || ''} · ${meta?.location || 'Sector'} · ${detail.children_count} children tracked`
+                    : `${camps.length} camps · ${totals.children.toLocaleString()} children · ${totals.sessions.toLocaleString()} sessions`
+              }
+            />
 
             {/* ── Camp selector pills ── */}
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>

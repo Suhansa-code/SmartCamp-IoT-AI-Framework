@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
+import PageTitle from '@/components/common/PageTitle'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
@@ -281,26 +282,20 @@ export default function DashboardPage() {
 
         <div style={{ padding: '0rem 2rem',  gap: '1.25rem', display: 'flex', flexDirection: 'column',}}>
           {/* ── Title strip ── */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: P.ink }}>
-                Dashboard
-              </h1>
-              <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 400 }}>
-                {loading ? 'Loading live overview…' : `Unified view across ${campRows.length} camps · Education · Resources · Disaster`}
-              </p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.card, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'dashPulse 2s infinite' }} />
-                Live
-              </span>
-              <Button variant="circle" onClick={() => loadAll(true)} disabled={refreshing} aria-label="Refresh data">
-                <RefreshCw size={16} style={refreshing ? { animation: 'dashSpin 0.8s linear infinite' } : undefined} />
-              </Button>
-            </div>
-          </div>
+          <PageTitle
+            title="Dashboard"
+            subtitle={
+              loading ? 'Loading live overview…' : `Unified view across ${campRows.length} camps · Education · Resources · Disaster`
+            }
+            right={
+              <>
+                <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
+                <Button variant="circle" onClick={() => loadAll(true)} disabled={refreshing} aria-label="Refresh data">
+                  <RefreshCw size={16} style={refreshing ? { animation: 'dashSpin 0.8s linear infinite' } : undefined} />
+                </Button>
+              </>
+            }
+          />
 
           {/* ── Filter toolbar ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>

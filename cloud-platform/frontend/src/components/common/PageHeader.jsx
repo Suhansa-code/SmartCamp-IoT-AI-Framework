@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Bell, TriangleAlert } from 'lucide-react'
-import { P } from '@/components/alert/alertPalette'
-import SearchBar from '@/components/common/SearchBar'
-import Button from '@/components/common/Button'
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Bell, TriangleAlert } from "lucide-react";
+import { P } from "@/components/alert/alertPalette";
+import SearchBar from "@/components/common/SearchBar";
+import Button from "@/components/common/Button";
 
 // Shared app header — logo · search · alert icons · profile avatar.
 // Mirrors the alert page header exactly; no border (sits directly on the page background).
@@ -18,25 +18,15 @@ import Button from '@/components/common/Button'
 
 // Shared header wrapper — standardizes the header offset so it never shifts
 // between pages (verified: top 26px, left 262px, full width).
-export const HEADER_PADDING = 'clamp(1rem, 2vw, 1.75rem) clamp(1rem, 2vw, 1.75rem) 0'
+export const HEADER_PADDING = "clamp(1rem, 2vw, 1.75rem) clamp(1rem, 2vw, 1.75rem) 0";
 
 export function HeaderShell({ children, style }) {
-  return (
-    <div style={{ width: '100%', padding: HEADER_PADDING, ...style }}>
-      {children}
-    </div>
-  )
+  return <div style={{ width: "100%", padding: HEADER_PADDING, ...style }}>{children}</div>;
 }
 
-export default function PageHeader({
-  search,
-  pendingCount,
-  escalatedCount,
-  onBellClick,
-  onEscalatedClick,
-}) {
-  const router = useRouter()
-  const goToAlerts = () => router.push('/alert')
+export default function PageHeader({ search, pendingCount, escalatedCount, onBellClick, onEscalatedClick }) {
+  const router = useRouter();
+  const goToAlerts = () => router.push("/alert");
 
   return (
     <>
@@ -45,8 +35,8 @@ export default function PageHeader({
         .smartcamp-page-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
       `}</style>
 
-      <div className="smartcamp-page-header">
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      <div className="flex flex-row gap-4">
+        {/* <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <div
             style={{
               width: 36,
@@ -62,30 +52,24 @@ export default function PageHeader({
             <TriangleAlert size={18} />
           </div>
           <span style={{ fontSize: '1.02rem', fontWeight: 800, color: P.ink }}>smartcamp.</span>
-        </Link>
-
-        {search && <SearchBar {...search} />}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <Button
-            variant="circleOutline"
-            size={40}
-            onClick={onBellClick || goToAlerts}
-            aria-label="Alerts"
-          >
+        </Link> */}
+        <div></div>
+        <div className="flex justify-end items-center w-full">{search && <SearchBar {...search} />}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          <Button variant="circleOutline" size={40} onClick={onBellClick || goToAlerts} aria-label="Alerts">
             <Bell size={17} />
-            {typeof pendingCount === 'number' && pendingCount > 0 && (
+            {typeof pendingCount === "number" && pendingCount > 0 && (
               <span
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: -4,
                   right: -4,
                   background: P.amber,
-                  color: '#fff',
-                  borderRadius: '9999px',
-                  fontSize: '0.62rem',
+                  color: "#fff",
+                  borderRadius: "9999px",
+                  fontSize: "0.62rem",
                   fontWeight: 800,
-                  padding: '1px 5px',
+                  padding: "1px 5px",
                 }}
               >
                 {pendingCount}
@@ -93,25 +77,20 @@ export default function PageHeader({
             )}
           </Button>
 
-          <Button
-            variant="circleOutline"
-            size={40}
-            onClick={onEscalatedClick || goToAlerts}
-            aria-label="Escalated alerts"
-          >
+          <Button variant="circleOutline" size={40} onClick={onEscalatedClick || goToAlerts} aria-label="Escalated alerts">
             <TriangleAlert size={17} />
-            {typeof escalatedCount === 'number' && escalatedCount > 0 && (
+            {typeof escalatedCount === "number" && escalatedCount > 0 && (
               <span
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: -4,
                   right: -4,
                   background: P.purple,
-                  color: '#fff',
-                  borderRadius: '9999px',
-                  fontSize: '0.62rem',
+                  color: "#fff",
+                  borderRadius: "9999px",
+                  fontSize: "0.62rem",
                   fontWeight: 800,
-                  padding: '1px 5px',
+                  padding: "1px 5px",
                 }}
               >
                 {escalatedCount}
@@ -119,37 +98,37 @@ export default function PageHeader({
             )}
           </Button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '0.3rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: P.ink }}>Dr. Perera</span>
-            <div style={{ position: 'relative' }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingLeft: "0.3rem" }}>
+            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: P.ink, textWrap:"nowrap" }}>Dr. Perera</span>
+            <div style={{ position: "relative" }}>
               <div
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #14B8A6, #0D9488)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #14B8A6, #0D9488)",
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   fontWeight: 800,
-                  fontSize: '0.78rem',
+                  fontSize: "0.78rem",
                 }}
               >
                 DP
               </div>
               <span
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   bottom: 0,
                   right: 0,
                   width: 11,
                   height: 11,
-                  borderRadius: '50%',
+                  borderRadius: "50%",
                   background: P.lime,
-                  border: '2px solid #fff',
+                  border: "2px solid #fff",
                   boxShadow: `0 0 6px ${P.lime}`,
-                  animation: 'floatY 3s ease-in-out infinite',
+                  animation: "floatY 3s ease-in-out infinite",
                 }}
               />
             </div>
@@ -157,5 +136,5 @@ export default function PageHeader({
         </div>
       </div>
     </>
-  )
+  );
 }

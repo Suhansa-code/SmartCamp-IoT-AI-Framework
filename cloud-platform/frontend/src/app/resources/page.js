@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Radio, RefreshCw } from 'lucide-react'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
+import PageTitle from '@/components/common/PageTitle'
 import Button from '@/components/common/Button'
 import OverviewPanel from '@/components/resources/OverviewPanel'
 import { P } from '@/components/alert/alertPalette'
@@ -56,36 +57,25 @@ export default function ResourcesPage() {
 
           {/* ── Content panel ──────────────────────────────── */}
           <div style={{
-            background: P.panel, border: `1px solid ${P.border}`,
-            borderRadius: '1.75rem', padding: 'clamp(1.1rem, 2.5vw, 2rem)',
-            boxShadow: '0 30px 70px rgba(20,30,40,0.18)',
+            background: P.panel,
             display: 'flex', flexDirection: 'column', gap: '1.1rem',
           }}>
 
             {/* ── Alert-page style title / subtitle ─────────────────── */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>
-                  Live Field Intelligence
-                </div>
-                <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: P.ink }}>
-                  Resources Cloud Dashboard
-                </h1>
-                <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
-                  {refreshing ? 'Refreshing live overview…' : 'Data received from field device via EMQX broker · unified camp overview'}
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green }}>
-                  <Radio size={12} />
-                  LIVE via EMQX
-                </span>
-                <Button variant="circle" onClick={() => setRefreshKey((k) => k + 1)} disabled={refreshing} aria-label="Refresh data">
-                  <RefreshCw size={16} style={refreshing ? { animation: 'resSpin 0.8s linear infinite' } : undefined} />
-                </Button>
-              </div>
-            </div>
+            <PageTitle
+              title="Resources Cloud Dashboard"
+              subtitle={
+                refreshing ? 'Refreshing live overview…' : 'Data received from field device via EMQX broker · unified camp overview'
+              }
+              right={
+                <>
+                  <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
+                  <Button variant="circle" onClick={() => setRefreshKey((k) => k + 1)} disabled={refreshing} aria-label="Refresh data">
+                    <RefreshCw size={16} style={refreshing ? { animation: 'resSpin 0.8s linear infinite' } : undefined} />
+                  </Button>
+                </>
+              }
+            />
 
             <OverviewPanel search={search} refreshKey={refreshKey} onLoading={setRefreshing} />
           </div>
