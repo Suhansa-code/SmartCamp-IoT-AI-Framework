@@ -15,10 +15,10 @@ const router = express.Router();
  * Fetch all alerts, optionally filtered by status and camp
  * Query params: ?status=pending&camp=CAMP-B
  */
-router.get('/', (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { status, camp } = req.query;
-    const alerts = getAlerts(status || null, camp || null);
+    const alerts = await getAlerts(status || null, camp || null);
 
     // Calculate summary stats
     const stats = {
@@ -45,10 +45,10 @@ router.get('/', (req, res, next) => {
  * GET /api/alerts/:alertId
  * Fetch a specific alert with full details
  */
-router.get('/:alertId', (req, res, next) => {
+router.get('/:alertId', async (req, res, next) => {
   try {
     const { alertId } = req.params;
-    const alert = getAlert(alertId);
+    const alert = await getAlert(alertId);
 
     if (!alert) {
       return res.status(404).json({ success: false, message: 'Alert not found' });
@@ -65,12 +65,12 @@ router.get('/:alertId', (req, res, next) => {
  * Admin action: Resolve an alert
  * Body: { notes?: string }
  */
-router.post('/:alertId/resolve', (req, res, next) => {
+router.post('/:alertId/resolve', async (req, res, next) => {
   try {
     const { alertId } = req.params;
     const { notes } = req.body;
 
-    const success = resolveAlert(alertId, notes || null);
+    const success = await resolveAlert(alertId, notes || null);
 
     if (!success) {
       return res.status(404).json({ success: false, message: 'Alert not found' });
@@ -91,10 +91,10 @@ router.post('/:alertId/resolve', (req, res, next) => {
  * GET /api/alerts/stats/summary
  * Get alert statistics dashboard data
  */
-router.get('/stats/summary', (req, res, next) => {
+router.get('/stats/summary', async (req, res, next) => {
   try {
-    const pending = getAlerts('pending');
-    const resolved = getAlerts('resolved');
+    const pending = await getAlerts('pending');
+    const resolved = await getAlerts('resolved');
 
     const stats = {
       pending_count: pending.length,
@@ -126,11 +126,11 @@ router.get('/stats/summary', (req, res, next) => {
  * Create or receive alert from raspberry platform
  * Body: { alert_id, child_id, res_id, camp_id, alert_type, trigger_detail, triggered_at }
  */
-router.post('/', (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const alertData = req.body;
 
-    const result = upsertAlert(alertData);
+    const result = await upsertAlert(alertData);
 
     res.status(201).json({
       success: true,
@@ -147,7 +147,7 @@ router.post('/', (req, res, next) => {
  * Receive synced children data from raspberry platform
  * Body: { children: [...] }
  */
-router.post('/sync/children', (req, res, next) => {
+router.post('/sync/children', async (req, res, next) => {
   try {
     const { children = [] } = req.body;
 
@@ -155,7 +155,7 @@ router.post('/sync/children', (req, res, next) => {
       return res.json({ success: true, message: 'No children to sync' });
     }
 
-    syncChildren(children);
+    await syncChildren(children);
 
     res.json({
       success: true,
@@ -172,7 +172,7 @@ router.post('/sync/children', (req, res, next) => {
  * Receive synced sessions data from raspberry platform
  * Body: { sessions: [...] }
  */
-router.post('/sync/sessions', (req, res, next) => {
+router.post('/sync/sessions', async (req, res, next) => {
   try {
     const { sessions = [] } = req.body;
 
@@ -180,7 +180,7 @@ router.post('/sync/sessions', (req, res, next) => {
       return res.json({ success: true, message: 'No sessions to sync' });
     }
 
-    syncSessions(sessions);
+    await syncSessions(sessions);
 
     res.json({
       success: true,

@@ -12,6 +12,13 @@ import fs     from 'fs';
 import path   from 'path';
 import { fileURLToPath } from 'url';
 import { computePrediction } from './predictionService.js';
+import {
+  upsertPerson,
+  recordDistribution,
+  upsertDailySnapshot,
+  logMqttEvent,
+  loadCampState,
+} from '../config/database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -56,17 +63,22 @@ function rolloverDay() {
   const { date, new_registrations, checkin_ids, distributions } = store.day;
   const total = store.persons.size;
   const checkins = checkin_ids.size;
-  store.dailySnapshots.push({
+  const snapshot = {
     date,
     total_persons:      total,
     new_registrations,
     checkins,
     attendance_rate:    total > 0 ? checkins / total : 0,
     distributions:      { ...distributions },
-  });
+  };
+  store.dailySnapshots.push(snapshot);
   if (store.dailySnapshots.length > 30) store.dailySnapshots.shift();
   store.day = freshDayCounters();
   console.log(`[Camp Data] Day rollover: snapshot saved for ${date}`);
+
+  upsertDailySnapshot(snapshot).catch(err =>
+    console.error('[Camp Data] Failed to persist daily snapshot:', err.message)
+  );
 }
 
 // Check if we've crossed midnight since the last event.
@@ -85,7 +97,7 @@ function pushEvent(type, summary, timestamp) {
 
 // ── MQTT message handlers ──────────────────────────────────────────────────
 
-function onRegistration(payload) {
+async function onRegistration(payload) {
   checkDayRollover();
   const { person, wristband_barcode } = payload;
   if (!person?.id) return;
@@ -99,9 +111,11 @@ function onRegistration(payload) {
   const qosInfo = payload.mqtt ? ` | QoS ${payload.mqtt.final_qos ?? payload.mqtt.base_qos} | ${payload.mqtt.network_state}` : '';
   pushEvent('registration', `${person.full_name} registered · ${wristband_barcode ?? 'no wristband'}${qosInfo}`, payload.timestamp);
   console.log(`[Camp▼] Register: ${person.full_name} (id=${person.id}, wb=${wristband_barcode ?? '—'})`);
+
+  await upsertPerson(person, wristband_barcode);
 }
 
-function onCheckin(payload) {
+async function onCheckin(payload) {
   checkDayRollover();
   const { person, wristband_barcode } = payload;
   if (!person?.id) return;
@@ -115,22 +129,31 @@ function onCheckin(payload) {
 
   pushEvent('checkin', `${person.full_name} checked in · ${wristband_barcode ?? merged.wristband_barcode ?? '—'}`, payload.timestamp);
   console.log(`[Camp▼] Checkin: ${person.full_name} (id=${person.id})`);
+
+  await upsertPerson(merged, merged.wristband_barcode);
 }
 
-function onDistribution(payload) {
+async function onDistribution(payload) {
   checkDayRollover();
-  const { barcode, resource_type, person_name } = payload;
+  const { barcode, resource_type, person_name, person_id, quantity } = payload;
   if (!barcode || !resource_type) return;
 
   const key = `${barcode}:${resource_type}:${todayDate()}`;
+  const isNew = !store.distributions.has(key);
   store.distributions.add(key);
 
-  if (MEAL_TYPES.includes(resource_type)) {
+  // Only count once per barcode+type+day, matching the DB's unique constraint.
+  if (isNew && MEAL_TYPES.includes(resource_type)) {
     store.day.distributions[resource_type]++;
   }
 
   pushEvent('distribution', `${person_name ?? barcode} received ${resource_type}`, payload.timestamp);
   console.log(`[Camp▼] Distribute: ${resource_type} → ${person_name ?? barcode}`);
+
+  await recordDistribution({
+    person_id, person_name, barcode, resource_type, quantity,
+    distributed_at: payload.timestamp ? new Date(payload.timestamp) : new Date(),
+  });
 }
 
 // ── Computed overview (called by REST route) ───────────────────────────────
@@ -210,9 +233,58 @@ export function getOverview() {
 
 // ── MQTT connection ────────────────────────────────────────────────────────
 
-export function startCampDataService() {
+// Rebuild the in-memory store from Postgres so a restart doesn't lose today's picture.
+async function rehydrateFromDb() {
+  try {
+    const { persons, todaysDistributions, dailySnapshots } = await loadCampState();
+
+    for (const row of persons) {
+      const person = {
+        id: row.person_id,
+        fingerprint_id: row.fingerprint_id,
+        full_name: row.full_name,
+        age: row.age,
+        gender: row.gender,
+        person_type: row.person_type,
+        family_unit_id: row.family_unit_id,
+        family_size: row.family_size,
+        is_pregnant: row.is_pregnant,
+        has_chronic_illness: row.has_chronic_illness,
+        medical_notes: row.medical_notes,
+        pre_registered: row.pre_registered,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        wristband_barcode: row.wristband_barcode,
+      };
+      store.persons.set(person.id, person);
+      if (person.wristband_barcode) store.wristbandPerson.set(person.wristband_barcode, person);
+    }
+
+    for (const d of todaysDistributions) {
+      const dateStr = d.distributed_date.toISOString().slice(0, 10);
+      store.distributions.add(`${d.barcode}:${d.resource_type}:${dateStr}`);
+    }
+
+    store.dailySnapshots = dailySnapshots.map(s => ({
+      date:               s.snapshot_date.toISOString().slice(0, 10),
+      total_persons:      s.total_persons,
+      new_registrations:  s.new_registrations,
+      checkins:           s.checkins,
+      attendance_rate:    s.attendance_rate,
+      distributions:      s.distributions,
+    }));
+
+    console.log(`[Camp Data] Rehydrated from Postgres: ${persons.length} persons, ${todaysDistributions.length} distributions today, ${dailySnapshots.length} daily snapshots`);
+  } catch (err) {
+    console.error('[Camp Data] Failed to rehydrate from Postgres:', err.message);
+  }
+}
+
+export async function startCampDataService() {
   let ca;
   try { ca = fs.readFileSync(CA_CERT_PATH); } catch (_) {}
+
+  await rehydrateFromDb();
 
   const client = mqtt.connect(`mqtts://${EMQX_HOST}:${EMQX_PORT}`, {
     clientId:        `cloud-admin-${Date.now()}`,
@@ -234,12 +306,14 @@ export function startCampDataService() {
     });
   });
 
-  client.on('message', (topic, buffer) => {
+  client.on('message', async (topic, buffer) => {
     try {
       const payload = JSON.parse(buffer.toString());
-      if      (topic === 'smartcamp/registration/new')     onRegistration(payload);
-      else if (topic === 'smartcamp/registration/checkin') onCheckin(payload);
-      else if (topic === 'smartcamp/distribution/log')     onDistribution(payload);
+      logMqttEvent(topic, payload); // raw audit log, every topic, fire-and-forget
+
+      if      (topic === 'smartcamp/registration/new')     await onRegistration(payload);
+      else if (topic === 'smartcamp/registration/checkin') await onCheckin(payload);
+      else if (topic === 'smartcamp/distribution/log')     await onDistribution(payload);
     } catch (e) {
       console.error('[Camp Data] Parse error:', e.message);
     }

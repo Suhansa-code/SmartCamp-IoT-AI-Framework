@@ -1,6 +1,6 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { config } from 'dotenv';
 import networkRoutes              from './routes/network.js';
 import resourceRoutes             from './routes/resources.js';
 import disasterRoutes             from './routes/disaster.js';
@@ -10,8 +10,7 @@ import { NetworkMonitor }         from './services/networkMonitor.js';
 import { SimulationService }      from './services/simulation.js';
 import { startCampDataService }   from './services/campDataService.js';
 import { AlertSyncService }       from './services/alertSyncService.js';
-
-config();
+import { schemaReady }            from './config/database.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +34,9 @@ app.get('/api/health', (req, res) => {
 
 async function startServer() {
   try {
+    await schemaReady;
+    console.log('[DB] Postgres ready');
+
     if (process.env.ENABLE_SIMULATION === 'true') {
       simulationService.start();
       console.log('[Simulation] Started - generating mock network data');
@@ -51,7 +53,7 @@ async function startServer() {
     console.log('[Monitor] Network monitoring started');
 
     // Subscribe to camp MQTT events from EMQX for the cloud dashboard
-    startCampDataService();
+    await startCampDataService();
     console.log('[Camp Data] Camp data service started');
 
     app.listen(PORT, () => {

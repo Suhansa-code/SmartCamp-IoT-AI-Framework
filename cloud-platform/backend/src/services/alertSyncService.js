@@ -36,9 +36,9 @@ class AlertSyncService {
     });
 
     // Handle incoming MQTT messages
-    this.mqttClient.on('message', (topic, message) => {
+    this.mqttClient.on('message', async (topic, message) => {
       try {
-        this.handleMessage(topic, message);
+        await this.handleMessage(topic, message);
       } catch (err) {
         console.error(`[AlertSync] Error handling ${topic}:`, err.message);
       }
@@ -48,19 +48,19 @@ class AlertSyncService {
   /**
    * Route incoming MQTT messages to appropriate handlers
    */
-  handleMessage(topic, message) {
+  async handleMessage(topic, message) {
     try {
       const payload = JSON.parse(message.toString());
 
       switch (topic) {
         case 'smartcamp/alerts/generated':
-          this.handleAlertGenerated(payload);
+          await this.handleAlertGenerated(payload);
           break;
         case 'smartcamp/data/children/sync':
-          this.handleChildrenSync(payload);
+          await this.handleChildrenSync(payload);
           break;
         case 'smartcamp/data/sessions/sync':
-          this.handleSessionsSync(payload);
+          await this.handleSessionsSync(payload);
           break;
         default:
           console.warn(`[AlertSync] Unknown topic: ${topic}`);
@@ -75,7 +75,7 @@ class AlertSyncService {
    * Topic: smartcamp/alerts/generated
    * Payload: { alert_id, child_id, res_id, camp_id, alert_type, trigger_detail, triggered_at }
    */
-  handleAlertGenerated(payload) {
+  async handleAlertGenerated(payload) {
     try {
       const {
         alert_id,
@@ -93,7 +93,7 @@ class AlertSyncService {
       }
 
       // Upsert alert to cloud database
-      upsertAlert({
+      await upsertAlert({
         alert_id,
         child_id,
         res_id,
@@ -114,7 +114,7 @@ class AlertSyncService {
    * Topic: smartcamp/data/children/sync
    * Payload: { children: [...] }
    */
-  handleChildrenSync(payload) {
+  async handleChildrenSync(payload) {
     try {
       const { children = [] } = payload;
 
@@ -123,7 +123,7 @@ class AlertSyncService {
         return;
       }
 
-      syncChildren(children);
+      await syncChildren(children);
       console.log(`[AlertSync] 👶 Synced ${children.length} children`);
     } catch (err) {
       console.error('[AlertSync] Failed to sync children:', err.message);
@@ -135,7 +135,7 @@ class AlertSyncService {
    * Topic: smartcamp/data/sessions/sync
    * Payload: { sessions: [...] }
    */
-  handleSessionsSync(payload) {
+  async handleSessionsSync(payload) {
     try {
       const { sessions = [] } = payload;
 
@@ -144,7 +144,7 @@ class AlertSyncService {
         return;
       }
 
-      syncSessions(sessions);
+      await syncSessions(sessions);
       console.log(`[AlertSync] 📊 Synced ${sessions.length} sessions`);
     } catch (err) {
       console.error('[AlertSync] Failed to sync sessions:', err.message);
