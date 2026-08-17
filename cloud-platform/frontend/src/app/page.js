@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import SideNav from '@/components/common/SideNav'
+import SearchBar from '@/components/common/SearchBar'
 import { useTheme } from '@/components/common/ThemeProvider'
 
 // ── Demo fallback data (used when the cloud backend endpoint is unreachable) ──
@@ -231,14 +232,11 @@ export default function DashboardPage() {
 
           {/* Toolbar */}
           <div className="grid-toolbar" style={{ marginBottom: '0.9rem' }}>
-            <input
+            <SearchBar
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={setSearchText}
               placeholder="Search by camp name, code, or location…"
-              style={{
-                width: '100%', border: `1px solid ${T.border}`, background: T.bgSoft, color: T.textPrimary,
-                borderRadius: '0.75rem', padding: '0.65rem 0.9rem', outline: 'none', fontSize: '0.88rem',
-              }}
+              style={{ maxWidth: 'none', width: '100%' }}
             />
             <select
               value={sortBy}
