@@ -1,145 +1,115 @@
-'use client'
+"use client";
 
 // Welfare Alert Dashboard — "nitec" reference layout
 // Hero + widget-grid composition (search header · big left headline panel ·
-// stacked right widget cards · 3-up bottom row) with real alert data mapped
-// into every slot. Full filterable/sortable alert list lives below the fold.
+// stacked right widget cards) with real alert data mapped into every slot.
+// Alerts are picked from a dropdown and inspected in the detail card.
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import {
-  Bell, TriangleAlert, ArrowUpRight, Radio,
-  Users, Flame, ListChecks,
-} from 'lucide-react'
-import SideNav from '@/components/common/SideNav'
-import SearchBar from '@/components/common/SearchBar'
-import { P, SEVERITY_RANK } from '@/components/alert/alertPalette'
-import { MOCK_CAMPS, mockAlerts } from '@/components/alert/mockAlerts'
-import AlertCard from '@/components/alert/AlertCard'
-import ArrowChip from '@/components/alert/ArrowChip'
-import FilterPills from '@/components/alert/FilterPills'
-import { daysSince } from '@/components/common/utils'
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Bell, TriangleAlert, ArrowUpRight, Radio, Users, Flame, ListChecks } from "lucide-react";
+import SideNav from "@/components/common/SideNav";
+import SearchBar from "@/components/common/SearchBar";
+import { P, SEVERITY_RANK } from "@/components/alert/alertPalette";
+import { MOCK_CAMPS, mockAlerts } from "@/components/alert/mockAlerts";
+import AlertCard from "@/components/alert/AlertCard";
+import ArrowChip from "@/components/alert/ArrowChip";
+import { daysSince } from "@/components/common/utils";
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AlertsPage() {
-  const [alerts,       setAlerts]       = useState([])
-  const [loading,      setLoading]      = useState(true)
-  const [filter,       setFilter]       = useState('all')
-  const [sortBy,       setSortBy]       = useState('recent')
-  const [selectedCamp, setSelectedCamp] = useState('all')
-  const [search,       setSearch]       = useState('')
-  const [highlightId,  setHighlightId]  = useState(null)
-  const listRef = useRef(null)
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCamp, setSelectedCamp] = useState("all");
+  const [search, setSearch] = useState("");
+  const [selectedAlertId, setSelectedAlertId] = useState(null);
+  const detailRef = useRef(null);
 
   const fetchAlerts = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/alerts?status=${filter === 'all' ? '' : filter}&camp=${selectedCamp === 'all' ? '' : selectedCamp}`)
+      const res = await fetch(`http://localhost:3001/api/alerts?camp=${selectedCamp === "all" ? "" : selectedCamp}`);
       if (res.ok) {
-        const data = await res.json()
-        const transformed = data.alerts.map(a => ({
+        const data = await res.json();
+        const transformed = data.alerts.map((a) => ({
           id: a.alert_id,
-          childId: a.child_id.replace(/TEST-CHILD-/, '').replace(/CHILD-/, ''),
-          campId: a.camp_id?.toLowerCase() ?? 'unknown',
-          campName: a.camp_id ?? 'Unknown Camp',
-          alertType: a.alert_type ?? 'Unknown Alert',
-          severity: a.alert_type?.includes('Low') || a.alert_type?.includes('low') ? 'low'
-            : a.alert_type?.includes('High') || a.alert_type?.includes('high') ? 'high'
-            : 'medium',
-          status: a.status === 'pending' ? 'pending' : 'resolved',
+          childId: a.child_id.replace(/TEST-CHILD-/, "").replace(/CHILD-/, ""),
+          campId: a.camp_id?.toLowerCase() ?? "unknown",
+          campName: a.camp_id ?? "Unknown Camp",
+          alertType: a.alert_type ?? "Unknown Alert",
+          severity:
+            a.alert_type?.includes("Low") || a.alert_type?.includes("low")
+              ? "low"
+              : a.alert_type?.includes("High") || a.alert_type?.includes("high")
+                ? "high"
+                : "medium",
+          status: a.status === "pending" ? "pending" : "resolved",
           triggeredAt: new Date(a.triggered_at).getTime(),
           scores: (a.recent_scores || []).map((score, idx) => ({ session: idx + 1, score })),
-        }))
-        setAlerts(transformed)
+        }));
+        setAlerts(transformed);
       } else {
-        throw new Error('API error')
+        throw new Error("API error");
       }
     } catch (err) {
-      console.log('Fetching real alerts failed, using mock data:', err.message)
-      setAlerts(mockAlerts())
+      console.log("Fetching real alerts failed, using mock data:", err.message);
+      setAlerts(mockAlerts());
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [filter, selectedCamp])
+  }, [selectedCamp]);
 
-  useEffect(() => { fetchAlerts() }, [fetchAlerts])
+  useEffect(() => {
+    fetchAlerts();
+  }, [fetchAlerts]);
 
   function handleAction(alertId, action) {
-    setAlerts(prev => prev.map(a => {
-      if (a.id !== alertId) return a
-      if (action === 'review')   return { ...a, status: 'resolved' }
-      if (action === 'escalate') return { ...a, status: 'escalated' }
-      return a
-    }))
+    setAlerts((prev) =>
+      prev.map((a) => {
+        if (a.id !== alertId) return a;
+        if (action === "review") return { ...a, status: "resolved" };
+        if (action === "escalate") return { ...a, status: "escalated" };
+        return a;
+      }),
+    );
   }
 
-  const visible = alerts
-    .filter(a => {
-      if (selectedCamp !== 'all' && a.campId !== selectedCamp) return false
-      if (filter !== 'all' && a.status !== filter) return false
-      if (search.trim()) {
-        const q = search.trim().toLowerCase()
-        if (!a.childId.toLowerCase().includes(q) && !a.campName.toLowerCase().includes(q) && !a.alertType.toLowerCase().includes(q)) return false
-      }
-      return true
-    })
-    .sort((a, b) => {
-      if (sortBy === 'recent') return b.triggeredAt - a.triggeredAt
-      if (sortBy === 'oldest') return a.triggeredAt - b.triggeredAt
-      if (sortBy === 'camp')   return a.campName.localeCompare(b.campName)
-      return 0
-    })
-
-  const alertCounts = alerts.reduce((acc, a) => {
-    if (a.status !== 'resolved') {
-      acc[a.campId] = (acc[a.campId] ?? 0) + 1
-      acc['all']    = (acc['all']    ?? 0) + 1
-    }
-    return acc
-  }, {})
-
-  const pendingCount   = alerts.filter(a => a.status === 'pending').length
-  const escalatedCount = alerts.filter(a => a.status === 'escalated').length
-  const resolvedCount  = alerts.filter(a => a.status === 'resolved').length
-  const totalCount     = alerts.length || 1
-  const activeCount    = pendingCount + escalatedCount
+  const pendingCount = alerts.filter((a) => a.status === "pending").length;
+  const escalatedCount = alerts.filter((a) => a.status === "escalated").length;
+  const resolvedCount = alerts.filter((a) => a.status === "resolved").length;
+  const totalCount = alerts.length || 1;
+  const activeCount = pendingCount + escalatedCount;
 
   const mostCritical = useMemo(() => {
-    const open = alerts.filter(a => a.status !== 'resolved')
-    if (!open.length) return null
+    const open = alerts.filter((a) => a.status !== "resolved");
+    if (!open.length) return null;
     return [...open].sort((a, b) => {
-      const rank = (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0)
-      if (rank !== 0) return rank
-      return (a.scores.at(-1)?.score ?? 0) - (b.scores.at(-1)?.score ?? 0)
-    })[0]
-  }, [alerts])
+      const rank = (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0);
+      if (rank !== 0) return rank;
+      return (a.scores.at(-1)?.score ?? 0) - (b.scores.at(-1)?.score ?? 0);
+    })[0];
+  }, [alerts]);
 
   const trending = useMemo(() => {
-    if (!alerts.length) return null
-    return [...alerts].sort((a, b) => b.triggeredAt - a.triggeredAt)[0]
-  }, [alerts])
+    if (!alerts.length) return null;
+    return [...alerts].sort((a, b) => b.triggeredAt - a.triggeredAt)[0];
+  }, [alerts]);
 
-  const pendingDeg   = (pendingCount / totalCount) * 360
-  const escalatedDeg = (escalatedCount / totalCount) * 360
+  const pendingDeg = (pendingCount / totalCount) * 360;
+  const escalatedDeg = (escalatedCount / totalCount) * 360;
 
-  function jumpToList(opts = {}) {
-    if (opts.filter)       setFilter(opts.filter)
-    if (opts.campId)       setSelectedCamp(opts.campId)
-    if (opts.highlightId)  setHighlightId(opts.highlightId)
-    setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
+  const searchMatches = (a) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return a.childId.toLowerCase().includes(q) || a.campName.toLowerCase().includes(q) || a.alertType.toLowerCase().includes(q);
+  };
+
+  const dropdownAlerts = alerts.filter(searchMatches);
+  const selectedAlert = dropdownAlerts.find((a) => a.id === selectedAlertId) ?? dropdownAlerts[0] ?? null;
+
+  function viewAlert(id) {
+    setSelectedAlertId(id);
+    setTimeout(() => detailRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 30);
   }
-
-  const FILTER_OPTIONS = [
-    { key: 'all',       label: 'All' },
-    { key: 'pending',   label: 'Pending' },
-    { key: 'resolved',  label: 'Resolved' },
-    { key: 'escalated', label: 'Escalated' },
-  ]
-
-  const SORT_OPTIONS = [
-    { key: 'recent', label: 'Most Recent' },
-    { key: 'oldest', label: 'Oldest' },
-    { key: 'camp',   label: 'Camp A–Z' },
-  ]
 
   return (
     <>
@@ -159,38 +129,49 @@ export default function AlertsPage() {
         }
       `}</style>
 
-      <div style={{
-        minHeight: '100svh',
-        background: P.outer,
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: "'Inter', sans-serif",
-        paddingLeft: 'var(--rail-width, 236px)',
-        transition: 'padding-left 0.2s ease',
-      }}>
+      <div
+        style={{
+          minHeight: "100svh",
+          background: P.outer,
+          display: "flex",
+          flexDirection: "column",
+          fontFamily: "'Inter', sans-serif",
+          paddingLeft: "var(--rail-width, 236px)",
+          transition: "padding-left 0.2s ease",
+        }}
+      >
         <SideNav />
 
         <main style={{ flex: 1 }}>
           {/* ══ Big rounded panel — mirrors the reference composition ══ */}
-          <div style={{
-            background: P.panel,
-            padding: 'clamp(1rem, 2vw, 1.75rem)',
-            boxShadow: '0 30px 70px rgba(20,30,40,0.25)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.25rem',
-          }}>
-
+          <div
+            style={{
+              background: P.panel,
+              padding: "clamp(1rem, 2vw, 1.75rem)",
+              boxShadow: "0 30px 70px rgba(20,30,40,0.25)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1.25rem",
+            }}
+          >
             {/* ── Header: logo · search · icons · admin ── */}
             <div className="nitec-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: '0.7rem', background: P.dark,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "0.7rem",
+                    background: P.dark,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                  }}
+                >
                   <TriangleAlert size={18} />
                 </div>
-                <span style={{ fontSize: '1.02rem', fontWeight: 800, color: P.ink }}>smartcamp.</span>
+                <span style={{ fontSize: "1.02rem", fontWeight: 800, color: P.ink }}>smartcamp.</span>
               </div>
 
               <SearchBar
@@ -201,211 +182,439 @@ export default function AlertsPage() {
                 refreshing={loading}
               />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                 <button
-                  onClick={() => jumpToList({ filter: 'pending' })}
+                  onClick={() => {
+                    const a = alerts.find((x) => x.status === "pending");
+                    if (a) viewAlert(a.id);
+                  }}
                   style={{
-                    position: 'relative', width: 40, height: 40, borderRadius: '50%', background: P.card,
-                    border: `1px solid ${P.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer',
+                    position: "relative",
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    background: P.card,
+                    border: `1px solid ${P.border}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
                   }}
                   aria-label="Pending alerts"
                 >
                   <Bell size={17} color={P.ink} />
                   {pendingCount > 0 && (
-                    <span style={{
-                      position: 'absolute', top: -4, right: -4, background: P.amber, color: '#fff',
-                      borderRadius: '9999px', fontSize: '0.62rem', fontWeight: 800, padding: '1px 5px',
-                    }}>{pendingCount}</span>
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: -4,
+                        right: -4,
+                        background: P.amber,
+                        color: "#fff",
+                        borderRadius: "9999px",
+                        fontSize: "0.62rem",
+                        fontWeight: 800,
+                        padding: "1px 5px",
+                      }}
+                    >
+                      {pendingCount}
+                    </span>
                   )}
                 </button>
                 <button
-                  onClick={() => jumpToList({ filter: 'escalated' })}
+                  onClick={() => {
+                    const a = alerts.find((x) => x.status === "escalated");
+                    if (a) viewAlert(a.id);
+                  }}
                   style={{
-                    position: 'relative', width: 40, height: 40, borderRadius: '50%', background: P.card,
-                    border: `1px solid ${P.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer',
+                    position: "relative",
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    background: P.card,
+                    border: `1px solid ${P.border}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
                   }}
                   aria-label="Escalated alerts"
                 >
                   <TriangleAlert size={17} color={P.ink} />
                   {escalatedCount > 0 && (
-                    <span style={{
-                      position: 'absolute', top: -4, right: -4, background: P.purple, color: '#fff',
-                      borderRadius: '9999px', fontSize: '0.62rem', fontWeight: 800, padding: '1px 5px',
-                    }}>{escalatedCount}</span>
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: -4,
+                        right: -4,
+                        background: P.purple,
+                        color: "#fff",
+                        borderRadius: "9999px",
+                        fontSize: "0.62rem",
+                        fontWeight: 800,
+                        padding: "1px 5px",
+                      }}
+                    >
+                      {escalatedCount}
+                    </span>
                   )}
                 </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '0.3rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: P.ink }}>Dr. Perera</span>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #14B8A6, #0D9488)', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.78rem',
-                  }}>DP</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingLeft: "0.3rem" }}>
+                  <span style={{ fontSize: "0.8rem", fontWeight: 700, color: P.ink }}>Dr. Perera</span>
+                  <div style={{ position: "relative" }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #14B8A6, #0D9488)",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 800,
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      DP
+                    </div>
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        width: 11,
+                        height: 11,
+                        borderRadius: "50%",
+                        background: P.lime,
+                        border: "2px solid #fff",
+                        boxShadow: `0 0 6px ${P.lime}`,
+                        animation: "floatY 3s ease-in-out infinite",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* ── Hero: left copy panel + right widget stack ── */}
             <div className="nitec-hero-grid">
-
               {/* Left hero copy */}
-              <div style={{
-                background: P.panelSoft, borderRadius: '1.5rem', padding: 'clamp(1.25rem, 3vw, 2.25rem)',
-                display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', overflow: 'hidden',
-              }}>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem', width: 'fit-content',
-                  background: P.card, borderRadius: '9999px', padding: '5px 14px', fontSize: '0.78rem',
-                  fontWeight: 700, color: P.inkSoft, border: `1px solid ${P.border}`,
-                }}>
+              <div
+                style={{
+                  background: P.panelSoft,
+                  borderRadius: "1.5rem",
+                  padding: "clamp(1.25rem, 3vw, 2.25rem)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.25rem",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    width: "fit-content",
+                    background: P.card,
+                    borderRadius: "9999px",
+                    padding: "5px 14px",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    color: P.inkSoft,
+                    border: `1px solid ${P.border}`,
+                  }}
+                >
                   <Radio size={13} color={P.green} /> Live Monitoring
                 </span>
 
-                <h1 style={{
-                  fontSize: 'clamp(1.75rem, 3.2vw, 2.5rem)', fontWeight: 800, color: P.ink, lineHeight: 1.08,
-                  letterSpacing: '-0.02em',
-                }}>
-                  Welfare Alerts<br />Overview.
+                <h1
+                  style={{
+                    fontSize: "clamp(1.75rem, 3.2vw, 2.5rem)",
+                    fontWeight: 800,
+                    color: P.ink,
+                    lineHeight: 1.08,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Welfare Alerts
+                  <br />
+                  Overview.
                 </h1>
 
-                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', maxWidth: 360 }}>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 300, color: P.muted, flexShrink: 0 }}>01</span>
-                  <div style={{ width: 34, height: 2, background: P.muted, marginTop: '0.9rem', flexShrink: 0 }} />
+{/* Score Trend Mentioned Pharagraph */}
+                <div style={{ display: "flex", gap: "1.25rem", alignItems: "flex-start", maxWidth: 360 }}>
+                  <span style={{ fontSize: "1.4rem", fontWeight: 300, color: P.muted, flexShrink: 0 }}>01</span>
+                  <div style={{ width: 34, height: 2, background: P.muted, marginTop: "0.9rem", flexShrink: 0 }} />
                   <div>
-                    <p style={{ fontSize: '0.95rem', fontWeight: 800, color: P.ink }}>Score Trends</p>
-                    <p style={{ fontSize: '0.82rem', color: P.muted, marginTop: '2px', lineHeight: 1.5 }}>
-                      Inhibition, tap-accuracy &amp; reaction-time drift tracked every session — so at-risk children surface before it becomes a pattern.
+                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: P.ink }}>Score Trends</p>
+                    <p style={{ fontSize: "0.82rem", color: P.muted, marginTop: "2px", lineHeight: 1.5 }}>
+                      Inhibition, tap-accuracy &amp; reaction-time drift tracked every session — so at-risk children surface before it becomes a
+                      pattern.
+                    </p>
+                  </div>
+                </div>
+
+
+                <div style={{ display: "flex", gap: "1.25rem", alignItems: "flex-start", maxWidth: 360 }}>
+                  <span style={{ fontSize: "1.4rem", fontWeight: 300, color: P.muted, flexShrink: 0 }}>02</span>
+                  <div style={{ width: 34, height: 2, background: P.muted, marginTop: "0.9rem", flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: P.ink }}>Physco Awareness</p>
+                    <p style={{ fontSize: "0.82rem", color: P.muted, marginTop: "2px", lineHeight: 1.5 }}>
+                      Child's physcology level alert trigger when the physco attemps are falling down in certain level
                     </p>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => jumpToList({})}
+                  onClick={() => {
+                    const target = mostCritical ?? alerts[0];
+                    if (target) viewAlert(target.id);
+                  }}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '0.6rem', width: 'fit-content',
-                    background: P.lime, color: P.dark, borderRadius: '9999px', border: 'none',
-                    padding: '9px 9px 9px 20px', fontWeight: 800, fontSize: '0.84rem', cursor: 'pointer',
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.6rem",
+                    width: "fit-content",
+                    background: P.lime,
+                    color: P.dark,
+                    borderRadius: "9999px",
+                    border: "none",
+                    padding: "9px 9px 9px 20px",
+                    fontWeight: 800,
+                    fontSize: "0.84rem",
+                    cursor: "pointer",
                   }}
                 >
-                  View All Alerts
-                  <span style={{
-                    width: 30, height: 30, borderRadius: '50%', background: P.dark, color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}><ArrowUpRight size={15} /></span>
+                  View Critical Alert
+                  <span
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: "50%",
+                      background: P.dark,
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ArrowUpRight size={15} />
+                  </span>
                 </button>
 
                 {/* Decorative stat donut, standing in for the hero product shot */}
-                <div style={{
-                  position: 'absolute', right: 'clamp(0.5rem, 3vw, 2.5rem)', top: '50%', transform: 'translateY(-50%)',
-                  width: 190, height: 190, display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
-                }} className="hero-donut-wrap">
-                  <div style={{
-                    position: 'absolute', width: '100%', height: '100%', borderRadius: '50%',
-                    background: `conic-gradient(${P.amber} 0deg ${pendingDeg}deg, ${P.purple} ${pendingDeg}deg ${pendingDeg + escalatedDeg}deg, ${P.teal} ${pendingDeg + escalatedDeg}deg 360deg)`,
-                  }} />
-                  <div style={{
-                    position: 'absolute', width: '68%', height: '68%', borderRadius: '50%', background: P.panelSoft,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: 'inset 0 0 0 1px rgba(20,23,26,0.06)',
-                  }}>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: P.ink }}>{activeCount}</span>
-                    <span style={{ fontSize: '0.6rem', fontWeight: 700, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Active</span>
+                <div
+                  style={{
+                    position: "absolute",
+                    right: "clamp(0.5rem, 3vw, 2.5rem)",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 190,
+                    height: 190,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  className="hero-donut-wrap"
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: "50%",
+                      background: `conic-gradient(${P.amber} 0deg ${pendingDeg}deg, ${P.purple} ${pendingDeg}deg ${pendingDeg + escalatedDeg}deg, ${P.teal} ${pendingDeg + escalatedDeg}deg 360deg)`,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      width: "68%",
+                      height: "68%",
+                      borderRadius: "50%",
+                      background: P.panelSoft,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "inset 0 0 0 1px rgba(20,23,26,0.06)",
+                    }}
+                  >
+                    <span style={{ fontSize: "1.6rem", fontWeight: 800, color: P.ink }}>{activeCount}</span>
+                    <span style={{ fontSize: "0.6rem", fontWeight: 700, color: P.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      Active
+                    </span>
                   </div>
-                  <div style={{
-                    position: 'absolute', top: -8, left: 10, width: 16, height: 16, borderRadius: '50%',
-                    background: P.red, animation: 'floatY 3.2s ease-in-out infinite',
-                  }} />
-                  <div style={{
-                    position: 'absolute', bottom: 4, right: -10, width: 22, height: 22, borderRadius: '50%',
-                    background: P.card, border: `2px solid ${P.dark}`, animation: 'floatY 4s ease-in-out infinite 0.4s',
-                  }} />
-                  <div style={{
-                    position: 'absolute', top: '20%', right: -18, width: 10, height: 10, borderRadius: '50%',
-                    background: P.green, animation: 'floatY 2.6s ease-in-out infinite 0.8s',
-                  }} />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: -8,
+                      left: 10,
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: P.red,
+                      animation: "floatY 3.2s ease-in-out infinite",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 4,
+                      right: -10,
+                      width: 22,
+                      height: 22,
+                      borderRadius: "50%",
+                      background: P.card,
+                      border: `2px solid ${P.dark}`,
+                      animation: "floatY 4s ease-in-out infinite 0.4s",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "20%",
+                      right: -18,
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: P.green,
+                      animation: "floatY 2.6s ease-in-out infinite 0.8s",
+                    }}
+                  />
                 </div>
 
                 {/* Camp filter row (stands in for the "Follow us on" row) */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: 'auto', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: P.muted }}>Filter camp:</span>
-                  {MOCK_CAMPS.map(c => {
-                    const active = selectedCamp === c.id
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginTop: "auto", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: P.muted }}>Filter camp:</span>
+                  {MOCK_CAMPS.map((c) => {
+                    const active = selectedCamp === c.id;
                     return (
                       <button
                         key={c.id}
                         onClick={() => setSelectedCamp(c.id)}
                         title={c.name}
                         style={{
-                          width: 32, height: 32, borderRadius: '50%',
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
                           background: active ? P.dark : P.card,
-                          color: active ? '#fff' : P.inkSoft,
+                          color: active ? "#fff" : P.inkSoft,
                           border: `1px solid ${active ? P.dark : P.border}`,
-                          fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer',
+                          fontSize: "0.6rem",
+                          fontWeight: 800,
+                          cursor: "pointer",
                         }}
                       >
-                        {c.code === 'ALL' ? '✦' : c.code.slice(0, 2)}
+                        {c.code === "ALL" ? "✦" : c.code.slice(0, 2)}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               </div>
 
               {/* Right widget stack */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {/* Severity legend */}
-                <div style={{ background: P.card, borderRadius: '1.25rem', padding: '1.1rem 1.25rem', border: `1px solid ${P.border}` }}>
-                  <p style={{ fontSize: '0.8rem', fontWeight: 800, color: P.ink, marginBottom: '0.7rem' }}>Severity Legend</p>
-                  <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    {[['High', P.red], ['Medium', P.amber], ['Low', P.green], ['Escalated', P.purple], ['Resolved', P.teal]].map(([label, color]) => (
-                      <span key={label} title={label} style={{
-                        width: 26, height: 26, borderRadius: '50%', background: color,
-                        border: '2px solid #fff', boxShadow: `0 0 0 1px ${P.border}`,
-                      }} />
-                    ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                {/* Alert selection dropdown */}
+                <div style={{ background: P.card, borderRadius: "1.25rem", padding: "1.1rem 1.25rem", border: `1px solid ${P.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.7rem" }}>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 800, color: P.ink }}>Select Alert</p>
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 800,
+                        color: P.muted,
+                        background: P.cardSoft,
+                        borderRadius: "9999px",
+                        padding: "2px 8px",
+                      }}
+                    >
+                      {dropdownAlerts.length}
+                    </span>
                   </div>
+                  <select
+                    value={selectedAlert?.id ?? ""}
+                    onChange={(e) => setSelectedAlertId(e.target.value)}
+                    aria-label="Select alert"
+                    style={{
+                      width: "100%",
+                      background: P.cardSoft,
+                      color: P.ink,
+                      border: `1px solid ${P.border}`,
+                      borderRadius: "0.75rem",
+                      padding: "9px 12px",
+                      fontWeight: 700,
+                      fontSize: "0.78rem",
+                      cursor: "pointer",
+                      outline: "none",
+                    }}
+                  >
+                    {dropdownAlerts.length === 0 && <option value="">No alerts</option>}
+                    {dropdownAlerts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.childId} — {a.alertType}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Most critical */}
                 <div
-                  onClick={() => mostCritical && jumpToList({ highlightId: mostCritical.id })}
+                  onClick={() => mostCritical && viewAlert(mostCritical.id)}
                   style={{
-                    background: `linear-gradient(155deg, ${P.dark} 0%, #2A2F35 100%)`, borderRadius: '1.25rem',
-                    padding: '1.1rem 1.25rem', color: '#fff', cursor: mostCritical ? 'pointer' : 'default',
-                    display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                    background: `linear-gradient(155deg, ${P.dark} 0%, #2A2F35 100%)`,
+                    borderRadius: "1.25rem",
+                    padding: "1.1rem 1.25rem",
+                    color: "#fff",
+                    cursor: mostCritical ? "pointer" : "default",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Most Critical</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: "rgba(255,255,255,0.65)" }}>Most Critical</p>
                     <ArrowChip dark />
                   </div>
                   {mostCritical ? (
                     <>
-                      <p style={{ fontSize: '1.15rem', fontWeight: 800 }}>{mostCritical.childId}</p>
-                      <p style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)' }}>{mostCritical.alertType}</p>
+                      <p style={{ fontSize: "1.15rem", fontWeight: 800 }}>{mostCritical.childId}</p>
+                      <p style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.7)" }}>{mostCritical.alertType}</p>
                     </>
                   ) : (
-                    <p style={{ fontSize: '0.95rem', fontWeight: 700 }}>All clear 🎉</p>
+                    <p style={{ fontSize: "0.95rem", fontWeight: 700 }}>No Recodes</p>
                   )}
                 </div>
 
-                {/* Escalated queue */}
-                <div
-                  onClick={() => jumpToList({ filter: 'escalated' })}
-                  style={{
-                    background: `linear-gradient(160deg, #EDE4FB 0%, ${P.card} 70%)`, borderRadius: '1.25rem',
-                    padding: '1.1rem 1.25rem', flex: 1, cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column', gap: '0.5rem', border: `1px solid ${P.border}`,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: P.muted }}>Escalated Queue</p>
+                {/* Selected alert detail */}
+                <div ref={detailRef} style={{ display: "flex", flexDirection: "column", gap: "0.75rem", flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: P.muted }}>Alert Detail</p>
                     <ArrowChip />
                   </div>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: P.ink }}>{escalatedCount}</p>
-                  <p style={{ fontSize: '0.82rem', color: P.muted, fontWeight: 600 }}>Needs supervisor sign-off</p>
+                  {selectedAlert ? (
+                    <AlertCard alert={selectedAlert} onAction={handleAction} highlighted={false} />
+                  ) : (
+                    <div
+                      style={{
+                        background: P.card,
+                        borderRadius: "1.25rem",
+                        border: `1px solid ${P.border}`,
+                        padding: "2rem",
+                        textAlign: "center",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <p style={{ fontSize: "1.2rem", fontWeight: 800, color: P.ink }}>No alerts</p>
+                      <p style={{ fontSize: "0.84rem", color: P.muted }}>No Recodes</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -413,165 +622,181 @@ export default function AlertsPage() {
             {/* ── Bottom row: 3 summary cards ── */}
             <div className="nitec-bottom-grid">
               <div
-                onClick={() => jumpToList({})}
+                onClick={() => {
+                  const target = mostCritical ?? alerts[0];
+                  if (target) viewAlert(target.id);
+                }}
                 style={{
-                  background: P.card, borderRadius: '1.25rem', padding: '1.25rem', border: `1px solid ${P.border}`,
-                  cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                  background: P.card,
+                  borderRadius: "1.25rem",
+                  padding: "1.25rem",
+                  border: `1px solid ${P.border}`,
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
-                    <p style={{ fontSize: '1rem', fontWeight: 800, color: P.ink }}>All Alerts</p>
-                    <p style={{ fontSize: '0.82rem', color: P.muted, fontWeight: 600 }}>{alerts.length} total logged</p>
+                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: P.ink }}>All Alerts</p>
+                    <p style={{ fontSize: "0.78rem", color: P.muted, fontWeight: 600 }}>{alerts.length} total logged</p>
                   </div>
-                  <div style={{
-                    width: 34, height: 34, borderRadius: '50%', background: P.cardSoft,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${P.border}`,
-                  }}><ListChecks size={16} color={P.ink} /></div>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: "50%",
+                      background: P.cardSoft,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: `1px solid ${P.border}`,
+                    }}
+                  >
+                    <ListChecks size={16} color={P.ink} />
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {[['Pending', P.amber, pendingCount], ['Escalated', P.purple, escalatedCount], ['Resolved', P.teal, resolvedCount]].map(([label, color, n]) => (
-                    <span key={label} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.3rem', background: `${color}14`,
-                      color, borderRadius: '9999px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: 800,
-                    }}>{n} {label}</span>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {[
+                    ["Pending", P.amber, pendingCount],
+                    ["Escalated", P.purple, escalatedCount],
+                    ["Resolved", P.teal, resolvedCount],
+                  ].map(([label, color, n]) => (
+                    <span
+                      key={label}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                        background: `${color}14`,
+                        color,
+                        borderRadius: "9999px",
+                        padding: "4px 10px",
+                        fontSize: "0.72rem",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {n} {label}
+                    </span>
                   ))}
                 </div>
-              </div>
-
-              <div style={{
-                background: P.card, borderRadius: '1.25rem', padding: '1.25rem', border: `1px solid ${P.border}`,
-                display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-start',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 8 }}>
-                  {['DP', 'RM', 'SK'].map((initials, i) => (
-                    <div key={initials} style={{
-                      width: 34, height: 34, borderRadius: '50%', marginLeft: -8,
-                      background: ['#14B8A6', '#F59E0B', '#8B5CF6'][i], color: '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 800, fontSize: '0.68rem', border: '2px solid #fff',
-                    }}>{initials}</div>
-                  ))}
-                  <div style={{
-                    width: 34, height: 34, borderRadius: '50%', marginLeft: -8, background: P.dark, color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem',
-                    fontWeight: 800, border: '2px solid #fff',
-                  }}><Users size={14} /></div>
-                </div>
-                <p style={{ fontSize: '1.5rem', fontWeight: 800, color: P.ink }}>3 Admins</p>
-                <span style={{
-                  background: `${P.green}16`, color: P.green, borderRadius: '9999px', padding: '3px 10px',
-                  fontSize: '0.72rem', fontWeight: 800,
-                }}>● On duty now</span>
               </div>
 
               <div
-                onClick={() => trending && jumpToList({ highlightId: trending.id })}
                 style={{
-                  background: P.card, borderRadius: '1.25rem', padding: '1.25rem', border: `1px solid ${P.border}`,
-                  cursor: trending ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', gap: '0.6rem',
+                  background: P.card,
+                  borderRadius: "1.25rem",
+                  padding: "1.25rem",
+                  border: `1px solid ${P.border}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                  alignItems: "flex-start",
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: `${P.red}14`,
-                    color: P.red, borderRadius: '9999px', padding: '3px 10px', fontSize: '0.72rem', fontWeight: 800,
-                  }}><Flame size={12} /> Newest</span>
+                <div style={{ display: "flex", alignItems: "center", marginLeft: 8 }}>
+                  {["DP", "RM", "SK"].map((initials, i) => (
+                    <div
+                      key={initials}
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        marginLeft: -8,
+                        background: ["#14B8A6", "#F59E0B", "#8B5CF6"][i],
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 800,
+                        fontSize: "0.68rem",
+                        border: "2px solid #fff",
+                      }}
+                    >
+                      {initials}
+                    </div>
+                  ))}
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: "50%",
+                      marginLeft: -8,
+                      background: P.dark,
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.85rem",
+                      fontWeight: 800,
+                      border: "2px solid #fff",
+                    }}
+                  >
+                    <Users size={14} />
+                  </div>
+                </div>
+                <p style={{ fontSize: "1.3rem", fontWeight: 800, color: P.ink }}>3 Admins</p>
+                <span
+                  style={{
+                    background: `${P.green}16`,
+                    color: P.green,
+                    borderRadius: "9999px",
+                    padding: "3px 10px",
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                  }}
+                >
+                  ● On duty now
+                </span>
+              </div>
+
+              <div
+                onClick={() => trending && viewAlert(trending.id)}
+                style={{
+                  background: P.card,
+                  borderRadius: "1.25rem",
+                  padding: "1.25rem",
+                  border: `1px solid ${P.border}`,
+                  cursor: trending ? "pointer" : "default",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.6rem",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.3rem",
+                      background: `${P.red}14`,
+                      color: P.red,
+                      borderRadius: "9999px",
+                      padding: "3px 10px",
+                      fontSize: "0.72rem",
+                      fontWeight: 800,
+                    }}
+                  >
+                    <Flame size={12} /> Newest
+                  </span>
                   <ArrowChip />
                 </div>
                 {trending ? (
                   <>
-                    <p style={{ fontSize: '0.98rem', fontWeight: 800, color: P.ink }}>{trending.alertType}</p>
-                    <p style={{ fontSize: '0.8rem', color: P.muted, fontWeight: 600 }}>{trending.childId} · {trending.campName} · {daysSince(trending.triggeredAt)}</p>
+                    <p style={{ fontSize: "0.9rem", fontWeight: 800, color: P.ink }}>{trending.alertType}</p>
+                    <p style={{ fontSize: "0.76rem", color: P.muted, fontWeight: 600 }}>
+                      {trending.childId} · {trending.campName} · {daysSince(trending.triggeredAt)}
+                    </p>
                   </>
                 ) : (
-                  <p style={{ fontSize: '0.9rem', color: P.muted, fontWeight: 600 }}>No alerts yet</p>
+                  <p style={{ fontSize: "0.9rem", color: P.muted, fontWeight: 600 }}>No alerts yet</p>
                 )}
               </div>
             </div>
           </div>
-
-          {/* ══ Full alert list — filters, sort, review/escalate actions ══ */}
-          <div ref={listRef} id="all-alerts" style={{ paddingTop: '1.75rem' }}>
-            <div style={{ marginBottom: '1.1rem' }}>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: P.ink }}>All Alerts</h2>
-              <p style={{ fontSize: '0.85rem', color: P.muted, marginTop: '2px', fontWeight: 600 }}>
-                {loading ? 'Loading…' : `${visible.length} alert${visible.length !== 1 ? 's' : ''} · ${selectedCamp === 'all' ? 'All camps' : MOCK_CAMPS.find(c => c.id === selectedCamp)?.name}`}
-              </p>
-            </div>
-
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem',
-            }}>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <FilterPills
-                  options={FILTER_OPTIONS}
-                  active={filter}
-                  onSelect={setFilter}
-                  counts={{ all: alerts.length, pending: pendingCount, resolved: resolvedCount, escalated: escalatedCount }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <select
-                  value={sortBy} onChange={e => setSortBy(e.target.value)}
-                  style={{
-                    background: P.card, color: P.ink, border: `2px solid ${P.border}`, borderRadius: '0.6rem',
-                    padding: '6px 12px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', outline: 'none',
-                  }}
-                >
-                  {SORT_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                </select>
-                <select
-                  value={selectedCamp} onChange={e => setSelectedCamp(e.target.value)}
-                  style={{
-                    background: P.card, color: P.ink, border: `2px solid ${P.border}`, borderRadius: '0.6rem',
-                    padding: '6px 12px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', outline: 'none',
-                  }}
-                >
-                  {MOCK_CAMPS.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} ({alertCounts[c.id] ?? c.count})</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} style={{
-                    background: P.card, borderRadius: '1.25rem', border: `1px solid ${P.border}`,
-                    borderLeft: `6px solid ${P.border}`, padding: '1.25rem', display: 'flex',
-                    flexDirection: 'column', gap: '0.75rem',
-                  }}>
-                    {[160, 120, 80, 52].map((w, j) => (
-                      <div key={j} style={{
-                        height: j === 3 ? 44 : 14, width: `${Math.min(100, w / 2)}%`, background: P.cardSoft,
-                        borderRadius: '9999px', animation: 'floatY 1.5s ease-in-out infinite', animationDelay: `${j * 0.1}s`,
-                      }} />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : visible.length === 0 ? (
-              <div style={{ background: P.card, borderRadius: '1.25rem', padding: '3rem 2rem', textAlign: 'center', border: `1px solid ${P.border}` }}>
-                <p style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>✅</p>
-                <p style={{ fontSize: '1.4rem', fontWeight: 800, color: P.ink }}>No alerts here</p>
-                <p style={{ fontSize: '0.9rem', color: P.muted, marginTop: '4px' }}>
-                  {filter !== 'all' ? `No ${filter} alerts for this selection.` : 'All clear!'}
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '2rem' }}>
-                {visible.map(alert => (
-                  <AlertCard key={alert.id} alert={alert} onAction={handleAction} highlighted={highlightId === alert.id} />
-                ))}
-              </div>
-            )}
-          </div>
         </main>
       </div>
     </>
-  )
+  );
 }

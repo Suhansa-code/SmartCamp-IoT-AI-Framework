@@ -40,7 +40,6 @@ export default function AlertCard({ alert, onAction, highlighted }) {
       background: P.card,
       border: `1px solid ${P.border}`,
       borderRadius: '1.25rem',
-      borderLeft: `6px solid ${borderColor}`,
       padding: '1.25rem 1.5rem',
       display: 'flex',
       flexDirection: 'column',
