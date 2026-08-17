@@ -5,6 +5,7 @@ import { CheckCircle2, TriangleAlert } from 'lucide-react'
 import { P, STATUS_COLOR } from './alertPalette'
 import SeverityBadge from './SeverityBadge'
 import ScoreSparkline from './ScoreSparkline'
+import Button from '@/components/common/Button'
 import { daysSince } from '@/components/common/utils'
 
 export default function AlertCard({ alert, onAction, highlighted }) {
@@ -81,31 +82,22 @@ export default function AlertCard({ alert, onAction, highlighted }) {
 
       {alert.status !== 'resolved' && (
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button
+          <Button
             onClick={() => doAction('review')}
             disabled={!!actionLoading}
-            style={{
-              flex: 1, minHeight: '44px', background: P.lime, color: P.dark,
-              borderRadius: '0.75rem', border: 'none', fontWeight: 800, fontSize: '0.84rem',
-              cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading === 'review' ? 0.6 : 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-            }}
+            style={{ flex: 1, minHeight: 36 }}
           >
             {actionLoading === 'review' ? '⏳' : <CheckCircle2 size={16} />} Mark Reviewed
-          </button>
+          </Button>
           {alert.status !== 'escalated' && (
-            <button
+            <Button
+              variant="outline"
               onClick={() => doAction('escalate')}
               disabled={!!actionLoading}
-              style={{
-                flex: 1, minHeight: '44px', background: 'transparent', color: P.ink,
-                borderRadius: '0.75rem', border: `2px solid ${P.dark}`, fontWeight: 800, fontSize: '0.84rem',
-                cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading === 'escalate' ? 0.6 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-              }}
+              style={{ flex: 1, minHeight: 36 }}
             >
               {actionLoading === 'escalate' ? '⏳' : <TriangleAlert size={16} />} Escalate
-            </button>
+            </Button>
           )}
         </div>
       )}

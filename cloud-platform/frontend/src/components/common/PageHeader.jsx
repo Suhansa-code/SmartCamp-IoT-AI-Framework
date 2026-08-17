@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Bell, TriangleAlert } from 'lucide-react'
 import { P } from '@/components/alert/alertPalette'
 import SearchBar from '@/components/common/SearchBar'
+import Button from '@/components/common/Button'
 
 // Shared app header — logo · search · alert icons · profile avatar.
 // Mirrors the alert page header exactly; no border (sits directly on the page background).
@@ -66,23 +67,13 @@ export default function PageHeader({
         {search && <SearchBar {...search} />}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <button
+          <Button
+            variant="circleOutline"
+            size={40}
             onClick={onBellClick || goToAlerts}
-            style={{
-              position: 'relative',
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              background: P.card,
-              border: `1px solid ${P.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
             aria-label="Alerts"
           >
-            <Bell size={17} color={P.ink} />
+            <Bell size={17} />
             {typeof pendingCount === 'number' && pendingCount > 0 && (
               <span
                 style={{
@@ -100,25 +91,15 @@ export default function PageHeader({
                 {pendingCount}
               </span>
             )}
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="circleOutline"
+            size={40}
             onClick={onEscalatedClick || goToAlerts}
-            style={{
-              position: 'relative',
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              background: P.card,
-              border: `1px solid ${P.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
             aria-label="Escalated alerts"
           >
-            <TriangleAlert size={17} color={P.ink} />
+            <TriangleAlert size={17} />
             {typeof escalatedCount === 'number' && escalatedCount > 0 && (
               <span
                 style={{
@@ -136,7 +117,7 @@ export default function PageHeader({
                 {escalatedCount}
               </span>
             )}
-          </button>
+          </Button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '0.3rem' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: P.ink }}>Dr. Perera</span>

@@ -2,6 +2,7 @@
 
 import { Search, RefreshCw } from 'lucide-react'
 import { P } from '@/components/alert/alertPalette'
+import Button from '@/components/common/Button'
 
 // Pill-style search bar (matching the alert dashboard design).
 // Optional `onRefresh` renders a round refresh button on the right.
@@ -33,17 +34,15 @@ export default function SearchBar({
           }}
         />
         {onRefresh && (
-          <button
+          <Button
+            variant="circle"
+            size={34}
             onClick={onRefresh}
+            disabled={refreshing}
             aria-label="Refresh"
-            style={{
-              width: 34, height: 34, borderRadius: '50%', background: P.dark, border: 'none',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', flexShrink: 0,
-            }}
           >
             <RefreshCw size={15} style={refreshing ? { animation: 'searchSpin 0.8s linear infinite' } : undefined} />
-          </button>
+          </Button>
         )}
       </div>
     </>
