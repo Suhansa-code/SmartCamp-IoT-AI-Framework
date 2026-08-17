@@ -5,15 +5,13 @@ import Link from 'next/link'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
-import PageTitle from '@/components/common/PageTitle'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
 import ProgressBar from '@/components/dashboard/ProgressBar'
 import StatusDonut from '@/components/dashboard/StatusDonut'
-import Button from '@/components/common/Button'
 import { P } from '@/components/alert/alertPalette'
-import { Droplets, Users, BookOpen, Bell, Radio, RefreshCw, ArrowUpRight, Tent } from 'lucide-react'
+import { Droplets, Users, BookOpen, Bell, Radio, ArrowUpRight, Tent } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -224,7 +222,6 @@ export default function DashboardPage() {
   const donutSegs = statusList.map((s) => ({ color: s.color, value: s.value }))
   const pctOf = (n) => (scopeStats.camps ? Math.round((n / scopeStats.camps) * 100) : 0)
 
-  const today = useMemo(() => new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }), [])
   const tooltipStyle = {
     background: '#FFFFFF', border: `1px solid ${P.border}`, borderRadius: '0.75rem',
     fontSize: '0.78rem', fontWeight: 600, color: P.ink, boxShadow: '0 12px 30px rgba(20,30,40,0.14)',
@@ -269,6 +266,10 @@ export default function DashboardPage() {
           
                   <HeaderShell>
           <PageHeader
+            title="Dashboard"
+            subtitle={
+              loading ? 'Loading live overview…' : `Unified view across ${campRows.length} camps · Education · Resources · Disaster`
+            }
             search={{
               value: searchText,
               onChange: setSearchText,
@@ -280,23 +281,7 @@ export default function DashboardPage() {
           />
         </HeaderShell>
 
-        <div style={{ padding: '0rem 2rem',  gap: '1.25rem', display: 'flex', flexDirection: 'column',}}>
-          {/* ── Title strip ── */}
-          <PageTitle
-            title="Dashboard"
-            subtitle={
-              loading ? 'Loading live overview…' : `Unified view across ${campRows.length} camps · Education · Resources · Disaster`
-            }
-            right={
-              <>
-                <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
-                <Button variant="circle" onClick={() => loadAll(true)} disabled={refreshing} aria-label="Refresh data">
-                  <RefreshCw size={16} style={refreshing ? { animation: 'dashSpin 0.8s linear infinite' } : undefined} />
-                </Button>
-              </>
-            }
-          />
-
+        <div style={{ padding: '0rem 2rem', gap: '1.25rem', display: 'flex', flexDirection: 'column',}}>
           {/* ── Filter toolbar ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>

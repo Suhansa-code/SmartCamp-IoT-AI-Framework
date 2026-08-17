@@ -1,11 +1,12 @@
 "use client";
-
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bell, TriangleAlert } from "lucide-react";
+import { Bell, TriangleAlert, RefreshCw } from "lucide-react";
 import { P } from "@/components/alert/alertPalette";
 import SearchBar from "@/components/common/SearchBar";
 import Button from "@/components/common/Button";
+import PageTitle from "./PageTitle";
 
 // Shared app header — logo · search · alert icons · profile avatar.
 // Mirrors the alert page header exactly; no border (sits directly on the page background).
@@ -24,9 +25,10 @@ export function HeaderShell({ children, style }) {
   return <div style={{ width: "100%", padding: HEADER_PADDING, ...style }}>{children}</div>;
 }
 
-export default function PageHeader({ search, pendingCount, escalatedCount, onBellClick, onEscalatedClick }) {
+export default function PageHeader({ search, pendingCount, escalatedCount, onBellClick, onEscalatedClick, title, subtitle }) {
   const router = useRouter();
   const goToAlerts = () => router.push("/alert");
+  const [refreshing, setRefreshing] = useState(false);
 
   return (
     <>
@@ -53,7 +55,16 @@ export default function PageHeader({ search, pendingCount, escalatedCount, onBel
           </div>
           <span style={{ fontSize: '1.02rem', fontWeight: 800, color: P.ink }}>smartcamp.</span>
         </Link> */}
-        <div></div>
+        <div className="flex items-center">
+          {/* ── Alert-page style title / subtitle ─────────────────── */}
+          <PageTitle
+            title={title}
+            // subtitle={refreshing ? "Refreshing live overview…" : "View resource usage and availability "}
+            subtitle={subtitle}
+            className="w-full"
+          />
+        </div>
+
         <div className="flex justify-end items-center w-full">{search && <SearchBar {...search} />}</div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
           <Button variant="circleOutline" size={40} onClick={onBellClick || goToAlerts} aria-label="Alerts">
@@ -99,7 +110,7 @@ export default function PageHeader({ search, pendingCount, escalatedCount, onBel
           </Button>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingLeft: "0.3rem" }}>
-            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: P.ink, textWrap:"nowrap" }}>Dr. Perera</span>
+            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: P.ink, textWrap: "nowrap" }}>Dr. Perera</span>
             <div style={{ position: "relative" }}>
               <div
                 style={{

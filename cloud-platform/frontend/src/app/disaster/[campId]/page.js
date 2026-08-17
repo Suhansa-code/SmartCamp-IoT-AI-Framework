@@ -3,13 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  Users, MapPin, HeartHandshake, Gauge, RefreshCw, ArrowLeft,
+  Users, MapPin, HeartHandshake, Gauge, ArrowLeft,
   Droplets, CloudRain, Wind, Cloud, Activity, ChevronRight,
 } from 'lucide-react'
 import { STATUS_META, statusColor, getCampById, CAMP_DETAIL } from '@/components/disaster/disasterData'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
-import PageTitle from '@/components/common/PageTitle'
 import Button from '@/components/common/Button'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
@@ -76,16 +75,6 @@ function Row({ label, value, tone, theme }) {
 
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
 
-function formatSriLankaTime(date = new Date()) {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Colombo',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(date)
-}
-
 function getPredictionTone(probability, theme) {
   if (probability >= 0.7) return theme.red
   if (probability >= 0.4) return theme.orange
@@ -125,8 +114,6 @@ function Chip({ children, color = P.muted, style }) {
 export default function DisasterCampDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const [utc, setUtc] = useState('')
-  const [tick, setTick] = useState(0)
   const [camp, setCamp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -134,15 +121,6 @@ export default function DisasterCampDetailPage() {
   const [refreshing, setRefreshing] = useState(false)
 
   const campId = Array.isArray(params?.campId) ? params.campId[0] : params?.campId
-
-  useEffect(() => {
-    setUtc(formatSriLankaTime())
-    const id = setInterval(() => {
-      setUtc(formatSriLankaTime())
-      setTick((value) => value + 1)
-    }, 1000)
-    return () => clearInterval(id)
-  }, [])
 
   useEffect(() => {
     let active = true
@@ -357,10 +335,6 @@ export default function DisasterCampDetailPage() {
     return String(label).toLowerCase().includes(q) || String(value ?? '').toLowerCase().includes(q)
   }
 
-  const statusPill = camp ? (
-    <Chip color={STATUS_COLOR[camp.status]}>{STATUS_META[camp.status]?.label}</Chip>
-  ) : null
-
   const waterTone = detail ? (detail.wl > detail.alertL ? P.red : detail.wl > 0 ? P.amber : P.teal) : P.teal
 
   const kpis = camp ? [
@@ -432,6 +406,8 @@ export default function DisasterCampDetailPage() {
 
             <HeaderShell>
               <PageHeader
+                title={camp.name}
+                subtitle={`${camp.code} · ${camp.type} · Past hourly gauging-station water levels · ${detail?.station || 'gauging station'}`}
                 pendingCount={camp.status === 'high' ? 1 : 0}
                 escalatedCount={camp.status === 'critical' ? 1 : 0}
                 search={{
@@ -445,28 +421,6 @@ export default function DisasterCampDetailPage() {
             </HeaderShell>
 
             <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-              {/* ── Title row ─────────────────────────────────────────── */}
-              <PageTitle
-                eyebrow={`${camp.code} · ${camp.type} · Camp Disaster Detail`}
-                title={camp.name}
-                subtitle={`Past hourly gauging-station water levels · ${detail?.station || 'gauging station'}`}
-                right={
-                  <>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green, fontFamily: 'monospace' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'disPulse 2s infinite' }} />
-                      LIVE LK {utc}
-                    </span>
-                    {statusPill}
-                    <Button variant="circle" onClick={refreshCamp} disabled={refreshing} aria-label="Refresh camp data">
-                      <RefreshCw size={16} style={refreshing ? { animation: 'disSpin 0.8s linear infinite' } : undefined} />
-                    </Button>
-                    <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>
-                      Back to Overview
-                    </Button>
-                  </>
-                }
-              />
 
               {/* ── KPI row ────────────────────────────────────────────── */}
               <div className="det-kpi">

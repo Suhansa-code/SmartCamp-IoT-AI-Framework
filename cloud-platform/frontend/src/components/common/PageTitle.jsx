@@ -14,18 +14,18 @@ import { P } from '@/components/alert/alertPalette'
 //   style      object      — extra styles for the row container
 export default function PageTitle({ eyebrow, title, subtitle, right, align = 'flex-end', style }) {
   return (
-    <div style={{ display: 'flex', alignItems: align, justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, ...style }}>
+    <div style={{width:"full", display: 'flex', alignItems: align, justifyContent: 'space-between', gap: 12, ...style }}>
       <div style={{ minWidth: 0 }}>
         {eyebrow && (
           <div style={{ fontSize: '0.72rem', fontWeight: 700, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>
             {eyebrow}
           </div>
         )}
-        <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: P.ink, lineHeight: 1.2 }}>
+        <h1 style={{ textWrap:"nowrap",fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: P.ink, lineHeight: 1.2 }}>
           {title}
         </h1>
         {subtitle && (
-          <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 400, margin: 0 }}>
+          <p style={{ textWrap:"nowrap", color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 400, margin: 0 }}>
             {subtitle}
           </p>
         )}

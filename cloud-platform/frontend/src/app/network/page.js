@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Radio, RefreshCw, Activity, Gauge, Layers, Zap, Cpu, Network, ShieldCheck, Server, Terminal, CheckCircle2, ArrowDown } from 'lucide-react'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
-import PageTitle from '@/components/common/PageTitle'
 import Button from '@/components/common/Button'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
@@ -147,9 +146,6 @@ export default function NetworkPage() {
   const stateColor = STATE_COLOR[networkState] || P.green
   const bridgeAlive = m.bridge_alive
 
-  const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-
-  // ── derived ──────────────────────────────────────────────────────────────────
   const s = stats || {}
   const totalCrit = (s.critical_sent || 0) + (s.critical_buffered || 0)
   const deliveryRate = totalCrit > 0 ? ((s.critical_sent / totalCrit) * 100).toFixed(1) : '100.0'
@@ -212,6 +208,12 @@ export default function NetworkPage() {
 
             <HeaderShell>
               <PageHeader
+                title="SAAMP Network Monitor"
+                subtitle={
+                  connected
+                    ? `Predictive MQTT link quality · Random Forest · 19 features · 60s ahead`
+                    : `Awaiting cloud backend on port ${API_BASE.replace('http://localhost:', '')}…`
+                }
                 search={{
                   value: search,
                   onChange: setSearch,
@@ -223,28 +225,6 @@ export default function NetworkPage() {
             </HeaderShell>
 
             <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-              {/* ── Title row ─────────────────────────────────────────── */}
-              <PageTitle
-                title="SAAMP Network Monitor"
-                subtitle={
-                  connected
-                    ? `Predictive MQTT link quality · Random Forest · 19 features · 60s ahead`
-                    : `Awaiting cloud backend on port ${API_BASE.replace('http://localhost:', '')}…`
-                }
-                right={
-                  <>
-                    <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: `${stateColor}14`, border: `1px solid ${stateColor}44`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 800, color: stateColor }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor, boxShadow: `0 0 8px ${stateColor}` }} />
-                      {networkState}
-                    </span>
-                    <Button variant="circle" onClick={refresh} disabled={refreshing} aria-label="Refresh data">
-                      <RefreshCw size={16} style={refreshing ? { animation: 'netSpin 0.8s linear infinite' } : undefined} />
-                    </Button>
-                  </>
-                }
-              />
 
               {/* ── KPI row ────────────────────────────────────────────── */}
               <div className="net-kpi">

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Users, HeartHandshake, TriangleAlert, MapPin, RefreshCw, ChevronRight, X,
+  Users, HeartHandshake, TriangleAlert, MapPin, ChevronRight, X,
   Droplets, Boxes, Stethoscope, Home, Zap, Radio, ShieldAlert, Crosshair, ChevronDown,
 } from 'lucide-react'
 import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disasterData'
@@ -11,7 +11,6 @@ import { DisasterGeoMap } from './DisasterGeoMap'
 import { Ring, Sparkline, TrendChart } from './DisasterVisuals'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
-import PageTitle from '@/components/common/PageTitle'
 import Button from '@/components/common/Button'
 import MiniStat from '@/components/dashboard/MiniStat'
 import DashboardCard from '@/components/dashboard/DashboardCard'
@@ -97,16 +96,6 @@ const ALERTS = [
 
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
 
-function formatSriLankaTime(date = new Date()) {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Colombo',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(date)
-}
-
 function Chip({ children, color = P.muted, style }) {
   return (
     <span style={{
@@ -129,7 +118,6 @@ export default function DisasterDashboard() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
-  const [utc, setUtc] = useState('')
   const [tick, setTick] = useState(0)
   const [search, setSearch] = useState('')
   const [showAllCamps, setShowAllCamps] = useState(false)
@@ -161,9 +149,7 @@ export default function DisasterDashboard() {
   }, [])
 
   useEffect(() => {
-    setUtc(formatSriLankaTime())
     const id = setInterval(() => {
-      setUtc(formatSriLankaTime())
       setTick((value) => value + 1)
     }, 1000)
     return () => clearInterval(id)
@@ -339,6 +325,12 @@ export default function DisasterDashboard() {
 
             <HeaderShell>
               <PageHeader
+                title="Disaster Relief Operations"
+                subtitle={
+                  loading
+                    ? 'Connecting to the cloud backend…'
+                    : `Interactive relief grid · ${camps.length} camps · click a node or camp to inspect`
+                }
                 pendingCount={statusCounts.high}
                 escalatedCount={statusCounts.critical}
                 search={{
@@ -355,28 +347,6 @@ export default function DisasterDashboard() {
             </HeaderShell>
 
             <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-              {/* ── Title row ─────────────────────────────────────────── */}
-              <PageTitle
-                title="Disaster Relief Operations"
-                subtitle={
-                  loading
-                    ? 'Connecting to the cloud backend…'
-                    : `Interactive relief grid · ${camps.length} camps · click a node or camp to inspect`
-                }
-                right={
-                  <>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green, fontFamily: 'monospace' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'disPulse 2s infinite' }} />
-                      LIVE LK {utc}
-                    </span>
-                    <Chip color={P.purple}><ShieldAlert size={11} /> DMCS-01 · ACTIVE</Chip>
-                    <Button variant="circle" onClick={() => { setRefreshing(true); loadOverview() }} disabled={refreshing} aria-label="Refresh disaster data">
-                      <RefreshCw size={16} style={refreshing ? { animation: 'disSpin 0.8s linear infinite' } : undefined} />
-                    </Button>
-                  </>
-                }
-              />
 
               {/* ── HERO: map (left) + side panel (right) ─────────────── */}
               <div className="dis-hero-grid">

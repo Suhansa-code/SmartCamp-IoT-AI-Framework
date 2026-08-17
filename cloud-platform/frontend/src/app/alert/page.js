@@ -156,6 +156,8 @@ export default function AlertsPage() {
           >
             {/* ── Header: logo · search · icons · admin ── */}
             <PageHeader
+              title="Welfare Alerts"
+              subtitle={`${activeCount} active · ${pendingCount} pending · ${escalatedCount} escalated`}
               search={{
                 value: search,
                 onChange: setSearch,

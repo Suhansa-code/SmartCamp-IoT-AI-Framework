@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { ResponsiveContainer, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
-import PageTitle from '@/components/common/PageTitle'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
@@ -296,8 +295,6 @@ export default function EducationPage() {
   }, [list])
   const gradeChildren = gradeTotals.reduce((s, [, n]) => s + n, 0)
 
-  const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-
   const sparkFor = (key) => list.map((c) => c[key])
 
   const goOverview = () => { setSelectedId(null); setDetail(null) }
@@ -340,6 +337,14 @@ export default function EducationPage() {
 
         <HeaderShell>
           <PageHeader
+            title={detail ? meta?.name || 'Camp Details' : 'Education Insights'}
+            subtitle={
+              loadingCamps
+                ? 'Loading camp data…'
+                : detail
+                  ? `${meta?.code || ''} · ${meta?.location || 'Sector'} · ${detail.children_count} children tracked`
+                  : `${camps.length} camps · ${totals.children.toLocaleString()} children · ${totals.sessions.toLocaleString()} sessions`
+            }
             pendingCount={totals.alerts}
             search={{
               value: search,
@@ -351,22 +356,10 @@ export default function EducationPage() {
           />
         </HeaderShell>
 
-        <div style={{  display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           {/* ══ Big rounded panel — alert-page composition ══ */}
-          <div style={{ background: P.panel, padding: 'clamp(1rem, 2vw, 1.75rem)',  display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-            {/* ── Title row ── */}
-            <PageTitle
-              title={detail ? meta?.name || 'Camp Details' : 'Education Insights'}
-              subtitle={
-                loadingCamps
-                  ? 'Loading camp data…'
-                  : detail
-                    ? `${meta?.code || ''} · ${meta?.location || 'Sector'} · ${detail.children_count} children tracked`
-                    : `${camps.length} camps · ${totals.children.toLocaleString()} children · ${totals.sessions.toLocaleString()} sessions`
-              }
-            />
+          <div style={{ background: P.panel, padding: 'clamp(1rem, 2vw, 1.75rem)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* ── Camp selector pills ── */}
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
