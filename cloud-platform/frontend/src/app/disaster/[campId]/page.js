@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { STATUS_META, statusColor } from '@/components/disaster/disasterData'
 import SideNav from '@/components/common/SideNav'
+import PageHeader from '@/components/common/PageHeader'
 import { useTheme } from '@/components/common/ThemeProvider'
 
 // Applies the global navigation rail + offsets content to the right of it.
@@ -318,6 +319,9 @@ export default function DisasterCampDetailPage() {
 
   return (
     <WithRail>
+    <div style={{ padding: '18px 18px 0' }}>
+      <PageHeader />
+    </div>
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: "'Inter','Segoe UI',sans-serif", transition: 'background 0.3s' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');

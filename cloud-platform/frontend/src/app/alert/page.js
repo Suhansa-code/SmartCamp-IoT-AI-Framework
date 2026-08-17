@@ -6,9 +6,9 @@
 // Alerts are picked from a dropdown and inspected in the detail card.
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Bell, TriangleAlert, ArrowUpRight, Radio, Users, Flame, ListChecks } from "lucide-react";
+import { ArrowUpRight, Radio, Users, Flame, ListChecks } from "lucide-react";
 import SideNav from "@/components/common/SideNav";
-import SearchBar from "@/components/common/SearchBar";
+import PageHeader from "@/components/common/PageHeader";
 import { P, SEVERITY_RANK } from "@/components/alert/alertPalette";
 import { MOCK_CAMPS, mockAlerts } from "@/components/alert/mockAlerts";
 import AlertCard from "@/components/alert/AlertCard";
@@ -119,7 +119,6 @@ export default function AlertsPage() {
         @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .nitec-hero-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.25rem; }
         .nitec-bottom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
-        .nitec-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
         @media (max-width: 900px) {
           .nitec-hero-grid { grid-template-columns: 1fr; }
           .nitec-bottom-grid { grid-template-columns: 1fr; }
@@ -155,147 +154,25 @@ export default function AlertsPage() {
             }}
           >
             {/* ── Header: logo · search · icons · admin ── */}
-            <div className="nitec-header">
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "0.7rem",
-                    background: P.dark,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                  }}
-                >
-                  <TriangleAlert size={18} />
-                </div>
-                <span style={{ fontSize: "1.02rem", fontWeight: 800, color: P.ink }}>smartcamp.</span>
-              </div>
-
-              <SearchBar
-                value={search}
-                onChange={setSearch}
-                placeholder="Search child ID, camp, alert type…"
-                onRefresh={fetchAlerts}
-                refreshing={loading}
-              />
-
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                <button
-                  onClick={() => {
-                    const a = alerts.find((x) => x.status === "pending");
-                    if (a) viewAlert(a.id);
-                  }}
-                  style={{
-                    position: "relative",
-                    width: 40,
-                    height: 40,
-                    borderRadius: "50%",
-                    background: P.card,
-                    border: `1px solid ${P.border}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                  aria-label="Pending alerts"
-                >
-                  <Bell size={17} color={P.ink} />
-                  {pendingCount > 0 && (
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: -4,
-                        right: -4,
-                        background: P.amber,
-                        color: "#fff",
-                        borderRadius: "9999px",
-                        fontSize: "0.62rem",
-                        fontWeight: 800,
-                        padding: "1px 5px",
-                      }}
-                    >
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    const a = alerts.find((x) => x.status === "escalated");
-                    if (a) viewAlert(a.id);
-                  }}
-                  style={{
-                    position: "relative",
-                    width: 40,
-                    height: 40,
-                    borderRadius: "50%",
-                    background: P.card,
-                    border: `1px solid ${P.border}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                  aria-label="Escalated alerts"
-                >
-                  <TriangleAlert size={17} color={P.ink} />
-                  {escalatedCount > 0 && (
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: -4,
-                        right: -4,
-                        background: P.purple,
-                        color: "#fff",
-                        borderRadius: "9999px",
-                        fontSize: "0.62rem",
-                        fontWeight: 800,
-                        padding: "1px 5px",
-                      }}
-                    >
-                      {escalatedCount}
-                    </span>
-                  )}
-                </button>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingLeft: "0.3rem" }}>
-                  <span style={{ fontSize: "0.8rem", fontWeight: 700, color: P.ink }}>Dr. Perera</span>
-                  <div style={{ position: "relative" }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "50%",
-                        background: "linear-gradient(135deg, #14B8A6, #0D9488)",
-                        color: "#fff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 800,
-                        fontSize: "0.78rem",
-                      }}
-                    >
-                      DP
-                    </div>
-                    <span
-                      style={{
-                        position: "absolute",
-                        bottom: 0,
-                        right: 0,
-                        width: 11,
-                        height: 11,
-                        borderRadius: "50%",
-                        background: P.lime,
-                        border: "2px solid #fff",
-                        boxShadow: `0 0 6px ${P.lime}`,
-                        animation: "floatY 3s ease-in-out infinite",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PageHeader
+              search={{
+                value: search,
+                onChange: setSearch,
+                placeholder: "Search child ID, camp, alert type…",
+                onRefresh: fetchAlerts,
+                refreshing: loading,
+              }}
+              pendingCount={pendingCount}
+              escalatedCount={escalatedCount}
+              onBellClick={() => {
+                const a = alerts.find((x) => x.status === "pending");
+                if (a) viewAlert(a.id);
+              }}
+              onEscalatedClick={() => {
+                const a = alerts.find((x) => x.status === "escalated");
+                if (a) viewAlert(a.id);
+              }}
+            />
 
             {/* ── Hero: left copy panel + right widget stack ── */}
             <div className="nitec-hero-grid">

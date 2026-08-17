@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import SideNav from '@/components/common/SideNav'
-import SearchBar from '@/components/common/SearchBar'
+import PageHeader from '@/components/common/PageHeader'
 import { useTheme } from '@/components/common/ThemeProvider'
 
 // ── Demo fallback data (used when the cloud backend endpoint is unreachable) ──
@@ -198,6 +198,18 @@ export default function DashboardPage() {
         <SideNav />
 
         <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
+          {/* Shared header */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <PageHeader
+              search={{
+                value: searchText,
+                onChange: setSearchText,
+                placeholder: 'Search by camp name, code, or location…',
+              }}
+              pendingCount={stats.totalAlerts}
+            />
+          </div>
+
           {/* Welcome strip */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: '1.5rem' }}>
             <div>
@@ -231,13 +243,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Toolbar */}
-          <div className="grid-toolbar" style={{ marginBottom: '0.9rem' }}>
-            <SearchBar
-              value={searchText}
-              onChange={setSearchText}
-              placeholder="Search by camp name, code, or location…"
-              style={{ maxWidth: 'none', width: '100%' }}
-            />
+          <div className="grid-toolbar" style={{ gridTemplateColumns: '200px auto', justifyContent: 'flex-end', marginBottom: '0.9rem' }}>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}

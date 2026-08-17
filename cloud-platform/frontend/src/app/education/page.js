@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import SideNav from '@/components/common/SideNav'
+import PageHeader from '@/components/common/PageHeader'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { GraduationCap, Users, BookOpen, BellRing, ArrowLeft, AlertTriangle, CheckCircle2, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
 
@@ -352,6 +353,11 @@ export default function EducationPage() {
         <SideNav />
 
         <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
+
+          {/* Shared header */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <PageHeader pendingCount={totals.alerts} />
+          </div>
 
           {/* Page heading */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: '1.25rem' }}>

@@ -1,6 +1,7 @@
 'use client'
 
 import SideNav from '@/components/common/SideNav'
+import PageHeader from '@/components/common/PageHeader'
 import OverviewPanel from '@/components/resources/OverviewPanel'
 import { useTheme } from '@/components/common/ThemeProvider'
 
@@ -35,6 +36,11 @@ export default function ResourcesPage() {
       <div style={{ minHeight: '100svh', background: T.bg, fontFamily: "'Inter',sans-serif", color: T.text, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
 
         <SideNav />
+
+        {/* ── Shared header ──────────────────────────────── */}
+        <div style={{ padding: '1.25rem 2rem 0' }}>
+          <PageHeader />
+        </div>
 
         {/* ── Section label ──────────────────────────────── */}
         <div style={{ padding: '1.25rem 2rem 0', display: 'flex', alignItems: 'center', flexWrap: 'wrap',

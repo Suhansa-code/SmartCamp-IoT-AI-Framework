@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import SideNav from '@/components/common/SideNav'
+import PageHeader from '@/components/common/PageHeader'
 import Header from '@/components/network/Header'
 import StatCards from '@/components/network/StatCards'
 import MessageLog from '@/components/network/MessageLog'
@@ -68,6 +69,10 @@ export default function NetworkPage() {
         <SideNav />
 
         <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <PageHeader />
+          </div>
+
           <Header
             networkState={networkState}
             connected={connected}
