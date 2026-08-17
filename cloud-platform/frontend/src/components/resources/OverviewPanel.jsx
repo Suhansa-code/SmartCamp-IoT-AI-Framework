@@ -1,34 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { C } from '@/components/common/theme'
+import { timeAgo } from '@/components/common/utils'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
-const C = {
-  bg:      '#0A2540',
-  panel:   '#0D1F35',
-  border:  '#1E3A5F',
-  teal:    '#0D9488',
-  tealDim: '#0A6B62',
-  muted:   '#64748B',
-  text:    '#E2E8F0',
-  dim:     '#94A3B8',
-  warn:    '#F59E0B',
-  danger:  '#EF4444',
-  green:   '#22C55E',
-  blue:    '#60A5FA',
-  purple:  '#A78BFA',
-}
-
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-function timeAgo(iso) {
-  if (!iso) return '—'
-  const diff = Math.floor((Date.now() - new Date(iso)) / 1000)
-  if (diff < 60)   return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  return `${Math.floor(diff / 3600)}h ago`
-}
 
 function networkColor(state) {
   if (state === 'STABLE')       return C.green
@@ -40,7 +18,7 @@ function networkColor(state) {
 function confidenceColor(c) {
   if (c === 'HIGH')   return C.green
   if (c === 'MEDIUM') return C.warn
-  return C.muted
+  return C.slate
 }
 
 const EVENT_META = {
@@ -54,18 +32,18 @@ const EVENT_META = {
 function StatCard({ icon, value, label, color = C.teal, sub }) {
   return (
     <div style={{
-      background: C.panel, border: `1px solid ${C.border}`,
+      background: C.panel, border: `1px solid ${C.line}`,
       borderRadius: 10, padding: '14px 18px', flex: '1 1 130px',
       display: 'flex', flexDirection: 'column', gap: 2,
     }}>
       <div style={{ fontSize: 20 }}>{icon}</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color, fontFamily: "'Baloo 2',cursive", lineHeight: 1 }}>
+      <div style={{ fontSize: 28, fontWeight: 900, color, fontFamily: "'Inter',sans-serif", lineHeight: 1 }}>
         {value ?? '—'}
       </div>
       <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
         {label}
       </div>
-      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: C.slate, marginTop: 2 }}>{sub}</div>}
     </div>
   )
 }
@@ -85,7 +63,7 @@ function DistBar({ icon, label, served, pending, percent }) {
       <div style={{ width: 40, textAlign: 'right', fontSize: 12, fontWeight: 800, color: C.text }}>
         {percent}%
       </div>
-      <div style={{ width: 60, fontSize: 11, color: C.muted }}>
+      <div style={{ width: 60, fontSize: 11, color: C.slate }}>
         {served}/{served + pending}
       </div>
     </div>
@@ -97,14 +75,14 @@ function PredictionRow({ icon, label, value, unit }) {
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 14px', background: '#0A1A2E', borderRadius: 8,
-      border: `1px solid ${C.border}`,
+      border: `1px solid ${C.line}`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 20 }}>{icon}</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{label}</span>
       </div>
       <div>
-        <span style={{ fontSize: 22, fontWeight: 900, color: C.teal, fontFamily: "'Baloo 2',cursive" }}>
+        <span style={{ fontSize: 22, fontWeight: 900, color: C.teal, fontFamily: "'Inter',sans-serif" }}>
           {value}
         </span>
         <span style={{ fontSize: 12, color: C.dim, marginLeft: 4 }}>{unit}</span>
@@ -114,12 +92,12 @@ function PredictionRow({ icon, label, value, unit }) {
 }
 
 function EventRow({ event }) {
-  const meta = EVENT_META[event.type] || { dot: C.muted, icon: '·', label: event.type }
+  const meta = EVENT_META[event.type] || { dot: C.slate, icon: '·', label: event.type }
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '7px 12px', borderRadius: 7,
-      background: '#0A1A2E', border: `1px solid ${C.border}`,
+      background: '#0A1A2E', border: `1px solid ${C.line}`,
     }}>
       <div style={{
         width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
@@ -130,7 +108,7 @@ function EventRow({ event }) {
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {event.summary}
       </span>
-      <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{timeAgo(event.timestamp)}</span>
+      <span style={{ fontSize: 11, color: C.slate, flexShrink: 0 }}>{timeAgo(event.timestamp)}</span>
     </div>
   )
 }
@@ -172,7 +150,7 @@ export default function OverviewPanel() {
   // ── loading / error ──────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>
+      <div style={{ padding: 40, textAlign: 'center', color: C.slate }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
         <div>Connecting to EMQX data stream…</div>
       </div>
@@ -184,7 +162,7 @@ export default function OverviewPanel() {
       <div style={{ padding: 40, textAlign: 'center', color: C.danger }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
         <div style={{ fontWeight: 700 }}>{error}</div>
-        <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
+        <div style={{ fontSize: 12, color: C.slate, marginTop: 6 }}>
           Make sure the cloud backend is running on port 3001
         </div>
         <button onClick={fetchStats} style={{
@@ -209,7 +187,7 @@ export default function OverviewPanel() {
 
       {/* ── header ───────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontFamily: "'Baloo 2',cursive", fontWeight: 900, fontSize: '1.1rem', color: C.text }}>
+        <div style={{ fontFamily: "'Inter',sans-serif", fontWeight: 900, fontSize: '1.1rem', color: C.text }}>
           Camp Overview
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -222,7 +200,7 @@ export default function OverviewPanel() {
             {mqtt.network_state} · updated {lastUpdate ? timeAgo(new Date(lastUpdate)) : '—'}
           </span>
           <button onClick={fetchStats} style={{
-            background: 'transparent', border: `1px solid ${C.border}`,
+            background: 'transparent', border: `1px solid ${C.line}`,
             borderRadius: 6, color: C.dim, cursor: 'pointer', fontSize: 11, padding: '2px 8px',
           }}>↻</button>
         </div>
@@ -251,11 +229,11 @@ export default function OverviewPanel() {
       </div>
 
       {/* ── distribution progress ─────────────────────────────────────── */}
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px' }}>
+      <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '14px 18px' }}>
         <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase',
           letterSpacing: 1, marginBottom: 10 }}>
           Today's Distribution
-          <span style={{ color: C.muted, fontWeight: 400 }}> · {eligible_for_distribution} eligible</span>
+          <span style={{ color: C.slate, fontWeight: 400 }}> · {eligible_for_distribution} eligible</span>
         </div>
         <DistBar icon="☕" label="Breakfast" {...distribution_today.breakfast} />
         <DistBar icon="🍛" label="Lunch"     {...distribution_today.lunch} />
@@ -264,7 +242,7 @@ export default function OverviewPanel() {
       </div>
 
       {/* ── prediction ───────────────────────────────────────────────── */}
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px' }}>
+      <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '14px 18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
             Tomorrow's Resource Prediction
@@ -279,7 +257,7 @@ export default function OverviewPanel() {
               {prediction_tomorrow.confidence} · {prediction_tomorrow.days_of_data}d data
             </span>
             <span style={{
-              fontSize: 11, background: '#0A1A2E', border: `1px solid ${C.border}`,
+              fontSize: 11, background: '#0A1A2E', border: `1px solid ${C.line}`,
               borderRadius: 6, padding: '3px 10px', color: C.teal, fontWeight: 700,
             }}>
               {prediction_tomorrow.expected_persons} people · {prediction_tomorrow.attendance_rate_pct}% attendance
@@ -293,7 +271,7 @@ export default function OverviewPanel() {
             { label: 'Expected new arrivals', value: `+${prediction_tomorrow.expected_new_arrivals}` },
           ].map(s => (
             <div key={s.label} style={{
-              background: '#0A1A2E', border: `1px solid ${C.border}`, borderRadius: 6,
+              background: '#0A1A2E', border: `1px solid ${C.line}`, borderRadius: 6,
               padding: '4px 12px', fontSize: 11, color: C.dim,
             }}>
               {s.label}: <span style={{ color: C.blue, fontWeight: 700 }}>{s.value}</span>
@@ -319,13 +297,13 @@ export default function OverviewPanel() {
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
 
         {/* ── live event feed ───────────────────────────────────── */}
-        <div style={{ flex: '1 1 340px', background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px' }}>
+        <div style={{ flex: '1 1 340px', background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '14px 18px' }}>
           <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase',
             letterSpacing: 1, marginBottom: 10 }}>
             📡 Live EMQX Events
           </div>
           {!recent_events || recent_events.length === 0 ? (
-            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: '1rem 0' }}>
+            <div style={{ fontSize: 13, color: C.slate, textAlign: 'center', padding: '1rem 0' }}>
               Waiting for events from the camp…
             </div>
           ) : (
@@ -336,13 +314,13 @@ export default function OverviewPanel() {
         </div>
 
         {/* ── recent registrations ──────────────────────────────── */}
-        <div style={{ flex: '1 1 340px', background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px' }}>
+        <div style={{ flex: '1 1 340px', background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '14px 18px' }}>
           <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase',
             letterSpacing: 1, marginBottom: 10 }}>
             Recent Registrations
           </div>
           {recent_registrations.length === 0 ? (
-            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: '1rem 0' }}>
+            <div style={{ fontSize: 13, color: C.slate, textAlign: 'center', padding: '1rem 0' }}>
               No registrations yet
             </div>
           ) : (
@@ -351,7 +329,7 @@ export default function OverviewPanel() {
                 <div key={p.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '8px 12px', background: '#0A1A2E',
-                  borderRadius: 8, border: `1px solid ${C.border}`,
+                  borderRadius: 8, border: `1px solid ${C.line}`,
                 }}>
                   <div style={{
                     width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
@@ -366,7 +344,7 @@ export default function OverviewPanel() {
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.full_name}
                     </div>
-                    <div style={{ fontSize: 11, color: C.muted }}>
+                    <div style={{ fontSize: 11, color: C.slate }}>
                       {p.wristband_barcode ?? 'No wristband'} · {p.age}y {p.gender}
                     </div>
                   </div>
@@ -377,7 +355,7 @@ export default function OverviewPanel() {
                       ? <span style={flagStyle(C.tealDim)} title="Pre-registered">✓</span>
                       : <span style={flagStyle('#1E3A5F')} title="New arrival">🆕</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>
+                  <div style={{ fontSize: 11, color: C.slate, flexShrink: 0 }}>
                     {timeAgo(p.created_at)}
                   </div>
                 </div>

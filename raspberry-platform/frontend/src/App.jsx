@@ -8,6 +8,7 @@ import WristbandScanScreen from './components/resources/WristbandScanScreen'
 import WristbandsScreen from './components/resources/WristbandsScreen'
 import ChildEducationScreen from './components/childEducation/ChildEducationScreen'
 import NetworkScreen from './components/resources/NetworkScreen'
+import DeviceHealthScreen from './components/resources/DeviceHealthScreen'
 import Navbar from './components/ui/layout/Navbar'
 import ChildFlow from './components/ChildFlow'
 import AuthorizePage from './components/AuthorizePage'
@@ -35,6 +36,7 @@ function AdminRoutes() {
           <Route path="/wristband" element={<WristbandScanScreen />} />
           <Route path="/wristbands" element={<WristbandsScreen />} />
           <Route path="/network" element={<NetworkScreen />} />
+          <Route path="/devices" element={<DeviceHealthScreen />} />
           <Route path="/educationscreen" element={<ChildcareScreen />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>

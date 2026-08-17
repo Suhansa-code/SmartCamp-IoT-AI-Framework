@@ -477,7 +477,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
 
       <div className="flex gap-3 pt-3">
         <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">Cancel</Button>
-        <Button type="button" loading={submitting} loadingText="Enrolling…" onClick={handleSubmit} className="flex-[2]">
+        <Button type="button" loading={submitting} loadingText="Enrolling…" onClick={handleSubmit} className="flex-2">
           Enroll &amp; Issue Wristband <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

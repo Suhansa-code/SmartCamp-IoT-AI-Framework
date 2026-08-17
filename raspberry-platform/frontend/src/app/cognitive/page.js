@@ -6,7 +6,7 @@ import { useLang }          from '@/components/psychoedu/context/LanguageContext
 import { getRandomSession, getRandomSessionExcluding } from '@/components/psychoedu/lib/sessions'
 import CognitiveSession     from '@/components/psychoedu/cognitive/CognitiveSession'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
 
 function CognitiveInner() {
   const searchParams  = useSearchParams()
