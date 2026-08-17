@@ -1,12 +1,20 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
+import { ResponsiveContainer, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
-import { useTheme } from '@/components/common/ThemeProvider'
-import { GraduationCap, Users, BookOpen, BellRing, ArrowLeft, AlertTriangle, CheckCircle2, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
+import DashboardCard from '@/components/dashboard/DashboardCard'
+import KpiCard from '@/components/dashboard/KpiCard'
+import MiniStat from '@/components/dashboard/MiniStat'
+import ProgressBar from '@/components/dashboard/ProgressBar'
+import StatusDonut from '@/components/dashboard/StatusDonut'
+import ArrowChip from '@/components/alert/ArrowChip'
+import Button from '@/components/common/Button'
+import { P } from '@/components/alert/alertPalette'
+import { GraduationCap, Users, BookOpen, BellRing, ArrowLeft, AlertTriangle, CheckCircle2, RefreshCw, TrendingUp, ArrowUpRight, Radio, Search } from 'lucide-react'
 
-// ── Cloud backend base URL (same as the network / disaster pages) ────────────
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 // ── Display metadata for known camp ids ──────────────────────────────────────
@@ -104,117 +112,26 @@ function mockCampDetail(summary) {
   }
 }
 
-// ── Small premium KPI card ───────────────────────────────────────────────────
-function MiniKpi({ label, value, icon, color = '#14B8A6', sub }) {
-  const { T } = useTheme()
-  return (
-    <div style={{
-      position: 'relative', overflow: 'hidden',
-      background: `linear-gradient(145deg, ${T.card} 0%, ${T.bg} 100%)`,
-      border: `1px solid ${T.border}`, borderRadius: 16,
-      padding: '1rem 1.1rem', boxShadow: '0 10px 30px rgba(0,0,0,0.22)',
-    }}>
-      <div style={{ position: 'absolute', top: -26, right: -26, width: 92, height: 92, borderRadius: '50%', background: `${color}24`, filter: 'blur(28px)' }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <span style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
-        <span style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: `${color}1f`, border: `1px solid ${color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
-      </div>
-      <div style={{ marginTop: 10, fontSize: '1.5rem', fontWeight: 800, color, lineHeight: 1, letterSpacing: '-0.01em' }}>{value}</div>
-      {sub && <div style={{ marginTop: 6, fontSize: '0.7rem', fontWeight: 600, color: T.muted }}>{sub}</div>}
-    </div>
-  )
+const chip = (label, value, color) => (
+  <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: `${color}14`, color, borderRadius: '9999px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
+    {value} {label}
+  </span>
+)
+
+const tooltipStyle = {
+  background: '#FFFFFF', border: `1px solid ${P.border}`, borderRadius: '0.75rem',
+  fontSize: '0.78rem', fontWeight: 600, color: P.ink, boxShadow: '0 12px 30px rgba(20,30,40,0.14)',
 }
 
-// ── Premium score-trend line chart (SVG) ─────────────────────────────────────
-function TrendChart({ points, dark = true }) {
-  const { T } = useTheme()
-  const W = 560
-  const H = 180
-  const PAD = { top: 18, right: 20, bottom: 28, left: 40 }
-  const gridColor = T.border
-  const textColor = T.muted
-
-  const data = useMemo(() => {
-    if (!points || points.length < 2) return []
-    const innerW = W - PAD.left - PAD.right
-    const innerH = H - PAD.top - PAD.bottom
-    return points.map((p, i) => {
-      const x = PAD.left + (i / (points.length - 1)) * innerW
-      const pct = Math.max(0, Math.min(1, p.score / 100))
-      const y = PAD.top + innerH * (1 - pct)
-      return { ...p, x, y }
-    })
-  }, [points])
-
-  if (!data.length) {
-    return (
-      <div style={{ textAlign: 'center', padding: '2.5rem', color: T.muted }}>
-        <GraduationCap size={34} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
-        <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>Not enough session data to plot a trend yet</p>
-      </div>
-    )
-  }
-
-  const path = data.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
-  const area = `${path} L ${data[data.length - 1].x} ${H - PAD.bottom} L ${data[0].x} ${H - PAD.bottom} Z`
-
-  return (
-    <div style={{ width: '100%', overflowX: 'auto' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 420, display: 'block' }}>
-        <defs>
-          <linearGradient id="eduTrendArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#14B8A6" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-
-        {[0, 50, 100].map((v) => {
-          const y = PAD.top + (H - PAD.top - PAD.bottom) * (1 - v / 100)
-          return (
-            <g key={v}>
-              <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke={gridColor} strokeWidth="1" strokeDasharray="4 4" />
-              <text x={PAD.left - 6} y={y + 4} textAnchor="end" fontSize="10" fill={textColor} opacity="0.6">{v}</text>
-            </g>
-          )
-        })}
-
-        <path d={area} fill="url(#eduTrendArea)" />
-        <path d={path} fill="none" stroke="#14B8A6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-
-        {data.map((p, i) => {
-          const dotColor = p.score >= 70 ? T.green : p.score >= 50 ? T.amber : T.red
-          return (
-            <g key={i}>
-              <circle cx={p.x} cy={p.y} r="5" fill={dotColor} stroke={T.bg} strokeWidth="2" />
-              <circle cx={p.x} cy={p.y} r="2" fill={dotColor} />
-            </g>
-          )
-        })}
-
-        {data.map((p, i) =>
-          i % Math.max(1, Math.floor(data.length / 8)) === 0 ? (
-            <text key={`l${i}`} x={p.x} y={H - 6} textAnchor="middle" fontSize="9" fill={textColor} opacity="0.55">{p.date}</text>
-          ) : null,
-        )}
-      </svg>
-
-      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
-        <span style={{ color: T.green }}>● Strong ≥70</span>
-        <span style={{ color: T.amber }}>● Watch 50–70</span>
-        <span style={{ color: T.red }}>● Alert &lt;50</span>
-      </div>
-    </div>
-  )
-}
+const scoreTone = (v) => (v == null ? P.muted : v >= 70 ? P.green : v >= 50 ? P.amber : P.red)
 
 function ChildScoreDots({ scores }) {
-  const { T } = useTheme()
   return (
     <div style={{ display: 'flex', gap: 3 }}>
       {scores.map((s, i) => (
         <span key={i} title={`${s.score}`} style={{
           width: 8, height: 8, borderRadius: '50%',
-          background: s.score >= 70 ? T.green : s.score >= 50 ? T.amber : T.red,
+          background: s.score >= 70 ? P.green : s.score >= 50 ? P.amber : P.red,
           opacity: 0.9,
         }} />
       ))}
@@ -222,36 +139,17 @@ function ChildScoreDots({ scores }) {
   )
 }
 
-function Chip({ children, color = '#14B8A6', bg }) {
+function Tag({ children, color = P.teal }) {
   return (
     <span style={{
-      padding: '3px 10px', borderRadius: 999, fontSize: '0.66rem', fontWeight: 800,
+      padding: '3px 10px', borderRadius: 999, fontSize: '0.64rem', fontWeight: 800,
       textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
-      background: bg || `${color}1a`, border: `1px solid ${color}55`, color,
+      background: `${color}1a`, border: `1px solid ${color}55`, color,
     }}>{children}</span>
   )
 }
 
-function Panel({ title, right, children, bodyStyle }) {
-  const { T } = useTheme()
-  return (
-    <div style={{
-      background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
-      border: `1px solid ${T.border}`, borderRadius: 18,
-      boxShadow: '0 12px 30px rgba(0,0,0,0.2)',
-      overflow: 'hidden',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.9rem 1.1rem', borderBottom: `1px solid ${T.line}` }}>
-        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: T.textPrimary, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
-        {right}
-      </div>
-      <div style={{ padding: '1rem 1.1rem', ...bodyStyle }}>{children}</div>
-    </div>
-  )
-}
-
 export default function EducationPage() {
-  const { T } = useTheme()
   const [camps, setCamps] = useState([])
   const [detail, setDetail] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
@@ -339,7 +237,8 @@ export default function EducationPage() {
 
   const meta = selectedId ? campMeta(selectedId) : null
 
-  const visibleCamps = useMemo(() => {
+  // ── Scope (search-filtered list of camps) for the overview ────────────────
+  const list = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return camps
     return camps.filter((c) => {
@@ -350,19 +249,93 @@ export default function EducationPage() {
     })
   }, [camps, search])
 
+  const scopeTotals = useMemo(() => list.reduce((acc, c) => ({
+    children: acc.children + (c.children || 0),
+    sessions: acc.sessions + (c.sessions || 0),
+    flagged: acc.flagged + (c.flagged_sessions || 0),
+    pending: acc.pending + (c.pending_alerts || 0),
+    alerts: acc.alerts + (c.total_alerts || 0),
+  }), { children: 0, sessions: 0, flagged: 0, pending: 0, alerts: 0 }), [list])
+
+  const scopeAvg = useMemo(() => {
+    const scored = list.filter((c) => c.avg_composite != null)
+    if (!scored.length) return null
+    return Math.round((scored.reduce((s, c) => s + c.avg_composite, 0) / scored.length) * 10) / 10
+  }, [list])
+
+  const statusList = useMemo(() => {
+    const count = { clear: 0, watch: 0, urgent: 0 }
+    list.forEach((c) => {
+      const p = c.pending_alerts || 0
+      if (p === 0) count.clear += 1
+      else if (p === 1) count.watch += 1
+      else count.urgent += 1
+    })
+    return [
+      { label: 'Clear',  color: P.green, value: count.clear },
+      { label: 'Watch',  color: P.amber, value: count.watch },
+      { label: 'Urgent', color: P.red,   value: count.urgent },
+    ]
+  }, [list])
+
+  const donutSegs = statusList.map((s) => ({ color: s.color, value: s.value }))
+
+  const mostAtRisk = useMemo(() => {
+    const scored = list.filter((c) => c.avg_composite != null)
+    if (!scored.length) return null
+    return [...scored].sort((a, b) => a.avg_composite - b.avg_composite)[0]
+  }, [list])
+
+  const perfData = list.map((c) => ({ code: campMeta(c.id).code, score: c.avg_composite }))
+
+  const gradeTotals = useMemo(() => {
+    const map = {}
+    list.forEach((c) => (c.grade_distribution || []).forEach((g) => { map[g.grade] = (map[g.grade] || 0) + g.count }))
+    return Object.entries(map).sort((a, b) => Number(a[0]) - Number(b[0]))
+  }, [list])
+  const gradeChildren = gradeTotals.reduce((s, [, n]) => s + n, 0)
+
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+
+  const sparkFor = (key) => list.map((c) => c[key])
+
+  const goOverview = () => { setSelectedId(null); setDetail(null) }
+
   return (
     <>
       <style>{`
         * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #071B30; }
-        ::-webkit-scrollbar-thumb { background: #2D4A70; border-radius: 9999px; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+        @keyframes eduPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+        @keyframes eduSpin { to { transform: rotate(360deg); } }
+        @keyframes eduFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+        .edu-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .edu-hero { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.25rem; }
+        .edu-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; }
+        .edu-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+        .edu-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+        .edu-pill {
+          border-radius: 9999px; padding: 0.45rem 1.05rem; font-size: 0.82rem; font-weight: 700;
+          cursor: pointer; transition: all 0.18s ease; font-family: 'Inter', sans-serif;
+        }
+        .edu-camp-card {
+          text-align: left; cursor: pointer; color: inherit; font-family: 'Inter', sans-serif;
+          background: P.panel; border: 1px solid ${P.border}; border-radius: 1.25rem; padding: 1.05rem 1.15rem;
+          box-shadow: 0 14px 34px rgba(20,30,40,0.06); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+        .edu-camp-card:hover { transform: translateY(-3px); box-shadow: 0 20px 44px rgba(20,30,40,0.14); border-color: ${P.teal}; }
+        @media (max-width: 1150px) {
+          .edu-hero, .edu-charts, .edu-two, .edu-cards { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 900px) { .edu-kpi { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px) { .edu-kpi { grid-template-columns: 1fr; } }
       `}</style>
 
-      <div style={{ minHeight: '100svh', background: T.bg, fontFamily: "'Inter',sans-serif", color: T.text, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
-
+      <div style={{ minHeight: '100svh', background: P.outer, display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
         <SideNav />
+
+        <div className='header-wrapper'>
+
+        <main style={{ background: P.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
         <HeaderShell>
           <PageHeader
@@ -377,336 +350,530 @@ export default function EducationPage() {
           />
         </HeaderShell>
 
-        <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
+        <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-          {/* Page heading */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: '1.25rem' }}>
+          {/* ══ Big rounded panel — alert-page composition ══ */}
+          <div style={{ background: P.panel, padding: 'clamp(1rem, 2vw, 1.75rem)', boxShadow: '0 30px 70px rgba(20,30,40,0.25)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            {/* ── Title row ── */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>Pages Learning Analytics</div>
+                <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: P.ink }}>
+                  {detail ? meta?.name || 'Camp Details' : 'Education Insights'}
+                </h1>
+                <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
+                  {loadingCamps
+                    ? 'Loading camp data…'
+                    : detail
+                      ? `${meta?.code || ''} · ${meta?.location || 'Sector'} · ${detail.children_count} children tracked`
+                      : `${camps.length} camps · ${totals.children.toLocaleString()} children · ${totals.sessions.toLocaleString()} sessions`}
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'eduPulse 2s infinite' }} />
+                  Synced
+                </span>
+                <Button variant="circle" onClick={() => loadCamps(true)} disabled={refreshing} aria-label="Refresh data">
+                  <RefreshCw size={16} style={refreshing ? { animation: 'eduSpin 0.8s linear infinite' } : undefined} />
+                </Button>
+              </div>
+            </div>
+
+            {/* ── Camp selector pills ── */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button onClick={goOverview} className="edu-pill" style={{
+                border: `1px solid ${!selectedId ? P.teal : P.border}`,
+                background: !selectedId ? `${P.teal}22` : P.card,
+                color: !selectedId ? P.teal : P.muted,
+              }}>
+                All Camps
+              </button>
+              {camps.map((camp) => {
+                const active = selectedId === camp.id
+                const m = campMeta(camp.id)
+                return (
+                  <button key={camp.id} onClick={() => selectCamp(camp.id)} className="edu-pill" style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    border: `1px solid ${active ? P.teal : P.border}`,
+                    background: active ? `${P.teal}22` : P.card,
+                    color: active ? P.ink : P.muted,
+                  }}>
+                    {m.code}
+                    {(camp.pending_alerts || 0) > 0 && (
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: P.red, boxShadow: `0 0 6px ${P.red}` }} />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {loadingCamps ? (
+              /* ── Skeleton ── */
+              <div className="edu-kpi">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} style={{ background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: '1.25rem', height: 128, animation: 'eduPulse 1.5s ease-in-out infinite' }} />
+                ))}
+              </div>
+            ) : loadingDetail ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem 0', color: P.muted, fontSize: '0.85rem', fontWeight: 600 }}>
+                <RefreshCw size={16} style={{ animation: 'eduSpin 0.8s linear infinite', marginRight: 8 }} /> Loading camp detail…
+              </div>
+            ) : detail ? (
+              <DetailView
+                detail={detail}
+                meta={meta}
+                trend={trend}
+                ranked={ranked}
+                childAvg={childAvg}
+                onBack={goOverview}
+              />
+            ) : camps.length ? (
+              <OverviewView
+                list={list}
+                camps={camps}
+                scopeTotals={scopeTotals}
+                scopeAvg={scopeAvg}
+                statusList={statusList}
+                donutSegs={donutSegs}
+                mostAtRisk={mostAtRisk}
+                perfData={perfData}
+                gradeTotals={gradeTotals}
+                gradeChildren={gradeChildren}
+                sparkFor={sparkFor}
+                onSelect={selectCamp}
+              />
+            ) : (
+              <div style={{ background: `linear-gradient(160deg, ${P.card}, ${P.panelSoft})`, border: `1px dashed ${P.border}`, borderRadius: '1.5rem', padding: '3.5rem', textAlign: 'center' }}>
+                <GraduationCap size={44} style={{ margin: '0 auto', color: P.teal, opacity: 0.7 }} />
+                <p style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.15rem', fontWeight: 800, marginTop: '0.7rem', color: P.ink }}>No education data synced yet</p>
+                <p style={{ color: P.muted, fontSize: '0.85rem', marginTop: '0.35rem' }}>Camp education insights will appear here once the camp devices push session data to the cloud.</p>
+              </div>
+            )}
+          </div>
+
+          </div>
+        </main>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Overview view — alert-page hero composition + charts + camp cards
+// ════════════════════════════════════════════════════════════════════════════
+function OverviewView({ list, camps, scopeTotals, scopeAvg, statusList, donutSegs, mostAtRisk, perfData, gradeTotals, gradeChildren, sparkFor, onSelect }) {
+  const flaggedRate = scopeTotals.sessions > 0 ? Math.round((scopeTotals.flagged / scopeTotals.sessions) * 100) : 0
+
+  return (
+    <>
+      {/* ── KPI row ── */}
+      <div className="edu-kpi">
+        <KpiCard label="Total Camps" value={list.length} icon={<GraduationCap size={17} />} color="#60A5FA" delta="active sites" pct={100} spark={sparkFor('children').map((_, i) => i + 1)} />
+        <KpiCard label="Children" value={scopeTotals.children.toLocaleString()} icon={<Users size={17} />} color={P.teal} delta="grade 3 & 4" pct={Math.min(100, Math.round((scopeTotals.children / 1500) * 100))} spark={sparkFor('children')} />
+        <KpiCard label="Learning Sessions" value={scopeTotals.sessions.toLocaleString()} icon={<BookOpen size={17} />} color={P.purple} delta="synced" pct={Math.min(100, Math.round((scopeTotals.sessions / 2400) * 100))} spark={sparkFor('sessions')} />
+        <KpiCard label="Avg Score" value={scopeAvg != null ? scopeAvg.toFixed(1) : '—'} icon={<TrendingUp size={17} />} color={scoreTone(scopeAvg)} delta={flaggedRate > 0 ? `${flaggedRate}% flagged` : 'clean'} pct={Math.min(100, Math.round((scopeAvg || 0)))} spark={sparkFor('avg_composite').filter((v) => v != null)} />
+      </div>
+
+      {/* ── Hero grid ── */}
+      <div className="edu-hero">
+        {/* Left copy panel */}
+        <div style={{ background: P.panelSoft, borderRadius: '1.5rem', padding: 'clamp(1.25rem, 3vw, 2.25rem)', display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', overflow: 'hidden' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', width: 'fit-content', background: P.card, borderRadius: '9999px', padding: '5px 14px', fontSize: '0.78rem', fontWeight: 700, color: P.inkSoft, border: `1px solid ${P.border}` }}>
+            <Radio size={13} color={P.green} /> Live Monitoring
+          </span>
+
+          <h1 style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.5rem)', fontWeight: 800, color: P.ink, lineHeight: 1.08, letterSpacing: '-0.02em' }}>
+            Learning Insights
+            <br />
+            at a glance.
+          </h1>
+
+          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', maxWidth: 380 }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 300, color: P.muted, flexShrink: 0 }}>01</span>
+            <div style={{ width: 34, height: 2, background: P.muted, marginTop: '0.9rem', flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: T.tealMid, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>PAGES Learning Analytics</div>
-              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.45rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>
-                {detail ? meta?.name || 'Camp Details' : 'Education Insights'}
-              </h1>
-              <p style={{ color: T.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
-                {loadingCamps
-                  ? 'Loading camp data…'
-                  : detail
-                    ? `${meta?.code || ''} · ${meta?.location || 'Sector'} · ${detail.children_count} children tracked`
-                    : `${camps.length} camps · ${totals.children.toLocaleString()} children · ${totals.sessions.toLocaleString()} sessions`}
+              <p style={{ fontSize: '0.95rem', fontWeight: 800, color: P.ink }}>Score Trends</p>
+              <p style={{ fontSize: '0.82rem', color: P.muted, marginTop: '2px', lineHeight: 1.5 }}>
+                Inhibition, tap-accuracy &amp; reaction-time drift tracked every session — so at-risk children surface before it becomes a pattern.
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999,
-                padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: T.green,
-              }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.green, boxShadow: `0 0 8px ${T.green}`, animation: 'pulse 2s infinite' }} />
-                Synced
-              </span>
-              <button onClick={() => loadCamps(true)} disabled={refreshing} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted,
-                borderRadius: '0.75rem', padding: '0.5rem 0.9rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-              }}>
-                <RefreshCw size={14} className={refreshing ? 'spin' : ''} /> {refreshing ? 'Refreshing' : 'Refresh'}
-              </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', maxWidth: 380 }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 300, color: P.muted, flexShrink: 0 }}>02</span>
+            <div style={{ width: 34, height: 2, background: P.muted, marginTop: '0.9rem', flexShrink: 0 }} />
+            <div>
+              <p style={{ fontSize: '0.95rem', fontWeight: 800, color: P.ink }}>Flag Detection</p>
+              <p style={{ fontSize: '0.82rem', color: P.muted, marginTop: '2px', lineHeight: 1.5 }}>
+                Sessions that dip below baseline are flagged instantly, keeping field officers informed before the next learning period.
+              </p>
             </div>
           </div>
 
-          {/* Camp selector pills */}
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-            <button
-              onClick={() => { setSelectedId(null); setDetail(null) }}
-              style={{
-                border: `1px solid ${!selectedId ? T.tealMid : T.border}`,
-                background: !selectedId ? `${T.tealMid}22` : T.bgSoft,
-                color: !selectedId ? T.tealMid : T.muted,
-                borderRadius: 999, padding: '0.42rem 1rem', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
-              }}
-            >
-              All Camps
-            </button>
-            {camps.map((camp) => {
-              const active = selectedId === camp.id
-              const m = campMeta(camp.id)
-              return (
-                <button
-                  key={camp.id}
-                  onClick={() => selectCamp(camp.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    border: `1px solid ${active ? T.tealMid : T.border}`,
-                    background: active ? `${T.tealMid}22` : T.bgSoft,
-                    color: active ? T.textPrimary : T.muted,
-                    borderRadius: 999, padding: '0.42rem 1rem', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
-                  }}
-                >
-                  {m.code}
-                  {(camp.pending_alerts || 0) > 0 && (
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: T.red, boxShadow: `0 0 6px ${T.red}` }} />
-                  )}
-                </button>
-              )
-            })}
+          <Button href="/alert" icon={<ArrowUpRight size={17} />}>
+            Review Child Alerts
+          </Button>
+
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+            <MiniStat label="Avg Score" value={scopeAvg != null ? scopeAvg.toFixed(1) : '—'} icon={<TrendingUp size={12} />} color={scoreTone(scopeAvg)} />
+            <MiniStat label="Flag Rate" value={`${flaggedRate}%`} icon={<AlertTriangle size={12} />} color={flaggedRate > 25 ? P.amber : P.green} />
+            <MiniStat label="Pending Alerts" value={scopeTotals.pending} icon={<BellRing size={12} />} color={scopeTotals.pending > 0 ? P.red : P.green} />
           </div>
 
-          {loadingCamps ? (
-            <div className="grid-kpi">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} style={{ background: T.navyCard, borderRadius: '1rem', height: 120, animation: 'pulse 1.5s ease-in-out infinite' }} />
+          {/* floating decor dots */}
+          <span style={{ position: 'absolute', top: 34, right: 44, width: 12, height: 12, borderRadius: '50%', background: P.teal, opacity: 0.5, animation: 'eduFloat 4s ease-in-out infinite' }} />
+          <span style={{ position: 'absolute', top: 74, right: 70, width: 7, height: 7, borderRadius: '50%', background: P.lime, opacity: 0.8, animation: 'eduFloat 5s ease-in-out infinite' }} />
+          <span style={{ position: 'absolute', bottom: 46, right: 36, width: 9, height: 9, borderRadius: '50%', background: P.purple, opacity: 0.35, animation: 'eduFloat 4.5s ease-in-out infinite' }} />
+        </div>
+
+        {/* Right widget stack */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <DashboardCard title="Camp Status" subtitle="Clear · Watch · Urgent" bodyStyle={{ height: 210, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '1.25rem' }}>
+            <StatusDonut segments={donutSegs} size={132} center={statusList[1].value + statusList[2].value} label="At Risk" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', flex: 1, maxWidth: 150 }}>
+              {statusList.map((s) => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: P.inkSoft, flex: 1 }}>{s.label}</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: P.ink }}>{s.value}</span>
+                </div>
               ))}
             </div>
-          ) : detail ? (
-            <>
-              {/* Camp-level KPIs */}
-              <div className="grid-kpi" style={{ marginBottom: '1.1rem' }}>
-                <MiniKpi label="Children" value={detail.children_count.toLocaleString()} icon={<Users size={16} />} color="#60A5FA" sub={`Grade ${detail.grade_distribution?.map((g) => `${g.grade}: ${g.count}`).join(' · ') || '—'}`} />
-                <MiniKpi label="Sessions" value={detail.sessions_count.toLocaleString()} icon={<BookOpen size={16} />} color="#4ADE80" sub={`${detail.flagged_sessions} flagged anomalies`} />
-                <MiniKpi label="Avg Score" value={detail.avg_composite != null ? detail.avg_composite.toFixed(1) : '—'} icon={<TrendingUp size={16} />} color={detail.avg_composite >= 70 ? T.green : detail.avg_composite >= 50 ? T.amber : T.red} sub="composite across sessions" />
-                <MiniKpi label="Pending Alerts" value={detail.pending_alerts} icon={<BellRing size={16} />} color={detail.pending_alerts > 0 ? T.red : T.green} sub={`${detail.total_alerts} total alerts`} />
-              </div>
+          </DashboardCard>
 
-              {/* Trend chart */}
-              <div className="grid-panel" style={{ marginBottom: '1.1rem' }}>
-                <Panel title="Camp Score Trend" right={<Chip color={T.tealMid}>Daily average composite</Chip>}>
-                  <TrendChart points={trend} />
-                </Panel>
-                <Panel title="Distribution">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                    <div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Grade</div>
-                      {detail.grade_distribution?.map((g) => (
-                        <div key={g.grade} style={{ marginBottom: 8 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4 }}>
-                            <span>Grade {g.grade}</span><span style={{ color: T.tealMid }}>{g.count}</span>
-                          </div>
-                          <div style={{ height: 6, borderRadius: 99, background: T.bar, overflow: 'hidden' }}>
-                            <div style={{ width: `${Math.min(100, Math.round((g.count / detail.children_count) * 100))}%`, height: '100%', background: 'linear-gradient(90deg,#0D9488,#14B8A6)', borderRadius: 99 }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Language</div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {detail.language_distribution?.map((lang) => (
-                          <Chip key={lang.language} color={lang.language === 'si' ? T.blue : lang.language === 'ta' ? T.amber : T.purple}>
-                            {lang.language.toUpperCase()} · {lang.count}
-                          </Chip>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Flagged Rate</div>
-                      <div style={{ fontSize: '1.3rem', fontWeight: 800, color: T.amber }}>
-                        {detail.sessions_count ? Math.round((detail.flagged_sessions / detail.sessions_count) * 100) : 0}%
-                      </div>
-                    </div>
-                  </div>
-                </Panel>
-              </div>
-
-              {/* Children: at risk + top learners */}
-              <div className="grid-2" style={{ marginBottom: '1.1rem' }}>
-                <Panel title="Needs Attention" right={<Chip color={T.red}>{ranked.atRisk.length} child{ranked.atRisk.length !== 1 ? 'ren' : ''}</Chip>}>
-                  {ranked.atRisk.length ? ranked.atRisk.slice(0, 6).map((child) => (
-                    <div key={child.child_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.55rem 0', borderBottom: `1px solid ${T.line}30` }}>
-                      <span style={{ width: 30, height: 30, borderRadius: 10, background: `${T.red}1f`, border: `1px solid ${T.red}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>⚠️</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{child.child_id}</div>
-                        <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
-                          <Chip color={T.slate}>G{child.grade}</Chip>
-                          {child.alert_status === 'active' && <Chip color={T.red}>Active alert</Chip>}
-                          <ChildScoreDots scores={child.recent_scores || []} />
-                        </div>
-                      </div>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 800, color: child.avg != null && child.avg < 50 ? T.red : T.amber }}>
-                        {child.avg != null ? child.avg : '—'}
-                      </span>
-                    </div>
-                  )) : (
-                    <div style={{ textAlign: 'center', padding: '1.6rem', color: T.muted }}>
-                      <CheckCircle2 size={30} style={{ margin: '0 auto 8px', color: T.green }} />
-                      <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>All children are performing within expected ranges</p>
-                    </div>
-                  )}
-                </Panel>
-
-                <Panel title="Top Learners" right={<Chip color={T.green}>Top 5</Chip>}>
-                  {ranked.top.map((child, index) => (
-                    <div key={child.child_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.55rem 0', borderBottom: `1px solid ${T.line}30` }}>
-                      <span style={{ width: 28, height: 28, borderRadius: 10, background: `${T.green}1f`, border: `1px solid ${T.green}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 800, color: T.green }}>
-                        {index + 1}
-                      </span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{child.child_id}</div>
-                        <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
-                          <Chip color={T.slate}>G{child.grade}</Chip>
-                          <ChildScoreDots scores={child.recent_scores || []} />
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <TrendingUp size={13} color={T.green} />
-                        <span style={{ fontSize: '1.05rem', fontWeight: 800, color: T.green }}>{child.avg}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {!ranked.top.length && <div style={{ textAlign: 'center', padding: '1.6rem', color: T.muted }}>No scored sessions yet</div>}
-                </Panel>
-              </div>
-
-              {/* Recent sessions */}
-              <Panel
-                title="Recent Sessions"
-                right={<Chip color={T.blue}>{detail.sessions.length} recorded</Chip>}
-                bodyStyle={{ padding: 0 }}
-              >
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 560 }}>
-                    <thead>
-                      <tr style={{ textAlign: 'left', color: T.muted, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        <th style={{ padding: '0.6rem 1.1rem', borderBottom: `1px solid ${T.line}` }}>Child</th>
-                        <th style={{ padding: '0.6rem', borderBottom: `1px solid ${T.line}` }}>Grade</th>
-                        <th style={{ padding: '0.6rem', borderBottom: `1px solid ${T.line}` }}>Score</th>
-                        <th style={{ padding: '0.6rem', borderBottom: `1px solid ${T.line}` }}>Flag</th>
-                        <th style={{ padding: '0.6rem 1.1rem', borderBottom: `1px solid ${T.line}` }}>When</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.sessions.slice(0, 8).map((s) => (
-                        <tr key={s.session_id} style={{ borderBottom: `1px solid ${T.line}25` }}>
-                          <td style={{ padding: '0.6rem 1.1rem', fontWeight: 800 }}>{s.child_id}</td>
-                          <td style={{ padding: '0.6rem' }}><Chip color={T.slate}>G{s.grade ?? '—'}</Chip></td>
-                          <td style={{ padding: '0.6rem', fontWeight: 800, color: s.composite_score >= 70 ? T.green : s.composite_score >= 50 ? T.amber : T.red }}>
-                            {s.composite_score != null ? Math.round(s.composite_score) : '—'}
-                          </td>
-                          <td style={{ padding: '0.6rem' }}>
-                            {s.anomaly_flagged ? <span style={{ color: T.red, fontWeight: 800 }}>⚠ flagged</span> : <span style={{ color: T.green, fontWeight: 700 }}>✓ ok</span>}
-                          </td>
-                          <td style={{ padding: '0.6rem 1.1rem', color: T.muted }}>
-                            {s.created_at ? new Date(s.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          {mostAtRisk && (
+            <div style={{ background: 'linear-gradient(160deg, #14213D 0%, #0B1322 100%)', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, boxShadow: '0 30px 70px rgba(20,30,40,0.28)' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.66rem', color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Most At-Risk Camp</div>
+                <div style={{ fontSize: '1.02rem', color: '#fff', fontWeight: 800, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{campMeta(mostAtRisk.id).name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 3, fontWeight: 600 }}>
+                  Avg {mostAtRisk.avg_composite != null ? mostAtRisk.avg_composite.toFixed(1) : '—'} · {mostAtRisk.flagged_sessions || 0} flagged · {mostAtRisk.pending_alerts || 0} pending
                 </div>
-              </Panel>
-
-              {/* Alerts */}
-              <div style={{ marginTop: '1.1rem' }}>
-                <Panel title="Camp Alerts" right={<Chip color={detail.pending_alerts > 0 ? T.red : T.green}>{detail.pending_alerts} pending</Chip>}>
-                  {detail.alerts.length ? detail.alerts.slice(0, 6).map((alert) => (
-                    <div key={alert.alert_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.65rem 0', borderBottom: `1px solid ${T.line}30` }}>
-                      <span style={{ width: 32, height: 32, borderRadius: 10, background: `${alert.status === 'pending' ? T.red : T.green}1f`, border: `1px solid ${alert.status === 'pending' ? T.red : T.green}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {alert.status === 'pending' ? <AlertTriangle size={15} color={T.red} /> : <CheckCircle2 size={15} color={T.green} />}
-                      </span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800 }}>{alert.child_id} · {alert.alert_type.replace(/_/g, ' ')}</div>
-                        <div style={{ fontSize: '0.72rem', color: T.muted, marginTop: 2 }}>
-                          {alert.triggered_at ? new Date(alert.triggered_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
-                          {alert.trigger_detail?.recent_scores ? ` · recent: ${alert.trigger_detail.recent_scores.join(' → ')}` : ''}
-                        </div>
-                      </div>
-                      <Chip color={alert.status === 'pending' ? T.red : T.green}>{alert.status}</Chip>
-                    </div>
-                  )) : (
-                    <div style={{ textAlign: 'center', padding: '1.6rem', color: T.muted }}>
-                      <CheckCircle2 size={30} style={{ margin: '0 auto 8px', color: T.green }} />
-                      <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>No alerts for this camp</p>
-                    </div>
-                  )}
-                </Panel>
               </div>
-
-              <div style={{ marginTop: '1.2rem', display: 'flex', gap: 10 }}>
-                <button
-                  onClick={() => { setSelectedId(null); setDetail(null) }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    border: `1px solid ${T.border}`, background: T.bgSoft, color: T.textPrimary,
-                    borderRadius: '0.75rem', padding: '0.6rem 1.1rem', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
-                  }}
-                >
-                  <ArrowLeft size={15} /> Back to all camps
-                </button>
-              </div>
-            </>
-          ) : camps.length ? (
-            <>
-              {/* Overview KPIs */}
-              <div className="grid-kpi" style={{ marginBottom: '1.1rem' }}>
-                <MiniKpi label="Total Camps" value={camps.length} icon={<GraduationCap size={16} />} color="#60A5FA" sub="active education camps" />
-                <MiniKpi label="Children" value={totals.children.toLocaleString()} icon={<Users size={16} />} color="#4ADE80" sub="grade 3 & 4 tracked" />
-                <MiniKpi label="Sessions" value={totals.sessions.toLocaleString()} icon={<BookOpen size={16} />} color="#FACC15" sub="synced from devices" />
-                <MiniKpi label="Avg Score" value={avgOverall != null ? avgOverall.toFixed(1) : '—'} icon={<TrendingUp size={16} />} color={avgOverall >= 70 ? T.green : avgOverall >= 50 ? T.amber : T.red} sub="camps aggregate" />
-              </div>
-
-              {/* Camp cards */}
-              <div className="grid-auto">
-                {visibleCamps.map((camp) => {
-                  const m = campMeta(camp.id)
-                  const alertTone = (camp.pending_alerts || 0) > 0 ? T.red : T.green
-                  return (
-                    <button
-                      key={camp.id}
-                      onClick={() => selectCamp(camp.id)}
-                      style={{
-                        textAlign: 'left',
-                        background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
-                        border: `1px solid ${T.border}`, borderRadius: 16,
-                        padding: '1rem 1.1rem', cursor: 'pointer', color: 'inherit',
-                        boxShadow: '0 10px 26px rgba(0,0,0,0.18)',
-                        transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 18px 40px rgba(0,0,0,0.32)'; e.currentTarget.style.borderColor = T.tealMid }}
-                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 26px rgba(0,0,0,0.18)'; e.currentTarget.style.borderColor = T.border }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '1.02rem', fontWeight: 800, color: T.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
-                          <div style={{ marginTop: 3, fontSize: '0.74rem', color: T.muted, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' }}>
-                            <span>{m.code}</span>·<span>{m.location}</span>
-                          </div>
-                        </div>
-                        <span style={{
-                          padding: '3px 10px', borderRadius: 999,
-                          background: `${alertTone}1a`, border: `1px solid ${alertTone}55`,
-                          color: alertTone, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
-                        }}>
-                          {(camp.pending_alerts || 0) > 0 ? `${camp.pending_alerts} alerts` : 'clear'}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: '0.9rem', paddingTop: '0.9rem', borderTop: `1px solid ${T.line}` }}>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: T.textPrimary }}>{camp.children}</div>
-                          <div style={{ marginTop: 3, fontSize: '0.62rem', color: T.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Children</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: T.textPrimary }}>{camp.sessions}</div>
-                          <div style={{ marginTop: 3, fontSize: '0.62rem', color: T.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sessions</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: camp.avg_composite >= 70 ? T.green : camp.avg_composite >= 50 ? T.amber : T.red }}>
-                            {camp.avg_composite != null ? camp.avg_composite.toFixed(1) : '—'}
-                          </div>
-                          <div style={{ marginTop: 3, fontSize: '0.62rem', color: T.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Avg Score</div>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            <div style={{ background: `linear-gradient(160deg, ${T.card}, ${T.bg})`, border: `1px dashed ${T.border}`, borderRadius: '1.25rem', padding: '3.5rem', textAlign: 'center' }}>
-              <GraduationCap size={44} style={{ margin: '0 auto', color: T.tealMid, opacity: 0.7 }} />
-              <p style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.15rem', fontWeight: 800, marginTop: '0.7rem' }}>No education data synced yet</p>
-              <p style={{ color: T.muted, fontSize: '0.85rem', marginTop: '0.35rem' }}>Camp education insights will appear here once the camp devices push session data to the cloud.</p>
+              <ArrowChip dark />
             </div>
           )}
-        </main>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {chip('flagged sessions', scopeTotals.flagged, P.amber)}
+            {chip('pending alerts', scopeTotals.pending, scopeTotals.pending > 0 ? P.red : P.green)}
+            {chip('total alerts', scopeTotals.alerts, P.purple)}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Charts row ── */}
+      <div className="edu-charts">
+        <DashboardCard title="Score Trend" subtitle="Average composite per camp" bodyStyle={{ height: 240 }}>
+          {perfData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={perfData} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
+                <XAxis dataKey="code" tick={{ fontSize: 11, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: P.muted }} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: `${P.cardSoft}` }} contentStyle={tooltipStyle} />
+                <ReferenceLine y={70} stroke={P.green} strokeDasharray="4 4" />
+                <ReferenceLine y={50} stroke={P.amber} strokeDasharray="4 4" />
+                <Bar dataKey="score" name="Avg composite" fill={P.teal} radius={[6, 6, 0, 0]} maxBarSize={30} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: P.muted, fontSize: '0.84rem', fontWeight: 600 }}>No camp data</div>
+          )}
+        </DashboardCard>
+
+        <DashboardCard title="Distribution" subtitle="Grades · flagged · alerts">
+          <div style={{ fontSize: '0.66rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Grade</div>
+          {gradeTotals.map(([grade, count]) => (
+            <div key={grade} style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4 }}>
+                <span style={{ color: P.inkSoft }}>Grade {grade}</span><span style={{ color: P.teal }}>{count}</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 99, background: P.cardSoft, overflow: 'hidden' }}>
+                <div style={{ width: `${gradeChildren ? Math.round((count / gradeChildren) * 100) : 0}%`, height: '100%', background: `linear-gradient(90deg, ${P.teal}88, ${P.teal})`, borderRadius: 99 }} />
+              </div>
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: 4 }}>
+            {chip('flagged', scopeTotals.flagged, P.amber)}
+            {chip('pending', scopeTotals.pending, P.red)}
+            {chip('avg', scopeAvg != null ? scopeAvg.toFixed(1) : '—', P.teal)}
+          </div>
+        </DashboardCard>
+      </div>
+
+      {/* ── Camp cards ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: '0.25rem' }}>
+        <div>
+          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: P.ink }}>Camp Overview</div>
+          <div style={{ fontSize: '0.7rem', color: P.muted, fontWeight: 600, marginTop: 2 }}>Select a camp to drill into children, sessions and alerts</div>
+        </div>
+        <span style={{ fontSize: '0.74rem', color: P.muted, fontWeight: 700 }}>{list.length} of {camps.length} camps</span>
+      </div>
+
+      <div className="edu-cards">
+        {list.map((camp) => {
+          const m = campMeta(camp.id)
+          const alertTone = (camp.pending_alerts || 0) > 0 ? P.red : P.green
+          return (
+            <button key={camp.id} className="edu-camp-card" onClick={() => onSelect(camp.id)}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+                  <div style={{ marginTop: 3, fontSize: '0.74rem', color: P.muted, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span>{m.code}</span>·<span>{m.location}</span>
+                  </div>
+                </div>
+                <span style={{ padding: '3px 10px', borderRadius: 999, background: `${alertTone}1a`, border: `1px solid ${alertTone}55`, color: alertTone, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                  {(camp.pending_alerts || 0) > 0 ? `${camp.pending_alerts} alerts` : 'clear'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: '0.9rem', paddingTop: '0.9rem', borderTop: `1px solid ${P.border}` }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: P.ink }}>{camp.children}</div>
+                  <div style={{ marginTop: 3, fontSize: '0.62rem', color: P.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Children</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: P.ink }}>{camp.sessions}</div>
+                  <div style={{ marginTop: 3, fontSize: '0.62rem', color: P.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sessions</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: scoreTone(camp.avg_composite) }}>
+                    {camp.avg_composite != null ? camp.avg_composite.toFixed(1) : '—'}
+                  </div>
+                  <div style={{ marginTop: 3, fontSize: '0.62rem', color: P.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Avg Score</div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '0.8rem', height: 4, borderRadius: 99, background: P.cardSoft, overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, Math.round(camp.avg_composite || 0))}%`, height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${scoreTone(camp.avg_composite)}88, ${scoreTone(camp.avg_composite)})` }} />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {!list.length && (
+        <div style={{ background: P.panelSoft, border: `1px dashed ${P.border}`, borderRadius: '1.25rem', padding: '2.5rem', textAlign: 'center', color: P.muted }}>
+          <Search size={28} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+          <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>No camps match your search</p>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Detail view — camp-level KPIs, trend, distribution, children, sessions, alerts
+// ════════════════════════════════════════════════════════════════════════════
+function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
+  const flaggedRate = detail.sessions_count ? Math.round((detail.flagged_sessions / detail.sessions_count) * 100) : 0
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <div className="edu-kpi" style={{ flex: 1, minWidth: 320 }}>
+          <KpiCard label="Children" value={detail.children_count.toLocaleString()} icon={<Users size={17} />} color="#60A5FA" delta="tracked" pct={100} />
+          <KpiCard label="Sessions" value={detail.sessions_count.toLocaleString()} icon={<BookOpen size={17} />} color={P.purple} delta="recorded" pct={100} />
+          <KpiCard label="Avg Score" value={detail.avg_composite != null ? detail.avg_composite.toFixed(1) : '—'} icon={<TrendingUp size={17} />} color={scoreTone(detail.avg_composite)} delta={`${flaggedRate}% flagged`} pct={Math.min(100, Math.round(detail.avg_composite || 0))} />
+          <KpiCard label="Pending Alerts" value={detail.pending_alerts} icon={<BellRing size={17} />} color={detail.pending_alerts > 0 ? P.red : P.green} delta={`${detail.total_alerts} total`} pct={Math.min(100, Math.round((detail.pending_alerts / 4) * 100))} />
+        </div>
+        <button onClick={onBack} className="edu-pill" style={{ display: 'flex', alignItems: 'center', gap: 8, border: `1px solid ${P.border}`, background: P.card, color: P.ink }}>
+          <ArrowLeft size={15} /> All Camps
+        </button>
+      </div>
+
+      {/* ── Trend + distribution ── */}
+      <div className="edu-charts">
+        <DashboardCard title="Score Trend" subtitle="Daily average composite · last 14 days" bodyStyle={{ height: 240 }}>
+          {trend.length > 1 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="eduDetailArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={P.teal} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={P.teal} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: P.muted }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <ReferenceLine y={70} stroke={P.green} strokeDasharray="4 4" />
+                <ReferenceLine y={50} stroke={P.amber} strokeDasharray="4 4" />
+                <Area type="monotone" dataKey="score" name="Avg composite" stroke={P.teal} strokeWidth={2.5} fill="url(#eduDetailArea)" dot={{ r: 3, fill: P.teal, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '2.5rem', color: P.muted }}>
+              <GraduationCap size={34} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
+              <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>Not enough session data to plot a trend yet</p>
+            </div>
+          )}
+        </DashboardCard>
+
+        <DashboardCard title="Distribution" subtitle="Grades · languages · flagged rate">
+          <div style={{ fontSize: '0.66rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Grade</div>
+          {(detail.grade_distribution || []).map((g) => (
+            <div key={g.grade} style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4 }}>
+                <span style={{ color: P.inkSoft }}>Grade {g.grade}</span><span style={{ color: P.teal }}>{g.count}</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 99, background: P.cardSoft, overflow: 'hidden' }}>
+                <div style={{ width: `${detail.children_count ? Math.round((g.count / detail.children_count) * 100) : 0}%`, height: '100%', background: `linear-gradient(90deg, ${P.teal}88, ${P.teal})`, borderRadius: 99 }} />
+              </div>
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+            {(detail.language_distribution || []).map((lang) => (
+              <Tag key={lang.language} color={lang.language === 'si' ? P.teal : lang.language === 'ta' ? P.purple : P.amber}>
+                {lang.language.toUpperCase()} · {lang.count}
+              </Tag>
+            ))}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4 }}>
+              <span style={{ color: P.inkSoft }}>Flagged Rate</span>
+              <span style={{ color: flaggedRate > 25 ? P.amber : P.green, fontWeight: 800 }}>{flaggedRate}%</span>
+            </div>
+            <ProgressBar label="Flagged sessions" value={`${detail.flagged_sessions}/${detail.sessions_count}`} pct={Math.min(100, flaggedRate * 2)} tone={flaggedRate > 25 ? P.amber : P.teal} />
+          </div>
+        </DashboardCard>
+      </div>
+
+      {/* ── Children: needs attention + top learners ── */}
+      <div className="edu-two">
+        <DashboardCard
+          title="Needs Attention"
+          subtitle="Active alerts or scores below 50"
+          right={chip('children', ranked.atRisk.length, ranked.atRisk.length > 0 ? P.red : P.green)}
+        >
+          {ranked.atRisk.length ? ranked.atRisk.slice(0, 6).map((child) => (
+            <div key={child.child_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.55rem 0', borderBottom: `1px solid ${P.border}` }}>
+              <span style={{ width: 30, height: 30, borderRadius: 10, background: `${P.red}1f`, border: `1px solid ${P.red}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>⚠️</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: P.ink }}>{child.child_id}</div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
+                  <Tag color={'#64748B'}>G{child.grade}</Tag>
+                  {child.alert_status === 'active' && <Tag color={P.red}>Active alert</Tag>}
+                  <ChildScoreDots scores={child.recent_scores || []} />
+                </div>
+              </div>
+              <span style={{ fontSize: '1.05rem', fontWeight: 800, color: child.avg != null && child.avg < 50 ? P.red : P.amber }}>
+                {child.avg != null ? child.avg : '—'}
+              </span>
+            </div>
+          )) : (
+            <div style={{ textAlign: 'center', padding: '1.6rem', color: P.muted }}>
+              <CheckCircle2 size={30} style={{ margin: '0 auto 8px', color: P.green }} />
+              <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>All children are performing within expected ranges</p>
+            </div>
+          )}
+        </DashboardCard>
+
+        <DashboardCard
+          title="Top Learners"
+          subtitle="Highest average composite scores"
+          right={chip('top', ranked.top.length, P.green)}
+        >
+          {ranked.top.map((child, index) => (
+            <div key={child.child_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.55rem 0', borderBottom: `1px solid ${P.border}` }}>
+              <span style={{ width: 28, height: 28, borderRadius: 10, background: `${P.green}1f`, border: `1px solid ${P.green}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 800, color: P.green }}>
+                {index + 1}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: P.ink }}>{child.child_id}</div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
+                  <Tag color={'#64748B'}>G{child.grade}</Tag>
+                  <ChildScoreDots scores={child.recent_scores || []} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <TrendingUp size={13} color={P.green} />
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: P.green }}>{child.avg}</span>
+              </div>
+            </div>
+          ))}
+          {!ranked.top.length && <div style={{ textAlign: 'center', padding: '1.6rem', color: P.muted }}>No scored sessions yet</div>}
+        </DashboardCard>
+      </div>
+
+      {/* ── Recent sessions ── */}
+      <DashboardCard
+        title="Recent Sessions"
+        subtitle="Latest recorded learning sessions"
+        right={chip('recorded', detail.sessions.length, '#60A5FA')}
+        bodyStyle={{ padding: 0, gap: 0 }}
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 560 }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: P.muted, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <th style={{ padding: '0.6rem 1.1rem', borderBottom: `1px solid ${P.border}` }}>Child</th>
+                <th style={{ padding: '0.6rem', borderBottom: `1px solid ${P.border}` }}>Grade</th>
+                <th style={{ padding: '0.6rem', borderBottom: `1px solid ${P.border}` }}>Score</th>
+                <th style={{ padding: '0.6rem', borderBottom: `1px solid ${P.border}` }}>Flag</th>
+                <th style={{ padding: '0.6rem 1.1rem', borderBottom: `1px solid ${P.border}` }}>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detail.sessions.slice(0, 8).map((s) => (
+                <tr key={s.session_id} style={{ borderBottom: `1px solid ${P.border}60` }}>
+                  <td style={{ padding: '0.6rem 1.1rem', fontWeight: 800, color: P.ink }}>{s.child_id}</td>
+                  <td style={{ padding: '0.6rem' }}><Tag color={'#64748B'}>G{s.grade ?? '—'}</Tag></td>
+                  <td style={{ padding: '0.6rem', fontWeight: 800, color: scoreTone(s.composite_score) }}>
+                    {s.composite_score != null ? Math.round(s.composite_score) : '—'}
+                  </td>
+                  <td style={{ padding: '0.6rem' }}>
+                    {s.anomaly_flagged ? <span style={{ color: P.red, fontWeight: 800 }}>⚠ flagged</span> : <span style={{ color: P.green, fontWeight: 700 }}>✓ ok</span>}
+                  </td>
+                  <td style={{ padding: '0.6rem 1.1rem', color: P.muted }}>
+                    {s.created_at ? new Date(s.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </DashboardCard>
+
+      {/* ── Camp alerts ── */}
+      <DashboardCard
+        title="Camp Alerts"
+        subtitle="Triggered welfare alerts for this camp"
+        right={chip('pending', detail.pending_alerts, detail.pending_alerts > 0 ? P.red : P.green)}
+      >
+        {detail.alerts.length ? detail.alerts.slice(0, 6).map((alert) => (
+          <div key={alert.alert_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.65rem 0', borderBottom: `1px solid ${P.border}` }}>
+            <span style={{ width: 32, height: 32, borderRadius: 10, background: `${alert.status === 'pending' ? P.red : P.green}1f`, border: `1px solid ${alert.status === 'pending' ? P.red : P.green}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {alert.status === 'pending' ? <AlertTriangle size={15} color={P.red} /> : <CheckCircle2 size={15} color={P.green} />}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: P.ink }}>{alert.child_id} · {alert.alert_type.replace(/_/g, ' ')}</div>
+              <div style={{ fontSize: '0.72rem', color: P.muted, marginTop: 2 }}>
+                {alert.triggered_at ? new Date(alert.triggered_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                {alert.trigger_detail?.recent_scores ? ` · recent: ${alert.trigger_detail.recent_scores.join(' → ')}` : ''}
+              </div>
+            </div>
+            <Tag color={alert.status === 'pending' ? P.red : P.green}>{alert.status}</Tag>
+          </div>
+        )) : (
+          <div style={{ textAlign: 'center', padding: '1.6rem', color: P.muted }}>
+            <CheckCircle2 size={30} style={{ margin: '0 auto 8px', color: P.green }} />
+            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>No alerts for this camp</p>
+          </div>
+        )}
+      </DashboardCard>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button onClick={onBack} className="edu-pill" style={{ display: 'flex', alignItems: 'center', gap: 8, border: `1px solid ${P.border}`, background: P.card, color: P.ink }}>
+          <ArrowLeft size={15} /> Back to all camps
+        </button>
       </div>
     </>
   )

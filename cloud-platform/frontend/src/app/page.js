@@ -10,6 +10,7 @@ import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
 import ProgressBar from '@/components/dashboard/ProgressBar'
 import StatusDonut from '@/components/dashboard/StatusDonut'
+import Button from '@/components/common/Button'
 import { P } from '@/components/alert/alertPalette'
 import { Droplets, Users, BookOpen, Bell, Radio, RefreshCw, ArrowUpRight, Tent } from 'lucide-react'
 
@@ -260,7 +261,12 @@ export default function DashboardPage() {
       }}>
         <SideNav />
 
-        <HeaderShell>
+<div className='header-wrapper'>
+
+
+        <main style={{background: P.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+                  <HeaderShell>
           <PageHeader
             search={{
               value: searchText,
@@ -273,15 +279,14 @@ export default function DashboardPage() {
           />
         </HeaderShell>
 
-        <main style={{ padding: '1.5rem 2rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ padding: '0rem 2rem',  gap: '1.25rem', display: 'flex', flexDirection: 'column',}}>
           {/* ── Title strip ── */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>Camp Command Center</div>
               <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: P.ink }}>
                 Dashboard
               </h1>
-              <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
+              <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 400 }}>
                 {loading ? 'Loading live overview…' : `Unified view across ${campRows.length} camps · Education · Resources · Disaster`}
               </p>
             </div>
@@ -291,9 +296,9 @@ export default function DashboardPage() {
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'dashPulse 2s infinite' }} />
                 Live
               </span>
-              <button onClick={() => loadAll(true)} disabled={refreshing} aria-label="Refresh data" style={{ width: 38, height: 38, borderRadius: '50%', background: P.dark, border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <Button variant="circle" onClick={() => loadAll(true)} disabled={refreshing} aria-label="Refresh data">
                 <RefreshCw size={16} style={refreshing ? { animation: 'dashSpin 0.8s linear infinite' } : undefined} />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -492,8 +497,9 @@ export default function DashboardPage() {
                 </div>
               )}
             </DashboardCard>
-          </div>
+          </div></div>
         </main>
+        </div>
       </div>
     </>
   )

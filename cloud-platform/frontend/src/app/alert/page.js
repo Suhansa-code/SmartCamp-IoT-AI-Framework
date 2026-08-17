@@ -13,6 +13,7 @@ import { P, SEVERITY_RANK } from "@/components/alert/alertPalette";
 import { MOCK_CAMPS, mockAlerts } from "@/components/alert/mockAlerts";
 import AlertCard from "@/components/alert/AlertCard";
 import ArrowChip from "@/components/alert/ArrowChip";
+import Button from "@/components/common/Button";
 import { daysSince } from "@/components/common/utils";
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -246,42 +247,15 @@ export default function AlertsPage() {
                   </div>
                 </div>
 
-                <button
+                <Button
                   onClick={() => {
                     const target = mostCritical ?? alerts[0];
                     if (target) viewAlert(target.id);
                   }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.6rem",
-                    width: "fit-content",
-                    background: P.lime,
-                    color: P.dark,
-                    borderRadius: "9999px",
-                    border: "none",
-                    padding: "9px 9px 9px 20px",
-                    fontWeight: 800,
-                    fontSize: "0.84rem",
-                    cursor: "pointer",
-                  }}
+                  icon={<ArrowUpRight size={15} />}
                 >
                   View Critical Alert
-                  <span
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: "50%",
-                      background: P.dark,
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ArrowUpRight size={15} />
-                  </span>
-                </button>
+                </Button>
 
                 {/* Decorative stat donut, standing in for the hero product shot */}
                 <div
