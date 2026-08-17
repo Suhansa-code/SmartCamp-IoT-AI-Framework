@@ -1,11 +1,21 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import Link from 'next/link'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import SideNav from '@/components/common/SideNav'
 import PageHeader from '@/components/common/PageHeader'
-import { useTheme } from '@/components/common/ThemeProvider'
+import DashboardCard from '@/components/dashboard/DashboardCard'
+import KpiCard from '@/components/dashboard/KpiCard'
+import MiniStat from '@/components/dashboard/MiniStat'
+import ProgressBar from '@/components/dashboard/ProgressBar'
+import StatusDonut from '@/components/dashboard/StatusDonut'
+import { P } from '@/components/alert/alertPalette'
+import { Droplets, Users, BookOpen, Bell, Radio, RefreshCw, ArrowUpRight, Tent } from 'lucide-react'
 
-// ── Demo fallback data (used when the cloud backend endpoint is unreachable) ──
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+// ── Demo fallbacks (shown when the cloud backend is unreachable) ─────────────
 const MOCK_CAMPS = [
   { id: 'hmg',  name: 'Homagama Relief',    code: 'HMG', location: 'Colombo',       childCount: 214, sessionCount: 128, alerts: [{}, {}],       updated: 4 },
   { id: 'gal',  name: 'Galle Seafront',     code: 'GAL', location: 'Galle',         childCount: 178, sessionCount: 96,  alerts: [{}],           updated: 12 },
@@ -15,308 +25,485 @@ const MOCK_CAMPS = [
   { id: 'bat',  name: 'Batticaloa North',   code: 'BAT', location: 'Eastern',       childCount: 205, sessionCount: 132, alerts: [{}],           updated: 1 },
 ]
 
-const statusMeta = (T, s) => ({
-  clear:  { label: 'Clear',  color: T.green },
-  watch:  { label: 'Watch',  color: T.amber },
-  urgent: { label: 'Urgent', color: T.red },
-}[s] || { label: 'Clear', color: T.green })
+const MOCK_EDUCATION = [
+  { id: 'CAMP-B-HOMAGAMA',   children: 214, sessions: 468, avg_composite: 68.5, flagged_sessions: 17, total_alerts: 6,  pending_alerts: 2, grade_distribution: [{ grade: 3, count: 128 }, { grade: 4, count: 86 }] },
+  { id: 'CAMP-B-GALLE',      children: 178, sessions: 352, avg_composite: 64.2, flagged_sessions: 11, total_alerts: 3,  pending_alerts: 1, grade_distribution: [{ grade: 3, count: 97 }, { grade: 4, count: 81 }] },
+  { id: 'CAMP-B-RATHNAPURA', children: 242, sessions: 531, avg_composite: 61.8, flagged_sessions: 29, total_alerts: 9,  pending_alerts: 4, grade_distribution: [{ grade: 3, count: 141 }, { grade: 4, count: 101 }] },
+  { id: 'CAMP-B-MATARA',     children: 156, sessions: 288, avg_composite: 71.4, flagged_sessions: 6,  total_alerts: 1,  pending_alerts: 0, grade_distribution: [{ grade: 3, count: 88 }, { grade: 4, count: 68 }] },
+  { id: 'CAMP-B-KALUTARA',   children: 190, sessions: 374, avg_composite: 66.9, flagged_sessions: 14, total_alerts: 4,  pending_alerts: 1, grade_distribution: [{ grade: 3, count: 112 }, { grade: 4, count: 78 }] },
+  { id: 'CAMP-B-BATTICALOA', children: 205, sessions: 449, avg_composite: 58.7, flagged_sessions: 33, total_alerts: 12, pending_alerts: 3, grade_distribution: [{ grade: 3, count: 120 }, { grade: 4, count: 85 }] },
+]
 
-function KpiCard({ label, value, icon, color, delta, pct = 100 }) {
-  const { T } = useTheme()
-  const deltaTone = (delta ?? '').startsWith('-') ? T.red : T.green
-  return (
-    <div style={{
-      position: 'relative', overflow: 'hidden',
-      background: `linear-gradient(145deg, ${T.card} 0%, ${T.bg} 100%)`,
-      border: `1px solid ${T.border}`,
-      borderRadius: 16,
-      padding: '1.05rem 1.15rem',
-      boxShadow: '0 10px 30px rgba(0,0,0,0.22)',
-    }}>
-      <div style={{ position: 'absolute', top: -26, right: -26, width: 96, height: 96, borderRadius: '50%', background: `${color}24`, filter: 'blur(28px)' }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{label}</span>
-        <span style={{
-          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-          background: `${color}1f`, border: `1px solid ${color}44`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
-        }}>{icon}</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 12 }}>
-        <span style={{ fontSize: '1.6rem', fontWeight: 800, color, lineHeight: 1, letterSpacing: '-0.01em' }}>{value}</span>
-        {delta && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: deltaTone }}>{delta}</span>}
-      </div>
-      <div style={{ marginTop: 14, height: 4, borderRadius: 99, background: T.bar, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${color}88, ${color})`, transition: 'width 0.6s ease' }} />
-      </div>
-    </div>
-  )
+const MOCK_RESOURCES = {
+  population: { total: 1185, families: 402, today_registered: 14, today_checkins: 986, attendance_rate_pct: 83 },
+  vulnerable: { total_flagged: 23, pregnant: 9, chronic_illness: 14 },
+  distribution_today: {
+    breakfast: { served: 912, prepared: 960 },
+    lunch:     { served: 884, prepared: 960 },
+    dinner:    { served: 861, prepared: 960 },
+    water:     { served: 1280, prepared: 1440 },
+  },
+  eligible_for_distribution: 960,
+  prediction_tomorrow: {
+    expected_persons: 1170, attendance_rate_pct: 84, expected_new_arrivals: 8,
+    breakfast_kg: 96, lunch_kg: 128, dinner_kg: 118, water_litres: 1520,
+    confidence: 'High', days_of_data: 21,
+  },
+  mqtt: { network_state: 'GOOD', buffered_messages: 0 },
 }
 
-function CampCard({ camp }) {
-  const { T } = useTheme()
-  const meta = statusMeta(T, camp.status)
-  return (
-    <div style={{
-      background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
-      border: `1px solid ${T.border}`,
-      borderRadius: 16,
-      padding: '1rem 1.1rem',
-      boxShadow: '0 10px 26px rgba(0,0,0,0.18)',
-      transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
-      cursor: 'pointer',
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = 'translateY(-3px)'
-      e.currentTarget.style.boxShadow = '0 18px 40px rgba(0,0,0,0.32)'
-      e.currentTarget.style.borderColor = meta.color
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = 'translateY(0)'
-      e.currentTarget.style.boxShadow = '0 10px 26px rgba(0,0,0,0.18)'
-      e.currentTarget.style.borderColor = T.border
-    }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '1.02rem', fontWeight: 800, color: T.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{camp.name}</div>
-          <div style={{ marginTop: 3, fontSize: '0.74rem', color: T.muted, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' }}>
-            <span>{camp.code}</span>·<span>{camp.location}</span>
-          </div>
-        </div>
-        <span style={{
-          padding: '3px 10px', borderRadius: 999,
-          background: `${meta.color}1a`, border: `1px solid ${meta.color}55`,
-          color: meta.color, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
-          flexShrink: 0, whiteSpace: 'nowrap',
-        }}>{meta.label}</span>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: '0.9rem', paddingTop: '0.9rem', borderTop: `1px solid ${T.line}` }}>
-        {[
-          { label: 'Children', value: camp.childCount, icon: '🧒' },
-          { label: 'Sessions', value: camp.sessionCount, icon: '📋' },
-          { label: 'Alerts', value: camp.alertCount, icon: '⚠️', tone: camp.alertCount > 0 ? T.red : T.muted },
-        ].map((s) => (
-          <div key={s.label} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: s.tone || T.textPrimary, lineHeight: 1.1 }}>{s.value}</div>
-            <div style={{ marginTop: 3, fontSize: '0.62rem', color: T.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+const MOCK_DISASTER = {
+  camps: [
+    { id: 'galle',       code: 'GAL', name: 'Galle Flood Emergency',    type: 'FLOOD',     status: 'critical', displaced: 3840, workers: 124 },
+    { id: 'batticaloa',  code: 'BTC', name: 'Batticaloa Cyclone Camp',  type: 'CYCLONE',   status: 'high',     displaced: 2215, workers: 88 },
+    { id: 'kandy',       code: 'KDY', name: 'Kandy Landslide Relief',   type: 'LANDSLIDE', status: 'high',     displaced: 1620, workers: 76 },
+    { id: 'colombo',     code: 'CMB', name: 'Colombo Urban Relief',     type: 'FLOOD',     status: 'medium',   displaced: 540,  workers: 38 },
+    { id: 'trinco',      code: 'TRC', name: 'Trincomalee Flood Camp',   type: 'FLOOD',     status: 'stable',   displaced: 620,  workers: 47 },
+    { id: 'kurunegala',  code: 'KUR', name: 'Kurunegala Relief',        type: 'FLOOD',     status: 'recovery', displaced: 275,  workers: 21 },
+  ],
 }
+
+// Dashboard camp code → disaster camp id (geographic match).
+const DISASTER_MATCH = { HMG: null, GAL: 'galle', RTP: 'ratnapura', MAT: 'matara', KAL: null, BAT: 'batticaloa' }
+
+function eduCode(id) {
+  const known = {
+    'CAMP-B-HOMAGAMA': 'HMG', 'CAMP-B-GALLE': 'GAL', 'CAMP-B-RATHNAPURA': 'RTP',
+    'CAMP-B-MATARA': 'MAT', 'CAMP-B-KALUTARA': 'KAL', 'CAMP-B-BATTICALOA': 'BAT',
+  }
+  return known[id] || id.replace(/^CAMP-B-/, '').slice(0, 3).toUpperCase()
+}
+
+const CAMP_STATUS = {
+  clear:  { label: 'Clear',  color: P.green },
+  watch:  { label: 'Watch',  color: P.amber },
+  urgent: { label: 'Urgent', color: P.red },
+}
+
+const DIS_STATUS = {
+  critical: { label: 'Critical', color: '#EF4444' },
+  high:     { label: 'High',     color: '#F97316' },
+  medium:   { label: 'Medium',   color: '#F59E0B' },
+  stable:   { label: 'Stable',   color: '#22C55E' },
+  recovery: { label: 'Recovery', color: '#0D9488' },
+}
+
+const chip = (label, value, color) => (
+  <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: `${color}14`, color, borderRadius: '9999px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: 800 }}>
+    {value} {label}
+  </span>
+)
 
 export default function DashboardPage() {
-  const { T } = useTheme()
-  const [camps, setCamps]        = useState([])
-  const [loading, setLoading]    = useState(true)
+  const [camps, setCamps] = useState([])
+  const [education, setEducation] = useState([])
+  const [resources, setResources] = useState(null)
+  const [disaster, setDisaster] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [searchText, setSearchText] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [sortBy, setSortBy] = useState('alertsDesc')
+  const [selectedCampId, setSelectedCampId] = useState('all')
 
-  async function loadCamps(isRefresh = false) {
+  const loadAll = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
     else setLoading(true)
 
-    try {
-      const r = await fetch('/api/admin/camps')
-      const payload = r.ok ? await r.json() : []
-      setCamps(Array.isArray(payload) && payload.length > 0 ? payload : MOCK_CAMPS)
-    } catch {
-      setCamps(MOCK_CAMPS)
-    } finally {
-      if (isRefresh) setRefreshing(false)
-      else setLoading(false)
-    }
-  }
+    const tryJson = async (p) => (p.status === 'fulfilled' && p.value?.ok ? (await p.value.json()) : null)
 
-  useEffect(() => {
-    loadCamps(false)
+    const [campsP, eduP, resP, disP] = await Promise.allSettled([
+      fetch(`${API_BASE}/api/admin/camps`),
+      fetch(`${API_BASE}/api/alerts/education/camps`),
+      fetch(`${API_BASE}/api/resources/overview`),
+      fetch(`${API_BASE}/api/disaster/overview`),
+    ])
+
+    const campsPayload = await tryJson(campsP)
+    const eduPayload = await tryJson(eduP)
+    const resPayload = await tryJson(resP)
+    const disPayload = await tryJson(disP)
+
+    setCamps(Array.isArray(campsPayload) && campsPayload.length ? campsPayload : MOCK_CAMPS)
+    setEducation(Array.isArray(eduPayload?.camps) && eduPayload.camps.length ? eduPayload.camps : Array.isArray(eduPayload) && eduPayload.length ? eduPayload : MOCK_EDUCATION)
+    setResources(resPayload?.population ? resPayload : MOCK_RESOURCES)
+    setDisaster(Array.isArray(disPayload?.camps) && disPayload.camps.length ? disPayload : MOCK_DISASTER)
+
+    if (isRefresh) setRefreshing(false)
+    else setLoading(false)
   }, [])
 
-  const normalizedCamps = useMemo(() => {
-    return camps.map((camp) => {
-      const alertCount = camp.alerts?.length ?? 0
-      const status = alertCount === 0 ? 'clear' : alertCount <= 2 ? 'watch' : 'urgent'
-      return {
-        ...camp,
-        alertCount,
-        status,
-        childCount: Number(camp.childCount ?? 0),
-        sessionCount: Number(camp.sessionCount ?? 0),
-      }
-    })
-  }, [camps])
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
 
-  const stats = useMemo(() => {
-    const totalCamps = normalizedCamps.length
-    const totalChildren = normalizedCamps.reduce((s, c) => s + c.childCount, 0)
-    const totalSessions = normalizedCamps.reduce((s, c) => s + c.sessionCount, 0)
-    const totalAlerts = normalizedCamps.reduce((s, c) => s + c.alertCount, 0)
-    const urgent = normalizedCamps.filter((c) => c.status === 'urgent').length
-    return { totalCamps, totalChildren, totalSessions, totalAlerts, urgent }
-  }, [normalizedCamps])
+  const normalizedCamps = useMemo(() => camps.map((camp) => {
+    const alertCount = camp.alerts?.length ?? 0
+    const status = alertCount === 0 ? 'clear' : alertCount <= 2 ? 'watch' : 'urgent'
+    return {
+      ...camp,
+      alertCount,
+      status,
+      childCount: Number(camp.childCount ?? 0),
+      sessionCount: Number(camp.sessionCount ?? 0),
+    }
+  }), [camps])
 
-  const filteredCamps = useMemo(() => {
+  const overallAlerts = useMemo(() => normalizedCamps.reduce((s, c) => s + c.alertCount, 0), [normalizedCamps])
+
+  const res = resources || MOCK_RESOURCES
+  const disCamps = (disaster || MOCK_DISASTER).camps || []
+
+  const campRows = useMemo(() => normalizedCamps.map((camp) => ({
+    ...camp,
+    edu: education.find((e) => eduCode(e.id) === camp.code) || null,
+    dis: DISASTER_MATCH[camp.code] ? disCamps.find((d) => d.id === DISASTER_MATCH[camp.code]) || null : null,
+  })), [normalizedCamps, education, disCamps])
+
+  const selectedRow = useMemo(() => campRows.find((c) => c.id === selectedCampId) || null, [campRows, selectedCampId])
+
+  const scope = useMemo(() => {
+    if (selectedRow) return [selectedRow]
     const q = searchText.trim().toLowerCase()
-    let list = normalizedCamps.filter((camp) => {
-      const matchesText = !q
-        || camp.name?.toLowerCase().includes(q)
-        || camp.code?.toLowerCase().includes(q)
-        || camp.location?.toLowerCase().includes(q)
-      const matchesStatus = statusFilter === 'all' || camp.status === statusFilter
-      return matchesText && matchesStatus
-    })
+    if (!q) return campRows
+    return campRows.filter((c) =>
+      c.name?.toLowerCase().includes(q)
+      || c.code?.toLowerCase().includes(q)
+      || c.location?.toLowerCase().includes(q),
+    )
+  }, [campRows, selectedRow, searchText])
 
-    list = [...list].sort((a, b) => {
-      if (sortBy === 'nameAsc') return (a.name || '').localeCompare(b.name || '')
-      if (sortBy === 'sessionsDesc') return b.sessionCount - a.sessionCount
-      if (sortBy === 'childrenDesc') return b.childCount - a.childCount
-      return b.alertCount - a.alertCount
-    })
+  const scopeStats = useMemo(() => {
+    const children = scope.reduce((s, c) => s + c.childCount, 0)
+    const sessions = scope.reduce((s, c) => s + c.sessionCount, 0)
+    const alerts = scope.reduce((s, c) => s + c.alertCount, 0)
+    const clear = scope.filter((c) => c.status === 'clear').length
+    const watch = scope.filter((c) => c.status === 'watch').length
+    const urgent = scope.filter((c) => c.status === 'urgent').length
+    return { camps: scope.length, children, sessions, alerts, clear, watch, urgent }
+  }, [scope])
 
-    return list
-  }, [normalizedCamps, searchText, statusFilter, sortBy])
+  const eduRows = useMemo(() => scope.map((r) => r.edu).filter(Boolean), [scope])
+  const eduTotals = useMemo(() => eduRows.reduce((a, c) => ({
+    children: a.children + (c.children || 0),
+    sessions: a.sessions + (c.sessions || 0),
+    flagged: a.flagged + (c.flagged_sessions || 0),
+    pending: a.pending + (c.pending_alerts || 0),
+  }), { children: 0, sessions: 0, flagged: 0, pending: 0 }), [eduRows])
+  const eduAvg = useMemo(() => {
+    const scored = eduRows.filter((c) => c.avg_composite != null)
+    if (!scored.length) return null
+    return Math.round((scored.reduce((s, c) => s + c.avg_composite, 0) / scored.length) * 10) / 10
+  }, [eduRows])
+
+  const disRows = useMemo(() => (selectedRow ? (selectedRow.dis ? [selectedRow.dis] : []) : disCamps), [selectedRow, disCamps])
+  const disTotals = useMemo(() => {
+    const displaced = disRows.reduce((s, c) => s + (c.displaced || 0), 0)
+    const workers = disRows.reduce((s, c) => s + (c.workers || 0), 0)
+    const counts = { critical: 0, high: 0, medium: 0, stable: 0, recovery: 0 }
+    disRows.forEach((c) => { counts[c.status] = (counts[c.status] || 0) + 1 })
+    return { displaced, workers, camps: disRows.length, ...counts }
+  }, [disRows])
+  const criticalCamps = useMemo(() => disRows
+    .filter((c) => c.status === 'critical' || c.status === 'high')
+    .sort((a, b) => b.displaced - a.displaced)
+    .slice(0, 4), [disRows])
+
+  const servedAny = Object.values(res.distribution_today).reduce((s, d) => s + (d.served || 0), 0)
+  const totalPrepared = Object.values(res.distribution_today).reduce((s, d) => s + (d.prepared || 0), 0)
+  const fedPct = totalPrepared > 0 ? Math.round((servedAny / totalPrepared) * 100) : 0
+  const attendance = res.population?.attendance_rate_pct ?? 0
+
+  const perfData = scope.map((c) => ({ code: c.code, children: c.childCount, sessions: c.sessionCount }))
+  const eduChartData = eduRows.map((c) => ({ code: eduCode(c.id), score: c.avg_composite }))
+  const statusList = [
+    { label: 'Clear',  color: P.green, value: scopeStats.clear },
+    { label: 'Watch',  color: P.amber, value: scopeStats.watch },
+    { label: 'Urgent', color: P.red,   value: scopeStats.urgent },
+  ]
+  const donutSegs = statusList.map((s) => ({ color: s.color, value: s.value }))
+  const pctOf = (n) => (scopeStats.camps ? Math.round((n / scopeStats.camps) * 100) : 0)
 
   const today = useMemo(() => new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }), [])
+  const tooltipStyle = {
+    background: '#FFFFFF', border: `1px solid ${P.border}`, borderRadius: '0.75rem',
+    fontSize: '0.78rem', fontWeight: 600, color: P.ink, boxShadow: '0 12px 30px rgba(20,30,40,0.14)',
+  }
+
+  const sparkFor = (key) => scope.map((c) => c[key])
 
   return (
     <>
       <style>{`
         * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #071B30; }
-        ::-webkit-scrollbar-thumb { background: #2D4A70; border-radius: 9999px; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+        @keyframes dashPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+        @keyframes dashSpin { to { transform: rotate(360deg); } }
+        .dash-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .dash-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+        .dash-domains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        @media (max-width: 1150px) {
+          .dash-charts { grid-template-columns: 1fr; }
+          .dash-domains { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 900px) {
+          .dash-kpi { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 560px) {
+          .dash-kpi { grid-template-columns: 1fr; }
+        }
       `}</style>
 
-      <div style={{ minHeight: '100svh', background: T.bg, fontFamily: "'Inter',sans-serif", color: T.text, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
-
+      <div style={{
+        minHeight: '100svh',
+        background: P.outer,
+        fontFamily: "'Inter', sans-serif",
+        paddingLeft: 'var(--rail-width, 236px)',
+        transition: 'padding-left 0.2s ease',
+      }}>
         <SideNav />
 
-        <main style={{ padding: '1.5rem 2rem', width: '100%' }}>
-          {/* Shared header */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <PageHeader
-              search={{
-                value: searchText,
-                onChange: setSearchText,
-                placeholder: 'Search by camp name, code, or location…',
-              }}
-              pendingCount={stats.totalAlerts}
-            />
-          </div>
+        <main style={{ padding: '1.5rem 2rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* ── Shared header ── */}
+          <PageHeader
+            search={{
+              value: searchText,
+              onChange: setSearchText,
+              placeholder: 'Search by camp name, code, or location…',
+            }}
+            pendingCount={overallAlerts}
+          />
 
-          {/* Welcome strip */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: '1.5rem' }}>
+          {/* ── Title strip ── */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>Camp Command Center</div>
-              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.45rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>
-                All Camps Overview
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>Camp Command Center</div>
+              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: P.ink }}>
+                Dashboard
               </h1>
-              <p style={{ color: T.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
-                {loading ? 'Loading camp data…' : `${filteredCamps.length} of ${stats.totalCamps} camp${stats.totalCamps !== 1 ? 's' : ''} shown · ${stats.urgent} urgent`}
+              <p style={{ color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>
+                {loading ? 'Loading live overview…' : `Unified view across ${campRows.length} camps · Education · Resources · Disaster`}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: '0.78rem', color: T.muted, fontWeight: 600 }}>{today}</span>
-              <span style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999,
-                padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: T.green,
-              }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.green, boxShadow: `0 0 8px ${T.green}`, animation: 'pulse 2s infinite' }} />
+              <span style={{ fontSize: '0.78rem', color: P.muted, fontWeight: 600 }}>{today}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: P.card, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, color: P.green }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: P.green, boxShadow: `0 0 8px ${P.green}`, animation: 'dashPulse 2s infinite' }} />
                 Live
               </span>
+              <button onClick={() => loadAll(true)} disabled={refreshing} aria-label="Refresh data" style={{ width: 38, height: 38, borderRadius: '50%', background: P.dark, border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <RefreshCw size={16} style={refreshing ? { animation: 'dashSpin 0.8s linear infinite' } : undefined} />
+              </button>
             </div>
           </div>
 
-          {/* KPI row */}
-          <div className="grid-kpi" style={{ marginBottom: '1.25rem' }}>
-            <KpiCard label="Total Camps"  value={stats.totalCamps}  icon="🏕️" color="#60A5FA" delta="+2 this month" pct={100} />
-            <KpiCard label="Children"     value={stats.totalChildren} icon="🧒" color="#4ADE80" delta="+8.4%" pct={Math.min(100, Math.round((stats.totalChildren / 1500) * 100))} />
-            <KpiCard label="Sessions"     value={stats.totalSessions} icon="📋" color="#FACC15" delta="+12.1%" pct={Math.min(100, Math.round((stats.totalSessions / 900) * 100))} />
-            <KpiCard label="Open Alerts"  value={stats.totalAlerts}  icon="⚠️" color="#F87171" delta={stats.totalAlerts > 0 ? `${stats.urgent} urgent` : 'all clear'} pct={Math.min(100, Math.round((stats.totalAlerts / 8) * 100))} />
-          </div>
-
-          {/* Toolbar */}
-          <div className="grid-toolbar" style={{ gridTemplateColumns: '200px auto', justifyContent: 'flex-end', marginBottom: '0.9rem' }}>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={{
-                width: '100%', border: `1px solid ${T.border}`, background: T.bgSoft, color: T.textPrimary,
-                borderRadius: '0.75rem', padding: '0.65rem 0.9rem', outline: 'none', fontSize: '0.88rem',
-              }}
-            >
-              <option value="alertsDesc">Sort: Alerts (high to low)</option>
-              <option value="sessionsDesc">Sort: Sessions (high to low)</option>
-              <option value="childrenDesc">Sort: Children (high to low)</option>
-              <option value="nameAsc">Sort: Name (A–Z)</option>
-            </select>
-            <button
-              onClick={() => loadCamps(true)}
-              disabled={refreshing}
-              style={{
-                border: `1px solid ${T.teal}`, background: refreshing ? T.tealDim : T.teal, color: 'white',
-                borderRadius: '0.75rem', padding: '0.65rem 1rem', fontWeight: 700, cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {refreshing ? 'Refreshing…' : '↻ Refresh'}
-            </button>
-          </div>
-
-          {/* Status quick filters */}
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-            {[
-              { key: 'all', label: 'All' },
-              { key: 'urgent', label: 'Urgent' },
-              { key: 'watch', label: 'Watch' },
-              { key: 'clear', label: 'Clear' },
-            ].map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setStatusFilter(f.key)}
+          {/* ── Filter toolbar ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: P.muted }}>Camp</span>
+              <select
+                value={selectedCampId}
+                onChange={(e) => setSelectedCampId(e.target.value)}
+                aria-label="Select camp"
                 style={{
-                  border: `1px solid ${statusFilter === f.key ? T.teal : T.border}`,
-                  background: statusFilter === f.key ? `${T.teal}22` : T.bgSoft,
-                  color: statusFilter === f.key ? T.tealMid : T.muted,
-                  borderRadius: '9999px',
-                  padding: '0.38rem 0.9rem',
+                  minWidth: 220,
+                  background: P.cardSoft,
+                  color: P.ink,
+                  border: `1px solid ${P.border}`,
+                  borderRadius: '0.75rem',
+                  padding: '9px 12px',
                   fontWeight: 700,
-                  fontSize: '0.8rem',
+                  fontSize: '0.82rem',
                   cursor: 'pointer',
+                  outline: 'none',
                 }}
               >
-                {f.label}
-              </button>
-            ))}
+                <option value="all">All Camps</option>
+                {campRows.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {statusList.map((s) => chip(s.label, s.value, s.color))}
+              </div>
+            </div>
+            <span style={{ fontSize: '0.74rem', color: P.muted, fontWeight: 700 }}>
+              Showing {scope.length} of {campRows.length} camp{scope.length !== 1 ? 's' : ''}
+            </span>
           </div>
 
-          {/* Loading skeletons */}
-          {loading ? (
-            <div className="grid-auto">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} style={{ background: T.navyCard, borderRadius: '1rem', height: 180, animation: 'pulse 1.5s ease-in-out infinite' }} />
-              ))}
-            </div>
-          ) : filteredCamps.length === 0 ? (
-            <div style={{ background: 'linear-gradient(160deg, ' + T.card + ', ' + T.bg + ')', border: `1px dashed ${T.border}`, borderRadius: '1.25rem', padding: '3.5rem', textAlign: 'center' }}>
-              <p style={{ fontSize: '2.6rem', margin: 0 }}>🏕️</p>
-              <p style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.15rem', fontWeight: 800, marginTop: '0.6rem' }}>No camps match the current filters</p>
-              <p style={{ color: T.muted, fontSize: '0.85rem', marginTop: '0.35rem' }}>Try clearing the search or switching the status filter.</p>
-            </div>
-          ) : (
-            <div className="grid-auto">
-              {filteredCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
-            </div>
-          )}
+          {/* ── KPI row ── */}
+          <div className="dash-kpi">
+            <KpiCard label="Total Camps" value={scopeStats.camps} icon={<Tent size={17} />} color="#60A5FA" delta="relief sites" pct={100} spark={sparkFor('alertCount').map((_, i) => i + 1)} />
+            <KpiCard label="Children" value={scopeStats.children.toLocaleString()} icon={<Users size={17} />} color={P.teal} delta="tracked" pct={Math.min(100, Math.round((scopeStats.children / 1500) * 100))} spark={sparkFor('childCount')} />
+            <KpiCard label="Learning Sessions" value={scopeStats.sessions.toLocaleString()} icon={<BookOpen size={17} />} color={P.purple} delta="synced" pct={Math.min(100, Math.round((scopeStats.sessions / 900) * 100))} spark={sparkFor('sessionCount')} />
+            <KpiCard label="Open Alerts" value={scopeStats.alerts} icon={<Bell size={17} />} color={scopeStats.alerts > 0 ? P.red : P.green} delta={scopeStats.urgent > 0 ? `${scopeStats.urgent} urgent` : 'all clear'} pct={Math.min(100, Math.round((scopeStats.alerts / 8) * 100))} spark={sparkFor('alertCount')} />
+          </div>
+
+          {/* ── Charts row ── */}
+          <div className="dash-charts">
+            <DashboardCard
+              title="Camp Performance"
+              subtitle={selectedRow ? `${selectedRow.name} · children vs sessions` : 'Children vs sessions per camp'}
+              bodyStyle={{ height: 260 }}
+            >
+              {perfData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={perfData} barGap={4} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
+                    <XAxis dataKey="code" tick={{ fontSize: 11, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: P.muted }} axisLine={false} tickLine={false} />
+                    <Tooltip cursor={{ fill: `${P.cardSoft}` }} contentStyle={tooltipStyle} />
+                    <Bar dataKey="children" name="Children" fill="#0D9488" radius={[6, 6, 0, 0]} maxBarSize={30} />
+                    <Bar dataKey="sessions" name="Sessions" fill="#8B5CF6" radius={[6, 6, 0, 0]} maxBarSize={30} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: P.muted, fontSize: '0.84rem', fontWeight: 600 }}>No camp data</div>
+              )}
+            </DashboardCard>
+
+            <DashboardCard
+              title="Camp Status"
+              subtitle="Clear · Watch · Urgent"
+              bodyStyle={{ height: 260, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '1.25rem' }}
+            >
+              <StatusDonut segments={donutSegs} size={150} center={scopeStats.watch + scopeStats.urgent} label="At Risk" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', flex: 1, maxWidth: 170 }}>
+                {statusList.map((s) => (
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: P.inkSoft, flex: 1 }}>{s.label}</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: P.ink }}>{s.value}</span>
+                    <span style={{ fontSize: '0.66rem', fontWeight: 700, color: P.muted, width: 34, textAlign: 'right' }}>{pctOf(s.value)}%</span>
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
+          </div>
+
+          {/* ── Domain row ── */}
+          <div className="dash-domains">
+            {/* Education */}
+            <DashboardCard
+              title="Education"
+              subtitle="Learning analytics & alerts"
+              right={chip('pending alerts', eduTotals.pending, eduTotals.pending > 0 ? P.amber : P.green)}
+              footer={(
+                <Link href="/education" style={footerLinkStyle}>
+                  Open Education <ArrowUpRight size={14} />
+                </Link>
+              )}
+            >
+              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <MiniStat label="Children" value={eduTotals.children.toLocaleString()} icon={<Users size={12} />} color={P.teal} />
+                <MiniStat label="Sessions" value={eduTotals.sessions.toLocaleString()} icon={<BookOpen size={12} />} color={P.purple} />
+                <MiniStat label="Avg Score" value={eduAvg ?? '—'} icon="📊" color={P.ink} sub="composite" />
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {chip('flagged sessions', eduTotals.flagged, P.amber)}
+                {chip('total alerts', eduRows.reduce((s, c) => s + (c.total_alerts || 0), 0), P.cardSoft)}
+              </div>
+              <div style={{ height: 130 }}>
+                {eduChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={eduChartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
+                      <XAxis dataKey="code" tick={{ fontSize: 10, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: P.muted }} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: `${P.cardSoft}` }} contentStyle={tooltipStyle} />
+                      <Bar dataKey="score" name="Avg composite" fill="#0D9488" radius={[5, 5, 0, 0]} maxBarSize={22} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: P.muted, fontSize: '0.78rem', fontWeight: 600 }}>No education data for this camp</div>
+                )}
+              </div>
+            </DashboardCard>
+
+            {/* Resource Management */}
+            <DashboardCard
+              title="Resource Management"
+              subtitle="Camp overview & distribution"
+              right={chip('buffered', res.mqtt?.buffered_messages ?? 0, res.mqtt?.buffered_messages > 0 ? P.amber : P.green)}
+              footer={(
+                <Link href="/resources" style={footerLinkStyle}>
+                  Open Resources <ArrowUpRight size={14} />
+                </Link>
+              )}
+            >
+              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <MiniStat label="Registered" value={res.population?.total.toLocaleString()} icon={<Users size={12} />} color={P.teal} sub={`${res.population?.families} families`} />
+                <MiniStat label="Attendance" value={`${attendance}%`} icon="📊" color={attendance > 70 ? P.green : P.amber} />
+                <MiniStat label="Fed Today" value={`${fedPct}%`} icon="🍽️" color={fedPct > 80 ? P.green : P.amber} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Today's distribution</div>
+                {Object.entries(res.distribution_today).map(([key, d]) => {
+                  const pct = d.prepared > 0 ? Math.round((d.served / d.prepared) * 100) : 0
+                  const icon = { breakfast: '☕', lunch: '🍛', dinner: '🍲', water: '💧' }[key] || '🍽️'
+                  return <ProgressBar key={key} icon={icon} label={key.charAt(0).toUpperCase() + key.slice(1)} value={`${d.served}/${d.prepared}`} pct={pct} tone={pct > 85 ? P.green : P.teal} />
+                })}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: P.muted, fontWeight: 600 }}>
+                <Radio size={13} color={res.mqtt?.network_state === 'GOOD' ? P.green : P.amber} />
+                {res.mqtt?.network_state} · 🔮 tomorrow {res.prediction_tomorrow?.expected_persons} expected
+              </div>
+            </DashboardCard>
+
+            {/* Disaster */}
+            <DashboardCard
+              title="Disaster"
+              subtitle="Camp tracking & relief overview"
+              right={chip('critical', disTotals.critical, disTotals.critical > 0 ? P.red : P.green)}
+              footer={(
+                <Link href="/disaster" style={footerLinkStyle}>
+                  Open Disaster <ArrowUpRight size={14} />
+                </Link>
+              )}
+            >
+              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <MiniStat label="Displaced" value={disTotals.displaced.toLocaleString()} icon={<Users size={12} />} color="#F97316" />
+                <MiniStat label="Aid Workers" value={disTotals.workers.toLocaleString()} icon="👷" color="#0EA5E9" />
+                <MiniStat label="Active Camps" value={disTotals.camps} icon={<Droplets size={12} />} color={P.ink} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status distribution</div>
+                {Object.entries(DIS_STATUS).map(([status, meta]) => {
+                  const count = disTotals[status]
+                  if (!count) return null
+                  return <ProgressBar key={status} label={meta.label} value={count} pct={disTotals.camps ? Math.round((count / disTotals.camps) * 100) : 0} tone={meta.color} />
+                })}
+              </div>
+              {criticalCamps.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {criticalCamps.map((c, i) => (
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.5rem 0', borderBottom: i < criticalCamps.length - 1 ? `1px solid ${P.border}` : 'none' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: DIS_STATUS[c.status].color, flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 700, color: P.inkSoft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: P.ink }}>{c.displaced.toLocaleString()}</span>
+                      <span style={{ fontSize: '0.66rem', fontWeight: 700, color: DIS_STATUS[c.status].color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{DIS_STATUS[c.status].label}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '1.25rem 0', color: P.muted, fontSize: '0.78rem', fontWeight: 600 }}>
+                  {disRows.length === 0 ? 'No disaster data for this camp' : 'No critical camps right now'}
+                </div>
+              )}
+            </DashboardCard>
+          </div>
         </main>
       </div>
     </>
   )
+}
+
+const footerLinkStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  fontSize: '0.74rem',
+  fontWeight: 800,
+  color: P.teal,
+  textDecoration: 'none',
+  paddingTop: '0.35rem',
+  borderTop: `1px solid ${P.border}`,
 }

@@ -69,7 +69,7 @@ export function useSideNav() {
 }
 
 const NAV_ITEMS = [
-  { label: 'All Camps', path: '/',          icon: LayoutDashboard },
+  { label: 'Dashboard', path: '/',          icon: LayoutDashboard },
   { label: 'Alerts',    path: '/alert',     icon: Bell },
   { label: 'Education', path: '/education', icon: GraduationCap },
   { label: 'Disaster',  path: '/disaster',  icon: Droplets },
