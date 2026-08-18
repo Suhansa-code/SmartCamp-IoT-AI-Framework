@@ -1,12 +1,12 @@
 /**
  * Alert service — business logic for the Education domain (PAGES alerts).
  * Controllers only parse HTTP concerns; everything else lives here.
- * Data access goes through the repository layer (in-memory for now).
+ * Data access goes through the repository layer (memory or PostgreSQL).
  */
 import * as alertRepository from '../../repositories/education/alert.repository.js';
 
-export function listAlerts({ status = null, camp = null } = {}) {
-  const alerts = alertRepository.getAlerts(status || null, camp || null);
+export async function listAlerts({ status = null, camp = null } = {}) {
+  const alerts = await alertRepository.getAlerts(status || null, camp || null);
 
   const stats = {
     total: alerts.length,
@@ -21,21 +21,21 @@ export function listAlerts({ status = null, camp = null } = {}) {
   return { stats, alerts };
 }
 
-export function getAlertDetails(alertId) {
+export async function getAlertDetails(alertId) {
   return alertRepository.getAlert(alertId);
 }
 
-export function resolveAlert(alertId, notes = null) {
+export async function resolveAlert(alertId, notes = null) {
   return alertRepository.resolveAlert(alertId, notes || null);
 }
 
-export function receiveAlert(alertData) {
+export async function receiveAlert(alertData) {
   return alertRepository.upsertAlert(alertData);
 }
 
-export function getAlertStats() {
-  const pending = alertRepository.getAlerts('pending');
-  const resolved = alertRepository.getAlerts('resolved');
+export async function getAlertStats() {
+  const pending = await alertRepository.getAlerts('pending');
+  const resolved = await alertRepository.getAlerts('resolved');
 
   const stats = {
     pending_count: pending.length,
@@ -58,28 +58,28 @@ export function getAlertStats() {
   return stats;
 }
 
-export function syncChildren(children) {
+export async function syncChildren(children) {
   if (!Array.isArray(children) || children.length === 0) {
     return { synced: 0, message: 'No children to sync' };
   }
-  const count = alertRepository.syncChildren(children);
+  const count = await alertRepository.syncChildren(children);
   return { synced: count, message: `Synced ${count} children` };
 }
 
-export function syncSessions(sessions) {
+export async function syncSessions(sessions) {
   if (!Array.isArray(sessions) || sessions.length === 0) {
     return { synced: 0, message: 'No sessions to sync' };
   }
-  const count = alertRepository.syncSessions(sessions);
+  const count = await alertRepository.syncSessions(sessions);
   return { synced: count, message: `Synced ${count} sessions` };
 }
 
 /** Education Insights — per-camp summaries for the camps list. */
-export function listCampSummaries() {
+export async function listCampSummaries() {
   return alertRepository.getCampSummaries();
 }
 
 /** Education Insights — full detail for a single camp. */
-export function getCampEducation(campId) {
+export async function getCampEducation(campId) {
   return alertRepository.getCampEducation(campId);
 }

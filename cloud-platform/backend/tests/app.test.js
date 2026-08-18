@@ -1,6 +1,9 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
+// Force the in-memory repository — HTTP tests must not depend on a live DB.
+process.env.DB_ENABLED = 'false';
+
 const { createApp } = await import('../src/app.js');
 
 // Minimal monitor stub exposing the contract the network router needs.

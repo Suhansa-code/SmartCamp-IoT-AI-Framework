@@ -15,6 +15,18 @@ function toInt(value, fallback) {
 export const env = {
   port: toInt(process.env.PORT, 3001),
 
+  // PostgreSQL — education/pages persistence (AWS VM)
+  db: {
+    enabled: process.env.DB_ENABLED === 'true',
+    host: process.env.DB_HOST || 'localhost',
+    port: toInt(process.env.DB_PORT, 5432),
+    name: process.env.DB_NAME || 'smartcamp',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || '',
+    ssl: process.env.DB_SSL === 'true',
+    connectionString: process.env.DATABASE_URL || undefined,
+  },
+
   // Network monitoring
   enableSimulation: process.env.ENABLE_SIMULATION === 'true',
   useRealNetwork: process.env.USE_REAL_NETWORK === 'true',
