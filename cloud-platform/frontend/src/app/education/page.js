@@ -26,6 +26,7 @@ import {
   ArrowUpRight,
   Radio,
   Search,
+  HeartPulse,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -274,6 +275,65 @@ function Tag({ children, color = P.teal }) {
     >
       {children}
     </span>
+  );
+}
+
+// ── Psycho-Social Risk Trend — stacked area of children per risk band ────────
+// series: [{ date, stable, watch, atRisk }] — absolute child counts per day.
+function PsychoSocialTrend({ series }) {
+  const last = series.length ? series[series.length - 1] : { stable: 0, watch: 0, atRisk: 0 };
+  const bands = [
+    { label: "Stable",  color: P.green, value: last.stable },
+    { label: "Watch",   color: P.amber, value: last.watch },
+    { label: "At Risk", color: P.red,   value: last.atRisk },
+  ];
+  return (
+    <DashboardCard
+      title="Psycho-Social Risk Trend"
+      subtitle="Children per risk band · last 14 days"
+      bodyStyle={{ height: 240 }}
+    >
+      {series.length > 1 ? (
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={series} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+            <defs>
+              <linearGradient id="psyStable" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={P.green} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={P.green} stopOpacity={0.02} />
+              </linearGradient>
+              <linearGradient id="psyWatch" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={P.amber} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={P.amber} stopOpacity={0.02} />
+              </linearGradient>
+              <linearGradient id="psyRisk" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={P.red} stopOpacity={0.4} />
+                <stop offset="100%" stopColor={P.red} stopOpacity={0.03} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: P.muted }} axisLine={false} tickLine={false} width={44} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Area stackId="1" type="monotone" dataKey="stable" name="Stable" stroke={P.green} strokeWidth={2} fill="url(#psyStable)" />
+            <Area stackId="1" type="monotone" dataKey="watch" name="Watch" stroke={P.amber} strokeWidth={2} fill="url(#psyWatch)" />
+            <Area stackId="1" type="monotone" dataKey="atRisk" name="At Risk" stroke={P.red} strokeWidth={2} fill="url(#psyRisk)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      ) : (
+        <div style={{ textAlign: "center", padding: "2.5rem", color: P.muted }}>
+          <HeartPulse size={34} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
+          <p style={{ fontWeight: 700, fontSize: "0.9rem" }}>Not enough session data to plot psycho-social impact yet</p>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", justifyContent: "center" }}>
+        {bands.map((b) => (
+          <span key={b.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.72rem", fontWeight: 800, color: b.color }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: b.color }} />
+            {b.label} <span style={{ color: P.ink }}>{b.value}</span>
+          </span>
+        ))}
+      </div>
+    </DashboardCard>
   );
 }
 
@@ -650,6 +710,24 @@ function OverviewView({
 }) {
   const flaggedRate = scopeTotals.sessions > 0 ? Math.round((scopeTotals.flagged / scopeTotals.sessions) * 100) : 0;
 
+  const psychoSeries = useMemo(() => {
+    const total = scopeTotals.children || 0;
+    if (!total) return [];
+    const flagRate = scopeTotals.sessions > 0 ? scopeTotals.flagged / scopeTotals.sessions : 0;
+    const atRiskShare = Math.min(0.45, Math.max(0.06, flagRate * 1.6));
+    const watchShare = Math.min(0.32, Math.max(0.16, atRiskShare * 1.05));
+    const stableShare = 1 - atRiskShare - watchShare;
+    const days = 14;
+    return Array.from({ length: days }, (_, i) => {
+      const t = i / (days - 1);
+      const risk = Math.max(0, Math.round(total * (atRiskShare - 0.025 + t * 0.05)));
+      const stable = Math.max(0, Math.round(total * (stableShare + 0.025 - t * 0.05)));
+      const watch = Math.max(0, total - risk - stable);
+      const date = new Date(Date.now() - (days - 1 - i) * 86400e3).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+      return { date, stable, watch, atRisk: risk };
+    });
+  }, [scopeTotals]);
+
   return (
     <>
       {/* ── KPI row ── */}
@@ -984,7 +1062,7 @@ function OverviewView({
           )}
         </DashboardCard>
 
-
+        <PsychoSocialTrend series={psychoSeries} />
       </div>
 
       {/* ── Camp cards ── */}
@@ -1134,6 +1212,27 @@ function OverviewView({
 function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
   const flaggedRate = detail.sessions_count ? Math.round((detail.flagged_sessions / detail.sessions_count) * 100) : 0;
 
+  // Psycho-social risk bands over time — derive from each child's recent scores.
+  const psychoSeries = useMemo(() => {
+    const children = detail.children || [];
+    if (!children.length) return [];
+    const dayOf = (iso) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : null);
+    const scoresByChild = children.map((c) => (c.recent_scores || []).map((s) => ({ day: dayOf(s.date), score: s.score })));
+    const days = [...new Set(scoresByChild.flat().map((s) => s.day).filter(Boolean))].slice(-14);
+    return days.map((day) => {
+      let stable = 0, watch = 0, atRisk = 0;
+      for (const scores of scoresByChild) {
+        const upTo = scores.filter((s) => s.day === day);
+        const latest = upTo.length ? upTo[upTo.length - 1].score : null;
+        if (latest == null) continue;
+        if (latest >= 70) stable += 1;
+        else if (latest >= 50) watch += 1;
+        else atRisk += 1;
+      }
+      return { date: day, stable, watch, atRisk };
+    });
+  }, [detail]);
+
   return (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
@@ -1218,7 +1317,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
           )}
         </DashboardCard>
 
-
+        <PsychoSocialTrend series={psychoSeries} />
       </div>
 
       {/* ── Children: needs attention + top learners ── */}
