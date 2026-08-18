@@ -1,11 +1,9 @@
 'use client'
 
 import { Droplets, MapPin } from 'lucide-react'
-import { STATUS_META } from './disasterData'
+import { STATUS_META, STATUS_COLOR } from '@/data/disaster.data'
 import Button from '@/components/common/Button'
-import { P } from '@/components/alert/alertPalette'
-
-const STATUS_COLOR = { critical: P.red, high: '#F97316', medium: P.amber, stable: P.teal, recovery: P.green }
+import { P } from '@/data/theme.data'
 
 function Mini({ label, value, color, icon }) {
   return (

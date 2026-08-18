@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Users, HeartHandshake, TriangleAlert, MapPin, ChevronRight, X,
-  Droplets, Boxes, Stethoscope, Home, Zap, Radio, ShieldAlert, Crosshair, ChevronDown,
+  Droplets, Radio, ShieldAlert, Crosshair, ChevronDown,
 } from 'lucide-react'
-import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disasterData'
+import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS, ALERTS } from '@/data/disaster.data'
 import { DisasterGeoMap } from './DisasterGeoMap'
 import { Ring, Sparkline, TrendChart } from './DisasterVisuals'
 import SideNav from '@/components/common/SideNav'
@@ -18,82 +18,9 @@ import StatusDonut from '@/components/dashboard/StatusDonut'
 import ArrowChip from '@/components/alert/ArrowChip'
 import FilterPills from '@/components/alert/FilterPills'
 import { useTheme } from '@/components/common/ThemeProvider'
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // Map themes — the relief image follows the app's light/dark mode.
-const MAP_DARK = {
-  mode: 'dark',
-  bg: '#03080f',
-  surface: '#06101a',
-  panel: '#070e19',
-  border: '#0e2030',
-  borderHi: '#163448',
-  t0: '#e2edf7',
-  t1: '#93b7d2',
-  t2: '#6790aa',
-  t3: '#35556d',
-  red: '#ef4444',
-  orange: '#f97316',
-  yellow: '#eab308',
-  cyan: '#22d3ee',
-  green: '#4ade80',
-  mapBg: '#030c18',
-  mapLand: '#0d2236',
-  mapBorder: '#1a4060',
-  mapGrid: '#07182a',
-}
-
-const MAP_LIGHT = {
-  mode: 'light',
-  bg: '#ffffff',
-  surface: '#ffffff',
-  panel: '#ffffff',
-  border: '#d3dde7',
-  borderHi: '#b3c6d5',
-  t0: '#0f2336',
-  t1: '#284b67',
-  t2: '#5f7f94',
-  t3: '#8ba1b5',
-  red: '#dc2626',
-  orange: '#ea6a0a',
-  yellow: '#ca8a04',
-  cyan: '#0891b2',
-  green: '#16a34a',
-  mapBg: '#ddeaf5',
-  mapLand: '#b8d4e8',
-  mapBorder: '#6090b0',
-  mapGrid: '#c8daea',
-}
-
-const STATUS_COLOR = { critical: P.red, high: '#F97316', medium: P.amber, stable: P.teal, recovery: P.green }
-const STATUS_TEXT = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', stable: 'STABLE', recovery: 'RECOVERY' }
-
-const FILTER_OPTIONS = [
-  { key: 'all', label: 'All' },
-  { key: 'critical', label: 'Critical' },
-  { key: 'high', label: 'High' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'stable', label: 'Stable' },
-  { key: 'recovery', label: 'Recovery' },
-]
-
-const RESOURCE_RINGS = [
-  { value: 87, label: 'FOOD', color: '#4ade80', icon: <Boxes size={11} /> },
-  { value: 58, label: 'WATER', color: '#60A5FA', icon: <Droplets size={11} /> },
-  { value: 41, label: 'MEDICAL', color: '#ef4444', icon: <Stethoscope size={11} /> },
-  { value: 75, label: 'SHELTER', color: '#f97316', icon: <Home size={11} /> },
-  { value: 65, label: 'POWER', color: '#a78bfa', icon: <Zap size={11} /> },
-]
-
-const ALERTS = [
-  { color: P.red, message: 'Medical critical — Galle C-2', time: '06:42', live: true },
-  { color: P.red, message: 'Water unit failure — Batticaloa', time: '05:18', live: true },
-  { color: '#F97316', message: '340 new arrivals — Kandy C-1', time: '04:55', live: false },
-  { color: P.amber, message: 'Supply delay — Ratnapura', time: '04:10', live: false },
-  { color: P.teal, message: 'Delivery confirmed — Jaffna North', time: '03:30', live: false },
-  { color: P.green, message: 'Rain forecast — Matara coast', time: '02:00', live: false },
-]
-
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
 
 function Chip({ children, color = P.muted, style }) {

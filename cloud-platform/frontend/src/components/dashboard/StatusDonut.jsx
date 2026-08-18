@@ -1,4 +1,4 @@
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // Conic-gradient donut (alert-page style) with a centered readout.
 // segments: [{ color, value }] — proportions are derived from values.

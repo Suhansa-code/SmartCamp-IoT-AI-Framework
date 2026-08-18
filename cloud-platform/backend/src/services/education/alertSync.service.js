@@ -1,14 +1,12 @@
 /**
  * AlertSyncService — listens to MQTT topics from the raspberry platform and
- * syncs alerts, children and sessions into the cloud database.
+ * syncs alerts, children and sessions into the repository (in-memory now,
+ * DB-ready later).
  */
-import { upsertAlert, syncChildren, syncSessions } from '../../models/education/alert.model.js';
+import { upsertAlert, syncChildren, syncSessions } from '../../repositories/education/alert.repository.js';
+import { ALERT_SYNC_TOPICS } from '../../data/education/alertSync.data.js';
 
-export const ALERT_SYNC_TOPICS = [
-  'smartcamp/alerts/generated',
-  'smartcamp/data/children/sync',
-  'smartcamp/data/sessions/sync',
-];
+export { ALERT_SYNC_TOPICS };
 
 class AlertSyncService {
   constructor(mqttService) {

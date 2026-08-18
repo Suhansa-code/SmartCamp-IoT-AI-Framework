@@ -1,11 +1,12 @@
 /**
  * Alert service — business logic for the Education domain (PAGES alerts).
  * Controllers only parse HTTP concerns; everything else lives here.
+ * Data access goes through the repository layer (in-memory for now).
  */
-import * as alertModel from '../../models/education/alert.model.js';
+import * as alertRepository from '../../repositories/education/alert.repository.js';
 
 export function listAlerts({ status = null, camp = null } = {}) {
-  const alerts = alertModel.getAlerts(status || null, camp || null);
+  const alerts = alertRepository.getAlerts(status || null, camp || null);
 
   const stats = {
     total: alerts.length,
@@ -21,20 +22,20 @@ export function listAlerts({ status = null, camp = null } = {}) {
 }
 
 export function getAlertDetails(alertId) {
-  return alertModel.getAlert(alertId);
+  return alertRepository.getAlert(alertId);
 }
 
 export function resolveAlert(alertId, notes = null) {
-  return alertModel.resolveAlert(alertId, notes || null);
+  return alertRepository.resolveAlert(alertId, notes || null);
 }
 
 export function receiveAlert(alertData) {
-  return alertModel.upsertAlert(alertData);
+  return alertRepository.upsertAlert(alertData);
 }
 
 export function getAlertStats() {
-  const pending = alertModel.getAlerts('pending');
-  const resolved = alertModel.getAlerts('resolved');
+  const pending = alertRepository.getAlerts('pending');
+  const resolved = alertRepository.getAlerts('resolved');
 
   const stats = {
     pending_count: pending.length,
@@ -61,7 +62,7 @@ export function syncChildren(children) {
   if (!Array.isArray(children) || children.length === 0) {
     return { synced: 0, message: 'No children to sync' };
   }
-  const count = alertModel.syncChildren(children);
+  const count = alertRepository.syncChildren(children);
   return { synced: count, message: `Synced ${count} children` };
 }
 
@@ -69,16 +70,16 @@ export function syncSessions(sessions) {
   if (!Array.isArray(sessions) || sessions.length === 0) {
     return { synced: 0, message: 'No sessions to sync' };
   }
-  const count = alertModel.syncSessions(sessions);
+  const count = alertRepository.syncSessions(sessions);
   return { synced: count, message: `Synced ${count} sessions` };
 }
 
 /** Education Insights — per-camp summaries for the camps list. */
 export function listCampSummaries() {
-  return alertModel.getCampSummaries();
+  return alertRepository.getCampSummaries();
 }
 
 /** Education Insights — full detail for a single camp. */
 export function getCampEducation(campId) {
-  return alertModel.getCampEducation(campId);
+  return alertRepository.getCampEducation(campId);
 }

@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import Button from '@/components/common/Button'
 import DashboardCard from '@/components/dashboard/DashboardCard'
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
+import { BLUE } from '@/data/network.data'
 import { timeAgo } from '@/components/common/utils'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const BLUE = '#60A5FA'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

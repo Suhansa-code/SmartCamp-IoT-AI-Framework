@@ -1,6 +1,6 @@
 'use client'
 
-import { P, SEVERITY_COLOR } from './alertPalette'
+import { P, SEVERITY_COLOR } from '@/data/theme.data'
 
 export default function SeverityBadge({ severity }) {
   const color = SEVERITY_COLOR[severity] ?? P.green

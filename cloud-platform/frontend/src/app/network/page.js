@@ -7,20 +7,10 @@ import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import KpiCard from '@/components/dashboard/KpiCard'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import StatusDonut from '@/components/dashboard/StatusDonut'
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
+import { BLUE, STATE_COLOR, PRIO_COLOR, STATUS_COLOR, QOS_MATRIX } from '@/data/network.data'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const BLUE = '#60A5FA'
-
-const STATE_COLOR  = { GOOD: P.green, WEAK: P.amber, POOR: '#F97316', OFFLINE: P.red }
-const PRIO_COLOR   = { CRITICAL: P.red, IMPORTANT: P.amber, ROUTINE: BLUE }
-const STATUS_COLOR = { sent: P.green, buffered: P.amber, dropped: P.red, delayed: P.amber }
-
-const QOS_MATRIX = {
-  CRITICAL:  ['QoS 2', 'QoS 2', 'QoS 2', 'Buffer'],
-  IMPORTANT: ['QoS 2', 'QoS 1', 'QoS 1', 'Buffer'],
-  ROUTINE:   ['QoS 0', 'QoS 0', 'Drop',  'Drop'],
-}
 
 function valColor(v, warn, crit, invert = false) {
   if (invert ? v < warn : v > crit) return P.red

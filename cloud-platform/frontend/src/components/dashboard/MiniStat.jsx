@@ -1,4 +1,4 @@
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // Compact labeled stat used inside domain panels (Education / Resources / Disaster).
 export default function MiniStat({ label, value, icon, color = P.ink, sub }) {

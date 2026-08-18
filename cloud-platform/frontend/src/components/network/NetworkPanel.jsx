@@ -4,25 +4,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Cpu, Network, Zap } from 'lucide-react'
 import { useTheme } from '@/components/common/ThemeProvider'
-
-const FEATURES = [
-  { key: 'rtt_avg',     label: 'RTT Average',    importance: 0.18, fmt: v => `${v}ms`    },
-  { key: 'rtt_max',     label: 'RTT Max',        importance: 0.09, fmt: v => `${v}ms`    },
-  { key: 'jitter',      label: 'Jitter',         importance: 0.14, fmt: v => `${v}ms`    },
-  { key: 'packet_loss', label: 'Packet Loss',    importance: 0.22, fmt: v => `${v}%`     },
-  { key: 'queue_depth', label: 'Queue Depth',    importance: 0.11, fmt: v => v           },
-  { key: 'queue_delta', label: 'Queue Delta',    importance: 0.13, fmt: v => v           },
-  { key: 'throughput',  label: 'Throughput',     importance: 0.06, fmt: v => `${v}m/s`   },
-  { key: 'bandwidth',   label: 'Bandwidth',      importance: 0.04, fmt: v => `${v}KB/s`  },
-  { key: 'drop_rate',   label: 'Drop Rate',      importance: 0.05, fmt: v => `${v}/s`    },
-  { key: 'bridge_alive',label: 'Bridge Alive',   importance: 0.19, fmt: v => v ? 'YES' : 'NO' },
-]
-
-const QOS_MATRIX = {
-  CRITICAL:  ['QoS 2', 'QoS 2', 'QoS 2', 'Buffer'],
-  IMPORTANT: ['QoS 2', 'QoS 1', 'QoS 1', 'Buffer'],
-  ROUTINE:   ['QoS 0', 'QoS 0', 'Drop',  'Drop'  ],
-}
+import { FEATURES, QOS_MATRIX } from '@/data/network.data'
 
 function Panel({ icon, title, children }) {
   const { T } = useTheme()

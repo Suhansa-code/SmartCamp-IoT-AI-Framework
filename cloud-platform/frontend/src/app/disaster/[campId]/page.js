@@ -6,14 +6,14 @@ import {
   Users, MapPin, HeartHandshake, Gauge, ArrowLeft,
   Droplets, CloudRain, Wind, Cloud, Activity, ChevronRight,
 } from 'lucide-react'
-import { STATUS_META, statusColor, getCampById, CAMP_DETAIL } from '@/components/disaster/disasterData'
+import { STATUS_META, statusColor, getCampById, CAMP_DETAIL, W, STATUS_COLOR } from '@/data/disaster.data'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import Button from '@/components/common/Button'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
 import DashboardCard from '@/components/dashboard/DashboardCard'
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // Applies the global navigation rail + offsets content to the right of it.
 function WithRail({ children }) {
@@ -24,27 +24,6 @@ function WithRail({ children }) {
     </div>
   )
 }
-
-// White "nitec" theme mapped to the shape the detail sections expect.
-const W = {
-  mode: 'light',
-  bg: P.panel,
-  surface: P.panel,
-  panel: P.panel,
-  border: P.border,
-  borderHi: '#c9d6e2',
-  t0: P.ink,
-  t1: P.inkSoft,
-  t2: P.muted,
-  t3: '#8ba1b5',
-  red: P.red,
-  orange: '#F97316',
-  yellow: P.amber,
-  cyan: P.teal,
-  green: P.green,
-}
-
-const STATUS_COLOR = { critical: P.red, high: '#F97316', medium: P.amber, stable: P.teal, recovery: P.green }
 
 function InfoCard({ label, value, tone, theme, style, compact }) {
   const labelSize = compact ? 8 : 9

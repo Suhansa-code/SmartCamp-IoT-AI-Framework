@@ -1,5 +1,4 @@
 import { createApp } from './app.js';
-import { initializeSchema } from './config/database.js';
 import { MqttService } from './services/network/mqtt.service.js';
 import { NetworkMonitor } from './services/network/networkMonitor.service.js';
 import { SimulationService } from './services/network/simulation.service.js';
@@ -13,9 +12,6 @@ const simulationService = new SimulationService(networkMonitor);
 const alertSyncService = new AlertSyncService(mqttService);
 
 const app = createApp({ monitor: networkMonitor });
-
-// Initialize alert database schema before accepting traffic
-initializeSchema();
 
 async function startServer() {
   try {

@@ -46,9 +46,4 @@ export const env = {
       process.env.DISASTER_EDGE_WATER_LEVEL_HISTORY_PATH ||
       '/gauging-station-water-level-history',
   },
-
-  // Alert database (Education domain)
-  alerts: {
-    dbPath: process.env.ALERTS_DB_PATH || path.join(__dirname, '../../data/alerts.db'),
-  },
 };

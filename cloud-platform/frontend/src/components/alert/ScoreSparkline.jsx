@@ -1,7 +1,7 @@
 'use client'
 
 import { LineChart, Line, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts'
-import { P } from './alertPalette'
+import { P } from '@/data/theme.data'
 
 export default function ScoreSparkline({ scores }) {
   const last = scores[scores.length - 1]?.score ?? 0

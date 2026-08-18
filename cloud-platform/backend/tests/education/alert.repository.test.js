@@ -1,35 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import os from 'node:os';
-import path from 'node:path';
-import fs from 'node:fs';
 
-// Use an isolated temp DB before the modules are imported.
-const tempDb = path.join(os.tmpdir(), `alerts-test-${process.pid}.db`);
-process.env.ALERTS_DB_PATH = tempDb;
-
-const { initializeSchema, closeDatabase } = await import('../../src/config/database.js');
-const alertModel = await import('../../src/models/education/alert.model.js');
-
-test.before(() => {
-  initializeSchema();
-});
-
-test.after(() => {
-  try {
-    fs.unlinkSync(tempDb);
-  } catch {
-    // already cleaned
-  }
-  closeDatabase();
-});
+// The repository is in-memory and seeded from the data layer — no DB setup.
+const alertRepo = await import('../../src/repositories/education/alert.repository.js');
 
 function seedAlert(overrides = {}) {
   const childId = overrides.child_id || 'C-1';
-  alertModel.syncChildren([
+  alertRepo.syncChildren([
     { child_id: childId, res_id: 'R-1', camp_id: overrides.camp_id || 'CAMP-A', grade: 3, language: 'si', baseline_score: 60.0 },
   ]);
-  return alertModel.upsertAlert({
+  return alertRepo.upsertAlert({
     alert_id: 'A-100',
     child_id: 'C-1',
     res_id: 'R-1',
@@ -46,83 +26,83 @@ test('upsertAlert stores a new alert', () => {
   assert.equal(result.success, true);
   assert.equal(result.alert_id, 'A-100');
 
-  const alert = alertModel.getAlert('A-100');
+  const alert = alertRepo.getAlert('A-100');
   assert.equal(alert.alert_id, 'A-100');
   assert.equal(alert.camp_id, 'CAMP-A');
 });
 
 test('upsertAlert resets an existing alert to pending', () => {
   seedAlert();
-  alertModel.resolveAlert('A-100', 'handled');
+  alertRepo.resolveAlert('A-100', 'handled');
 
   // Re-send the same alert — should flip back to pending
   seedAlert();
-  const alert = alertModel.getAlert('A-100');
+  const alert = alertRepo.getAlert('A-100');
   assert.equal(alert.status, 'pending');
 });
 
 test('resolveAlert marks an alert resolved with notes', () => {
   seedAlert({ alert_id: 'A-200' });
-  const ok = alertModel.resolveAlert('A-200', 'reviewed by admin');
+  const ok = alertRepo.resolveAlert('A-200', 'reviewed by admin');
   assert.equal(ok, true);
 
-  const alert = alertModel.getAlert('A-200');
+  const alert = alertRepo.getAlert('A-200');
   assert.equal(alert.status, 'resolved');
   assert.equal(alert.resolved_notes, 'reviewed by admin');
 });
 
 test('resolveAlert returns false for unknown alert', () => {
-  assert.equal(alertModel.resolveAlert('DOES-NOT-EXIST'), false);
+  assert.equal(alertRepo.resolveAlert('DOES-NOT-EXIST'), false);
 });
 
 test('getAlerts filters by status', () => {
   seedAlert({ alert_id: 'A-300', child_id: 'C-2' });
-  alertModel.resolveAlert('A-300');
+  alertRepo.resolveAlert('A-300');
 
-  const pending = alertModel.getAlerts('pending');
-  const resolved = alertModel.getAlerts('resolved');
+  const pending = alertRepo.getAlerts('pending');
+  const resolved = alertRepo.getAlerts('resolved');
   assert.ok(pending.every((a) => a.status === 'pending'));
   assert.ok(resolved.some((a) => a.alert_id === 'A-300'));
 });
 
 test('getAlerts filters by camp', () => {
   seedAlert({ alert_id: 'A-400', camp_id: 'CAMP-B' });
-  const campA = alertModel.getAlerts(null, 'CAMP-A');
-  const campB = alertModel.getAlerts(null, 'CAMP-B');
+  const campA = alertRepo.getAlerts(null, 'CAMP-A');
+  const campB = alertRepo.getAlerts(null, 'CAMP-B');
 
   assert.ok(campA.some((a) => a.alert_id === 'A-400') === false);
   assert.ok(campB.some((a) => a.alert_id === 'A-400'));
 });
 
 test('syncChildren upserts child records', () => {
-  const count = alertModel.syncChildren([
+  const count = alertRepo.syncChildren([
     { child_id: 'C-100', res_id: 'R-9', camp_id: 'CAMP-A', grade: 3, language: 'si', baseline_score: 60.5 },
   ]);
   assert.equal(count, 1);
 });
 
 test('syncSessions upserts session records', () => {
-  const count = alertModel.syncSessions([
+  const count = alertRepo.syncSessions([
     { session_id: 'S-100', child_id: 'C-100', composite_score: 70.2, anomaly_flagged: true, alert_triggered: true, created_at: new Date().toISOString() },
   ]);
   assert.equal(count, 1);
 });
 
 test('getCampSummaries aggregates children, sessions and alerts per camp', () => {
-  alertModel.syncChildren([
+  alertRepo.syncChildren([
     { child_id: 'C-200', res_id: 'R-2', camp_id: 'CAMP-EDU', grade: 3, language: 'si', baseline_score: 60.0 },
     { child_id: 'C-201', res_id: 'R-2', camp_id: 'CAMP-EDU', grade: 4, language: 'ta', baseline_score: 62.0 },
   ]);
-  alertModel.syncSessions([
+  alertRepo.syncSessions([
     { session_id: 'S-200', child_id: 'C-200', composite_score: 70, anomaly_flagged: false, alert_triggered: false, created_at: '2026-08-01T10:00:00Z' },
     { session_id: 'S-201', child_id: 'C-201', composite_score: 50, anomaly_flagged: true, alert_triggered: true, created_at: '2026-08-02T10:00:00Z' },
   ]);
-  alertModel.upsertAlert({
+  alertRepo.upsertAlert({
     alert_id: 'A-EDU-1', child_id: 'C-200', res_id: 'R-2', camp_id: 'CAMP-EDU',
     alert_type: 'composite_drop', trigger_detail: { score: 40 }, triggered_at: new Date().toISOString(),
   });
 
-  const summaries = alertModel.getCampSummaries();
+  const summaries = alertRepo.getCampSummaries();
   const edu = summaries.find((c) => c.id === 'CAMP-EDU');
 
   assert.ok(edu, 'camp summary should exist');
@@ -136,22 +116,22 @@ test('getCampSummaries aggregates children, sessions and alerts per camp', () =>
 });
 
 test('getCampSummaries does not double-count across the session/alert joins', () => {
-  alertModel.syncChildren([
+  alertRepo.syncChildren([
     { child_id: 'C-300', res_id: 'R-3', camp_id: 'CAMP-MULTI', grade: 3, language: 'si', baseline_score: 60.0 },
     { child_id: 'C-301', res_id: 'R-3', camp_id: 'CAMP-MULTI', grade: 3, language: 'ta', baseline_score: 58.0 },
   ]);
-  alertModel.syncSessions([
+  alertRepo.syncSessions([
     { session_id: 'S-300', child_id: 'C-300', composite_score: 70, anomaly_flagged: false, alert_triggered: false, created_at: '2026-08-01T10:00:00Z' },
     { session_id: 'S-301', child_id: 'C-300', composite_score: 40, anomaly_flagged: true, alert_triggered: true, created_at: '2026-08-02T10:00:00Z' },
     { session_id: 'S-302', child_id: 'C-301', composite_score: 55, anomaly_flagged: false, alert_triggered: false, created_at: '2026-08-02T11:00:00Z' },
   ]);
-  alertModel.upsertAlert({
+  alertRepo.upsertAlert({
     alert_id: 'A-MULTI-1', child_id: 'C-300', res_id: 'R-3', camp_id: 'CAMP-MULTI',
     alert_type: 'composite_drop', trigger_detail: { score: 40 }, triggered_at: new Date().toISOString(),
   });
-  alertModel.resolveAlert('A-MULTI-1', 'resolved');
+  alertRepo.resolveAlert('A-MULTI-1', 'resolved');
 
-  const edu = alertModel.getCampSummaries().find((c) => c.id === 'CAMP-MULTI');
+  const edu = alertRepo.getCampSummaries().find((c) => c.id === 'CAMP-MULTI');
 
   assert.ok(edu, 'camp summary should exist');
   assert.equal(edu.children, 2);
@@ -163,7 +143,7 @@ test('getCampSummaries does not double-count across the session/alert joins', ()
 });
 
 test('getCampEducation returns children, sessions, alerts and aggregates', () => {
-  const detail = alertModel.getCampEducation('CAMP-EDU');
+  const detail = alertRepo.getCampEducation('CAMP-EDU');
 
   assert.ok(detail, 'camp detail should exist');
   assert.equal(detail.id, 'CAMP-EDU');
@@ -179,5 +159,5 @@ test('getCampEducation returns children, sessions, alerts and aggregates', () =>
 });
 
 test('getCampEducation returns null for a camp with no children', () => {
-  assert.equal(alertModel.getCampEducation('CAMP-MISSING'), null);
+  assert.equal(alertRepo.getCampEducation('CAMP-MISSING'), null);
 });

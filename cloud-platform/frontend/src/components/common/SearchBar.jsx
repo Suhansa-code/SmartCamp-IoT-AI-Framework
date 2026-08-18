@@ -1,7 +1,7 @@
 'use client'
 
 import { Search, RefreshCw } from 'lucide-react'
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 import Button from '@/components/common/Button'
 
 // Pill-style search bar (matching the alert dashboard design).

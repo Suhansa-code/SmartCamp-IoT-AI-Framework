@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowUpRight } from 'lucide-react'
-import { P } from './alertPalette'
+import { P } from '@/data/theme.data'
 
 export default function ArrowChip({ dark }) {
   return (

@@ -4,18 +4,11 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Bell, GraduationCap, Droplets, Activity,
-  Package, ChevronsLeft, ChevronsRight, Menu, X, Sun, Moon, TriangleAlert,
+  ChevronsLeft, ChevronsRight, Menu, X, Sun, Moon, TriangleAlert,
 } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
-import { P } from '@/components/alert/alertPalette'
-
-export const RAIL_EXPANDED = 236
-export const RAIL_COLLAPSED = 68
-
-const STORAGE_KEY = 'smartcamp.rail'
-const MOBILE_BREAKPOINT = 768
-const DEFAULT_RAIL_WIDTH = `${RAIL_EXPANDED}px`
+import { P } from '@/data/theme.data'
+import { RAIL_EXPANDED, RAIL_COLLAPSED, STORAGE_KEY, MOBILE_BREAKPOINT, DEFAULT_RAIL_WIDTH, NAV_ITEMS } from '@/data/navigation.data'
 
 const SideNavContext = createContext({ collapsed: false, toggle: () => {}, isMobile: false, mobileOpen: false, openMobile: () => {} })
 
@@ -67,15 +60,6 @@ export function SideNavProvider({ children }) {
 export function useSideNav() {
   return useContext(SideNavContext)
 }
-
-const NAV_ITEMS = [
-  { label: 'Dashboard', path: '/',          icon: LayoutDashboard },
-  { label: 'Alerts',    path: '/alert',     icon: Bell },
-  { label: 'Education', path: '/education', icon: GraduationCap },
-  { label: 'Disaster',  path: '/disaster',  icon: Droplets },
-  { label: 'Network',   path: '/network',   icon: Activity },
-  { label: 'Resources', path: '/resources', icon: Package },
-]
 
 export default function SideNav() {
   const { collapsed, toggle, isMobile, mobileOpen, openMobile, closeMobile } = useSideNav()

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // Shared action-button component (alert-page "nitec" design language).
 //

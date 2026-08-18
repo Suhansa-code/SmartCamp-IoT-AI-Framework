@@ -12,10 +12,9 @@ import mqtt from 'mqtt';
 import fs from 'fs';
 import { env } from '../../config/env.js';
 import { computePrediction } from './prediction.service.js';
+import { MEAL_TYPES } from '../../data/resources/campData.data.js';
 
 const { host, port, username, password, caCertPath } = env.emqx;
-
-const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'water'];
 
 // ── helpers ────────────────────────────────────────────────────────────────
 

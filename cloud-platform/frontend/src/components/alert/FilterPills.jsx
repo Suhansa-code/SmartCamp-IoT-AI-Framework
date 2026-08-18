@@ -1,6 +1,6 @@
 'use client'
 
-import { P } from './alertPalette'
+import { P } from '@/data/theme.data'
 
 // Rounded pill filter buttons (matching the alert dashboard design).
 // `options`: [{ key, label }], `counts`: { [key]: number }.

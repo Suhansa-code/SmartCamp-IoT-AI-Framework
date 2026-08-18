@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { CheckCircle2, TriangleAlert } from 'lucide-react'
-import { P, STATUS_COLOR } from './alertPalette'
+import { P, STATUS_COLOR } from '@/data/theme.data'
 import SeverityBadge from './SeverityBadge'
 import ScoreSparkline from './ScoreSparkline'
 import Button from '@/components/common/Button'

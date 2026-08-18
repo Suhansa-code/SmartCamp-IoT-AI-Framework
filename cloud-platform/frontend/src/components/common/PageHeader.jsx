@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bell, TriangleAlert, RefreshCw } from "lucide-react";
-import { P } from "@/components/alert/alertPalette";
+import { P } from "@/data/theme.data";
 import SearchBar from "@/components/common/SearchBar";
 import Button from "@/components/common/Button";
 import PageTitle from "./PageTitle";

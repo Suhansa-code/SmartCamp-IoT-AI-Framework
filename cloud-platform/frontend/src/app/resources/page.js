@@ -7,7 +7,7 @@ import PageHeader, { HeaderShell } from "@/components/common/PageHeader";
 import PageTitle from "@/components/common/PageTitle";
 import Button from "@/components/common/Button";
 import OverviewPanel from "@/components/resources/OverviewPanel";
-import { P } from "@/components/alert/alertPalette";
+import { P } from "@/data/theme.data";
 
 // Cloud-side resources page.
 // Registration and wristband scanning run on the Pi at the camp (raspberry-platform/backend/server.js, port 5000).

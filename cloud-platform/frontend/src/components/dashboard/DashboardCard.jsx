@@ -1,4 +1,4 @@
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // White "nitec"-style card shell — reused across the dashboard sections.
 export default function DashboardCard({ title, subtitle, right, footer, children, style, bodyStyle }) {

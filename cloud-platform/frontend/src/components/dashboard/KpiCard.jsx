@@ -1,4 +1,4 @@
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // Large KPI card — value, icon chip, delta, sparkline and progress bar (alert-page styling).
 export default function KpiCard({ label, value, icon, color = P.teal, delta, pct = 100, spark }) {

@@ -1,4 +1,4 @@
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // Labeled progress bar — used for resource distribution and camp status shares.
 export default function ProgressBar({ icon, label, value, pct, tone = P.teal }) {

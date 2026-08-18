@@ -1,6 +1,6 @@
 'use client'
 
-import { P } from '@/components/alert/alertPalette'
+import { P } from '@/data/theme.data'
 
 // Shared page title row — eyebrow · title · subtitle on the left, arbitrary
 // actions on the right. Mirrors the alert-page title strip used across pages.
