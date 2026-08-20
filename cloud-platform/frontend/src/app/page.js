@@ -321,9 +321,9 @@ export default function DashboardPage() {
               )}
             >
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <MiniStat label="Children" value={eduTotals.children.toLocaleString()} icon={<Users size={12} />} color={T.teal} />
-                <MiniStat label="Sessions" value={eduTotals.sessions.toLocaleString()} icon={<BookOpen size={12} />} color={T.purple} />
-                <MiniStat label="Avg Score" value={eduAvg ?? '—'} icon="📊" color={T.textPrimary} sub="composite" />
+                <MiniStat label="Children" value={eduTotals.children.toLocaleString()} icon={<Users size={12} />} />
+                <MiniStat label="Sessions" value={eduTotals.sessions.toLocaleString()} icon={<BookOpen size={12} />} />
+                <MiniStat label="Avg Score" value={eduAvg ?? '—'} icon="📊" sub="composite" />
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {chip('flagged sessions', eduTotals.flagged, T.amber)}
@@ -357,9 +357,9 @@ export default function DashboardPage() {
               )}
             >
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <MiniStat label="Registered" value={res.population?.total.toLocaleString()} icon={<Users size={12} />} color={T.teal} sub={`${res.population?.families} families`} />
-                <MiniStat label="Attendance" value={`${attendance}%`} icon="📊" color={attendance > 70 ? T.green : T.amber} />
-                <MiniStat label="Fed Today" value={`${fedPct}%`} icon="🍽️" color={fedPct > 80 ? T.green : T.amber} />
+                <MiniStat label="Registered" value={res.population?.total.toLocaleString()} icon={<Users size={12} />} sub={`${res.population?.families} families`} />
+                <MiniStat label="Attendance" value={`${attendance}%`} icon="📊" />
+                <MiniStat label="Fed Today" value={`${fedPct}%`} icon="🍽️" />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
                 <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Today's distribution</div>
@@ -386,9 +386,9 @@ export default function DashboardPage() {
               )}
             >
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <MiniStat label="Displaced" value={disTotals.displaced.toLocaleString()} icon={<Users size={12} />} color="#F97316" />
-                <MiniStat label="Aid Workers" value={disTotals.workers.toLocaleString()} icon="👷" color="#0EA5E9" />
-                <MiniStat label="Active Camps" value={disTotals.camps} icon={<Droplets size={12} />} color={T.textPrimary} />
+                <MiniStat label="Displaced" value={disTotals.displaced.toLocaleString()} icon={<Users size={12} />} />
+                <MiniStat label="Aid Workers" value={disTotals.workers.toLocaleString()} icon="👷" />
+                <MiniStat label="Active Camps" value={disTotals.camps} icon={<Droplets size={12} />} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
                 <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status distribution</div>

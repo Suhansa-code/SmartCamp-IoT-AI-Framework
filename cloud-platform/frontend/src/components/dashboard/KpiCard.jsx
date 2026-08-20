@@ -20,7 +20,7 @@ export default function KpiCard({ label, value, icon, color, delta, pct = 100, s
     >
       <div style={{ position: 'absolute', top: -26, right: -26, width: 96, height: 96, borderRadius: '50%', background: `${accent}24`, filter: 'blur(28px)' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: T.textPrimary, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{label}</span>
         <span style={{
           width: 34, height: 34, borderRadius: 10, flexShrink: 0,
           background: `${accent}1f`, border: `1px solid ${accent}44`,
@@ -28,7 +28,7 @@ export default function KpiCard({ label, value, icon, color, delta, pct = 100, s
         }}>{icon}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 12 }}>
-        <span style={{ fontSize: '1.6rem', fontWeight: 800, color: accent, lineHeight: 1, letterSpacing: '-0.01em' }}>{value}</span>
+        <span style={{ fontSize: '1.6rem', fontWeight: 800, color: T.textPrimary, lineHeight: 1, letterSpacing: '-0.01em' }}>{value}</span>
         {delta && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: T.muted }}>{delta}</span>}
       </div>
       {spark && spark.length > 1 && (
