@@ -484,6 +484,7 @@ export default function EducationPage() {
             </HeaderShell>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
               {/* ══ Big rounded panel — alert-page composition ══ */}
               <div style={{ background: P.panel, padding: "clamp(1rem, 2vw, 1.75rem)", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                 {/* ── Camp selector pills ── */}
@@ -1180,7 +1181,6 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
           />
         </div>
         <button
-          onClick={onBack}
           className="edu-pill"
           style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${P.border}`, background: P.card, color: P.ink }}
         >
@@ -1374,7 +1374,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
       </DashboardCard>
 
       {/* ── Camp alerts ── */}
-      <DashboardCard
+      {/* <DashboardCard
         title="Camp Alerts"
         subtitle="Triggered welfare alerts for this camp"
         right={chip("pending", detail.pending_alerts, detail.pending_alerts > 0 ? P.red : P.green)}
@@ -1419,17 +1419,9 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             <p style={{ fontSize: "0.85rem", fontWeight: 700 }}>No alerts for this camp</p>
           </div>
         )}
-      </DashboardCard>
+      </DashboardCard> */}
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <button
-          onClick={onBack}
-          className="edu-pill"
-          style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${P.border}`, background: P.card, color: P.ink }}
-        >
-          <ArrowLeft size={15} /> Back to all camps
-        </button>
-      </div>
+
     </>
   );
 }
