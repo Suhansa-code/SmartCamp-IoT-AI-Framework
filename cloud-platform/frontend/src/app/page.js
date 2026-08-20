@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import SideNav from '@/components/common/SideNav'
+import { useTheme } from '@/components/common/ThemeProvider'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import KpiCard from '@/components/dashboard/KpiCard'
@@ -24,13 +25,27 @@ function eduCode(id) {
   return known[id] || id.replace(/^CAMP-B-/, '').slice(0, 3).toUpperCase()
 }
 
-const chip = (label, value, color) => (
-  <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: `${color}14`, color, borderRadius: '9999px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: 800 }}>
-    {value} {label}
-  </span>
-)
-
 export default function DashboardPage() {
+  const { T, mode } = useTheme()
+  const dark = mode === 'dark'
+  const chip = (label, value, color) => (
+    <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: `${color}14`, borderRadius: '9999px', padding: '4px 10px', fontSize: '0.72rem' }}>
+      <span style={{ fontWeight: 800, color }}>{value}</span>
+      <span style={{ fontWeight: 600, color: T.muted }}>{label}</span>
+    </span>
+  )
+  const footerLinkStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    fontSize: '0.74rem',
+    fontWeight: 800,
+    color: T.teal,
+    textDecoration: 'none',
+    paddingTop: '0.35rem',
+    borderTop: `1px solid ${T.border}`,
+  }
+
   const [camps, setCamps] = useState([])
   const [education, setEducation] = useState([])
   const [resources, setResources] = useState(null)
@@ -151,16 +166,16 @@ export default function DashboardPage() {
   const perfData = scope.map((c) => ({ code: c.code, children: c.childCount, sessions: c.sessionCount }))
   const eduChartData = eduRows.map((c) => ({ code: eduCode(c.id), score: c.avg_composite }))
   const statusList = [
-    { label: 'Clear',  color: P.green, value: scopeStats.clear },
-    { label: 'Watch',  color: P.amber, value: scopeStats.watch },
-    { label: 'Urgent', color: P.red,   value: scopeStats.urgent },
+    { label: 'Clear',  color: T.green, value: scopeStats.clear },
+    { label: 'Watch',  color: T.amber, value: scopeStats.watch },
+    { label: 'Urgent', color: T.red,   value: scopeStats.urgent },
   ]
   const donutSegs = statusList.map((s) => ({ color: s.color, value: s.value }))
   const pctOf = (n) => (scopeStats.camps ? Math.round((n / scopeStats.camps) * 100) : 0)
 
   const tooltipStyle = {
-    background: '#FFFFFF', border: `1px solid ${P.border}`, borderRadius: '0.75rem',
-    fontSize: '0.78rem', fontWeight: 600, color: P.ink, boxShadow: '0 12px 30px rgba(20,30,40,0.14)',
+    background: dark ? T.card : '#FFFFFF', border: `1px solid ${T.border}`, borderRadius: '0.75rem',
+    fontSize: '0.78rem', fontWeight: 600, color: T.textPrimary,
   }
 
   const sparkFor = (key) => scope.map((c) => c[key])
@@ -188,7 +203,7 @@ export default function DashboardPage() {
 
       <div style={{
         minHeight: '100svh',
-        background: P.outer,
+        background: dark ? 'linear-gradient(180deg, #0A0A0B 0%, #0E0E10 100%)' : P.outer,
         fontFamily: "'Inter', sans-serif",
         paddingLeft: 'var(--rail-width, 236px)',
         transition: 'padding-left 0.2s ease',
@@ -198,7 +213,7 @@ export default function DashboardPage() {
 <div className='header-wrapper'>
 
 
-        <main style={{background: P.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <main style={{background: dark ? T.bg : P.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
                   <HeaderShell>
           <PageHeader
@@ -221,16 +236,16 @@ export default function DashboardPage() {
           {/* ── Filter toolbar ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: P.muted }}>Camp</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: T.muted }}>Camp</span>
               <select
                 value={selectedCampId}
                 onChange={(e) => setSelectedCampId(e.target.value)}
                 aria-label="Select camp"
                 style={{
                   minWidth: 220,
-                  background: P.cardSoft,
-                  color: P.ink,
-                  border: `1px solid ${P.border}`,
+                  background: T.card,
+                  color: T.textPrimary,
+                  border: `1px solid ${T.border}`,
                   borderRadius: '0.75rem',
                   padding: '9px 12px',
                   fontWeight: 700,
@@ -248,17 +263,17 @@ export default function DashboardPage() {
                 {statusList.map((s) => chip(s.label, s.value, s.color))}
               </div>
             </div>
-            <span style={{ fontSize: '0.74rem', color: P.muted, fontWeight: 700 }}>
+            <span style={{ fontSize: '0.74rem', color: T.muted, fontWeight: 700 }}>
               Showing {scope.length} of {campRows.length} camp{scope.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {/* ── KPI row ── */}
           <div className="dash-kpi">
-            <KpiCard label="Total Camps" value={scopeStats.camps} icon={<Tent size={17} />} color="#60A5FA" delta="relief sites" pct={100} spark={sparkFor('alertCount').map((_, i) => i + 1)} />
-            <KpiCard label="Children" value={scopeStats.children.toLocaleString()} icon={<Users size={17} />} color={P.teal} delta="tracked" pct={Math.min(100, Math.round((scopeStats.children / 1500) * 100))} spark={sparkFor('childCount')} />
-            <KpiCard label="Learning Sessions" value={scopeStats.sessions.toLocaleString()} icon={<BookOpen size={17} />} color={P.purple} delta="synced" pct={Math.min(100, Math.round((scopeStats.sessions / 900) * 100))} spark={sparkFor('sessionCount')} />
-            <KpiCard label="Open Alerts" value={scopeStats.alerts} icon={<Bell size={17} />} color={scopeStats.alerts > 0 ? P.red : P.green} delta={scopeStats.urgent > 0 ? `${scopeStats.urgent} urgent` : 'all clear'} pct={Math.min(100, Math.round((scopeStats.alerts / 8) * 100))} spark={sparkFor('alertCount')} />
+            <KpiCard label="Total Camps" value={scopeStats.camps} icon={<Tent size={17} />} color={T.blue} delta="relief sites" pct={100} spark={sparkFor('alertCount').map((_, i) => i + 1)} />
+            <KpiCard label="Children" value={scopeStats.children.toLocaleString()} icon={<Users size={17} />} color={T.teal} delta="tracked" pct={Math.min(100, Math.round((scopeStats.children / 1500) * 100))} spark={sparkFor('childCount')} />
+            <KpiCard label="Learning Sessions" value={scopeStats.sessions.toLocaleString()} icon={<BookOpen size={17} />} color={T.purple} delta="synced" pct={Math.min(100, Math.round((scopeStats.sessions / 900) * 100))} spark={sparkFor('sessionCount')} />
+            <KpiCard label="Open Alerts" value={scopeStats.alerts} icon={<Bell size={17} />} color={scopeStats.alerts > 0 ? T.red : T.green} delta={scopeStats.urgent > 0 ? `${scopeStats.urgent} urgent` : 'all clear'} pct={Math.min(100, Math.round((scopeStats.alerts / 8) * 100))} spark={sparkFor('alertCount')} />
           </div>
 
           {/* ── Charts row ── */}
@@ -271,16 +286,16 @@ export default function DashboardPage() {
               {perfData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={perfData} barGap={4} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
-                    <XAxis dataKey="code" tick={{ fontSize: 11, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: P.muted }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: `${P.cardSoft}` }} contentStyle={tooltipStyle} />
-                    <Bar dataKey="children" name="Children" fill="#0D9488" radius={[6, 6, 0, 0]} maxBarSize={30} />
-                    <Bar dataKey="sessions" name="Sessions" fill="#8B5CF6" radius={[6, 6, 0, 0]} maxBarSize={30} />
+                    <CartesianGrid strokeDasharray="4 8" stroke={T.border} vertical={false} />
+                    <XAxis dataKey="code" tick={{ fontSize: 11, fontWeight: 700, fill: T.muted }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: T.muted }} axisLine={false} tickLine={false} />
+                    <Tooltip cursor={{ fill: `${T.bar}` }} contentStyle={tooltipStyle} />
+                    <Bar dataKey="children" name="Children" fill={T.teal} radius={[6, 6, 0, 0]} maxBarSize={30} />
+                    <Bar dataKey="sessions" name="Sessions" fill={T.purple} radius={[6, 6, 0, 0]} maxBarSize={30} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: P.muted, fontSize: '0.84rem', fontWeight: 600 }}>No camp data</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.muted, fontSize: '0.84rem', fontWeight: 600 }}>No camp data</div>
               )}
             </DashboardCard>
 
@@ -294,9 +309,9 @@ export default function DashboardPage() {
                 {statusList.map((s) => (
                   <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: P.inkSoft, flex: 1 }}>{s.label}</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: P.ink }}>{s.value}</span>
-                    <span style={{ fontSize: '0.66rem', fontWeight: 700, color: P.muted, width: 34, textAlign: 'right' }}>{pctOf(s.value)}%</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: T.textSoft, flex: 1 }}>{s.label}</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: s.color }}>{s.value}</span>
+                    <span style={{ fontSize: '0.66rem', fontWeight: 700, color: T.muted, width: 34, textAlign: 'right' }}>{pctOf(s.value)}%</span>
                   </div>
                 ))}
               </div>
@@ -309,7 +324,7 @@ export default function DashboardPage() {
             <DashboardCard
               title="Education"
               subtitle="Learning analytics & alerts"
-              right={chip('pending alerts', eduTotals.pending, eduTotals.pending > 0 ? P.amber : P.green)}
+              right={chip('pending alerts', eduTotals.pending, eduTotals.pending > 0 ? T.amber : T.green)}
               footer={(
                 <Link href="/education" style={footerLinkStyle}>
                   Open Education <ArrowUpRight size={14} />
@@ -317,27 +332,27 @@ export default function DashboardPage() {
               )}
             >
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <MiniStat label="Children" value={eduTotals.children.toLocaleString()} icon={<Users size={12} />} color={P.teal} />
-                <MiniStat label="Sessions" value={eduTotals.sessions.toLocaleString()} icon={<BookOpen size={12} />} color={P.purple} />
-                <MiniStat label="Avg Score" value={eduAvg ?? '—'} icon="📊" color={P.ink} sub="composite" />
+                <MiniStat label="Children" value={eduTotals.children.toLocaleString()} icon={<Users size={12} />} color={T.teal} />
+                <MiniStat label="Sessions" value={eduTotals.sessions.toLocaleString()} icon={<BookOpen size={12} />} color={T.purple} />
+                <MiniStat label="Avg Score" value={eduAvg ?? '—'} icon="📊" color={T.textPrimary} sub="composite" />
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {chip('flagged sessions', eduTotals.flagged, P.amber)}
-                {chip('total alerts', eduRows.reduce((s, c) => s + (c.total_alerts || 0), 0), P.cardSoft)}
+                {chip('flagged sessions', eduTotals.flagged, T.amber)}
+                {chip('total alerts', eduRows.reduce((s, c) => s + (c.total_alerts || 0), 0), T.muted)}
               </div>
               <div style={{ height: 130 }}>
                 {eduChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={eduChartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
-                      <XAxis dataKey="code" tick={{ fontSize: 10, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: P.muted }} axisLine={false} tickLine={false} />
-                      <Tooltip cursor={{ fill: `${P.cardSoft}` }} contentStyle={tooltipStyle} />
-                      <Bar dataKey="score" name="Avg composite" fill="#0D9488" radius={[5, 5, 0, 0]} maxBarSize={22} />
+                      <CartesianGrid strokeDasharray="4 8" stroke={T.border} vertical={false} />
+                      <XAxis dataKey="code" tick={{ fontSize: 10, fontWeight: 700, fill: T.muted }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: T.muted }} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: `${T.bar}` }} contentStyle={tooltipStyle} />
+                      <Bar dataKey="score" name="Avg composite" fill={T.teal} radius={[5, 5, 0, 0]} maxBarSize={22} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: P.muted, fontSize: '0.78rem', fontWeight: 600 }}>No education data for this camp</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.muted, fontSize: '0.78rem', fontWeight: 600 }}>No education data for this camp</div>
                 )}
               </div>
             </DashboardCard>
@@ -346,7 +361,7 @@ export default function DashboardPage() {
             <DashboardCard
               title="Resource Management"
               subtitle="Camp overview & distribution"
-              right={chip('buffered', res.mqtt?.buffered_messages ?? 0, res.mqtt?.buffered_messages > 0 ? P.amber : P.green)}
+              right={chip('buffered', res.mqtt?.buffered_messages ?? 0, res.mqtt?.buffered_messages > 0 ? T.amber : T.green)}
               footer={(
                 <Link href="/resources" style={footerLinkStyle}>
                   Open Resources <ArrowUpRight size={14} />
@@ -354,20 +369,20 @@ export default function DashboardPage() {
               )}
             >
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <MiniStat label="Registered" value={res.population?.total.toLocaleString()} icon={<Users size={12} />} color={P.teal} sub={`${res.population?.families} families`} />
-                <MiniStat label="Attendance" value={`${attendance}%`} icon="📊" color={attendance > 70 ? P.green : P.amber} />
-                <MiniStat label="Fed Today" value={`${fedPct}%`} icon="🍽️" color={fedPct > 80 ? P.green : P.amber} />
+                <MiniStat label="Registered" value={res.population?.total.toLocaleString()} icon={<Users size={12} />} color={T.teal} sub={`${res.population?.families} families`} />
+                <MiniStat label="Attendance" value={`${attendance}%`} icon="📊" color={attendance > 70 ? T.green : T.amber} />
+                <MiniStat label="Fed Today" value={`${fedPct}%`} icon="🍽️" color={fedPct > 80 ? T.green : T.amber} />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
-                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Today's distribution</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Today's distribution</div>
                 {Object.entries(res.distribution_today).map(([key, d]) => {
                   const pct = d.prepared > 0 ? Math.round((d.served / d.prepared) * 100) : 0
                   const icon = { breakfast: '☕', lunch: '🍛', dinner: '🍲', water: '💧' }[key] || '🍽️'
-                  return <ProgressBar key={key} icon={icon} label={key.charAt(0).toUpperCase() + key.slice(1)} value={`${d.served}/${d.prepared}`} pct={pct} tone={pct > 85 ? P.green : P.teal} />
+                  return <ProgressBar key={key} icon={icon} label={key.charAt(0).toUpperCase() + key.slice(1)} value={`${d.served}/${d.prepared}`} pct={pct} tone={pct > 85 ? T.green : T.teal} />
                 })}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: P.muted, fontWeight: 600 }}>
-                <Radio size={13} color={res.mqtt?.network_state === 'GOOD' ? P.green : P.amber} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: T.muted, fontWeight: 600 }}>
+                <Radio size={13} color={res.mqtt?.network_state === 'GOOD' ? T.green : T.amber} />
                 {res.mqtt?.network_state} · 🔮 tomorrow {res.prediction_tomorrow?.expected_persons} expected
               </div>
             </DashboardCard>
@@ -376,7 +391,7 @@ export default function DashboardPage() {
             <DashboardCard
               title="Disaster"
               subtitle="Camp tracking & relief overview"
-              right={chip('critical', disTotals.critical, disTotals.critical > 0 ? P.red : P.green)}
+              right={chip('critical', disTotals.critical, disTotals.critical > 0 ? T.red : T.green)}
               footer={(
                 <Link href="/disaster" style={footerLinkStyle}>
                   Open Disaster <ArrowUpRight size={14} />
@@ -386,10 +401,10 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <MiniStat label="Displaced" value={disTotals.displaced.toLocaleString()} icon={<Users size={12} />} color="#F97316" />
                 <MiniStat label="Aid Workers" value={disTotals.workers.toLocaleString()} icon="👷" color="#0EA5E9" />
-                <MiniStat label="Active Camps" value={disTotals.camps} icon={<Droplets size={12} />} color={P.ink} />
+                <MiniStat label="Active Camps" value={disTotals.camps} icon={<Droplets size={12} />} color={T.textPrimary} />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
-                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status distribution</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status distribution</div>
                 {Object.entries(DIS_STATUS).map(([status, meta]) => {
                   const count = disTotals[status]
                   if (!count) return null
@@ -399,16 +414,16 @@ export default function DashboardPage() {
               {criticalCamps.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {criticalCamps.map((c, i) => (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.5rem 0', borderBottom: i < criticalCamps.length - 1 ? `1px solid ${P.border}` : 'none' }}>
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.5rem 0', borderBottom: i < criticalCamps.length - 1 ? `1px solid ${T.border}` : 'none' }}>
                       <span style={{ width: 8, height: 8, borderRadius: '50%', background: DIS_STATUS[c.status].color, flexShrink: 0 }} />
-                      <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 700, color: P.inkSoft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: P.ink }}>{c.displaced.toLocaleString()}</span>
+                      <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 700, color: T.textSoft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: T.textPrimary }}>{c.displaced.toLocaleString()}</span>
                       <span style={{ fontSize: '0.66rem', fontWeight: 700, color: DIS_STATUS[c.status].color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{DIS_STATUS[c.status].label}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '1.25rem 0', color: P.muted, fontSize: '0.78rem', fontWeight: 600 }}>
+                <div style={{ textAlign: 'center', padding: '1.25rem 0', color: T.muted, fontSize: '0.78rem', fontWeight: 600 }}>
                   {disRows.length === 0 ? 'No disaster data for this camp' : 'No critical camps right now'}
                 </div>
               )}
@@ -419,16 +434,4 @@ export default function DashboardPage() {
       </div>
     </>
   )
-}
-
-const footerLinkStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  fontSize: '0.74rem',
-  fontWeight: 800,
-  color: P.teal,
-  textDecoration: 'none',
-  paddingTop: '0.35rem',
-  borderTop: `1px solid ${P.border}`,
 }

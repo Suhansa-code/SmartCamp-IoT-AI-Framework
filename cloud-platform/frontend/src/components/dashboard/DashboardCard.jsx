@@ -1,26 +1,26 @@
-import { P } from '@/data/theme.data'
+import { useTheme } from '@/components/common/ThemeProvider'
 
-// White "nitec"-style card shell — reused across the dashboard sections.
+// Card shell — reused across the dashboard sections, adapts to light/dark.
 export default function DashboardCard({ title, subtitle, right, footer, children, style, bodyStyle }) {
+  const { T } = useTheme()
   return (
     <div
       style={{
-        background: P.panel,
-        border: `1px solid ${P.border}`,
+        background: T.card,
+        border: `1px solid ${T.border}`,
         borderRadius: '1.25rem',
         padding: '1.1rem 1.25rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.9rem',
-        boxShadow: '0 14px 34px rgba(20,30,40,0.06)',
         ...style,
       }}
     >
       {(title || right) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
-            {title && <div style={{ fontSize: '0.86rem', fontWeight: 800, color: P.ink }}>{title}</div>}
-            {subtitle && <div style={{ fontSize: '0.7rem', color: P.muted, fontWeight: 600, marginTop: 2 }}>{subtitle}</div>}
+            {title && <div style={{ fontSize: '0.86rem', fontWeight: 800, color: T.textPrimary }}>{title}</div>}
+            {subtitle && <div style={{ fontSize: '0.7rem', color: T.muted, fontWeight: 600, marginTop: 2 }}>{subtitle}</div>}
           </div>
           {right}
         </div>

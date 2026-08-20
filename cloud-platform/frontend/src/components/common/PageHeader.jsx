@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bell, TriangleAlert, RefreshCw } from "lucide-react";
-import { P } from "@/data/theme.data";
+import { useTheme } from "./ThemeProvider";
 import SearchBar from "@/components/common/SearchBar";
 import Button from "@/components/common/Button";
 import PageTitle from "./PageTitle";
@@ -29,6 +29,9 @@ export default function PageHeader({ search, pendingCount, escalatedCount, onBel
   const router = useRouter();
   const goToAlerts = () => router.push("/alert");
   const [refreshing, setRefreshing] = useState(false);
+  const { T, mode } = useTheme();
+  const dark = mode === "dark";
+  const LIME = "#D8F24E";
 
   return (
     <>
@@ -75,7 +78,7 @@ export default function PageHeader({ search, pendingCount, escalatedCount, onBel
                   position: "absolute",
                   top: -4,
                   right: -4,
-                  background: P.amber,
+                  background: T.amber,
                   color: "#fff",
                   borderRadius: "9999px",
                   fontSize: "0.62rem",
@@ -96,7 +99,7 @@ export default function PageHeader({ search, pendingCount, escalatedCount, onBel
                   position: "absolute",
                   top: -4,
                   right: -4,
-                  background: P.purple,
+                  background: T.purple,
                   color: "#fff",
                   borderRadius: "9999px",
                   fontSize: "0.62rem",
@@ -110,7 +113,7 @@ export default function PageHeader({ search, pendingCount, escalatedCount, onBel
           </Button>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingLeft: "0.3rem" }}>
-            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: P.ink, textWrap: "nowrap" }}>Dr. Perera</span>
+            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: T.textPrimary, textWrap: "nowrap" }}>Dr. Perera</span>
             <div style={{ position: "relative" }}>
               <div
                 style={{
@@ -136,9 +139,9 @@ export default function PageHeader({ search, pendingCount, escalatedCount, onBel
                   width: 11,
                   height: 11,
                   borderRadius: "50%",
-                  background: P.lime,
-                  border: "2px solid #fff",
-                  boxShadow: `0 0 6px ${P.lime}`,
+                  background: LIME,
+                  border: `2px solid ${dark ? T.card : "#fff"}`,
+                  boxShadow: `0 0 6px ${LIME}`,
                   animation: "floatY 3s ease-in-out infinite",
                 }}
               />
