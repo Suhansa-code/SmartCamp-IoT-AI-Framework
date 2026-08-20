@@ -11,9 +11,10 @@ import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
 import ProgressBar from '@/components/dashboard/ProgressBar'
 import StatusDonut from '@/components/dashboard/StatusDonut'
+import ArrowChip from '@/components/alert/ArrowChip'
 import { P } from '@/data/theme.data'
 import { MOCK_CAMPS, MOCK_EDUCATION, MOCK_RESOURCES, MOCK_DISASTER, DISASTER_MATCH, CAMP_STATUS, DIS_STATUS } from '@/data/dashboard.data'
-import { Droplets, Users, BookOpen, Bell, Radio, ArrowUpRight, Tent } from 'lucide-react'
+import { Droplets, Users, BookOpen, Bell, Radio, Tent } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -34,17 +35,6 @@ export default function DashboardPage() {
       <span style={{ fontWeight: 600, color: T.muted }}>{label}</span>
     </span>
   )
-  const footerLinkStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    fontSize: '0.74rem',
-    fontWeight: 800,
-    color: T.teal,
-    textDecoration: 'none',
-    paddingTop: '0.35rem',
-    borderTop: `1px solid ${T.border}`,
-  }
 
   const [camps, setCamps] = useState([])
   const [education, setEducation] = useState([])
@@ -324,10 +314,9 @@ export default function DashboardPage() {
             <DashboardCard
               title="Education"
               subtitle="Learning analytics & alerts"
-              right={chip('pending alerts', eduTotals.pending, eduTotals.pending > 0 ? T.amber : T.green)}
-              footer={(
-                <Link href="/education" style={footerLinkStyle}>
-                  Open Education <ArrowUpRight size={14} />
+              right={(
+                <Link href="/education" aria-label="Open Education">
+                  <ArrowChip dark={dark} />
                 </Link>
               )}
             >
@@ -361,10 +350,9 @@ export default function DashboardPage() {
             <DashboardCard
               title="Resource Management"
               subtitle="Camp overview & distribution"
-              right={chip('buffered', res.mqtt?.buffered_messages ?? 0, res.mqtt?.buffered_messages > 0 ? T.amber : T.green)}
-              footer={(
-                <Link href="/resources" style={footerLinkStyle}>
-                  Open Resources <ArrowUpRight size={14} />
+              right={(
+                <Link href="/resources" aria-label="Open Resources">
+                  <ArrowChip dark={dark} />
                 </Link>
               )}
             >
@@ -391,10 +379,9 @@ export default function DashboardPage() {
             <DashboardCard
               title="Disaster"
               subtitle="Camp tracking & relief overview"
-              right={chip('critical', disTotals.critical, disTotals.critical > 0 ? T.red : T.green)}
-              footer={(
-                <Link href="/disaster" style={footerLinkStyle}>
-                  Open Disaster <ArrowUpRight size={14} />
+              right={(
+                <Link href="/disaster" aria-label="Open Disaster">
+                  <ArrowChip dark={dark} />
                 </Link>
               )}
             >
