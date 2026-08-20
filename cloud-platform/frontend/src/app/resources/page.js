@@ -1,58 +1,82 @@
-'use client'
+"use client";
 
-import PageHeader from '@/components/common/PageHeader'
-import SideNav from '@/components/common/SideNav'
-import OverviewPanel from '@/components/resources/OverviewPanel'
+import { useState } from "react";
+import { Radio, RefreshCw } from "lucide-react";
+import SideNav from "@/components/common/SideNav";
+import PageHeader, { HeaderShell } from "@/components/common/PageHeader";
+import PageTitle from "@/components/common/PageTitle";
+import Button from "@/components/common/Button";
+import OverviewPanel from "@/components/resources/OverviewPanel";
+import { P } from "@/data/theme.data";
 
 // Cloud-side resources page.
 // Registration and wristband scanning run on the Pi at the camp (raspberry-platform/backend/server.js, port 5000).
 // This page shows the cloud dashboard: live camp stats + resource prediction.
 // Data arrives via EMQX → CampDataService → /api/resources/overview
 
-const LiveBadge = (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 6,
-    background: '#0A1A2E', border: '1px solid #1E3A5F',
-    borderRadius: 99, padding: '4px 12px', fontSize: 11 }}>
-    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E',
-      boxShadow: '0 0 6px #22C55E', animation: 'pulse 2s infinite' }} />
-    <span style={{ color: '#94A3B8', fontWeight: 700 }}>LIVE via EMQX</span>
-  </div>
-)
-
 export default function ResourcesPage() {
+  const [search, setSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const today = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
   return (
     <>
       <style>{`
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width:6px; }
-        ::-webkit-scrollbar-track { background: #071B30; }
-        ::-webkit-scrollbar-thumb { background: #2D4A70; border-radius:9999px; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: ${P.border}; border-radius:9999px; }
+        @keyframes resPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes resSpin { to { transform: rotate(360deg); } }
       `}</style>
 
-      <div style={{ minHeight: '100svh', background: '#0A2540', fontFamily: "'Inter',sans-serif", color: 'white', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
-
+      <div
+        style={{
+          minHeight: "100svh",
+          background: P.outer,
+          fontFamily: "'Inter',sans-serif",
+          color: P.ink,
+          paddingLeft: "var(--rail-width, 236px)",
+          transition: "padding-left 0.2s ease",
+        }}
+      >
         <SideNav />
 
-        <PageHeader logoText="R" title="Smart Camp" subtitle="Resources · Cloud Dashboard" right={LiveBadge} />
+        <div className="header-wrapper">
+          <main style={{ background: P.panel, width: "100%", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            {/* ── Shared header ──────────────────────────────── */}
+            <HeaderShell>
+              <PageHeader
+                title={"Resource Overview"}
+                subtitle={refreshing ? "Refreshing live overview…" : "View resource usage and availability of relief camps "}
+                search={{
+                  value: search,
+                  onChange: setSearch,
+                  placeholder: "Search registrations & events…",
+                  onRefresh: () => setRefreshKey((k) => k + 1),
+                  refreshing,
+                }}
+              />
+            </HeaderShell>
 
-        {/* ── Section label ──────────────────────────────── */}
-        <div style={{ padding: '1rem 1.5rem 0', display: 'flex', alignItems: 'center',
-          gap: 10, borderBottom: '1px solid #1E3A5F' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#0D9488',
-            letterSpacing: 1, textTransform: 'uppercase' }}>
-            📊 Camp Overview & Resource Prediction
-          </span>
-          <span style={{ fontSize: 11, color: '#64748B' }}>
-            · Data received from field device via EMQX broker
-          </span>
+            <div style={{ padding: "0rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+              {/* ── Content panel ──────────────────────────────── */}
+              <div
+                style={{
+                  background: P.panel,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.1rem",
+                }}
+              >
+                <OverviewPanel search={search} refreshKey={refreshKey} onLoading={setRefreshing} />
+              </div>
+            </div>
+          </main>
         </div>
-
-        {/* ── Cloud overview panel ───────────────────────── */}
-        <main style={{ width: '100%' }}>
-          <OverviewPanel />
-        </main>
       </div>
     </>
-  )
+  );
 }

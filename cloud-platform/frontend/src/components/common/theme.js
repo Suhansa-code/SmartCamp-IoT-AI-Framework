@@ -48,14 +48,72 @@ export const C = {
   slate:       '#64748B',
 }
 
-export const stateColor = (s) =>
-  ({ GOOD: C.good, WEAK: C.weak, POOR: C.poor, OFFLINE: C.offline }[s] || C.good)
+// ── Semantic theme tokens (dark + light) ─────────────────────────────────────
+// `T` from useTheme() resolves to one of these. Every key in C is included plus
+// semantic aliases (bg / bgDeep / bgSoft / card / bar / text) so pages can switch
+// light/dark by swapping `C.` → `T.` and updating hard-coded hex literals.
+export const DARK = {
+  mode: 'dark',
+  bg:        '#0A2540',
+  bgDeep:    '#071B30',
+  bgSoft:    '#0A1F37',
+  card:      '#0E2B48',
+  cardSolid: '#0D1F35',
+  bar:       '#16365A',
+  border:    C.border,
+  line:      C.line,
+  text:      '#E2E8F0',
+  textPrimary: '#FFFFFF',
+  textSoft:  '#F0F9FF',
+  muted:     C.muted,
+  dim:       C.dim,
+  slate:     C.slate,
+  teal:      C.teal,   tealMid: C.tealMid, tealLight: C.tealLight, tealDim: C.tealDim,
+  coral:     C.coral,  coralLight: C.coralLight,
+  amber:     C.amber,  warn: C.warn,  yellow: C.yellow,
+  green:     C.green,  good: C.good,
+  red:       C.red,    danger: C.danger, offline: C.offline,
+  purple:    C.purple, blue: C.blue,
+  weak:      C.weak,   poor: C.poor,  routine: C.routine,
+  navy:      C.navy,   navyDeep: C.navyDeep, navyCard: C.navyCard, navyLight: C.navyLight,
+  panel:     C.panel,  sky: C.sky,   surface: C.surface,
+}
 
-export const priorityColor = (p) =>
-  ({ CRITICAL: C.offline, IMPORTANT: C.weak, ROUTINE: '#4a90d9' }[p] || C.muted)
+export const LIGHT = {
+  mode: 'light',
+  bg:        '#EAF4FB',
+  bgDeep:    '#FFFFFF',
+  bgSoft:    '#FFFFFF',
+  card:      '#FFFFFF',
+  cardSolid: '#FFFFFF',
+  bar:       '#E2E8F0',
+  border:    '#CBD5E1',
+  line:      '#E2E8F0',
+  text:      '#1E3A5F',
+  textPrimary: '#0F2540',
+  textSoft:  '#0F2540',
+  muted:     '#5B7184',
+  dim:       '#64748B',
+  slate:     '#64748B',
+  teal:      '#0F766E', tealMid: '#0D9488', tealLight: '#CCFBF1', tealDim: '#134E4A',
+  coral:     '#EA580C', coralLight: '#FED7AA',
+  amber:     '#B45309', warn: '#B45309', yellow: '#A16207',
+  green:     '#16A34A', good: '#16A34A',
+  red:       '#DC2626', danger: '#DC2626', offline: '#DC2626',
+  purple:    '#7C3AED', blue: '#2563EB',
+  weak:      '#B45309', poor: '#EA580C', routine: '#2563EB',
+  navy:      '#EAF4FB', navyDeep: '#FFFFFF', navyCard: '#FFFFFF', navyLight: '#F8FAFC',
+  panel:     '#FFFFFF', sky: '#EAF4FB', surface: '#FFFFFF',
+}
 
-export const valColor = (v, warn, crit, invert = false) => {
+export const stateColor = (T, s) =>
+  ({ GOOD: T.good, WEAK: T.weak, POOR: T.poor, OFFLINE: T.offline }[s] || T.good)
+
+export const priorityColor = (T, p) =>
+  ({ CRITICAL: T.offline, IMPORTANT: T.weak, ROUTINE: T.routine }[p] || T.muted)
+
+export const valColor = (T, v, warn, crit, invert = false) => {
   const bad = invert ? v < warn : v > crit
   const warn2 = invert ? v > warn * 1.5 : v > warn * 1.5
-  return bad ? C.offline : warn2 ? C.weak : C.good
+  return bad ? T.offline : warn2 ? T.weak : T.good
 }

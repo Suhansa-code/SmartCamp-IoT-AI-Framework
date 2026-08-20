@@ -1,14 +1,11 @@
 /**
  * AlertSyncService — listens to MQTT topics from the raspberry platform and
- * syncs alerts, children and sessions into the cloud database.
+ * syncs alerts, children and sessions into the repository (memory or DB).
  */
-import { upsertAlert, syncChildren, syncSessions } from '../../models/education/alert.model.js';
+import { upsertAlert, syncChildren, syncSessions } from '../../repositories/education/alert.repository.js';
+import { ALERT_SYNC_TOPICS } from '../../data/education/alertSync.data.js';
 
-export const ALERT_SYNC_TOPICS = [
-  'smartcamp/alerts/generated',
-  'smartcamp/data/children/sync',
-  'smartcamp/data/sessions/sync',
-];
+export { ALERT_SYNC_TOPICS };
 
 class AlertSyncService {
   constructor(mqttService) {
@@ -33,27 +30,25 @@ class AlertSyncService {
     });
 
     client.on('message', (topic, message) => {
-      try {
-        this.handleMessage(topic, message);
-      } catch (err) {
+      this.handleMessage(topic, message).catch((err) => {
         console.error(`[AlertSync] Error handling ${topic}:`, err.message);
-      }
+      });
     });
   }
 
-  handleMessage(topic, message) {
+  async handleMessage(topic, message) {
     try {
       const payload = JSON.parse(message.toString());
 
       switch (topic) {
         case 'smartcamp/alerts/generated':
-          this.handleAlertGenerated(payload);
+          await this.handleAlertGenerated(payload);
           break;
         case 'smartcamp/data/children/sync':
-          this.handleChildrenSync(payload);
+          await this.handleChildrenSync(payload);
           break;
         case 'smartcamp/data/sessions/sync':
-          this.handleSessionsSync(payload);
+          await this.handleSessionsSync(payload);
           break;
         default:
           console.warn(`[AlertSync] Unknown topic: ${topic}`);
@@ -63,7 +58,7 @@ class AlertSyncService {
     }
   }
 
-  handleAlertGenerated(payload) {
+  async handleAlertGenerated(payload) {
     const { alert_id, child_id, res_id, camp_id, alert_type, trigger_detail, triggered_at } = payload;
 
     if (!alert_id || !child_id || !camp_id) {
@@ -71,27 +66,27 @@ class AlertSyncService {
       return;
     }
 
-    upsertAlert({ alert_id, child_id, res_id, camp_id, alert_type, trigger_detail, triggered_at });
+    await upsertAlert({ alert_id, child_id, res_id, camp_id, alert_type, trigger_detail, triggered_at });
     console.log(`[AlertSync] Synced alert ${alert_id} for child ${child_id}`);
   }
 
-  handleChildrenSync(payload) {
+  async handleChildrenSync(payload) {
     const { children = [] } = payload;
     if (!Array.isArray(children) || children.length === 0) {
       console.warn('[AlertSync] Invalid children sync payload');
       return;
     }
-    syncChildren(children);
+    await syncChildren(children);
     console.log(`[AlertSync] Synced ${children.length} children`);
   }
 
-  handleSessionsSync(payload) {
+  async handleSessionsSync(payload) {
     const { sessions = [] } = payload;
     if (!Array.isArray(sessions) || sessions.length === 0) {
       console.warn('[AlertSync] Invalid sessions sync payload');
       return;
     }
-    syncSessions(sessions);
+    await syncSessions(sessions);
     console.log(`[AlertSync] Synced ${sessions.length} sessions`);
   }
 
