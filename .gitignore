@@ -20,6 +20,7 @@ env/
 .env.bak/
 *.venv
 *siren_env/
+AGENTS.md
 
 # ==========================================
 # Python
