@@ -6,24 +6,41 @@ import {
   getDisasterCampSummaries,
   getDisasterDashboardSummary,
   getDisasterMapNodes,
-} from '../../data/disaster/camps.data.js';
+} from '../../repositories/disaster/camp.repository.js';
 import { predictFloodForCamp } from '../../services/disaster/floodPrediction.service.js';
 import { getWaterLevelHistoryForCamp } from '../../services/disaster/waterLevelHistory.service.js';
 
-export function getOverview(_req, res) {
-  res.json(getDisasterDashboardSummary());
+export async function getOverview(_req, res, next) {
+  try {
+    res.json(await getDisasterDashboardSummary());
+  } catch (err) {
+    next(err);
+  }
 }
 
-export function getCamps(_req, res) {
-  res.json({ camps: getDisasterCampSummaries() });
+export async function getCamps(_req, res, next) {
+  try {
+    res.json({ camps: await getDisasterCampSummaries() });
+  } catch (err) {
+    next(err);
+  }
 }
 
-export function getMapNodes(_req, res) {
-  res.json({ nodes: getDisasterMapNodes() });
+export async function getMapNodes(_req, res, next) {
+  try {
+    res.json({ nodes: await getDisasterMapNodes() });
+  } catch (err) {
+    next(err);
+  }
 }
 
-export function getCampById(req, res) {
-  const camp = getDisasterCampById(req.params.campId);
+export async function getCampById(req, res, next) {
+  let camp;
+  try {
+    camp = await getDisasterCampById(req.params.campId);
+  } catch (err) {
+    return next(err);
+  }
 
   if (!camp) {
     return res.status(404).json({
@@ -44,8 +61,13 @@ export function getCampById(req, res) {
   }
 }
 
-export function predictCamp(req, res) {
-  const camp = getDisasterCampById(req.params.campId);
+export async function predictCamp(req, res, next) {
+  let camp;
+  try {
+    camp = await getDisasterCampById(req.params.campId);
+  } catch (err) {
+    return next(err);
+  }
 
   if (!camp) {
     return res.status(404).json({ error: 'Camp not found', campId: req.params.campId });
@@ -60,8 +82,13 @@ export function predictCamp(req, res) {
   }
 }
 
-export async function getCampWaterLevelHistory(req, res) {
-  const camp = getDisasterCampById(req.params.campId);
+export async function getCampWaterLevelHistory(req, res, next) {
+  let camp;
+  try {
+    camp = await getDisasterCampById(req.params.campId);
+  } catch (err) {
+    return next(err);
+  }
 
   if (!camp) {
     return res.status(404).json({ error: 'Camp not found', campId: req.params.campId });

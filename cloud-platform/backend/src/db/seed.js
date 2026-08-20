@@ -1,10 +1,13 @@
 /**
- * Database seed — run `npm run db:seed` to load the education seed data
- * (children, sessions, alerts) into PostgreSQL. Uses the postgres repository
- * so it shares the exact same write path as the API.
+ * Database seed — run `npm run db:seed` to load seed data into PostgreSQL:
+ *   - education domain (children, sessions, alerts)
+ *   - disaster domain (camps + gauging-station details)
+ * Uses the postgres repositories so it shares the exact same write path as the API.
  */
 import { syncChildren, syncSessions, upsertAlert } from '../repositories/education/alert.postgres.repository.js';
 import { EDUCATION_SEED } from '../data/education/education.data.js';
+import { CAMPS, CAMP_DETAIL } from '../data/disaster/camps.data.js';
+import { syncCamps } from '../repositories/disaster/camp.postgres.repository.js';
 import { testConnection, closeDatabase } from '../config/database.js';
 
 async function main() {
@@ -28,7 +31,10 @@ async function main() {
     }
     console.log(`[db:seed] Synced ${alerts.length} alerts`);
 
-    await closeDatabase();
+    const camps = CAMPS.map((camp) => ({ ...camp, detail: CAMP_DETAIL[camp.id] }));
+    const campsCount = await syncCamps(camps);
+    console.log(`[db:seed] Synced ${campsCount} disaster camps`);
+
     console.log('[db:seed] Done');
     process.exit(0);
   } catch (err) {
