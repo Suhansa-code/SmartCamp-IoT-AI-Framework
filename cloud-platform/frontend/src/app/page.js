@@ -14,7 +14,7 @@ import StatusDonut from '@/components/dashboard/StatusDonut'
 import ArrowChip from '@/components/alert/ArrowChip'
 import { P } from '@/data/theme.data'
 import { MOCK_CAMPS, MOCK_EDUCATION, MOCK_RESOURCES, MOCK_DISASTER, DISASTER_MATCH, CAMP_STATUS, DIS_STATUS } from '@/data/dashboard.data'
-import { Droplets, Users, BookOpen, Bell, Radio, Tent } from 'lucide-react'
+import { Droplets, Users, BookOpen, Bell, Radio, Tent, CalendarCheck, HeartHandshake } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -358,7 +358,7 @@ export default function DashboardPage() {
             >
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <MiniStat label="Registered" value={res.population?.total.toLocaleString()} icon={<Users size={12} />} sub={`${res.population?.families} families`} />
-                <MiniStat label="Attendance" value={`${attendance}%`} icon="📊" />
+                <MiniStat label="Attendance" value={`${attendance}%`} icon={<CalendarCheck size={12} />} />
                 <MiniStat label="Fed Today" value={`${fedPct}%`} icon="🍽️" />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
             >
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <MiniStat label="Displaced" value={disTotals.displaced.toLocaleString()} icon={<Users size={12} />} />
-                <MiniStat label="Aid Workers" value={disTotals.workers.toLocaleString()} icon="👷" />
+                <MiniStat label="Aid Workers" value={disTotals.workers.toLocaleString()} icon={<HeartHandshake size={12} />} />
                 <MiniStat label="Active Camps" value={disTotals.camps} icon={<Droplets size={12} />} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
