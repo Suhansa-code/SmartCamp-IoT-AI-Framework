@@ -2,7 +2,7 @@
  * AlertSyncService — listens to MQTT topics from the raspberry platform and
  * syncs alerts, children and sessions into the repository (memory or DB).
  */
-import { upsertAlert, syncChildren, syncSessions } from '../../repositories/education/alert.repository.js';
+import { upsertAlert, syncChildren, syncSessions } from '../../data/education/alert.repository.js';
 import { ALERT_SYNC_TOPICS } from '../../data/education/alertSync.data.js';
 
 export { ALERT_SYNC_TOPICS };

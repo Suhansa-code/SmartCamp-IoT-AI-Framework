@@ -7,8 +7,9 @@ import {
   ChevronsLeft, ChevronsRight, Menu, X, Sun, Moon, TriangleAlert,
 } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
-import { P } from '@/data/theme.data'
 import { RAIL_EXPANDED, RAIL_COLLAPSED, STORAGE_KEY, MOBILE_BREAKPOINT, DEFAULT_RAIL_WIDTH, NAV_ITEMS } from '@/data/navigation.data'
+
+const LIME = '#D8F24E'
 
 const SideNavContext = createContext({ collapsed: false, toggle: () => {}, isMobile: false, mobileOpen: false, openMobile: () => {} })
 
@@ -63,8 +64,11 @@ export function useSideNav() {
 
 export default function SideNav() {
   const { collapsed, toggle, isMobile, mobileOpen, openMobile, closeMobile } = useSideNav()
-  const { mode, toggle: toggleTheme } = useTheme()
+  const { mode, T, toggle: toggleTheme } = useTheme()
   const pathname = usePathname()
+
+  const dark = mode === 'dark'
+  const activeBg = dark ? T.card : T.textPrimary
 
   const isActive = (path) => {
     if (path === '/disaster') return pathname?.startsWith('/disaster')
@@ -81,8 +85,8 @@ export default function SideNav() {
       <style>{`
         @keyframes navPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
         .smartcamp-navlink { transition: background 0.15s ease, color 0.15s ease; }
-        .smartcamp-navlink:hover { background: ${P.cardSoft}; }
-        .smartcamp-navlink:hover span { color: ${P.ink}; }
+        .smartcamp-navlink:hover { background: ${T.bar}; }
+        .smartcamp-navlink:hover span { color: ${T.textPrimary}; }
       `}</style>
 
       {/* Mobile hamburger — only on small screens when the drawer is closed */}
@@ -93,8 +97,8 @@ export default function SideNav() {
           style={{
             position: 'fixed', top: 12, left: 12, zIndex: 600,
             width: 42, height: 42, borderRadius: '0.8rem',
-            background: P.card, border: `1px solid ${P.border}`,
-            color: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: T.card, border: `1px solid ${T.border}`,
+            color: T.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 8px 20px rgba(15,23,42,0.14)',
             cursor: 'pointer',
           }}
@@ -118,8 +122,8 @@ export default function SideNav() {
       <aside style={{
         position: 'fixed', top: 0, left: 0, bottom: 0,
         width: railWidth,
-        background: P.card,
-        borderRight: `1px solid ${P.border}`,
+        background: T.bgDeep,
+        borderRight: `1px solid ${T.border}`,
         zIndex: 400,
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
@@ -133,27 +137,27 @@ export default function SideNav() {
           display: 'flex', alignItems: 'center',
           justifyContent: isMobile ? 'space-between' : (centered ? 'center' : 'flex-start'),
           gap: 10, padding: isMobile ? '0 14px' : (centered ? 0 : '0 16px'),
-          borderBottom: `1px solid ${P.border}`,
+          borderBottom: `1px solid ${T.border}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <div style={{
               width: 36, height: 36, borderRadius: '0.7rem', flexShrink: 0,
-              background: P.dark, color: '#fff',
+              background: dark ? T.tealMid : T.textPrimary, color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <TriangleAlert size={18} />
             </div>
             {(!collapsed || isMobile) && (
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '1.02rem', fontWeight: 800, color: P.ink, lineHeight: 1.1, whiteSpace: 'nowrap' }}>smartcamp.</div>
-                <div style={{ fontSize: '0.6rem', color: P.muted, letterSpacing: '0.14em', fontWeight: 700, whiteSpace: 'nowrap' }}>SMART CAMP CLOUD</div>
+                <div style={{ fontSize: '1.02rem', fontWeight: 800, color: T.textPrimary, lineHeight: 1.1, whiteSpace: 'nowrap' }}>smartcamp.</div>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', fontWeight: 700, whiteSpace: 'nowrap' }}>SMART CAMP CLOUD</div>
               </div>
             )}
           </div>
           {isMobile && (
             <button onClick={closeMobile} aria-label="Close navigation" style={{
-              background: P.cardSoft, border: `1px solid ${P.border}`, borderRadius: '0.7rem',
-              color: P.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: T.bar, border: `1px solid ${T.border}`, borderRadius: '0.7rem',
+              color: T.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 34, height: 34, padding: 0,
             }}>
               <X size={18} />
@@ -168,7 +172,7 @@ export default function SideNav() {
         }}>
           {(!collapsed || isMobile) && (
             <p style={{
-              fontSize: '0.62rem', fontWeight: 800, color: P.muted,
+              fontSize: '0.62rem', fontWeight: 800, color: T.muted,
               letterSpacing: '0.12em', textTransform: 'uppercase',
               padding: '6px 10px 6px', whiteSpace: 'nowrap',
             }}>
@@ -192,8 +196,8 @@ export default function SideNav() {
                   justifyContent: showLabel ? 'flex-start' : 'center',
                   padding: showLabel ? '10px 14px' : '10px 0',
                   borderRadius: '9999px',
-                  background: active ? P.dark : 'transparent',
-                  color: active ? '#fff' : P.muted,
+                  background: active ? activeBg : 'transparent',
+                  color: active ? '#fff' : T.muted,
                   fontWeight: active ? 700 : 600,
                   fontSize: '0.84rem',
                   textDecoration: 'none',
@@ -204,11 +208,11 @@ export default function SideNav() {
                 <Icon
                   size={18}
                   strokeWidth={active ? 2.2 : 1.8}
-                  color={active ? P.lime : P.muted}
+                  color={active ? LIME : T.muted}
                   style={{ flexShrink: 0 }}
                 />
                 {showLabel && (
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: active ? '#fff' : P.muted, transition: 'color 0.15s ease' }}>{label}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: active ? '#fff' : T.muted, transition: 'color 0.15s ease' }}>{label}</span>
                 )}
               </Link>
             )
@@ -216,7 +220,7 @@ export default function SideNav() {
         </nav>
 
         {/* Footer: theme toggle · collapse (before profile) · profile */}
-        <div style={{ borderTop: `1px solid ${P.border}`, padding: 10, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ borderTop: `1px solid ${T.border}`, padding: 10, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
@@ -229,7 +233,7 @@ export default function SideNav() {
               gap: 12,
               padding: centered ? '9px 0' : '9px 14px',
               background: 'transparent', border: 'none', borderRadius: '9999px',
-              color: P.muted, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600,
+              color: T.muted, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600,
               whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s',
             }}
           >
@@ -249,7 +253,7 @@ export default function SideNav() {
                 gap: 12,
                 padding: collapsed ? '9px 0' : '9px 14px',
                 background: 'transparent', border: 'none', borderRadius: '9999px',
-                color: P.muted, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600,
+                color: T.muted, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600,
                 whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s',
               }}
             >
@@ -265,7 +269,7 @@ export default function SideNav() {
             justifyContent: centered ? 'center' : 'flex-start',
             gap: 10, padding: centered ? '8px 0' : '8px 12px',
             borderRadius: '9999px',
-            background: P.cardSoft, border: `1px solid ${P.border}`,
+            background: T.bar, border: `1px solid ${T.border}`,
             marginTop: 4,
           }}>
             <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -279,16 +283,16 @@ export default function SideNav() {
               </div>
               <span style={{
                 position: 'absolute', bottom: 0, right: 0, width: 11, height: 11,
-                borderRadius: '50%', background: P.lime,
-                border: `2px solid ${P.cardSoft}`,
-                boxShadow: `0 0 6px ${P.lime}`,
+                borderRadius: '50%', background: LIME,
+                border: `2px solid ${T.bar}`,
+                boxShadow: `0 0 6px ${LIME}`,
                 animation: 'navPulse 2.4s ease-in-out infinite',
               }} />
             </div>
             {(!collapsed || isMobile) && (
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Dr. Perera</div>
-                <div style={{ fontSize: '0.6rem', color: P.muted, letterSpacing: '0.08em', fontWeight: 700, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Administrator</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: T.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Dr. Perera</div>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.08em', fontWeight: 700, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Administrator</div>
               </div>
             )}
           </div>

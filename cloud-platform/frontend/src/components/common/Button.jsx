@@ -1,7 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { P } from '@/data/theme.data'
+import { useTheme } from './ThemeProvider'
+
+const INK = '#0F172A'
+const LIME = '#D8F24E'
 
 // Shared action-button component (alert-page "nitec" design language).
 //
@@ -24,6 +27,9 @@ export default function Button({
   style,
   ...rest
 }) {
+  const { T, mode } = useTheme()
+  const dark = mode === 'dark'
+
   const inner = (
     <>
       {children}
@@ -33,7 +39,7 @@ export default function Button({
             width: 26,
             height: 26,
             borderRadius: '50%',
-            background: P.dark,
+            background: INK,
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
@@ -55,9 +61,9 @@ export default function Button({
         height: size,
         borderRadius: '50%',
         position: 'relative',
-        background: variant === 'circle' ? P.dark : P.card,
-        border: variant === 'circle' ? 'none' : `1px solid ${P.border}`,
-        color: variant === 'circle' ? '#fff' : P.ink,
+        background: variant === 'circle' ? (dark ? T.bar : INK) : (dark ? T.card : '#FFFFFF'),
+        border: variant === 'circle' ? 'none' : `1px solid ${T.border}`,
+        color: T.textPrimary,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -73,10 +79,10 @@ export default function Button({
         justifyContent: 'center',
         gap: '0.6rem',
         width: 'fit-content',
-        background: variant === 'outline' ? 'transparent' : P.lime,
-        color: variant === 'outline' ? P.ink : P.dark,
+        background: variant === 'outline' ? 'transparent' : LIME,
+        color: variant === 'outline' ? T.textPrimary : INK,
         borderRadius: '9999px',
-        border: variant === 'outline' ? `2px solid ${P.dark}` : 'none',
+        border: variant === 'outline' ? `2px solid ${dark ? T.border : INK}` : 'none',
         fontWeight: 700,
         fontSize: '0.8rem',
         cursor: disabled ? 'not-allowed' : 'pointer',

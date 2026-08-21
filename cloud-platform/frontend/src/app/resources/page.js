@@ -7,7 +7,7 @@ import PageHeader, { HeaderShell } from "@/components/common/PageHeader";
 import PageTitle from "@/components/common/PageTitle";
 import Button from "@/components/common/Button";
 import OverviewPanel from "@/components/resources/OverviewPanel";
-import { P } from "@/data/theme.data";
+import { useTheme } from "@/components/common/ThemeProvider";
 
 // Cloud-side resources page.
 // Registration and wristband scanning run on the Pi at the camp (raspberry-platform/backend/server.js, port 5000).
@@ -15,6 +15,7 @@ import { P } from "@/data/theme.data";
 // Data arrives via EMQX → CampDataService → /api/resources/overview
 
 export default function ResourcesPage() {
+  const { T } = useTheme();
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -27,7 +28,7 @@ export default function ResourcesPage() {
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width:6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: ${P.border}; border-radius:9999px; }
+        ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius:9999px; }
         @keyframes resPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes resSpin { to { transform: rotate(360deg); } }
       `}</style>
@@ -35,9 +36,9 @@ export default function ResourcesPage() {
       <div
         style={{
           minHeight: "100svh",
-          background: P.outer,
+          background: T.outer,
           fontFamily: "'Inter',sans-serif",
-          color: P.ink,
+          color: T.ink,
           paddingLeft: "var(--rail-width, 236px)",
           transition: "padding-left 0.2s ease",
         }}
@@ -45,7 +46,7 @@ export default function ResourcesPage() {
         <SideNav />
 
         <div className="header-wrapper">
-          <main style={{ background: P.panel, width: "100%", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <main style={{ background: T.panel, width: "100%", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             {/* ── Shared header ──────────────────────────────── */}
             <HeaderShell>
               <PageHeader
@@ -65,7 +66,7 @@ export default function ResourcesPage() {
               {/* ── Content panel ──────────────────────────────── */}
               <div
                 style={{
-                  background: P.panel,
+                  background: T.panel,
                   display: "flex",
                   flexDirection: "column",
                   gap: "1.1rem",

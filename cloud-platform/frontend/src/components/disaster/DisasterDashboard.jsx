@@ -18,12 +18,11 @@ import StatusDonut from '@/components/dashboard/StatusDonut'
 import ArrowChip from '@/components/alert/ArrowChip'
 import FilterPills from '@/components/alert/FilterPills'
 import { useTheme } from '@/components/common/ThemeProvider'
-import { P } from '@/data/theme.data'
 
 // Map themes — the relief image follows the app's light/dark mode.
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
 
-function Chip({ children, color = P.muted, style }) {
+function Chip({ children, color = '#64748B', style }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -37,7 +36,7 @@ function Chip({ children, color = P.muted, style }) {
 
 export default function DisasterDashboard() {
   const router = useRouter()
-  const { mode } = useTheme()
+  const { mode, T } = useTheme()
   const [selected, setSelected] = useState(null)
   const [overview, setOverview] = useState(null)
   const [selectedDetail, setSelectedDetail] = useState(null)
@@ -163,14 +162,14 @@ export default function DisasterDashboard() {
   }
 
   const donutSegs = [
-    { color: P.red, value: statusCounts.critical || 0 },
+    { color: T.red, value: statusCounts.critical || 0 },
     { color: '#F97316', value: statusCounts.high || 0 },
-    { color: P.amber, value: statusCounts.medium || 0 },
-    { color: P.teal, value: statusCounts.stable || 0 },
-    { color: P.green, value: statusCounts.recovery || 0 },
+    { color: T.amber, value: statusCounts.medium || 0 },
+    { color: T.teal, value: statusCounts.stable || 0 },
+    { color: T.green, value: statusCounts.recovery || 0 },
   ]
 
-  const selColor = selectedCamp ? STATUS_COLOR[selectedCamp.status] : P.teal
+  const selColor = selectedCamp ? STATUS_COLOR[selectedCamp.status] : T.teal
   const selOccupancy = selectedCamp ? Math.round((selectedCamp.displaced / selectedCamp.capacity) * 100) : 0
 
   return (
@@ -179,7 +178,7 @@ export default function DisasterDashboard() {
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: ${P.border}; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
         @keyframes disPulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
         @keyframes disSpin { to { transform: rotate(360deg); } }
         @keyframes disGlow { 0%,100%{opacity:0.5; transform: translate(-50%,-50%) scale(1);} 50%{opacity:0.9; transform: translate(-50%,-50%) scale(1.12);} }
@@ -209,22 +208,22 @@ export default function DisasterDashboard() {
         .dis-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.9rem; }
 
         /* ── right side panel ── */
-        .right-panel { display: flex; flex-direction: column; overflow: hidden; background: ${P.card};
-          border: 1px solid ${P.border}; border-radius: 1.75rem; box-shadow: 0 30px 70px rgba(20,30,40,0.12); }
+        .right-panel { display: flex; flex-direction: column; overflow: hidden; background: ${T.card};
+          border: 1px solid ${T.border}; border-radius: 1.75rem; box-shadow: 0 30px 70px rgba(20,30,40,0.12); }
         .right-section { display: flex; flex-direction: column; min-height: 0; }
-        .right-head { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; border-bottom: 1px solid ${P.border}; flex-shrink: 0; }
-        .right-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: ${P.border} transparent; }
+        .right-head { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; border-bottom: 1px solid ${T.border}; flex-shrink: 0; }
+        .right-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: ${T.border} transparent; }
 
         .camp-row { width:100%; text-align:left; display:flex; align-items:center; gap:10px; padding: 0.62rem 0.9rem; cursor:pointer; font-family:inherit;
-          background: transparent; border: none; border-bottom: 1px solid ${P.border}; transition: background 0.15s ease; }
-        .camp-row:hover { background: ${P.cardSoft}; }
+          background: transparent; border: none; border-bottom: 1px solid ${T.border}; transition: background 0.15s ease; }
+        .camp-row:hover { background: ${T.cardSoft}; }
 
         /* ── all camps modal ── */
         .modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,0.55); backdrop-filter: blur(6px);
           display: flex; align-items: center; justify-content: center; padding: 1.25rem; animation: disPop 0.22s ease both; }
-        .modal-card { background: ${P.panel}; border: 1px solid ${P.border}; border-radius: 1.5rem; width: min(680px, 100%); max-height: 84vh;
+        .modal-card { background: ${T.panel}; border: 1px solid ${T.border}; border-radius: 1.5rem; width: min(680px, 100%); max-height: 84vh;
           display: flex; flex-direction: column; box-shadow: 0 50px 120px rgba(15,23,42,0.35); overflow: hidden; }
-        .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.4rem; border-bottom: 1px solid ${P.border}; }
+        .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.4rem; border-bottom: 1px solid ${T.border}; }
         .modal-body { padding: 1rem 1.4rem; overflow-y: auto; flex: 1; }
 
         @media (max-width: 1280px) {
@@ -243,12 +242,12 @@ export default function DisasterDashboard() {
         @media (max-width: 560px) { .dis-strip { grid-template-columns: repeat(2, 1fr); } }
       `}</style>
 
-      <div style={{ minHeight: '100svh', background: P.outer, fontFamily: "'Inter',sans-serif", color: P.ink, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+      <div style={{ minHeight: '100svh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
         <SideNav />
 
         <div className='header-wrapper'>
 
-          <main style={{ background: P.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <main style={{ background: T.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             <HeaderShell>
               <PageHeader
@@ -278,7 +277,7 @@ export default function DisasterDashboard() {
               {/* ── HERO: map (left) + side panel (right) ─────────────── */}
               <div className="dis-hero-grid">
                 {/* Map (left) */}
-                <div className="map-col" style={{ background: dark ? '#030c18' : '#ddeaf5', border: dark ? '1px solid rgba(80,140,190,0.22)' : `1px solid ${P.border}`,}}>
+                <div className="map-col" style={{ background: dark ? '#030c18' : '#ddeaf5', border: dark ? '1px solid rgba(80,140,190,0.22)' : `1px solid ${T.border}`,}}>
                   <div className="map-canvas-wrap">
                     <div className="hero-glow" style={{ background: dark ? 'radial-gradient(circle, rgba(34,211,238,0.16) 0%, rgba(34,211,238,0.05) 45%, transparent 70%)' : 'radial-gradient(circle, rgba(8,145,178,0.12) 0%, rgba(8,145,178,0.03) 45%, transparent 70%)' }} />
                     <DisasterGeoMap camps={mapNodes} selected={selected} onSelect={setSelected} theme={MAP_THEME} />
@@ -302,7 +301,7 @@ export default function DisasterDashboard() {
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? '#22d3ee' : '#0891b2', boxShadow: `0 0 8px ${dark ? '#22d3ee' : '#0891b2'}`, animation: 'disPulse 2s infinite' }} />
                       LIVE MAP
                     </Chip>
-                    <Chip color={error ? P.red : dark ? '#4ade80' : '#16a34a'} style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}` }}>
+                    <Chip color={error ? T.red : dark ? '#4ade80' : '#16a34a'} style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}` }}>
                       {error ? 'DEGRADED' : `${mapNodes.length} NODES`}
                     </Chip>
                   </div>
@@ -321,7 +320,7 @@ export default function DisasterDashboard() {
                   {/* Resource readiness dock */}
                   <div className="rings-dock" style={{
                     background: dark ? 'linear-gradient(165deg, rgba(16,32,50,0.94) 0%, rgba(5,13,23,0.9) 100%)' : 'rgba(255,255,255,0.9)',
-                    border: dark ? '1px solid rgba(120,180,225,0.16)' : `1px solid ${P.border}`,
+                    border: dark ? '1px solid rgba(120,180,225,0.16)' : `1px solid ${T.border}`,
                     backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
                     boxShadow: dark ? '0 28px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)' : '0 24px 60px rgba(20,30,40,0.16)',
                     borderRadius: '1.1rem',
@@ -344,14 +343,14 @@ export default function DisasterDashboard() {
                         <ArrowChip dark={false} />
                       </button>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.66rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active Camps</div>
-                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: P.ink, marginTop: 1 }}>Critical only</div>
+                        <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active Camps</div>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: T.ink, marginTop: 1 }}>Critical only</div>
                       </div>
-                      <Chip color={P.red} style={{ background: `${P.red}14`, border: `1px solid ${P.red}44` }}>{criticalCamps.length} CRITICAL</Chip>
+                      <Chip color={T.red} style={{ background: `${T.red}14`, border: `1px solid ${T.red}44` }}>{criticalCamps.length} CRITICAL</Chip>
                     </div>
                     <div className="right-scroll" style={{ flex: 1 }}>
                       {criticalCamps.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: P.muted, padding: '1.5rem 0.5rem', fontSize: '0.78rem', fontWeight: 600 }}>
+                        <div style={{ textAlign: 'center', color: T.muted, padding: '1.5rem 0.5rem', fontSize: '0.78rem', fontWeight: 600 }}>
                           No critical camps right now
                         </div>
                       ) : criticalCamps.map((camp) => {
@@ -363,17 +362,17 @@ export default function DisasterDashboard() {
                             onClick={() => { setSelected(camp.id === selected ? null : camp.id); setShowAllCamps(false) }}
                             className="camp-row"
                             style={{
-                              background: isSelected ? `${P.red}12` : 'transparent',
-                              borderLeft: isSelected ? `3px solid ${P.red}` : '3px solid transparent',
-                              borderBottom: `1px solid ${P.border}`,
+                              background: isSelected ? `${T.red}12` : 'transparent',
+                              borderLeft: isSelected ? `3px solid ${T.red}` : '3px solid transparent',
+                              borderBottom: `1px solid ${T.border}`,
                             }}
                           >
                             <span style={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_COLOR[camp.status], boxShadow: `0 0 8px ${STATUS_COLOR[camp.status]}`, flexShrink: 0 }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{camp.name}</div>
-                              <div style={{ fontSize: '0.62rem', color: P.muted, fontWeight: 600, marginTop: 1 }}>{camp.code} · {camp.type} · {occ}%</div>
+                              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: T.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{camp.name}</div>
+                              <div style={{ fontSize: '0.62rem', color: T.muted, fontWeight: 600, marginTop: 1 }}>{camp.code} · {camp.type} · {occ}%</div>
                             </div>
-                            <span style={{ fontSize: '0.66rem', fontWeight: 800, color: P.red, letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>CRITICAL</span>
+                            <span style={{ fontSize: '0.66rem', fontWeight: 800, color: T.red, letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>CRITICAL</span>
                           </button>
                         )
                       })}
@@ -381,14 +380,14 @@ export default function DisasterDashboard() {
                   </div>
 
                   {/* Selected camp */}
-                  <div className="right-section" style={{ flex: '1 1 54%', borderTop: `1px solid ${P.border}` }}>
+                  <div className="right-section" style={{ flex: '1 1 54%', borderTop: `1px solid ${T.border}` }}>
                     <div className="right-head">
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: P.cardSoft, border: `1px solid ${P.border}`, color: P.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: T.cardSoft, border: `1px solid ${T.border}`, color: T.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <MapPin size={15} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.64rem', fontWeight: 600, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Selected Camp</div>
-                        <div style={{ fontSize: '0.84rem', fontWeight: 600, color: P.ink, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedCamp ? selectedCamp.name : 'Pick a camp'}</div>
+                        <div style={{ fontSize: '0.64rem', fontWeight: 600, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Selected Camp</div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: 600, color: T.ink, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedCamp ? selectedCamp.name : 'Pick a camp'}</div>
                       </div>
                       {selectedCamp && (
                         <span style={{
@@ -402,31 +401,31 @@ export default function DisasterDashboard() {
                     </div>
                     <div className="right-scroll" style={{ flex: 1 }}>
                       {!selectedCamp ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: P.muted, textAlign: 'center', padding: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.muted, textAlign: 'center', padding: '1rem' }}>
                           <MapPin size={36} style={{ opacity: 0.3 }} />
-                          <p style={{ fontWeight: 600, fontSize: '0.84rem', marginTop: 10, color: P.inkSoft }}>No camp selected</p>
+                          <p style={{ fontWeight: 600, fontSize: '0.84rem', marginTop: 10, color: T.inkSoft }}>No camp selected</p>
                           <p style={{ fontSize: '0.7rem', opacity: 0.75, marginTop: 2, fontWeight: 500 }}>Click a node on the map or a camp in the list above</p>
                         </div>
                       ) : selectedDetailLoading ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: P.muted, textAlign: 'center' }}>
-                          <div style={{ width: 32, height: 32, border: `3px solid ${P.border}`, borderTop: `3px solid ${P.dark}`, borderRadius: '50%', animation: 'disSpin 1s linear infinite' }} />
-                          <p style={{ fontWeight: 600, fontSize: '0.8rem', marginTop: 12, color: P.inkSoft }}>Loading camp details…</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.muted, textAlign: 'center' }}>
+                          <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTop: `3px solid ${T.textPrimary}`, borderRadius: '50%', animation: 'disSpin 1s linear infinite' }} />
+                          <p style={{ fontWeight: 600, fontSize: '0.8rem', marginTop: 12, color: T.inkSoft }}>Loading camp details…</p>
                         </div>
                       ) : (
                         <div style={{ padding: '0.9rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                          <div style={{ fontSize: '0.64rem', color: P.muted, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                          <div style={{ fontSize: '0.64rem', color: T.muted, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                             {selectedCamp.code} · {selectedCamp.type} · {selectedCamp.lat.toFixed(2)}°N, {selectedCamp.lng.toFixed(2)}°E
                           </div>
 
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                             {[
                               { label: 'Displaced', value: selectedCamp.displaced.toLocaleString(), accent: '#F97316' },
-                              { label: 'Capacity', value: selectedCamp.capacity.toLocaleString(), accent: P.inkSoft },
-                              { label: 'Aid', value: `${selectedCamp.aid}%`, accent: P.green },
-                              { label: 'Occupancy', value: `${selOccupancy}%`, accent: P.amber },
+                              { label: 'Capacity', value: selectedCamp.capacity.toLocaleString(), accent: T.inkSoft },
+                              { label: 'Aid', value: `${selectedCamp.aid}%`, accent: T.green },
+                              { label: 'Occupancy', value: `${selOccupancy}%`, accent: T.amber },
                             ].map((s) => (
-                              <div key={s.label} style={{ padding: '0.6rem 0.75rem', borderRadius: 12, background: P.panelSoft, border: `1px solid ${P.border}`, borderLeft: `3px solid ${s.accent}` }}>
-                                <div style={{ fontSize: '0.56rem', fontWeight: 600, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
+                              <div key={s.label} style={{ padding: '0.6rem 0.75rem', borderRadius: 12, background: T.panelSoft, border: `1px solid ${T.border}`, borderLeft: `3px solid ${s.accent}` }}>
+                                <div style={{ fontSize: '0.56rem', fontWeight: 600, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
                                 <div style={{ fontSize: '1.05rem', fontWeight: 600, color: s.accent, marginTop: 3, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{s.value}</div>
                               </div>
                             ))}
@@ -434,11 +433,11 @@ export default function DisasterDashboard() {
 
                           <div style={{ display: 'grid', gap: 4 }}>
                             {[
-                              { label: 'Nearest river', value: selectedDetail?.river || '—', color: P.teal },
-                              { label: 'Station', value: selectedDetail?.station || '—', color: P.inkSoft },
+                              { label: 'Nearest river', value: selectedDetail?.river || '—', color: T.teal },
+                              { label: 'Station', value: selectedDetail?.station || '—', color: T.inkSoft },
                             ].map((row) => (
-                              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.35rem 0.25rem', borderBottom: `1px solid ${P.border}`, fontSize: '0.68rem' }}>
-                                <span style={{ color: P.muted, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 500 }}>{row.label}</span>
+                              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.35rem 0.25rem', borderBottom: `1px solid ${T.border}`, fontSize: '0.68rem' }}>
+                                <span style={{ color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 500 }}>{row.label}</span>
                                 <span style={{ color: row.color, fontWeight: 600 }}>{row.value}</span>
                               </div>
                             ))}
@@ -459,7 +458,7 @@ export default function DisasterDashboard() {
                 <DashboardCard
                   title="Disaster Distribution"
                   subtitle="Live camp status profile"
-                  right={<Chip color={P.teal}>{camps.length} CAMPS</Chip>}
+                  right={<Chip color={T.teal}>{camps.length} CAMPS</Chip>}
                   bodyStyle={{ alignItems: 'center' }}
                 >
                   <StatusDonut
@@ -470,8 +469,8 @@ export default function DisasterDashboard() {
                   />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }}>
                     {['critical', 'high', 'medium', 'stable', 'recovery'].map((s) => (
-                      <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0.4rem 0.6rem', borderRadius: 10, background: P.cardSoft, border: `1px solid ${P.border}` }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', fontWeight: 700, color: P.inkSoft, textTransform: 'capitalize' }}>
+                      <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0.4rem 0.6rem', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', fontWeight: 700, color: T.inkSoft, textTransform: 'capitalize' }}>
                           <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLOR[s] }} /> {s}
                         </span>
                         <span style={{ fontSize: '0.78rem', fontWeight: 800, color: STATUS_COLOR[s] }}>{statusCounts[s] || 0}</span>
@@ -480,13 +479,13 @@ export default function DisasterDashboard() {
                   </div>
                 </DashboardCard>
 
-                <div style={{ background: P.dark, color: '#fff', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', boxShadow: '0 30px 70px rgba(20,30,40,0.25)' }}>
+                <div style={{ background: dark ? '#0F172A' : '#0F172A', color: '#fff', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', boxShadow: dark ? '0 30px 70px rgba(0,0,0,0.5)' : '0 30px 70px rgba(20,30,40,0.25)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <div style={{ fontSize: '0.66rem', fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
                       Live Alerts
                     </div>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.62rem', fontWeight: 800, color: P.red }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: P.red, boxShadow: `0 0 8px ${P.red}`, animation: 'disPulse 1.5s infinite' }} />
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.62rem', fontWeight: 800, color: T.red }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.red, boxShadow: `0 0 8px ${T.red}`, animation: 'disPulse 1.5s infinite' }} />
                       LIVE
                     </span>
                   </div>
@@ -505,14 +504,14 @@ export default function DisasterDashboard() {
                 <DashboardCard
                   title="Displacement Trend"
                   subtitle="Persons displaced across the network · 12-month view"
-                  right={<Chip color={P.teal}>12-MONTH</Chip>}
+                  right={<Chip color={T.teal}>12-MONTH</Chip>}
                 >
-                  <TrendChart data={TREND_DATA} color={P.teal} theme={MAP_THEME} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: P.muted, fontWeight: 700, letterSpacing: '0.1em', marginTop: 2 }}>
+                  <TrendChart data={TREND_DATA} color={T.teal} theme={MAP_THEME} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: T.muted, fontWeight: 700, letterSpacing: '0.1em', marginTop: 2 }}>
                     {['JAN', 'MAR', 'MAY', 'JUL', 'SEP', 'NOV'].map((month) => <span key={month}>{month}</span>)}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: P.ink, marginTop: 4 }}>
-                    <span>Last reading <span style={{ color: P.teal }}>1,982</span></span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: T.ink, marginTop: 4 }}>
+                    <span>Last reading <span style={{ color: T.teal }}>1,982</span></span>
                     <span>↑ 12.1% YoY</span>
                   </div>
                 </DashboardCard>
@@ -520,25 +519,25 @@ export default function DisasterDashboard() {
                 <DashboardCard
                   title="Relief Statistics"
                   subtitle="Displacement vs. aided persons"
-                  right={<Chip color={P.green}>ON TRACK</Chip>}
+                  right={<Chip color={T.green}>ON TRACK</Chip>}
                 >
                   <div style={{ display: 'grid', gap: '0.85rem' }}>
                     {[
                       { label: 'Displaced', value: '12,480', arrow: '↑ 8.4%', accent: '#F97316', data: DISPLACED_SPARK, sparkColor: '#F97316' },
-                      { label: 'Aided', value: '9,340', arrow: '↑ 12.1%', accent: P.green, data: AIDED_SPARK, sparkColor: P.teal },
+                      { label: 'Aided', value: '9,340', arrow: '↑ 12.1%', accent: T.green, data: AIDED_SPARK, sparkColor: T.teal },
                     ].map((stat) => (
-                      <div key={stat.label} style={{ padding: '0.7rem 0.85rem', borderRadius: '0.9rem', background: P.cardSoft, border: `1px solid ${P.border}` }}>
+                      <div key={stat.label} style={{ padding: '0.7rem 0.85rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                           <div>
-                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: P.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{stat.label}</div>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{stat.label}</div>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-                              <span style={{ fontSize: '1.3rem', fontWeight: 800, color: P.ink }}>{stat.value}</span>
+                              <span style={{ fontSize: '1.3rem', fontWeight: 800, color: T.ink }}>{stat.value}</span>
                               <span style={{ fontSize: '0.66rem', fontWeight: 700, color: stat.accent }}>{stat.arrow}</span>
                             </div>
                           </div>
                           <Sparkline data={stat.data} color={stat.sparkColor} w={110} h={30} />
                         </div>
-                        <div style={{ height: 4, borderRadius: 99, background: P.panel, overflow: 'hidden' }}>
+                        <div style={{ height: 4, borderRadius: 99, background: T.panel, overflow: 'hidden' }}>
                           <div style={{ width: `${stat.label === 'Displaced' ? 72 : 88}%`, height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${stat.sparkColor}88, ${stat.sparkColor})` }} />
                         </div>
                       </div>
@@ -549,12 +548,12 @@ export default function DisasterDashboard() {
 
               {/* ── bottom metric strip ────────────────────────────────── */}
               <div className="dis-strip">
-                <MiniStat label="Total Camps" value={String(camps.length || 0)} icon={<MapPin size={12} />} color={P.teal} sub="Active sites" />
+                <MiniStat label="Total Camps" value={String(camps.length || 0)} icon={<MapPin size={12} />} color={T.teal} sub="Active sites" />
                 <MiniStat label="Displaced" value={totalDisplaced.toLocaleString()} icon={<Users size={12} />} color="#F97316" sub="Region-wide" />
-                <MiniStat label="Aid Workers" value={totalWorkers.toLocaleString()} icon={<HeartHandshake size={12} />} color={P.purple} sub="Deployed" />
-                <MiniStat label="Critical" value={String(statusCounts.critical || 0)} icon={<TriangleAlert size={12} />} color={P.red} sub="Needs attention" />
-                <MiniStat label="Coverage" value="89%" icon={<ShieldAlert size={12} />} color={P.green} sub="Aid coverage" />
-                <MiniStat label="Tick" value={String(tick)} icon={<Radio size={12} />} color={P.muted} sub="Live refresh" />
+                <MiniStat label="Aid Workers" value={totalWorkers.toLocaleString()} icon={<HeartHandshake size={12} />} color={T.purple} sub="Deployed" />
+                <MiniStat label="Critical" value={String(statusCounts.critical || 0)} icon={<TriangleAlert size={12} />} color={T.red} sub="Needs attention" />
+                <MiniStat label="Coverage" value="89%" icon={<ShieldAlert size={12} />} color={T.green} sub="Aid coverage" />
+                <MiniStat label="Tick" value={String(tick)} icon={<Radio size={12} />} color={T.muted} sub="Live refresh" />
               </div>
             </div>
           </main>
@@ -567,36 +566,36 @@ export default function DisasterDashboard() {
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <div>
-                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3 }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3 }}>
                   Disaster Relief Operations
                 </div>
-                <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: P.ink }}>All Active Camps</h2>
-                <p style={{ fontSize: '0.78rem', color: P.muted, margin: '2px 0 0', fontWeight: 600 }}>{camps.length} camps in the network · select one to inspect</p>
+                <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: T.ink }}>All Active Camps</h2>
+                <p style={{ fontSize: '0.78rem', color: T.muted, margin: '2px 0 0', fontWeight: 600 }}>{camps.length} camps in the network · select one to inspect</p>
               </div>
               <button
                 onClick={() => setShowAllCamps(false)}
                 aria-label="Close"
                 style={{
-                  width: 36, height: 36, borderRadius: '50%', border: `1px solid ${P.border}`, background: P.cardSoft,
-                  color: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                  width: 36, height: 36, borderRadius: '50%', border: `1px solid ${T.border}`, background: T.cardSoft,
+                  color: T.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
                 }}
               >
                 <X size={17} />
               </button>
             </div>
 
-            <div style={{ padding: '0.85rem 1.4rem', borderBottom: `1px solid ${P.border}`, background: P.panelSoft, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+            <div style={{ padding: '0.85rem 1.4rem', borderBottom: `1px solid ${T.border}`, background: T.panelSoft, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
               <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 200, background: P.card, border: `1px solid ${P.border}`, borderRadius: '0.75rem', padding: '8px 12px' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 200, background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.75rem', padding: '8px 12px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                   <input
                     value={campQuery}
                     onChange={(e) => setCampQuery(e.target.value)}
                     placeholder="Search camps, codes or types…"
-                    style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', fontWeight: 600, color: P.ink }}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', fontWeight: 600, color: T.ink }}
                   />
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', fontWeight: 800, color: P.muted, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', fontWeight: 800, color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   <ChevronDown size={13} /> Filter by status
                 </span>
               </div>
@@ -605,7 +604,7 @@ export default function DisasterDashboard() {
 
             <div className="modal-body">
               {modalCamps.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: P.muted, fontSize: '0.85rem', fontWeight: 600 }}>
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: T.muted, fontSize: '0.85rem', fontWeight: 600 }}>
                   No camps match your filters
                 </div>
               ) : modalCamps.map((camp) => {
@@ -621,7 +620,7 @@ export default function DisasterDashboard() {
                     }}
                     style={{
                       width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
-                      background: isSelected ? `${color}12` : P.card, border: `1px solid ${isSelected ? `${color}66` : P.border}`,
+                      background: isSelected ? `${color}12` : T.card, border: `1px solid ${isSelected ? `${color}66` : T.border}`,
                       borderRadius: '1rem', padding: '0.85rem 1rem', marginBottom: '0.6rem', fontFamily: 'inherit',
                       transition: 'border-color 0.15s ease', boxShadow: '0 2px 8px rgba(20,30,40,0.05)',
                     }}
@@ -629,19 +628,19 @@ export default function DisasterDashboard() {
                     <span style={{ width: 11, height: 11, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.88rem', fontWeight: 800, color: P.ink }}>{camp.name}</span>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 800, color: T.ink }}>{camp.name}</span>
                         <Chip color={color}>{STATUS_TEXT[camp.status]}</Chip>
                       </div>
-                      <div style={{ fontSize: '0.68rem', color: P.muted, fontWeight: 600, marginTop: 3 }}>
+                      <div style={{ fontSize: '0.68rem', color: T.muted, fontWeight: 600, marginTop: 3 }}>
                         {camp.code} · {camp.type} · {occ}% occupancy · {camp.lat.toFixed(2)}°N, {camp.lng.toFixed(2)}°E
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: P.ink, textAlign: 'right' }}>
-                        <span style={{ display: 'block', color: P.muted, fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Displaced</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: T.ink, textAlign: 'right' }}>
+                        <span style={{ display: 'block', color: T.muted, fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Displaced</span>
                         {camp.displaced.toLocaleString()}
                       </span>
-                      <ChevronRight size={16} color={P.muted} />
+                      <ChevronRight size={16} color={T.muted} />
                     </div>
                   </button>
                 )

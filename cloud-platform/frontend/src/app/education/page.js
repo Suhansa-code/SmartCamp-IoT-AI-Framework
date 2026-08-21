@@ -12,7 +12,7 @@ import ProgressBar from "@/components/dashboard/ProgressBar";
 import StatusDonut from "@/components/dashboard/StatusDonut";
 import ArrowChip from "@/components/alert/ArrowChip";
 import Button from "@/components/common/Button";
-import { P } from "@/data/theme.data";
+import { useTheme } from "@/components/common/ThemeProvider";
 import { CAMP_META, MOCK_CAMPS } from "@/data/education.data";
 import {
   GraduationCap,
@@ -136,15 +136,15 @@ const chip = (label, value, color) => (
 
 const tooltipStyle = {
   background: "#FFFFFF",
-  border: `1px solid ${P.border}`,
+  border: `1px solid #E9EDF3`,
   borderRadius: "0.75rem",
   fontSize: "0.78rem",
   fontWeight: 600,
-  color: P.ink,
+  color: "#1E3A5F",
   boxShadow: "0 12px 30px rgba(20,30,40,0.14)",
 };
 
-const scoreTone = (v) => (v == null ? P.muted : v >= 70 ? P.green : v >= 50 ? P.amber : P.red);
+const scoreTone = (T, v) => (v == null ? T.muted : v >= 70 ? T.green : v >= 50 ? T.amber : T.red);
 
 function ChildScoreDots({ scores }) {
   return (
@@ -157,7 +157,7 @@ function ChildScoreDots({ scores }) {
             width: 8,
             height: 8,
             borderRadius: "50%",
-            background: s.score >= 70 ? P.green : s.score >= 50 ? P.amber : P.red,
+            background: s.score >= 70 ? "#16A34A" : s.score >= 50 ? "#B45309" : "#DC2626",
             opacity: 0.9,
           }}
         />
@@ -166,7 +166,7 @@ function ChildScoreDots({ scores }) {
   );
 }
 
-function Tag({ children, color = P.teal }) {
+function Tag({ children, color = "#0F766E" }) {
   return (
     <span
       style={{
@@ -190,11 +190,12 @@ function Tag({ children, color = P.teal }) {
 // ── Psycho-Social Risk Trend — stacked area of children per risk band ────────
 // series: [{ date, stable, watch, atRisk }] — absolute child counts per day.
 function PsychoSocialTrend({ series }) {
+  const { T } = useTheme();
   const last = series.length ? series[series.length - 1] : { stable: 0, watch: 0, atRisk: 0 };
   const bands = [
-    { label: "Stable",  color: P.green, value: last.stable },
-    { label: "Watch",   color: P.amber, value: last.watch },
-    { label: "At Risk", color: P.red,   value: last.atRisk },
+    { label: "Stable",  color: T.green, value: last.stable },
+    { label: "Watch",   color: T.amber, value: last.watch },
+    { label: "At Risk", color: T.red,   value: last.atRisk },
   ];
   return (
     <DashboardCard
@@ -207,29 +208,29 @@ function PsychoSocialTrend({ series }) {
           <AreaChart data={series} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
             <defs>
               <linearGradient id="psyStable" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={P.green} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={P.green} stopOpacity={0.02} />
+                <stop offset="0%" stopColor={T.green} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={T.green} stopOpacity={0.02} />
               </linearGradient>
               <linearGradient id="psyWatch" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={P.amber} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={P.amber} stopOpacity={0.02} />
+                <stop offset="0%" stopColor={T.amber} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={T.amber} stopOpacity={0.02} />
               </linearGradient>
               <linearGradient id="psyRisk" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={P.red} stopOpacity={0.4} />
-                <stop offset="100%" stopColor={P.red} stopOpacity={0.03} />
+                <stop offset="0%" stopColor={T.red} stopOpacity={0.4} />
+                <stop offset="100%" stopColor={T.red} stopOpacity={0.03} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: P.muted }} axisLine={false} tickLine={false} width={44} />
+            <CartesianGrid strokeDasharray="4 8" stroke={T.border} vertical={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 700, fill: T.muted }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: T.muted }} axisLine={false} tickLine={false} width={44} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Area stackId="1" type="monotone" dataKey="stable" name="Stable" stroke={P.green} strokeWidth={2} fill="url(#psyStable)" />
-            <Area stackId="1" type="monotone" dataKey="watch" name="Watch" stroke={P.amber} strokeWidth={2} fill="url(#psyWatch)" />
-            <Area stackId="1" type="monotone" dataKey="atRisk" name="At Risk" stroke={P.red} strokeWidth={2} fill="url(#psyRisk)" />
+            <Area stackId="1" type="monotone" dataKey="stable" name="Stable" stroke={T.green} strokeWidth={2} fill="url(#psyStable)" />
+            <Area stackId="1" type="monotone" dataKey="watch" name="Watch" stroke={T.amber} strokeWidth={2} fill="url(#psyWatch)" />
+            <Area stackId="1" type="monotone" dataKey="atRisk" name="At Risk" stroke={T.red} strokeWidth={2} fill="url(#psyRisk)" />
           </AreaChart>
         </ResponsiveContainer>
       ) : (
-        <div style={{ textAlign: "center", padding: "2.5rem", color: P.muted }}>
+        <div style={{ textAlign: "center", padding: "2.5rem", color: T.muted }}>
           <HeartPulse size={34} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
           <p style={{ fontWeight: 700, fontSize: "0.9rem" }}>Not enough session data to plot psycho-social impact yet</p>
         </div>
@@ -238,7 +239,7 @@ function PsychoSocialTrend({ series }) {
         {bands.map((b) => (
           <span key={b.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.72rem", fontWeight: 800, color: b.color }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: b.color }} />
-            {b.label} <span style={{ color: P.ink }}>{b.value}</span>
+            {b.label} <span style={{ color: T.textPrimary }}>{b.value}</span>
           </span>
         ))}
       </div>
@@ -247,6 +248,7 @@ function PsychoSocialTrend({ series }) {
 }
 
 export default function EducationPage() {
+  const { T } = useTheme();
   const [camps, setCamps] = useState([]);
   const [detail, setDetail] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -384,11 +386,11 @@ export default function EducationPage() {
       else count.urgent += 1;
     });
     return [
-      { label: "Clear", color: P.green, value: count.clear },
-      { label: "Watch", color: P.amber, value: count.watch },
-      { label: "Urgent", color: P.red, value: count.urgent },
+      { label: "Clear", color: T.green, value: count.clear },
+      { label: "Watch", color: T.amber, value: count.watch },
+      { label: "Urgent", color: T.red, value: count.urgent },
     ];
-  }, [list]);
+  }, [list, T]);
 
   const donutSegs = statusList.map((s) => ({ color: s.color, value: s.value }));
 
@@ -436,10 +438,10 @@ export default function EducationPage() {
         }
         .edu-camp-card {
           text-align: left; cursor: pointer; color: inherit; font-family: 'Inter', sans-serif;
-          background: P.panel; border: 1px solid ${P.border}; border-radius: 1.25rem; padding: 1.05rem 1.15rem;
+          background: ${T.card}; border: 1px solid ${T.border}; border-radius: 1.25rem; padding: 1.05rem 1.15rem;
           box-shadow: 0 14px 34px rgba(20,30,40,0.06); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
         }
-        .edu-camp-card:hover { transform: translateY(-3px); box-shadow: 0 20px 44px rgba(20,30,40,0.14); border-color: ${P.teal}; }
+        .edu-camp-card:hover { transform: translateY(-3px); box-shadow: 0 20px 44px rgba(20,30,40,0.14); border-color: ${T.teal}; }
         @media (max-width: 1150px) {
           .edu-hero, .edu-charts, .edu-two, .edu-cards { grid-template-columns: 1fr; }
         }
@@ -450,7 +452,7 @@ export default function EducationPage() {
       <div
         style={{
           minHeight: "100svh",
-          background: P.outer,
+          background: T.outer,
           display: "flex",
           flexDirection: "column",
           fontFamily: "'Inter', sans-serif",
@@ -461,7 +463,7 @@ export default function EducationPage() {
         <SideNav />
 
         <div className="header-wrapper">
-          <main style={{ background: P.panel, width: "100%", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <main style={{ background: T.panel, width: "100%", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             <HeaderShell>
               <PageHeader
                 title={detail ? meta?.name || "Camp Details" : "Education Insights"}
@@ -486,16 +488,16 @@ export default function EducationPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
               {/* ══ Big rounded panel — alert-page composition ══ */}
-              <div style={{ background: P.panel, padding: "clamp(1rem, 2vw, 1.75rem)", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+              <div style={{ background: T.panel, padding: "clamp(1rem, 2vw, 1.75rem)", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                 {/* ── Camp selector pills ── */}
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     onClick={goOverview}
                     className="edu-pill"
                     style={{
-                      border: `1px solid ${!selectedId ? P.teal : P.border}`,
-                      background: !selectedId ? `${P.teal}22` : P.card,
-                      color: !selectedId ? P.teal : P.muted,
+                      border: `1px solid ${!selectedId ? T.teal : T.border}`,
+                      background: !selectedId ? `${T.teal}22` : T.card,
+                      color: !selectedId ? T.teal : T.muted,
                     }}
                   >
                     All Camps
@@ -512,14 +514,14 @@ export default function EducationPage() {
                           display: "flex",
                           alignItems: "center",
                           gap: 6,
-                          border: `1px solid ${active ? P.teal : P.border}`,
-                          background: active ? `${P.teal}22` : P.card,
-                          color: active ? P.ink : P.muted,
+                          border: `1px solid ${active ? T.teal : T.border}`,
+                          background: active ? `${T.teal}22` : T.card,
+                          color: active ? T.ink : T.muted,
                         }}
                       >
                         {m.code}
                         {(camp.pending_alerts || 0) > 0 && (
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: P.red, boxShadow: `0 0 6px ${P.red}` }} />
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.red, boxShadow: `0 0 6px ${T.red}` }} />
                         )}
                       </button>
                     );
@@ -533,8 +535,8 @@ export default function EducationPage() {
                       <div
                         key={i}
                         style={{
-                          background: P.cardSoft,
-                          border: `1px solid ${P.border}`,
+                          background: T.cardSoft,
+                          border: `1px solid ${T.border}`,
                           borderRadius: "1.25rem",
                           height: 128,
                           animation: "eduPulse 1.5s ease-in-out infinite",
@@ -549,7 +551,7 @@ export default function EducationPage() {
                       alignItems: "center",
                       justifyContent: "center",
                       padding: "4rem 0",
-                      color: P.muted,
+                      color: T.muted,
                       fontSize: "0.85rem",
                       fontWeight: 600,
                     }}
@@ -576,18 +578,18 @@ export default function EducationPage() {
                 ) : (
                   <div
                     style={{
-                      background: `linear-gradient(160deg, ${P.card}, ${P.panelSoft})`,
-                      border: `1px dashed ${P.border}`,
+                      background: `linear-gradient(160deg, ${T.card}, ${T.panelSoft})`,
+                      border: `1px dashed ${T.border}`,
                       borderRadius: "1.5rem",
                       padding: "3.5rem",
                       textAlign: "center",
                     }}
                   >
-                    <GraduationCap size={44} style={{ margin: "0 auto", color: P.teal, opacity: 0.7 }} />
-                    <p style={{ fontFamily: "'Inter',sans-serif", fontSize: "1.15rem", fontWeight: 800, marginTop: "0.7rem", color: P.ink }}>
+                    <GraduationCap size={44} style={{ margin: "0 auto", color: T.teal, opacity: 0.7 }} />
+                    <p style={{ fontFamily: "'Inter',sans-serif", fontSize: "1.15rem", fontWeight: 800, marginTop: "0.7rem", color: T.ink }}>
                       No education data synced yet
                     </p>
-                    <p style={{ color: P.muted, fontSize: "0.85rem", marginTop: "0.35rem" }}>
+                    <p style={{ color: T.muted, fontSize: "0.85rem", marginTop: "0.35rem" }}>
                       Camp education insights will appear here once the camp devices push session data to the cloud.
                     </p>
                   </div>
@@ -618,6 +620,7 @@ function OverviewView({
   sparkFor,
   onSelect,
 }) {
+  const { T } = useTheme();
   const flaggedRate = scopeTotals.sessions > 0 ? Math.round((scopeTotals.flagged / scopeTotals.sessions) * 100) : 0;
 
   const psychoSeries = useMemo(() => {
@@ -655,7 +658,7 @@ function OverviewView({
           label="Children"
           value={scopeTotals.children.toLocaleString()}
           icon={<Users size={17} />}
-          color={P.teal}
+          color={T.teal}
           delta="grade 3 & 4"
           pct={Math.min(100, Math.round((scopeTotals.children / 1500) * 100))}
           spark={sparkFor("children")}
@@ -664,7 +667,7 @@ function OverviewView({
           label="Learning Sessions"
           value={scopeTotals.sessions.toLocaleString()}
           icon={<BookOpen size={17} />}
-          color={P.purple}
+          color={T.purple}
           delta="synced"
           pct={Math.min(100, Math.round((scopeTotals.sessions / 2400) * 100))}
           spark={sparkFor("sessions")}
@@ -673,7 +676,7 @@ function OverviewView({
           label="Avg Score"
           value={scopeAvg != null ? scopeAvg.toFixed(1) : "—"}
           icon={<TrendingUp size={17} />}
-          color={scoreTone(scopeAvg)}
+          color={scoreTone(T, scopeAvg)}
           delta={flaggedRate > 0 ? `${flaggedRate}% flagged` : "clean"}
           pct={Math.min(100, Math.round(scopeAvg || 0))}
           spark={sparkFor("avg_composite").filter((v) => v != null)}
@@ -685,7 +688,7 @@ function OverviewView({
         {/* Left copy panel */}
         <div
           style={{
-            background: P.panelSoft,
+            background: T.panelSoft,
             borderRadius: "1.5rem",
             padding: "clamp(1.25rem, 3vw, 2.25rem)",
             display: "flex",
@@ -701,32 +704,32 @@ function OverviewView({
               alignItems: "center",
               gap: "0.4rem",
               width: "fit-content",
-              background: P.card,
+              background: T.card,
               borderRadius: "9999px",
               padding: "5px 14px",
               fontSize: "0.78rem",
               fontWeight: 700,
-              color: P.inkSoft,
-              border: `1px solid ${P.border}`,
+              color: T.inkSoft,
+              border: `1px solid ${T.border}`,
             }}
           >
-            <Radio size={13} color={P.green} /> Live Monitoring
+            <Radio size={13} color={T.green} /> Live Monitoring
           </span>
 
           <div className="grid grid-cols-2 items-center">
             <div className="flex flex-col gap-5">
-              <h1 style={{ fontSize: "clamp(1.75rem, 3.2vw, 2.5rem)", fontWeight: 800, color: P.ink, lineHeight: 1.08, letterSpacing: "-0.02em" }}>
+              <h1 style={{ fontSize: "clamp(1.75rem, 3.2vw, 2.5rem)", fontWeight: 800, color: T.ink, lineHeight: 1.08, letterSpacing: "-0.02em" }}>
                 Learning Insights
                 <br />
                 at a glance.
               </h1>
 
               <div style={{ display: "flex", gap: "1.25rem", alignItems: "flex-start", maxWidth: 380 }}>
-                <span style={{ fontSize: "1.4rem", fontWeight: 300, color: P.muted, flexShrink: 0 }}>01</span>
-                <div style={{ width: 34, height: 2, background: P.muted, marginTop: "0.9rem", flexShrink: 0 }} />
+                <span style={{ fontSize: "1.4rem", fontWeight: 300, color: T.muted, flexShrink: 0 }}>01</span>
+                <div style={{ width: 34, height: 2, background: T.muted, marginTop: "0.9rem", flexShrink: 0 }} />
                 <div>
-                  <p style={{ fontSize: "0.95rem", fontWeight: 800, color: P.ink }}>Score Trends</p>
-                  <p style={{ fontSize: "0.82rem", color: P.muted, marginTop: "2px", lineHeight: 1.5 }}>
+                  <p style={{ fontSize: "0.95rem", fontWeight: 800, color: T.ink }}>Score Trends</p>
+                  <p style={{ fontSize: "0.82rem", color: T.muted, marginTop: "2px", lineHeight: 1.5 }}>
                     Inhibition, tap-accuracy &amp; reaction-time drift tracked every session — so at-risk children surface before it becomes a
                     pattern.
                   </p>
@@ -734,11 +737,11 @@ function OverviewView({
               </div>
 
               <div style={{ display: "flex", gap: "1.25rem", alignItems: "flex-start", maxWidth: 380 }}>
-                <span style={{ fontSize: "1.4rem", fontWeight: 300, color: P.muted, flexShrink: 0 }}>02</span>
-                <div style={{ width: 34, height: 2, background: P.muted, marginTop: "0.9rem", flexShrink: 0 }} />
+                <span style={{ fontSize: "1.4rem", fontWeight: 300, color: T.muted, flexShrink: 0 }}>02</span>
+                <div style={{ width: 34, height: 2, background: T.muted, marginTop: "0.9rem", flexShrink: 0 }} />
                 <div>
-                  <p style={{ fontSize: "0.95rem", fontWeight: 800, color: P.ink }}>Flag Detection</p>
-                  <p style={{ fontSize: "0.82rem", color: P.muted, marginTop: "2px", lineHeight: 1.5 }}>
+                  <p style={{ fontSize: "0.95rem", fontWeight: 800, color: T.ink }}>Flag Detection</p>
+                  <p style={{ fontSize: "0.82rem", color: T.muted, marginTop: "2px", lineHeight: 1.5 }}>
                     Sessions that dip below baseline are flagged instantly, keeping field officers informed before the next learning period.
                   </p>
                 </div>
@@ -760,8 +763,8 @@ function OverviewView({
               {statusList.map((s) => (
                 <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ width: 5, height: 10, borderRadius: "30%", background: s.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: "0.7rem", fontWeight: 400, color: P.inkSoft, flex: 1 }}>{s.label}</span>
-                  <span style={{ fontSize: "0.7rem", fontWeight: 500, color: P.ink , flex: 1}}>{s.value}</span>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 400, color: T.inkSoft, flex: 1 }}>{s.label}</span>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 500, color: T.ink , flex: 1}}>{s.value}</span>
                 </div>
               ))}
             </div>
@@ -773,14 +776,14 @@ function OverviewView({
               label="Avg Score"
               value={scopeAvg != null ? scopeAvg.toFixed(1) : "—"}
               icon={<TrendingUp size={12} />}
-              color={scoreTone(scopeAvg)}
+              color={scoreTone(T, scopeAvg)}
             />
-            <MiniStat label="Flag Rate" value={`${flaggedRate}%`} icon={<AlertTriangle size={12} />} color={flaggedRate > 25 ? P.amber : P.green} />
+            <MiniStat label="Flag Rate" value={`${flaggedRate}%`} icon={<AlertTriangle size={12} />} color={flaggedRate > 25 ? T.amber : T.green} />
             <MiniStat
               label="Pending Alerts"
               value={scopeTotals.pending}
               icon={<BellRing size={12} />}
-              color={scopeTotals.pending > 0 ? P.red : P.green}
+              color={scopeTotals.pending > 0 ? T.red : T.green}
             />
           </div>
 
@@ -793,7 +796,7 @@ function OverviewView({
               width: 12,
               height: 12,
               borderRadius: "50%",
-              background: P.teal,
+              background: T.teal,
               opacity: 0.5,
               animation: "eduFloat 4s ease-in-out infinite",
             }}
@@ -806,7 +809,7 @@ function OverviewView({
               width: 7,
               height: 7,
               borderRadius: "50%",
-              background: P.lime,
+              background: "#D8F24E",
               opacity: 0.8,
               animation: "eduFloat 5s ease-in-out infinite",
             }}
@@ -819,7 +822,7 @@ function OverviewView({
               width: 9,
               height: 9,
               borderRadius: "50%",
-              background: P.purple,
+              background: T.purple,
               opacity: 0.35,
               animation: "eduFloat 4.5s ease-in-out infinite",
             }}
@@ -829,21 +832,21 @@ function OverviewView({
         {/* Right widget stack */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <DashboardCard title="Distribution" subtitle="Grades · flagged · alerts">
-          <div style={{ fontSize: "0.66rem", fontWeight: 800, color: P.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
+          <div style={{ fontSize: "0.66rem", fontWeight: 800, color: T.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
             Grade
           </div>
           {gradeTotals.map(([grade, count]) => (
             <div key={grade} style={{ marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", fontWeight: 700, marginBottom: 4 }}>
-                <span style={{ color: P.inkSoft }}>Grade {grade}</span>
-                <span style={{ color: P.teal }}>{count}</span>
+                <span style={{ color: T.inkSoft }}>Grade {grade}</span>
+                <span style={{ color: T.teal }}>{count}</span>
               </div>
-              <div style={{ height: 6, borderRadius: 99, background: P.cardSoft, overflow: "hidden" }}>
+              <div style={{ height: 6, borderRadius: 99, background: T.cardSoft, overflow: "hidden" }}>
                 <div
                   style={{
                     width: `${gradeChildren ? Math.round((count / gradeChildren) * 100) : 0}%`,
                     height: "100%",
-                    background: `linear-gradient(90deg, ${P.teal}88, ${P.teal})`,
+                    background: `linear-gradient(90deg, ${T.teal}88, ${T.teal})`,
                     borderRadius: 99,
                   }}
                 />
@@ -851,33 +854,37 @@ function OverviewView({
             </div>
           ))}
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: 4 }}>
-            {chip("flagged", scopeTotals.flagged, P.amber)}
-            {chip("pending", scopeTotals.pending, P.red)}
-            {chip("avg", scopeAvg != null ? scopeAvg.toFixed(1) : "—", P.teal)}
+            {chip("flagged", scopeTotals.flagged, T.amber)}
+            {chip("pending", scopeTotals.pending, T.red)}
+            {chip("avg", scopeAvg != null ? scopeAvg.toFixed(1) : "—", T.teal)}
           </div>
         </DashboardCard>
 
           {mostAtRisk && (
             <div className="flex flex-col gap-3">
             <div
+              onClick={() => onSelect(mostAtRisk.id)}
               style={{
-                background: "linear-gradient(160deg, #14213D 0%, #0B1322 100%)",
+                background: T.mode === 'dark'
+                  ? "linear-gradient(160deg, #F8FAFC 0%, #E2E8F0 100%)"
+                  : "linear-gradient(160deg, #14213D 0%, #0B1322 100%)",
                 borderRadius: "1.25rem",
                 padding: "1.1rem 1.25rem",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 12,
+                cursor: "pointer",
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "0.66rem", color: "#94A3B8", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                <div style={{ fontSize: "0.66rem", color: T.mode === 'dark' ? '#475569' : "#94A3B8", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em" }}>
                   Most At-Risk Camp
                 </div>
                 <div
                   style={{
                     fontSize: "1.02rem",
-                    color: "#fff",
+                    color: T.mode === 'dark' ? '#0F172A' : "#fff",
                     fontWeight: 800,
                     marginTop: 4,
                     whiteSpace: "nowrap",
@@ -887,55 +894,20 @@ function OverviewView({
                 >
                   {campMeta(mostAtRisk.id).name}
                 </div>
-                <div style={{ fontSize: "0.78rem", color: "#94A3B8", marginTop: 3, fontWeight: 600 }}>
+                <div style={{ fontSize: "0.78rem", color: T.mode === 'dark' ? '#64748B' : "#94A3B8", marginTop: 3, fontWeight: 600 }}>
                   Avg {mostAtRisk.avg_composite != null ? mostAtRisk.avg_composite.toFixed(1) : "—"} · {mostAtRisk.flagged_sessions || 0} flagged ·{" "}
                   {mostAtRisk.pending_alerts || 0} pending
                 </div>
               </div>
-              <ArrowChip dark />
-            </div>
-                        <div
-              style={{
-                background: "linear-gradient(160deg, #14213D 0%, #0B1322 100%)",
-                borderRadius: "1.25rem",
-                padding: "1.1rem 1.25rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "0.66rem", color: "#94A3B8", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em" }}>
-                  Most At-Risk Camp
-                </div>
-                <div
-                  style={{
-                    fontSize: "1.02rem",
-                    color: "#fff",
-                    fontWeight: 800,
-                    marginTop: 4,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {campMeta(mostAtRisk.id).name}
-                </div>
-                <div style={{ fontSize: "0.78rem", color: "#94A3B8", marginTop: 3, fontWeight: 600 }}>
-                  Avg {mostAtRisk.avg_composite != null ? mostAtRisk.avg_composite.toFixed(1) : "—"} · {mostAtRisk.flagged_sessions || 0} flagged ·{" "}
-                  {mostAtRisk.pending_alerts || 0} pending
-                </div>
-              </div>
-              <ArrowChip dark />
+              <ArrowChip dark={T.mode === 'light'} />
             </div>
             </div>
           )}
 
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            {chip("flagged sessions", scopeTotals.flagged, P.amber)}
-            {chip("pending alerts", scopeTotals.pending, scopeTotals.pending > 0 ? P.red : P.green)}
-            {chip("total alerts", scopeTotals.alerts, P.purple)}
+            {chip("flagged sessions", scopeTotals.flagged, T.amber)}
+            {chip("pending alerts", scopeTotals.pending, scopeTotals.pending > 0 ? T.red : T.green)}
+            {chip("total alerts", scopeTotals.alerts, T.purple)}
           </div>
         </div>
       </div>
@@ -946,13 +918,13 @@ function OverviewView({
           {perfData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={perfData} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
-                <XAxis dataKey="code" tick={{ fontSize: 11, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: P.muted }} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: `${P.cardSoft}` }} contentStyle={tooltipStyle} />
-                <ReferenceLine y={70} stroke={P.green} strokeDasharray="4 4" />
-                <ReferenceLine y={50} stroke={P.amber} strokeDasharray="4 4" />
-                <Bar dataKey="score" name="Avg composite" fill={P.teal} radius={[6, 6, 0, 0]} maxBarSize={30} />
+                <CartesianGrid strokeDasharray="4 8" stroke={T.border} vertical={false} />
+                <XAxis dataKey="code" tick={{ fontSize: 11, fontWeight: 700, fill: T.muted }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: T.muted }} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: `${T.cardSoft}` }} contentStyle={tooltipStyle} />
+                <ReferenceLine y={70} stroke={T.green} strokeDasharray="4 4" />
+                <ReferenceLine y={50} stroke={T.amber} strokeDasharray="4 4" />
+                <Bar dataKey="score" name="Avg composite" fill={T.teal} radius={[6, 6, 0, 0]} maxBarSize={30} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -962,7 +934,7 @@ function OverviewView({
                 alignItems: "center",
                 justifyContent: "center",
                 height: "100%",
-                color: P.muted,
+                color: T.muted,
                 fontSize: "0.84rem",
                 fontWeight: 600,
               }}
@@ -978,12 +950,12 @@ function OverviewView({
       {/* ── Camp cards ── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: "0.25rem" }}>
         <div>
-          <div style={{ fontSize: "0.86rem", fontWeight: 800, color: P.ink }}>Camp Overview</div>
-          <div style={{ fontSize: "0.7rem", color: P.muted, fontWeight: 600, marginTop: 2 }}>
+          <div style={{ fontSize: "0.86rem", fontWeight: 800, color: T.ink }}>Camp Overview</div>
+          <div style={{ fontSize: "0.7rem", color: T.muted, fontWeight: 600, marginTop: 2 }}>
             Select a camp to drill into children, sessions and alerts
           </div>
         </div>
-        <span style={{ fontSize: "0.74rem", color: P.muted, fontWeight: 700 }}>
+        <span style={{ fontSize: "0.74rem", color: T.muted, fontWeight: 700 }}>
           {list.length} of {camps.length} camps
         </span>
       </div>
@@ -991,17 +963,17 @@ function OverviewView({
       <div className="edu-cards">
         {list.map((camp) => {
           const m = campMeta(camp.id);
-          const alertTone = (camp.pending_alerts || 0) > 0 ? P.red : P.green;
+          const alertTone = (camp.pending_alerts || 0) > 0 ? T.red : T.green;
           return (
             <button key={camp.id} className="edu-camp-card" onClick={() => onSelect(camp.id)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <div style={{ minWidth: 0 }}>
                   <div
-                    style={{ fontSize: "1rem", fontWeight: 800, color: P.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                    style={{ fontSize: "1rem", fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                   >
                     {m.name}
                   </div>
-                  <div style={{ marginTop: 3, fontSize: "0.74rem", color: P.muted, fontWeight: 600, display: "flex", gap: 6, alignItems: "center" }}>
+                  <div style={{ marginTop: 3, fontSize: "0.74rem", color: T.muted, fontWeight: 600, display: "flex", gap: 6, alignItems: "center" }}>
                     <span>{m.code}</span>·<span>{m.location}</span>
                   </div>
                 </div>
@@ -1030,16 +1002,16 @@ function OverviewView({
                   gap: 8,
                   marginTop: "0.9rem",
                   paddingTop: "0.9rem",
-                  borderTop: `1px solid ${P.border}`,
+                  borderTop: `1px solid ${T.border}`,
                 }}
               >
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: P.ink }}>{camp.children}</div>
+                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: T.ink }}>{camp.children}</div>
                   <div
                     style={{
                       marginTop: 3,
                       fontSize: "0.62rem",
-                      color: P.muted,
+                      color: T.muted,
                       fontWeight: 700,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
@@ -1049,12 +1021,12 @@ function OverviewView({
                   </div>
                 </div>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: P.ink }}>{camp.sessions}</div>
+                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: T.ink }}>{camp.sessions}</div>
                   <div
                     style={{
                       marginTop: 3,
                       fontSize: "0.62rem",
-                      color: P.muted,
+                      color: T.muted,
                       fontWeight: 700,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
@@ -1064,14 +1036,14 @@ function OverviewView({
                   </div>
                 </div>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: scoreTone(camp.avg_composite) }}>
+                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: scoreTone(T, camp.avg_composite) }}>
                     {camp.avg_composite != null ? camp.avg_composite.toFixed(1) : "—"}
                   </div>
                   <div
                     style={{
                       marginTop: 3,
                       fontSize: "0.62rem",
-                      color: P.muted,
+                      color: T.muted,
                       fontWeight: 700,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
@@ -1082,13 +1054,13 @@ function OverviewView({
                 </div>
               </div>
 
-              <div style={{ marginTop: "0.8rem", height: 4, borderRadius: 99, background: P.cardSoft, overflow: "hidden" }}>
+              <div style={{ marginTop: "0.8rem", height: 4, borderRadius: 99, background: T.cardSoft, overflow: "hidden" }}>
                 <div
                   style={{
                     width: `${Math.min(100, Math.round(camp.avg_composite || 0))}%`,
                     height: "100%",
                     borderRadius: 99,
-                    background: `linear-gradient(90deg, ${scoreTone(camp.avg_composite)}88, ${scoreTone(camp.avg_composite)})`,
+                    background: `linear-gradient(90deg, ${scoreTone(T, camp.avg_composite)}88, ${scoreTone(T, camp.avg_composite)})`,
                   }}
                 />
               </div>
@@ -1100,12 +1072,12 @@ function OverviewView({
       {!list.length && (
         <div
           style={{
-            background: P.panelSoft,
-            border: `1px dashed ${P.border}`,
+            background: T.panelSoft,
+            border: `1px dashed ${T.border}`,
             borderRadius: "1.25rem",
             padding: "2.5rem",
             textAlign: "center",
-            color: P.muted,
+            color: T.muted,
           }}
         >
           <Search size={28} style={{ margin: "0 auto 8px", opacity: 0.5 }} />
@@ -1120,6 +1092,7 @@ function OverviewView({
 // Detail view — camp-level KPIs, trend, distribution, children, sessions, alerts
 // ════════════════════════════════════════════════════════════════════════════
 function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
+  const { T } = useTheme();
   const flaggedRate = detail.sessions_count ? Math.round((detail.flagged_sessions / detail.sessions_count) * 100) : 0;
 
   // Psycho-social risk bands over time — derive from each child's recent scores.
@@ -1159,7 +1132,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             label="Sessions"
             value={detail.sessions_count.toLocaleString()}
             icon={<BookOpen size={17} />}
-            color={P.purple}
+            color={T.purple}
             delta="recorded"
             pct={100}
           />
@@ -1167,7 +1140,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             label="Avg Score"
             value={detail.avg_composite != null ? detail.avg_composite.toFixed(1) : "—"}
             icon={<TrendingUp size={17} />}
-            color={scoreTone(detail.avg_composite)}
+            color={scoreTone(T, detail.avg_composite)}
             delta={`${flaggedRate}% flagged`}
             pct={Math.min(100, Math.round(detail.avg_composite || 0))}
           />
@@ -1175,14 +1148,14 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             label="Pending Alerts"
             value={detail.pending_alerts}
             icon={<BellRing size={17} />}
-            color={detail.pending_alerts > 0 ? P.red : P.green}
+            color={detail.pending_alerts > 0 ? T.red : T.green}
             delta={`${detail.total_alerts} total`}
             pct={Math.min(100, Math.round((detail.pending_alerts / 4) * 100))}
           />
         </div>
         <button
           className="edu-pill"
-          style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${P.border}`, background: P.card, color: P.ink }}
+          style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${T.border}`, background: T.card, color: T.ink }}
         >
           <ArrowLeft size={15} /> All Camps
         </button>
@@ -1196,30 +1169,30 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
               <AreaChart data={trend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="eduDetailArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={P.teal} stopOpacity={0.25} />
-                    <stop offset="100%" stopColor={P.teal} stopOpacity={0} />
+                    <stop offset="0%" stopColor={T.teal} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={T.teal} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="4 8" stroke={P.border} vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 700, fill: P.muted }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: P.muted }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="4 8" stroke={T.border} vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 700, fill: T.muted }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: T.muted }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <ReferenceLine y={70} stroke={P.green} strokeDasharray="4 4" />
-                <ReferenceLine y={50} stroke={P.amber} strokeDasharray="4 4" />
+                <ReferenceLine y={70} stroke={T.green} strokeDasharray="4 4" />
+                <ReferenceLine y={50} stroke={T.amber} strokeDasharray="4 4" />
                 <Area
                   type="monotone"
                   dataKey="score"
                   name="Avg composite"
-                  stroke={P.teal}
+                  stroke={T.teal}
                   strokeWidth={2.5}
                   fill="url(#eduDetailArea)"
-                  dot={{ r: 3, fill: P.teal, strokeWidth: 0 }}
+                  dot={{ r: 3, fill: T.teal, strokeWidth: 0 }}
                   activeDot={{ r: 5 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ textAlign: "center", padding: "2.5rem", color: P.muted }}>
+            <div style={{ textAlign: "center", padding: "2.5rem", color: T.muted }}>
               <GraduationCap size={34} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
               <p style={{ fontWeight: 700, fontSize: "0.9rem" }}>Not enough session data to plot a trend yet</p>
             </div>
@@ -1234,21 +1207,21 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
         <DashboardCard
           title="Needs Attention"
           subtitle="Active alerts or scores below 50"
-          right={chip("children", ranked.atRisk.length, ranked.atRisk.length > 0 ? P.red : P.green)}
+          right={chip("children", ranked.atRisk.length, ranked.atRisk.length > 0 ? T.red : T.green)}
         >
           {ranked.atRisk.length ? (
             ranked.atRisk.slice(0, 6).map((child) => (
               <div
                 key={child.child_id}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.55rem 0", borderBottom: `1px solid ${P.border}` }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.55rem 0", borderBottom: `1px solid ${T.border}` }}
               >
                 <span
                   style={{
                     width: 30,
                     height: 30,
                     borderRadius: 10,
-                    background: `${P.red}1f`,
-                    border: `1px solid ${P.red}44`,
+                    background: `${T.red}1f`,
+                    border: `1px solid ${T.red}44`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1259,55 +1232,55 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
-                    style={{ fontSize: "0.82rem", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: P.ink }}
+                    style={{ fontSize: "0.82rem", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: T.ink }}
                   >
                     {child.child_id}
                   </div>
                   <div style={{ display: "flex", gap: 6, marginTop: 3, alignItems: "center" }}>
                     <Tag color={"#64748B"}>G{child.grade}</Tag>
-                    {child.alert_status === "active" && <Tag color={P.red}>Active alert</Tag>}
+                    {child.alert_status === "active" && <Tag color={T.red}>Active alert</Tag>}
                     <ChildScoreDots scores={child.recent_scores || []} />
                   </div>
                 </div>
-                <span style={{ fontSize: "1.05rem", fontWeight: 800, color: child.avg != null && child.avg < 50 ? P.red : P.amber }}>
+                <span style={{ fontSize: "1.05rem", fontWeight: 800, color: child.avg != null && child.avg < 50 ? T.red : T.amber }}>
                   {child.avg != null ? child.avg : "—"}
                 </span>
               </div>
             ))
           ) : (
-            <div style={{ textAlign: "center", padding: "1.6rem", color: P.muted }}>
-              <CheckCircle2 size={30} style={{ margin: "0 auto 8px", color: P.green }} />
+            <div style={{ textAlign: "center", padding: "1.6rem", color: T.muted }}>
+              <CheckCircle2 size={30} style={{ margin: "0 auto 8px", color: T.green }} />
               <p style={{ fontSize: "0.85rem", fontWeight: 700 }}>All children are performing within expected ranges</p>
             </div>
           )}
         </DashboardCard>
 
-        <DashboardCard title="Top Learners" subtitle="Highest average composite scores" right={chip("top", ranked.top.length, P.green)}>
+        <DashboardCard title="Top Learners" subtitle="Highest average composite scores" right={chip("top", ranked.top.length, T.green)}>
           {ranked.top.map((child, index) => (
             <div
               key={child.child_id}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.55rem 0", borderBottom: `1px solid ${P.border}` }}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.55rem 0", borderBottom: `1px solid ${T.border}` }}
             >
               <span
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: 10,
-                  background: `${P.green}1f`,
-                  border: `1px solid ${P.green}44`,
+                  background: `${T.green}1f`,
+                  border: `1px solid ${T.green}44`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: "0.8rem",
                   fontWeight: 800,
-                  color: P.green,
+                  color: T.green,
                 }}
               >
                 {index + 1}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
-                  style={{ fontSize: "0.82rem", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: P.ink }}
+                  style={{ fontSize: "0.82rem", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: T.ink }}
                 >
                   {child.child_id}
                 </div>
@@ -1317,12 +1290,12 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <TrendingUp size={13} color={P.green} />
-                <span style={{ fontSize: "1.05rem", fontWeight: 800, color: P.green }}>{child.avg}</span>
+                <TrendingUp size={13} color={T.green} />
+                <span style={{ fontSize: "1.05rem", fontWeight: 800, color: T.green }}>{child.avg}</span>
               </div>
             </div>
           ))}
-          {!ranked.top.length && <div style={{ textAlign: "center", padding: "1.6rem", color: P.muted }}>No scored sessions yet</div>}
+          {!ranked.top.length && <div style={{ textAlign: "center", padding: "1.6rem", color: T.muted }}>No scored sessions yet</div>}
         </DashboardCard>
       </div>
 
@@ -1336,32 +1309,32 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", minWidth: 560 }}>
             <thead>
-              <tr style={{ textAlign: "left", color: P.muted, fontSize: "0.66rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                <th style={{ padding: "0.6rem 1.1rem", borderBottom: `1px solid ${P.border}` }}>Child</th>
-                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${P.border}` }}>Grade</th>
-                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${P.border}` }}>Score</th>
-                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${P.border}` }}>Flag</th>
-                <th style={{ padding: "0.6rem 1.1rem", borderBottom: `1px solid ${P.border}` }}>When</th>
+              <tr style={{ textAlign: "left", color: T.muted, fontSize: "0.66rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <th style={{ padding: "0.6rem 1.1rem", borderBottom: `1px solid ${T.border}` }}>Child</th>
+                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${T.border}` }}>Grade</th>
+                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${T.border}` }}>Score</th>
+                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${T.border}` }}>Flag</th>
+                <th style={{ padding: "0.6rem 1.1rem", borderBottom: `1px solid ${T.border}` }}>When</th>
               </tr>
             </thead>
             <tbody>
               {detail.sessions.slice(0, 8).map((s) => (
-                <tr key={s.session_id} style={{ borderBottom: `1px solid ${P.border}60` }}>
-                  <td style={{ padding: "0.6rem 1.1rem", fontWeight: 800, color: P.ink }}>{s.child_id}</td>
+                <tr key={s.session_id} style={{ borderBottom: `1px solid ${T.border}60` }}>
+                  <td style={{ padding: "0.6rem 1.1rem", fontWeight: 800, color: T.ink }}>{s.child_id}</td>
                   <td style={{ padding: "0.6rem" }}>
                     <Tag color={"#64748B"}>G{s.grade ?? "—"}</Tag>
                   </td>
-                  <td style={{ padding: "0.6rem", fontWeight: 800, color: scoreTone(s.composite_score) }}>
+                  <td style={{ padding: "0.6rem", fontWeight: 800, color: scoreTone(T, s.composite_score) }}>
                     {s.composite_score != null ? Math.round(s.composite_score) : "—"}
                   </td>
                   <td style={{ padding: "0.6rem" }}>
                     {s.anomaly_flagged ? (
-                      <span style={{ color: P.red, fontWeight: 800 }}>⚠ flagged</span>
+                      <span style={{ color: T.red, fontWeight: 800 }}>⚠ flagged</span>
                     ) : (
-                      <span style={{ color: P.green, fontWeight: 700 }}>✓ ok</span>
+                      <span style={{ color: T.green, fontWeight: 700 }}>✓ ok</span>
                     )}
                   </td>
-                  <td style={{ padding: "0.6rem 1.1rem", color: P.muted }}>
+                  <td style={{ padding: "0.6rem 1.1rem", color: T.muted }}>
                     {s.created_at
                       ? new Date(s.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
                       : "—"}
@@ -1377,45 +1350,45 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
       {/* <DashboardCard
         title="Camp Alerts"
         subtitle="Triggered welfare alerts for this camp"
-        right={chip("pending", detail.pending_alerts, detail.pending_alerts > 0 ? P.red : P.green)}
+        right={chip("pending", detail.pending_alerts, detail.pending_alerts > 0 ? T.red : T.green)}
       >
         {detail.alerts.length ? (
           detail.alerts.slice(0, 6).map((alert) => (
             <div
               key={alert.alert_id}
-              style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.65rem 0", borderBottom: `1px solid ${P.border}` }}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.65rem 0", borderBottom: `1px solid ${T.border}` }}
             >
               <span
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 10,
-                  background: `${alert.status === "pending" ? P.red : P.green}1f`,
-                  border: `1px solid ${alert.status === "pending" ? P.red : P.green}44`,
+                  background: `${alert.status === "pending" ? T.red : T.green}1f`,
+                  border: `1px solid ${alert.status === "pending" ? T.red : T.green}44`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                {alert.status === "pending" ? <AlertTriangle size={15} color={P.red} /> : <CheckCircle2 size={15} color={P.green} />}
+                {alert.status === "pending" ? <AlertTriangle size={15} color={T.red} /> : <CheckCircle2 size={15} color={T.green} />}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "0.82rem", fontWeight: 800, color: P.ink }}>
+                <div style={{ fontSize: "0.82rem", fontWeight: 800, color: T.ink }}>
                   {alert.child_id} · {alert.alert_type.replace(/_/g, " ")}
                 </div>
-                <div style={{ fontSize: "0.72rem", color: P.muted, marginTop: 2 }}>
+                <div style={{ fontSize: "0.72rem", color: T.muted, marginTop: 2 }}>
                   {alert.triggered_at
                     ? new Date(alert.triggered_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
                     : "—"}
                   {alert.trigger_detail?.recent_scores ? ` · recent: ${alert.trigger_detail.recent_scores.join(" → ")}` : ""}
                 </div>
               </div>
-              <Tag color={alert.status === "pending" ? P.red : P.green}>{alert.status}</Tag>
+              <Tag color={alert.status === "pending" ? T.red : T.green}>{alert.status}</Tag>
             </div>
           ))
         ) : (
-          <div style={{ textAlign: "center", padding: "1.6rem", color: P.muted }}>
-            <CheckCircle2 size={30} style={{ margin: "0 auto 8px", color: P.green }} />
+          <div style={{ textAlign: "center", padding: "1.6rem", color: T.muted }}>
+            <CheckCircle2 size={30} style={{ margin: "0 auto 8px", color: T.green }} />
             <p style={{ fontSize: "0.85rem", fontWeight: 700 }}>No alerts for this camp</p>
           </div>
         )}

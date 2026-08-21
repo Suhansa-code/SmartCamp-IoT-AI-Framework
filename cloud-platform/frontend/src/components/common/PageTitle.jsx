@@ -1,6 +1,6 @@
 'use client'
 
-import { P } from '@/data/theme.data'
+import { useTheme } from './ThemeProvider'
 
 // Shared page title row — eyebrow · title · subtitle on the left, arbitrary
 // actions on the right. Mirrors the alert-page title strip used across pages.
@@ -13,19 +13,20 @@ import { P } from '@/data/theme.data'
 //   align      'flex-end' (default) | 'flex-start' — vertical alignment of the row
 //   style      object      — extra styles for the row container
 export default function PageTitle({ eyebrow, title, subtitle, right, align = 'flex-end', style }) {
+  const { T } = useTheme()
   return (
     <div style={{width:"full", display: 'flex', alignItems: align, justifyContent: 'space-between', gap: 12, ...style }}>
       <div style={{ minWidth: 0 }}>
         {eyebrow && (
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>
             {eyebrow}
           </div>
         )}
-        <h1 style={{ textWrap:"nowrap",fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: P.ink, lineHeight: 1.2 }}>
+        <h1 style={{ textWrap:"nowrap",fontFamily: "'Inter',sans-serif", fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: T.textPrimary, lineHeight: 1.2 }}>
           {title}
         </h1>
         {subtitle && (
-          <p style={{ textWrap:"nowrap", color: P.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 400, margin: 0 }}>
+          <p style={{ textWrap:"nowrap", color: T.muted, fontSize: '0.82rem', marginTop: 4, fontWeight: 400, margin: 0 }}>
             {subtitle}
           </p>
         )}
