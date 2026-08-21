@@ -351,7 +351,6 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
     if (!code) return;
     setQrChecking(true);
     try {
-      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       const res = await fetch(`${API}/api/qr/${encodeURIComponent(code)}/lookup`);
       const data = await res.json();
       if (data.state === "available") {
