@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity } from '../../controllers/disaster/disaster.js';
 
 const router = express.Router();
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
@@ -9,6 +9,7 @@ router.get('/camps/:id', getCampById);
 router.get('/prediction-models', getPredictionModels);
 router.get('/overview', getOverview);
 router.get('/gps', getGpsLocation);
+router.get('/camp-identity', getCampIdentity);
 
 router.get('/live-payload', async (req, res) => {
   const { lat, lon, alt } = req.query;

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Fingerprint, Satellite, CloudRain, Droplets, ScanBarcode, Radio, RefreshCw, Activity } from 'lucide-react';
+import { Fingerprint, Satellite, CloudRain, Droplets, ScanBarcode, Radio, RefreshCw, Activity, MapPin } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 
 /* ------------------------------------------------------------------ */
@@ -178,6 +178,16 @@ function DeviceCard({ device }) {
             <div className="mt-1.5"><SignalBar signal={device.signal} /></div>
           </div>
         </div>
+
+        {device.location && (
+          <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
+            <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
+            <div>
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Current Location</p>
+              <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>{device.location}</p>
+            </div>
+          </div>
+        )}
       </Card>
     </motion.div>
   );
@@ -190,15 +200,35 @@ function DeviceCard({ device }) {
 export default function DeviceHealthScreen() {
   const [devices, setDevices] = useState(INITIAL_DEVICES);
   const [lastAt, setLastAt] = useState(new Date());
+  const [locationName, setLocationName] = useState(null);
+
+  const fetchLocation = useCallback(async () => {
+    try {
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${API}/api/disaster/camp-identity`);
+      const data = await res.json();
+      if (data.location) {
+        setLocationName(data.location.charAt(0).toUpperCase() + data.location.slice(1).toLowerCase());
+      }
+    } catch {
+      setLocationName(null);
+    }
+  }, []);
+
+  useEffect(() => { fetchLocation(); }, [fetchLocation]);
 
   const connected = devices.filter((d) => d.status === 'connected').length;
   const degraded = devices.filter((d) => d.status === 'degraded').length;
   const offline = devices.filter((d) => d.status === 'offline').length;
 
+  const devicesWithLocation = devices.map((d) =>
+    d.id === 'gps' && locationName ? { ...d, location: locationName } : d
+  );
+
   const refresh = () => {
-    // Static demo — re-render only. Swap in real /api/device/health fetch later.
     setDevices([...INITIAL_DEVICES]);
     setLastAt(new Date());
+    fetchLocation();
   };
 
   return (
@@ -249,7 +279,7 @@ export default function DeviceHealthScreen() {
 
         {/* ================= DEVICE GRID ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {devices.map((device) => (
+          {devicesWithLocation.map((device) => (
             <DeviceCard key={device.id} device={device} />
           ))}
         </div>
