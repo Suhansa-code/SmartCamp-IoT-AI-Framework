@@ -310,7 +310,14 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
   const [scanningQr, setScanningQr] = useState(false);
 
   const update = (field, value) => {
-    setForm((f) => ({ ...f, [field]: value }));
+    setForm((f) => {
+      const next = { ...f, [field]: value };
+      if (field === "age" && Number(value) < 18) {
+        next.is_pregnant = 0;
+        next.has_chronic_illness = 0;
+      }
+      return next;
+    });
     setErrors((e) => ({ ...e, [field]: undefined }));
   };
 
@@ -449,6 +456,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
           </Field>
         </div>
 
+        {Number(form.age) >= 18 && (
         <div className="col-span-2 grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -467,6 +475,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
             <AlertTriangle className="w-4 h-4" /> Chronic Illness
           </button>
         </div>
+        )}
 
         <div className="col-span-2">
           <Field label="Medical Notes" hint="Optional — e.g. pregnancy stage, medication, allergies">
