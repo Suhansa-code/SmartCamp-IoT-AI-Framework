@@ -28,8 +28,9 @@ class Config:
     PASSIVE_CLICKS_W = 0.25
     PASSIVE_COMPLETION_W = 0.40
 
-    COMPOSITE_TASK_W = 0.60
-    COMPOSITE_PASSIVE_W = 0.40
+    COMPOSITE_TASK_W = 0.50
+    COMPOSITE_PASSIVE_W = 0.30
+    COMPOSITE_BASELINE_W = 0.20 
 
     # Normalisation baselines
     RT_NORM_BASE = 800       # ms — reaction time above this scores 0

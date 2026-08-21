@@ -1,6 +1,6 @@
 """History service — in-memory session history + baselines, and DB persistence."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import delete, insert, select, update
 
 from ..database import (
@@ -12,11 +12,11 @@ from ..database import (
 
 
 def _now_text() -> str:
-    return datetime.utcnow().isoformat()
+   return datetime.now(timezone.utc).isoformat()
 
 
 def _local_date_time() -> tuple[str, str]:
-    local_now = datetime.utcnow()
+    local_now = datetime.now(timezone.utc)
     return local_now.strftime('%Y-%m-%d'), local_now.strftime('%H:%M:%S')
 
 
@@ -209,49 +209,122 @@ class HistoryService:
         }
 
         with self.engine.begin() as conn:
-            conn.execute(insert(pages_behavioral_signals).values(**signal_values))
-
             existing_session = conn.execute(
-                select(pages_sessions.c.session_id).where(pages_sessions.c.session_id == session_id)
+                select(pages_sessions.c.session_id)
+                .where(pages_sessions.c.session_id == session_id)
             ).first()
 
             if existing_session:
                 conn.execute(
-                    update(pages_sessions).where(pages_sessions.c.session_id == session_id).values(**session_values)
+                    update(pages_sessions)
+                    .where(pages_sessions.c.session_id == session_id)
+                    .values(**session_values)
                 )
-            else:
-                conn.execute(insert(pages_sessions).values(**session_values))
+                existing_signal = conn.execute(
+                    select(pages_behavioral_signals.c.signal_id)
+                    .where(pages_behavioral_signals.c.signal_id == signal_id)
+                ).first()
 
+                if existing_signal:
+                    conn.execute(
+                        update(pages_behavioral_signals)
+                        .where(pages_behavioral_signals.c.signal_id == signal_id)
+                        .values(**signal_values)
+                    )
+
+                else:
+                    conn.execute(
+                        insert(pages_behavioral_signals).values(**signal_values)
+                    )
+
+
+            else:
+                # First submission of this session.
+                conn.execute(
+                    insert(pages_sessions).values(**session_values)
+                )
+
+                conn.execute(
+                    insert(pages_behavioral_signals).values(**signal_values)
+                )
+
+            # Gate decision must use the SAME live connection.
             existing_decision = conn.execute(
-                select(pages_gate_decisions.c.decision_id).where(pages_gate_decisions.c.decision_id == decision_id)
+                select(pages_gate_decisions.c.decision_id)
+                .where(pages_gate_decisions.c.decision_id == decision_id)
             ).first()
 
-            if not existing_decision:
-                conn.execute(insert(pages_gate_decisions).values(**decision_values))
+            if existing_decision:
+                conn.execute(
+                    update(pages_gate_decisions)
+                    .where(pages_gate_decisions.c.decision_id == decision_id)
+                    .values(**decision_values)
+                )
+            else:
+                conn.execute(
+                    insert(pages_gate_decisions).values(**decision_values)
+                )
 
-            self._upsert_child_state(conn, child_id, baseline_after, session_count)
+            self._upsert_child_state(
+                conn,
+                child_id,
+                baseline_after,
+                session_count,
+            )
 
     # ── In-memory updates ──────────────────────────────────────────
 
-    def update_history(self, child_id: str, composite: float, task: float, passive: float) -> float:
+    def update_history(
+        self,
+        child_id: str,
+        session_id: str,
+        composite: float,
+        task: float,
+        passive: float,
+        ) -> float:
         """Add a session result to child history and update the rolling baseline."""
+
         if child_id not in self.session_history:
             self.session_history[child_id] = []
 
-        self.session_history[child_id].append({
-            'composite': composite,
-            'task': task,
-            'passive': passive,
-            'ts': datetime.utcnow().isoformat(),
-        })
+        existing = next(
+            (
+                session
+                for session in self.session_history[child_id]
+                if session.get('session_id') == session_id
+            ),
+            None,
+        )
 
-        # Keep last 50 sessions in memory
+        if existing:
+            existing.update({
+                'composite': composite,
+                'task': task,
+                'passive': passive,
+                'ts': datetime.now(timezone.utc).isoformat(),
+            })
+        else:
+            self.session_history[child_id].append({
+                'session_id': session_id,
+                'composite': composite,
+                'task': task,
+                'passive': passive,
+                'ts': datetime.now(timezone.utc).isoformat(),
+            })
+            # Keep last 50 sessions in memory
         self.session_history[child_id] = self.session_history[child_id][-50:]
 
-        old_baseline = self.child_baselines.get(child_id, self.config.BASELINE_INIT)
-        new_baseline = round(old_baseline * (1 - self.config.BASELINE_ALPHA) + composite * self.config.BASELINE_ALPHA, 2)
-        self.child_baselines[child_id] = new_baseline
+        old_baseline = self.child_baselines.get(
+            child_id,
+            self.config.BASELINE_INIT
+        )
+        new_baseline = round(
+            old_baseline * (1 - self.config.BASELINE_ALPHA)
+            + composite * self.config.BASELINE_ALPHA,
+            2,
+        )
 
+        self.child_baselines[child_id] = new_baseline
         return new_baseline
 
     def reset_child(self, child_id: str):

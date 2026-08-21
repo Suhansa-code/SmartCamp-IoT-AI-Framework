@@ -72,3 +72,29 @@ class TestHistoryAndReset:
 
         history = client.get('/history/RESET-001').get_json()
         assert history['session_count'] == 0
+
+    def test_duplicate_session_does_not_create_duplicate_history(self, client):
+        payload = {
+            'child_id': 'DUP-001',
+            'session_id': 'DUP-SESSION-001',
+            'taskMetrics': {
+                'accuracyRate': 0.85,
+                'falseTapRate': 0.05,
+                'avgReactionTime': 400,
+                'reactionVariance': 100,
+            },
+            'passiveSignals': {
+                'idleTimeRatio': 0.1,
+                'rapidClickCount': 1,
+                'completionRatio': 0.95,
+            },
+        }
+
+        first = client.post('/score', json=payload)
+        assert first.status_code == 200
+
+        second = client.post('/score', json=payload)
+        assert second.status_code == 200
+
+        history = client.get('/history/DUP-001').get_json()
+        assert history['session_count'] == 1

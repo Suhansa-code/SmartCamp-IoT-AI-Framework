@@ -1,3 +1,5 @@
+import traceback
+
 from flask import Blueprint, current_app, jsonify, request
 
 from ..services import scoring_service
@@ -71,10 +73,11 @@ def score():
         )
     except Exception as e:
         print(f'[DB] Could not persist score for child={child_id} session={session_id}: {e}')
+        traceback.print_exc()
         return jsonify({'error': 'Failed to persist scoring result'}), 500
 
     # 7. Update in-memory cache after persistence succeeds
-    new_baseline = history.update_history(child_id, composite, task_score, passive_score)
+    new_baseline = history.update_history(child_id, session_id, composite, task_score, passive_score)
 
     print(
         f'[SCORE] child={child_id} composite={composite} task={task_score} passive={passive_score} '

@@ -11,7 +11,7 @@ except ImportError:
 CSV_PATH   = "./data/pages_sessions.csv"
 PASS_GATES = {"PASS", "PASS_RECOVERED"}
 GATE_THRESHOLD  = 55.0
-IF_THRESHOLD    = -0.5878
+IF_THRESHOLD    = 0
 ZSCORE_THRESHOLD = -2.0
 
 def pf(v):
