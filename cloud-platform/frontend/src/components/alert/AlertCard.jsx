@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { CheckCircle2, TriangleAlert } from 'lucide-react'
-import { P, STATUS_COLOR } from '@/data/theme.data'
+import { useTheme } from '@/components/common/ThemeProvider'
+import { STATUS_COLOR } from '@/data/theme.data'
 import SeverityBadge from './SeverityBadge'
 import ScoreSparkline from './ScoreSparkline'
 import Button from '@/components/common/Button'
@@ -10,7 +11,8 @@ import { daysSince } from '@/components/common/utils'
 
 export default function AlertCard({ alert, onAction, highlighted }) {
   const [actionLoading, setActionLoading] = useState(null)
-  const borderColor = STATUS_COLOR[alert.status] ?? P.amber
+  const { T } = useTheme()
+  const borderColor = STATUS_COLOR[alert.status] ?? T.amber
 
   async function doAction(action) {
     setActionLoading(action)
@@ -31,30 +33,29 @@ export default function AlertCard({ alert, onAction, highlighted }) {
   }
 
   const statusLabel = {
-    pending:   { color: P.amber,  label: '● Pending' },
-    resolved:  { color: P.teal,   label: '● Resolved' },
-    escalated: { color: P.purple, label: '● Escalated' },
-  }[alert.status] ?? { color: P.muted, label: '● Unknown' }
+    pending:   { color: T.amber,  label: '● Pending' },
+    resolved:  { color: T.teal,   label: '● Resolved' },
+    escalated: { color: T.purple, label: '● Escalated' },
+  }[alert.status] ?? { color: T.muted, label: '● Unknown' }
 
   return (
     <div id={`alert-${alert.id}`} style={{
-      background: P.card,
-      border: `1px solid ${P.border}`,
+      background: T.card,
+      border: `1px solid ${T.border}`,
       borderRadius: '1.25rem',
       padding: '1.25rem 1.5rem',
       display: 'flex',
       flexDirection: 'column',
       gap: '1rem',
-      boxShadow: highlighted ? `0 0 0 3px ${P.lime}, 0 8px 28px rgba(20,23,26,0.12)` : '0 4px 18px rgba(20,23,26,0.06)',
-      transition: 'box-shadow 0.3s',
+      transition: 'background 0.2s, border 0.2s',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: P.ink }}>{alert.childId}</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: T.textPrimary }}>{alert.childId}</span>
             <SeverityBadge severity={alert.severity} />
           </div>
-          <p style={{ fontSize: '0.8rem', color: P.muted, marginTop: '2px', fontWeight: 600 }}>
+          <p style={{ fontSize: '0.8rem', color: T.muted, marginTop: '2px', fontWeight: 600 }}>
             {alert.campName}
           </p>
         </div>
@@ -64,18 +65,18 @@ export default function AlertCard({ alert, onAction, highlighted }) {
       </div>
 
       <div style={{
-        background: P.cardSoft, borderRadius: '0.75rem', padding: '0.6rem 1rem',
+        background: T.bar, borderRadius: '0.75rem', padding: '0.6rem 1rem',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: '0.5rem',
       }}>
-        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: P.ink }}>{alert.alertType}</span>
-        <span style={{ fontSize: '0.75rem', color: P.muted, fontWeight: 600 }}>{daysSince(alert.triggeredAt)}</span>
+        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: T.textPrimary }}>{alert.alertType}</span>
+        <span style={{ fontSize: '0.75rem', color: T.muted, fontWeight: 600 }}>{daysSince(alert.triggeredAt)}</span>
       </div>
 
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '0.72rem', color: P.muted, fontWeight: 600 }}>Last 5 sessions</span>
-          <span style={{ fontSize: '0.72rem', color: P.muted, fontWeight: 600 }}>Score →</span>
+          <span style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 600 }}>Last 5 sessions</span>
+          <span style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 600 }}>Score →</span>
         </div>
         <ScoreSparkline scores={alert.scores} />
       </div>

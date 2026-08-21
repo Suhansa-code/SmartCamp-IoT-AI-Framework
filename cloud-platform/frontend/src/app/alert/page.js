@@ -9,7 +9,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ArrowUpRight, Radio, Users, Flame, ListChecks } from "lucide-react";
 import SideNav from "@/components/common/SideNav";
 import PageHeader from "@/components/common/PageHeader";
-import { P, SEVERITY_RANK } from "@/data/theme.data";
+import { useTheme } from "@/components/common/ThemeProvider";
+import { SEVERITY_RANK } from "@/data/theme.data";
 import { MOCK_CAMPS, mockAlerts } from "@/data/alerts.data";
 import AlertCard from "@/components/alert/AlertCard";
 import ArrowChip from "@/components/alert/ArrowChip";
@@ -18,6 +19,7 @@ import { daysSince } from "@/components/common/utils";
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AlertsPage() {
+  const { T } = useTheme();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCamp, setSelectedCamp] = useState("all");
@@ -132,12 +134,12 @@ export default function AlertsPage() {
       <div
         style={{
           minHeight: "100svh",
-          background: P.outer,
+          background: T.bg,
           display: "flex",
           flexDirection: "column",
           fontFamily: "'Inter', sans-serif",
           paddingLeft: "var(--rail-width, 236px)",
-          transition: "padding-left 0.2s ease",
+          transition: "padding-left 0.2s ease, background 0.2s",
         }}
       >
         <SideNav />
@@ -146,9 +148,8 @@ export default function AlertsPage() {
           {/* ══ Big rounded panel — mirrors the reference composition ══ */}
           <div
             style={{
-              background: P.panel,
+              background: T.panel,
               padding: "clamp(1rem, 2vw, 1.75rem)",
-              boxShadow: "0 30px 70px rgba(20,30,40,0.25)",
               display: "flex",
               flexDirection: "column",
               gap: "1.25rem",
@@ -182,7 +183,7 @@ export default function AlertsPage() {
               {/* Left hero copy */}
               <div
                 style={{
-                  background: P.panelSoft,
+                  background: T.card,
                   borderRadius: "1.5rem",
                   padding: "clamp(1.25rem, 3vw, 2.25rem)",
                   display: "flex",
@@ -190,6 +191,7 @@ export default function AlertsPage() {
                   gap: "1.25rem",
                   position: "relative",
                   overflow: "hidden",
+                  border: `1px solid ${T.border}`,
                 }}
               >
                 <span
@@ -198,23 +200,23 @@ export default function AlertsPage() {
                     alignItems: "center",
                     gap: "0.4rem",
                     width: "fit-content",
-                    background: P.card,
+                    background: T.card,
                     borderRadius: "9999px",
                     padding: "5px 14px",
                     fontSize: "0.78rem",
                     fontWeight: 700,
-                    color: P.inkSoft,
-                    border: `1px solid ${P.border}`,
+                    color: T.textSoft,
+                    border: `1px solid ${T.border}`,
                   }}
                 >
-                  <Radio size={13} color={P.green} /> Live Monitoring
+                  <Radio size={13} color={T.green} /> Live Monitoring
                 </span>
 
                 <h1
                   style={{
                     fontSize: "clamp(1.75rem, 3.2vw, 2.5rem)",
                     fontWeight: 800,
-                    color: P.ink,
+                    color: T.textPrimary,
                     lineHeight: 1.08,
                     letterSpacing: "-0.02em",
                   }}
@@ -226,11 +228,11 @@ export default function AlertsPage() {
 
 {/* Score Trend Mentioned Pharagraph */}
                 <div style={{ display: "flex", gap: "1.25rem", alignItems: "flex-start", maxWidth: 360 }}>
-                  <span style={{ fontSize: "1.4rem", fontWeight: 300, color: P.muted, flexShrink: 0 }}>01</span>
-                  <div style={{ width: 34, height: 2, background: P.muted, marginTop: "0.9rem", flexShrink: 0 }} />
+                  <span style={{ fontSize: "1.4rem", fontWeight: 300, color: T.muted, flexShrink: 0 }}>01</span>
+                  <div style={{ width: 34, height: 2, background: T.muted, marginTop: "0.9rem", flexShrink: 0 }} />
                   <div>
-                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: P.ink }}>Score Trends</p>
-                    <p style={{ fontSize: "0.82rem", color: P.muted, marginTop: "2px", lineHeight: 1.5 }}>
+                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: T.textPrimary }}>Score Trends</p>
+                    <p style={{ fontSize: "0.82rem", color: T.muted, marginTop: "2px", lineHeight: 1.5 }}>
                       Inhibition, tap-accuracy &amp; reaction-time drift tracked every session — so at-risk children surface before it becomes a
                       pattern.
                     </p>
@@ -239,11 +241,11 @@ export default function AlertsPage() {
 
 
                 <div style={{ display: "flex", gap: "1.25rem", alignItems: "flex-start", maxWidth: 360 }}>
-                  <span style={{ fontSize: "1.4rem", fontWeight: 300, color: P.muted, flexShrink: 0 }}>02</span>
-                  <div style={{ width: 34, height: 2, background: P.muted, marginTop: "0.9rem", flexShrink: 0 }} />
+                  <span style={{ fontSize: "1.4rem", fontWeight: 300, color: T.muted, flexShrink: 0 }}>02</span>
+                  <div style={{ width: 34, height: 2, background: T.muted, marginTop: "0.9rem", flexShrink: 0 }} />
                   <div>
-                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: P.ink }}>Physco Awareness</p>
-                    <p style={{ fontSize: "0.82rem", color: P.muted, marginTop: "2px", lineHeight: 1.5 }}>
+                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: T.textPrimary }}>Physco Awareness</p>
+                    <p style={{ fontSize: "0.82rem", color: T.muted, marginTop: "2px", lineHeight: 1.5 }}>
                       Child's physcology level alert trigger when the physco attemps are falling down in certain level
                     </p>
                   </div>
@@ -280,7 +282,7 @@ export default function AlertsPage() {
                       width: "100%",
                       height: "100%",
                       borderRadius: "50%",
-                      background: `conic-gradient(${P.amber} 0deg ${pendingDeg}deg, ${P.purple} ${pendingDeg}deg ${pendingDeg + escalatedDeg}deg, ${P.teal} ${pendingDeg + escalatedDeg}deg 360deg)`,
+                      background: `conic-gradient(${T.amber} 0deg ${pendingDeg}deg, ${T.purple} ${pendingDeg}deg ${pendingDeg + escalatedDeg}deg, ${T.teal} ${pendingDeg + escalatedDeg}deg 360deg)`,
                     }}
                   />
                   <div
@@ -289,16 +291,15 @@ export default function AlertsPage() {
                       width: "68%",
                       height: "68%",
                       borderRadius: "50%",
-                      background: P.panelSoft,
+                      background: T.bg,
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "inset 0 0 0 1px rgba(20,23,26,0.06)",
                     }}
                   >
-                    <span style={{ fontSize: "1.6rem", fontWeight: 800, color: P.ink }}>{activeCount}</span>
-                    <span style={{ fontSize: "0.6rem", fontWeight: 700, color: P.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <span style={{ fontSize: "1.6rem", fontWeight: 800, color: T.textPrimary }}>{activeCount}</span>
+                    <span style={{ fontSize: "0.6rem", fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       Active
                     </span>
                   </div>
@@ -310,7 +311,7 @@ export default function AlertsPage() {
                       width: 16,
                       height: 16,
                       borderRadius: "50%",
-                      background: P.red,
+                      background: T.red,
                       animation: "floatY 3.2s ease-in-out infinite",
                     }}
                   />
@@ -322,8 +323,8 @@ export default function AlertsPage() {
                       width: 22,
                       height: 22,
                       borderRadius: "50%",
-                      background: P.card,
-                      border: `2px solid ${P.dark}`,
+                      background: T.card,
+                      border: `2px solid ${T.border}`,
                       animation: "floatY 4s ease-in-out infinite 0.4s",
                     }}
                   />
@@ -335,7 +336,7 @@ export default function AlertsPage() {
                       width: 10,
                       height: 10,
                       borderRadius: "50%",
-                      background: P.green,
+                      background: T.green,
                       animation: "floatY 2.6s ease-in-out infinite 0.8s",
                     }}
                   />
@@ -343,7 +344,7 @@ export default function AlertsPage() {
 
                 {/* Camp filter row (stands in for the "Follow us on" row) */}
                 <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginTop: "auto", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: P.muted }}>Filter camp:</span>
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: T.muted }}>Filter camp:</span>
                   {MOCK_CAMPS.map((c) => {
                     const active = selectedCamp === c.id;
                     return (
@@ -355,12 +356,13 @@ export default function AlertsPage() {
                           width: 32,
                           height: 32,
                           borderRadius: "50%",
-                          background: active ? P.dark : P.card,
-                          color: active ? "#fff" : P.inkSoft,
-                          border: `1px solid ${active ? P.dark : P.border}`,
+                          background: active ? T.textPrimary : T.card,
+                          color: active ? T.bg : T.textSoft,
+                          border: `1px solid ${active ? T.textPrimary : T.border}`,
                           fontSize: "0.6rem",
                           fontWeight: 800,
                           cursor: "pointer",
+                          transition: "all 0.2s",
                         }}
                       >
                         {c.code === "ALL" ? "✦" : c.code.slice(0, 2)}
@@ -373,15 +375,15 @@ export default function AlertsPage() {
               {/* Right widget stack */}
               <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                 {/* Alert selection dropdown */}
-                <div style={{ background: P.card, borderRadius: "1.25rem", padding: "1.1rem 1.25rem", border: `1px solid ${P.border}` }}>
+                <div style={{ background: T.card, borderRadius: "1.25rem", padding: "1.1rem 1.25rem", border: `1px solid ${T.border}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.7rem" }}>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 800, color: P.ink }}>Select Alert</p>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 800, color: T.textPrimary }}>Select Alert</p>
                     <span
                       style={{
                         fontSize: "0.7rem",
                         fontWeight: 800,
-                        color: P.muted,
-                        background: P.cardSoft,
+                        color: T.muted,
+                        background: T.bar,
                         borderRadius: "9999px",
                         padding: "2px 8px",
                       }}
@@ -395,9 +397,9 @@ export default function AlertsPage() {
                     aria-label="Select alert"
                     style={{
                       width: "100%",
-                      background: P.cardSoft,
-                      color: P.ink,
-                      border: `1px solid ${P.border}`,
+                      background: T.bar,
+                      color: T.textPrimary,
+                      border: `1px solid ${T.border}`,
                       borderRadius: "0.75rem",
                       padding: "9px 12px",
                       fontWeight: 700,
@@ -419,24 +421,25 @@ export default function AlertsPage() {
                 <div
                   onClick={() => mostCritical && viewAlert(mostCritical.id)}
                   style={{
-                    background: `linear-gradient(155deg, ${P.dark} 0%, #2A2F35 100%)`,
+                    background: `linear-gradient(155deg, ${T.textPrimary} 0%, ${T.bgDeep} 100%)`,
                     borderRadius: "1.25rem",
                     padding: "1.1rem 1.25rem",
-                    color: "#fff",
+                    color: T.bg,
                     cursor: mostCritical ? "pointer" : "default",
                     display: "flex",
                     flexDirection: "column",
                     gap: "0.5rem",
+                    border: `1px solid ${T.border}`,
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: "rgba(255,255,255,0.65)" }}>Most Critical</p>
-                    <ArrowChip dark />
+                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: `${T.bg}aa` }}>Most Critical</p>
+                    <ArrowChip dark={T.mode === 'dark'} />
                   </div>
                   {mostCritical ? (
                     <>
                       <p style={{ fontSize: "1.15rem", fontWeight: 800 }}>{mostCritical.childId}</p>
-                      <p style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.7)" }}>{mostCritical.alertType}</p>
+                      <p style={{ fontSize: "0.76rem", color: `${T.bg}bb` }}>{mostCritical.alertType}</p>
                     </>
                   ) : (
                     <p style={{ fontSize: "0.95rem", fontWeight: 700 }}>No Recodes</p>
@@ -446,17 +449,17 @@ export default function AlertsPage() {
                 {/* Selected alert detail */}
                 <div ref={detailRef} style={{ display: "flex", flexDirection: "column", gap: "0.75rem", flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: P.muted }}>Alert Detail</p>
-                    <ArrowChip />
+                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: T.muted }}>Alert Detail</p>
+                    <ArrowChip dark={T.mode === 'dark'} />
                   </div>
                   {selectedAlert ? (
                     <AlertCard alert={selectedAlert} onAction={handleAction} highlighted={false} />
                   ) : (
                     <div
                       style={{
-                        background: P.card,
+                        background: T.card,
                         borderRadius: "1.25rem",
-                        border: `1px solid ${P.border}`,
+                        border: `1px solid ${T.border}`,
                         padding: "2rem",
                         textAlign: "center",
                         display: "flex",
@@ -464,8 +467,8 @@ export default function AlertsPage() {
                         gap: "0.5rem",
                       }}
                     >
-                      <p style={{ fontSize: "1.2rem", fontWeight: 800, color: P.ink }}>No alerts</p>
-                      <p style={{ fontSize: "0.84rem", color: P.muted }}>No Recodes</p>
+                      <p style={{ fontSize: "1.2rem", fontWeight: 800, color: T.textPrimary }}>No alerts</p>
+                      <p style={{ fontSize: "0.84rem", color: T.muted }}>No Recodes</p>
                     </div>
                   )}
                 </div>
@@ -480,41 +483,42 @@ export default function AlertsPage() {
                   if (target) viewAlert(target.id);
                 }}
                 style={{
-                  background: P.card,
+                  background: T.card,
                   borderRadius: "1.25rem",
                   padding: "1.25rem",
-                  border: `1px solid ${P.border}`,
+                  border: `1px solid ${T.border}`,
                   cursor: "pointer",
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.75rem",
+                  transition: "background 0.2s, border 0.2s",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
-                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: P.ink }}>All Alerts</p>
-                    <p style={{ fontSize: "0.78rem", color: P.muted, fontWeight: 600 }}>{alerts.length} total logged</p>
+                    <p style={{ fontSize: "0.95rem", fontWeight: 800, color: T.textPrimary }}>All Alerts</p>
+                    <p style={{ fontSize: "0.78rem", color: T.muted, fontWeight: 600 }}>{alerts.length} total logged</p>
                   </div>
                   <div
                     style={{
                       width: 34,
                       height: 34,
                       borderRadius: "50%",
-                      background: P.cardSoft,
+                      background: T.bar,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      border: `1px solid ${P.border}`,
+                      border: `1px solid ${T.border}`,
                     }}
                   >
-                    <ListChecks size={16} color={P.ink} />
+                    <ListChecks size={16} color={T.textPrimary} />
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   {[
-                    ["Pending", P.amber, pendingCount],
-                    ["Escalated", P.purple, escalatedCount],
-                    ["Resolved", P.teal, resolvedCount],
+                    ["Pending", T.amber, pendingCount],
+                    ["Escalated", T.purple, escalatedCount],
+                    ["Resolved", T.teal, resolvedCount],
                   ].map(([label, color, n]) => (
                     <span
                       key={label}
@@ -538,14 +542,15 @@ export default function AlertsPage() {
 
               <div
                 style={{
-                  background: P.card,
+                  background: T.card,
                   borderRadius: "1.25rem",
                   padding: "1.25rem",
-                  border: `1px solid ${P.border}`,
+                  border: `1px solid ${T.border}`,
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.75rem",
                   alignItems: "flex-start",
+                  transition: "background 0.2s, border 0.2s",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", marginLeft: 8 }}>
@@ -557,14 +562,14 @@ export default function AlertsPage() {
                         height: 34,
                         borderRadius: "50%",
                         marginLeft: -8,
-                        background: ["#14B8A6", "#F59E0B", "#8B5CF6"][i],
-                        color: "#fff",
+                        background: [T.teal, T.amber, T.purple][i],
+                        color: T.bg,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         fontWeight: 800,
                         fontSize: "0.68rem",
-                        border: "2px solid #fff",
+                        border: `2px solid ${T.card}`,
                       }}
                     >
                       {initials}
@@ -576,24 +581,24 @@ export default function AlertsPage() {
                       height: 34,
                       borderRadius: "50%",
                       marginLeft: -8,
-                      background: P.dark,
-                      color: "#fff",
+                      background: T.textPrimary,
+                      color: T.bg,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: "0.85rem",
                       fontWeight: 800,
-                      border: "2px solid #fff",
+                      border: `2px solid ${T.card}`,
                     }}
                   >
                     <Users size={14} />
                   </div>
                 </div>
-                <p style={{ fontSize: "1.3rem", fontWeight: 800, color: P.ink }}>3 Admins</p>
+                <p style={{ fontSize: "1.3rem", fontWeight: 800, color: T.textPrimary }}>3 Admins</p>
                 <span
                   style={{
-                    background: `${P.green}16`,
-                    color: P.green,
+                    background: `${T.green}16`,
+                    color: T.green,
                     borderRadius: "9999px",
                     padding: "3px 10px",
                     fontSize: "0.72rem",
@@ -607,14 +612,15 @@ export default function AlertsPage() {
               <div
                 onClick={() => trending && viewAlert(trending.id)}
                 style={{
-                  background: P.card,
+                  background: T.card,
                   borderRadius: "1.25rem",
                   padding: "1.25rem",
-                  border: `1px solid ${P.border}`,
+                  border: `1px solid ${T.border}`,
                   cursor: trending ? "pointer" : "default",
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.6rem",
+                  transition: "background 0.2s, border 0.2s",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -623,8 +629,8 @@ export default function AlertsPage() {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "0.3rem",
-                      background: `${P.red}14`,
-                      color: P.red,
+                      background: `${T.red}14`,
+                      color: T.red,
                       borderRadius: "9999px",
                       padding: "3px 10px",
                       fontSize: "0.72rem",
@@ -633,17 +639,17 @@ export default function AlertsPage() {
                   >
                     <Flame size={12} /> Newest
                   </span>
-                  <ArrowChip />
+                  <ArrowChip dark={T.mode === 'dark'} />
                 </div>
                 {trending ? (
                   <>
-                    <p style={{ fontSize: "0.9rem", fontWeight: 800, color: P.ink }}>{trending.alertType}</p>
-                    <p style={{ fontSize: "0.76rem", color: P.muted, fontWeight: 600 }}>
+                    <p style={{ fontSize: "0.9rem", fontWeight: 800, color: T.textPrimary }}>{trending.alertType}</p>
+                    <p style={{ fontSize: "0.76rem", color: T.muted, fontWeight: 600 }}>
                       {trending.childId} · {trending.campName} · {daysSince(trending.triggeredAt)}
                     </p>
                   </>
                 ) : (
-                  <p style={{ fontSize: "0.9rem", color: P.muted, fontWeight: 600 }}>No alerts yet</p>
+                  <p style={{ fontSize: "0.9rem", color: T.muted, fontWeight: 600 }}>No alerts yet</p>
                 )}
               </div>
             </div>

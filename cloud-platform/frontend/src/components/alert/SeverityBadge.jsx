@@ -1,9 +1,10 @@
 'use client'
 
-import { P, SEVERITY_COLOR } from '@/data/theme.data'
+import { useTheme } from '@/components/common/ThemeProvider'
 
 export default function SeverityBadge({ severity }) {
-  const color = SEVERITY_COLOR[severity] ?? P.green
+  const { T } = useTheme()
+  const color = severity === 'high' ? T.red : severity === 'medium' ? T.amber : T.green
   const label = severity === 'high' ? 'High' : severity === 'medium' ? 'Medium' : 'Low'
   return (
     <span style={{
