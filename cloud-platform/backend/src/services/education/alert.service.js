@@ -3,7 +3,7 @@
  * Controllers only parse HTTP concerns; everything else lives here.
  * Data access goes through the repository layer (memory or PostgreSQL).
  */
-import * as alertRepository from '../../repositories/education/alert.repository.js';
+import * as alertRepository from '../../data/education/alert.repository.js';
 
 export async function listAlerts({ status = null, camp = null } = {}) {
   const alerts = await alertRepository.getAlerts(status || null, camp || null);

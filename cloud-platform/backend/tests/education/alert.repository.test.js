@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 process.env.DB_ENABLED = 'false';
 
 // The repository is seeded from the data layer — no DB setup.
-const alertRepo = await import('../../src/repositories/education/alert.repository.js');
+const alertRepo = await import('../../src/data/education/alert.repository.js');
 
 async function seedAlert(overrides = {}) {
   const childId = overrides.child_id || 'C-1';

@@ -6,7 +6,7 @@ import {
   getDisasterCampSummaries,
   getDisasterDashboardSummary,
   getDisasterMapNodes,
-} from '../../repositories/disaster/camp.repository.js';
+} from '../../data/disaster/camp.repository.js';
 import { predictFloodForCamp } from '../../services/disaster/floodPrediction.service.js';
 import { getWaterLevelHistoryForCamp } from '../../services/disaster/waterLevelHistory.service.js';
 
