@@ -23,6 +23,7 @@ import {
   X,
   QrCode,
   Camera,
+  GraduationCap,
 } from "lucide-react";
 import DataTable from "../ui/display/DataTable";
 import ConfirmDialog from "../ui/feedback/ConfirmDialog";
@@ -312,9 +313,14 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
   const update = (field, value) => {
     setForm((f) => {
       const next = { ...f, [field]: value };
-      if (field === "age" && Number(value) < 18) {
-        next.is_pregnant = 0;
-        next.has_chronic_illness = 0;
+      if (field === "age") {
+        if (Number(value) < 18) {
+          next.is_pregnant = 0;
+          next.has_chronic_illness = 0;
+        } else {
+          next.school_going = 1;
+          next.grade = 3;
+        }
       }
       return next;
     });
@@ -326,6 +332,11 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
     if (!form.full_name.trim()) e.full_name = "Full name is required";
     if (!form.age || Number(form.age) < 0 || Number(form.age) > 130) e.age = "Enter a valid age (0–130)";
     if (!form.family_size || Number(form.family_size) < 1) e.family_size = "Family size must be at least 1";
+    if (Number(form.age) < 18 && form.school_going) {
+      const g = Number(form.grade);
+      if (!form.grade && form.grade !== 0) e.grade = "Grade is required";
+      else if (isNaN(g) || g < 1 || g > 13) e.grade = "Grade must be 1–13";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -414,6 +425,43 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
             <option value="O">Other</option>
           </select>
         </Field>
+
+        {Number(form.age) < 18 && Number(form.age) >= 0 && form.age !== "" && (
+          <div className="col-span-2 grid grid-cols-2 gap-2">
+            <Field label="School Going">
+              <button
+                type="button"
+                onClick={() => update("school_going", form.school_going ? 0 : 1)}
+                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all active:scale-[0.98] w-full"
+                style={form.school_going ? { backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border, color: TONE.brand.color } : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }}
+              >
+                <GraduationCap className="w-4 h-4" /> {form.school_going ? "School Going" : "Not School Going"}
+              </button>
+            </Field>
+
+            {form.school_going ? (
+              <Field label="Grade" required>
+                <input
+                  type="number"
+                  min={1}
+                  max={13}
+                  placeholder="1–13"
+                  value={form.grade}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") { update("grade", ""); return; }
+                    const n = Number(v);
+                    if (n >= 1 && n <= 13) update("grade", n);
+                  }}
+                  className={inputClassBase}
+                />
+                {errors.grade && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.grade}</p>}
+              </Field>
+            ) : (
+              <div />
+            )}
+          </div>
+        )}
 
         <div className="col-span-2">
           <Field label="Person Type" required>
@@ -656,7 +704,7 @@ function RegistrationScreen() {
   const [newPersonForm, setNewPersonForm] = useState({
     full_name: "", age: "", gender: "M", person_type: "refugee",
     family_size: 1, is_pregnant: 0, has_chronic_illness: 0, medical_notes: "",
-    wristband_qr: "",
+    wristband_qr: "", grade: 3, school_going: 1,
   });
 
   const [persons, setPersons] = useState([]);

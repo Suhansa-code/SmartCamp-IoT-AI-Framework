@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS pages_admins (
 CREATE TABLE IF NOT EXISTS pages_children (
   child_id          TEXT PRIMARY KEY,
   res_id            TEXT NOT NULL,
-  grade             INTEGER NOT NULL CHECK (grade IN (3, 4)),
+  grade             INTEGER NOT NULL CHECK (grade BETWEEN 1 AND 13),
   camp_id           TEXT NOT NULL,
   zone_id           TEXT,
   language          TEXT NOT NULL DEFAULT 'si' CHECK (language IN ('si', 'ta', 'en')),

@@ -306,6 +306,9 @@ try {
     pagesDb.exec(schema);
     migrateSelectedAnswerConstraint(pagesDb);
     migrateAddQRCodeColumn(pagesDb);
+    try { migrateGradeConstraint(pagesDb); } catch (e) {
+      logger.warn(`[PAGES DB] Grade constraint migration skipped: ${e.message}`);
+    }
     logger.info('[PAGES DB] Schema applied successfully');
   } else {
     logger.warn('[PAGES DB] pages-schema.sql not found — tables may not exist');
@@ -347,6 +350,40 @@ function migrateAddQRCodeColumn(db) {
   } catch (err) {
     logger.warn(`[PAGES DB] Could not add qr_code_data: ${err.message}`);
   }
+}
+
+function migrateGradeConstraint(db) {
+  const row = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='pages_children'`).get();
+  if (!row?.sql) return;
+  if (row.sql.includes('grade BETWEEN 1 AND 13')) return;
+
+  try { db.exec(`DROP TABLE IF EXISTS pages_children_legacy`); } catch (_) {}
+
+  const migrate = db.transaction(() => {
+    db.pragma('foreign_keys = OFF');
+    db.exec(`ALTER TABLE pages_children RENAME TO pages_children_legacy`);
+    db.exec(`CREATE TABLE pages_children (
+      child_id          TEXT PRIMARY KEY,
+      res_id            TEXT NOT NULL,
+      grade             INTEGER NOT NULL CHECK (grade BETWEEN 1 AND 13),
+      camp_id           TEXT NOT NULL,
+      zone_id           TEXT,
+      language          TEXT NOT NULL DEFAULT 'si' CHECK (language IN ('si', 'ta', 'en')),
+      enrolled_at       TEXT NOT NULL DEFAULT (datetime('now', '+5 hours', '+30 minutes')),
+      total_sessions    INTEGER NOT NULL DEFAULT 0,
+      baseline_score    REAL NOT NULL DEFAULT 60.0,
+      consecutive_low   INTEGER NOT NULL DEFAULT 0,
+      sdq_band          TEXT NOT NULL DEFAULT 'unknown',
+      alert_status      TEXT NOT NULL DEFAULT 'none' CHECK (alert_status IN ('none', 'active', 'resolved')),
+      synced            INTEGER NOT NULL DEFAULT 0,
+      qr_code_data      TEXT
+    )`);
+    db.exec(`INSERT INTO pages_children SELECT * FROM pages_children_legacy`);
+    db.exec(`DROP TABLE pages_children_legacy`);
+    db.pragma('foreign_keys = ON');
+  });
+  migrate();
+  logger.info('[PAGES DB] Migrated pages_children grade constraint to 1–13');
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
