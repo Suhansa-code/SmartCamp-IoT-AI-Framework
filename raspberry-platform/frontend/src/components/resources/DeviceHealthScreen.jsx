@@ -182,10 +182,16 @@ function DeviceCard({ device }) {
         {device.location && (
           <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
             <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
-            <div>
+            <div className="flex-1">
               <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Current Location</p>
               <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>{device.location}</p>
             </div>
+            {device.campId && (
+              <div className="text-right shrink-0">
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Camp ID</p>
+                <p className="text-[12.5px] font-mono font-semibold mt-0.5" style={{ color: COLORS.brand }}>{device.campId}</p>
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -201,14 +207,45 @@ export default function DeviceHealthScreen() {
   const [devices, setDevices] = useState(INITIAL_DEVICES);
   const [lastAt, setLastAt] = useState(new Date());
   const [locationName, setLocationName] = useState(null);
+  const [campPrefix, setCampPrefix] = useState('');
+  const [campSymbol, setCampSymbol] = useState('');
+  const [mappedCampId, setMappedCampId] = useState('');
 
   const fetchLocation = useCallback(async () => {
     try {
       const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${API}/api/disaster/camp-identity`);
-      const data = await res.json();
-      if (data.location) {
-        setLocationName(data.location.charAt(0).toUpperCase() + data.location.slice(1).toLowerCase());
+      const [gpsRes, campRes] = await Promise.all([
+        fetch(`${API}/api/disaster/gps`),
+        fetch(`${API}/api/disaster/camp-identity`),
+      ]);
+      const gps = await gpsRes.json();
+      const camp = await campRes.json();
+
+      let locName = null;
+      if (gps.latitude && gps.longitude) {
+        const geo = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${gps.latitude}&lon=${gps.longitude}&zoom=18&addressdetails=1`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        const geoData = await geo.json();
+        if (geoData.address) {
+          const a = geoData.address;
+          const parts = [a.village || a.town || a.city || a.hamlet, a.district || a.county || a.state_district].filter(Boolean);
+          locName = parts.join(', ') || geoData.display_name || `${gps.latitude}, ${gps.longitude}`;
+        } else {
+          locName = `${gps.latitude}, ${gps.longitude}`;
+        }
+      } else if (camp.location) {
+        locName = camp.location.charAt(0).toUpperCase() + camp.location.slice(1).toLowerCase();
+      }
+
+      if (locName) setLocationName(locName);
+      if (camp.prefix) setCampPrefix(camp.prefix);
+      if (camp.symbol) setCampSymbol(camp.symbol);
+
+      const firstWord = locName ? locName.split(',')[0].trim().toUpperCase() : '';
+      if (firstWord && camp.prefix) {
+        setMappedCampId(`${camp.prefix}-${firstWord}`);
       }
     } catch {
       setLocationName(null);
@@ -222,7 +259,7 @@ export default function DeviceHealthScreen() {
   const offline = devices.filter((d) => d.status === 'offline').length;
 
   const devicesWithLocation = devices.map((d) =>
-    d.id === 'gps' && locationName ? { ...d, location: locationName } : d
+    d.id === 'gps' && locationName ? { ...d, location: locationName, campId: mappedCampId, campSymbol } : d
   );
 
   const refresh = () => {
@@ -238,7 +275,7 @@ export default function DeviceHealthScreen() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
+            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{mappedCampId || 'Camp'}</p>
             <div className="flex items-center gap-3 mt-1.5">
               <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">Device Health</h1>
               <Chip tone="neutral">Demo data</Chip>

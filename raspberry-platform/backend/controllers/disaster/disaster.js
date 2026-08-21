@@ -1,6 +1,6 @@
 import * as disasterService from '../../services/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
-import { C } from '../../config/constants.js';
+import C from '../../config/constants.js';
 
 export function getCamps(req, res) {
   const camps = disasterService.getCampsData();
