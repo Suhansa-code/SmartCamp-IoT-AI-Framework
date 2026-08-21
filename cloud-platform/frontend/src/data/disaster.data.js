@@ -1,9 +1,36 @@
+// Disaster domain data — camps, gauging details, status meta, map geometry,
+// and dashboard constants. Single source of truth for the disaster pages.
+
+import { P } from './theme.data'
+
 export const STATUS_META = {
   critical: { label: 'CRITICAL' },
   high: { label: 'HIGH' },
   medium: { label: 'MEDIUM' },
   stable: { label: 'STABLE' },
   recovery: { label: 'RECOVERY' },
+}
+
+export const STATUS_COLOR = { critical: P.red, high: '#F97316', medium: P.amber, stable: P.teal, recovery: P.green }
+export const STATUS_TEXT = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', stable: 'STABLE', recovery: 'RECOVERY' }
+
+// White "nitec" theme mapped to the shape the detail sections expect.
+export const W = {
+  mode: 'light',
+  bg: P.panel,
+  surface: P.panel,
+  panel: P.panel,
+  border: P.border,
+  borderHi: '#c9d6e2',
+  t0: P.ink,
+  t1: P.inkSoft,
+  t2: P.muted,
+  t3: '#8ba1b5',
+  red: P.red,
+  orange: '#F97316',
+  yellow: P.amber,
+  cyan: P.teal,
+  green: P.green,
 }
 
 export const CAMPS = [
@@ -52,6 +79,73 @@ export const DONUT_SEGS = [
 export const DISPLACED_SPARK = [1800, 2100, 2350, 2200, 2600, 2850, 2700, 3100, 3350, 3150, 3000, 2850, 2950, 3150, 3450, 3600, 3200, 3050, 3350, 3500]
 export const AIDED_SPARK = [900, 1100, 1350, 1550, 1700, 1600, 1900, 2100, 2400, 2350, 2650, 2800, 2700, 3000, 2950, 3150, 3400, 3500, 3350, 3620]
 export const TREND_DATA = [820, 960, 750, 1100, 980, 1200, 1050, 1300, 1150, 1420, 1260, 1100, 1380, 1520, 1310, 1460, 1610, 1400, 1560, 1710, 1982]
+
+export const FILTER_OPTIONS = [
+  { key: 'all', label: 'All' },
+  { key: 'critical', label: 'Critical' },
+  { key: 'high', label: 'High' },
+  { key: 'medium', label: 'Medium' },
+  { key: 'stable', label: 'Stable' },
+  { key: 'recovery', label: 'Recovery' },
+]
+
+// Map themes — the relief image follows the app's light/dark mode.
+export const MAP_DARK = {
+  mode: 'dark',
+  bg: '#03080f',
+  surface: '#06101a',
+  panel: '#070e19',
+  border: '#0e2030',
+  borderHi: '#163448',
+  t0: '#e2edf7',
+  t1: '#93b7d2',
+  t2: '#6790aa',
+  t3: '#35556d',
+  red: '#ef4444',
+  orange: '#f97316',
+  yellow: '#eab308',
+  cyan: '#22d3ee',
+  green: '#4ade80',
+  mapBg: '#030c18',
+  mapLand: '#0d2236',
+  mapBorder: '#1a4060',
+  mapGrid: '#07182a',
+}
+
+export const MAP_LIGHT = {
+  mode: 'light',
+  bg: '#ffffff',
+  surface: '#ffffff',
+  panel: '#ffffff',
+  border: '#d3dde7',
+  borderHi: '#b3c6d5',
+  t0: '#0f2336',
+  t1: '#284b67',
+  t2: '#5f7f94',
+  t3: '#8ba1b5',
+  red: '#dc2626',
+  orange: '#ea6a0a',
+  yellow: '#ca8a04',
+  cyan: '#0891b2',
+  green: '#16a34a',
+  mapBg: '#ddeaf5',
+  mapLand: '#b8d4e8',
+  mapBorder: '#6090b0',
+  mapGrid: '#c8daea',
+}
+
+export const ALERTS = [
+  { color: P.red, message: 'Medical critical — Galle C-2', time: '06:42', live: true },
+  { color: P.red, message: 'Water unit failure — Batticaloa', time: '05:18', live: true },
+  { color: '#F97316', message: '340 new arrivals — Kandy C-1', time: '04:55', live: false },
+  { color: P.amber, message: 'Supply delay — Ratnapura', time: '04:10', live: false },
+  { color: P.teal, message: 'Delivery confirmed — Jaffna North', time: '03:30', live: false },
+  { color: P.green, message: 'Rain forecast — Matara coast', time: '02:00', live: false },
+]
+
+// Sri Lanka coastline + provincial boundary segments (lat/lng) for the map.
+export const COAST = [[9.84, 80.15], [9.78, 80.27], [9.70, 80.37], [9.62, 80.44], [9.55, 80.48], [9.45, 80.56], [9.35, 80.61], [9.20, 80.68], [9.08, 80.73], [8.98, 80.79], [8.85, 80.84], [8.72, 80.87], [8.58, 80.89], [8.42, 80.92], [8.28, 80.94], [8.15, 80.90], [8.00, 80.87], [7.90, 80.80], [7.78, 80.72], [7.65, 80.66], [7.52, 80.60], [7.38, 80.52], [7.22, 80.42], [7.08, 80.35], [6.95, 80.25], [6.82, 80.12], [6.70, 79.98], [6.60, 79.88], [6.50, 79.82], [6.42, 79.78], [6.30, 79.73], [6.20, 79.77], [6.12, 79.82], [6.05, 79.88], [5.98, 79.96], [5.93, 80.05], [5.90, 80.15], [5.92, 80.25], [5.95, 80.35], [6.00, 80.45], [6.08, 80.55], [6.18, 80.65], [6.30, 80.75], [6.42, 80.83], [6.55, 80.90], [6.65, 80.95], [6.75, 81.00], [6.88, 81.05], [7.02, 81.10], [7.18, 81.12], [7.32, 81.15], [7.48, 81.17], [7.62, 81.18], [7.75, 81.20], [7.88, 81.22], [8.02, 81.24], [8.15, 81.25], [8.28, 81.22], [8.40, 81.20], [8.52, 81.15], [8.62, 81.10], [8.72, 81.05], [8.82, 81.00], [8.92, 80.95], [9.02, 80.88], [9.12, 80.82], [9.22, 80.75], [9.32, 80.70], [9.42, 80.65], [9.52, 80.60], [9.60, 80.52], [9.68, 80.44], [9.74, 80.36], [9.79, 80.28], [9.84, 80.15]]
+export const PROVS = [[[9.67, 80.01], [8.76, 80.50]], [[8.76, 80.50], [8.34, 80.41]], [[8.34, 80.41], [7.48, 80.37]], [[7.48, 80.37], [7.29, 80.64]], [[7.29, 80.64], [6.92, 79.86]], [[7.29, 80.64], [7.30, 81.50]], [[8.34, 80.41], [8.58, 81.22]], [[7.48, 80.37], [6.68, 80.40]], [[6.68, 80.40], [6.03, 80.22]]]
 
 export function statusColor(status, theme) {
   return { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[status] || theme.cyan
