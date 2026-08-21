@@ -148,8 +148,6 @@ export default function DisasterCampDetailPage() {
   const predictionError = camp?.prediction_error || ''
   const occupancy = camp ? Math.round((camp.displaced / camp.capacity) * 100) : 0
   const campElevation = Number.isFinite(Number(detail?.elev)) ? `${Math.round(Number(detail.elev))} m` : 'N/A'
-  const predictionTone = prediction ? getPredictionTone(prediction.probability, W) : T.muted
-
   const [predLoading, setPredLoading] = useState(false)
   const [predResult, setPredResult] = useState(prediction)
   const [predError, setPredError] = useState(predictionError)
@@ -174,6 +172,8 @@ export default function DisasterCampDetailPage() {
     cyan: T.teal,
     green: T.green,
   }), [T])
+
+  const predictionTone = prediction ? getPredictionTone(prediction.probability, W) : T.muted
 
   useEffect(() => {
     let active = true
