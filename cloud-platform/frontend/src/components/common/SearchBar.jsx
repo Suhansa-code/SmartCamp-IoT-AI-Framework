@@ -9,11 +9,13 @@ import Button from '@/components/common/Button'
 export default function SearchBar({
   value, onChange, placeholder, onRefresh, refreshing, style,
 }) {
-  const { T } = useTheme()
+  const { T, mode } = useTheme()
+  const dark = mode === 'dark'
   return (
     <>
       <style>{`
         @keyframes searchSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .smartcamp-search input::placeholder { color: ${T.muted}; opacity: 1; }
       `}</style>
       <div
         className="smartcamp-search"
@@ -41,6 +43,10 @@ export default function SearchBar({
             onClick={onRefresh}
             disabled={refreshing}
             aria-label="Refresh"
+            style={{
+              background: dark ? '#FFFFFF' : '#121214',
+              color: dark ? '#121214' : '#FFFFFF',
+            }}
           >
             <RefreshCw size={15} style={refreshing ? { animation: 'searchSpin 0.8s linear infinite' } : undefined} />
           </Button>
