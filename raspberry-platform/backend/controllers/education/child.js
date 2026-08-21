@@ -72,7 +72,7 @@ export async function testChildIdGeneration(req, res, next) {
     }
 
     sqliteInsert('pages_children', {
-      child_id, res_id: 'TEST-RES-001', grade: 3, camp_id: 'CAMP-TEST',
+      child_id, res_id: 'TEST-RES-001', grade: 3, camp_id: C.CAMP_ID,
       zone_id: 'ZONE-TEST', language: 'si', qr_code_data: qrCodeData,
     });
 
