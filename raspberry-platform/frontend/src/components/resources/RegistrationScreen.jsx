@@ -309,6 +309,7 @@ function Field({ label, required, children, hint }) {
 function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error }) {
   const [errors, setErrors] = useState({});
   const [scanningQr, setScanningQr] = useState(false);
+  const [qrChecking, setQrChecking] = useState(false);
 
   const update = (field, value) => {
     setForm((f) => {
@@ -345,6 +346,30 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
     if (validate()) onSubmit();
   };
 
+  const verifyAndSetWristband = async (code) => {
+    setScanningQr(false);
+    if (!code) return;
+    setQrChecking(true);
+    try {
+      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API}/api/qr/${encodeURIComponent(code)}/lookup`);
+      const data = await res.json();
+      if (data.state === "available") {
+        update("wristband_qr", code);
+      } else if (data.state === "assigned") {
+        setErrors((e) => ({ ...e, wristband_qr: `Wristband already assigned to ${data.person?.full_name || "someone"}` }));
+      } else if (data.state === "inactive") {
+        setErrors((e) => ({ ...e, wristband_qr: "This wristband is inactive" }));
+      } else {
+        setErrors((e) => ({ ...e, wristband_qr: "QR code not recognized" }));
+      }
+    } catch {
+      setErrors((e) => ({ ...e, wristband_qr: "Failed to verify wristband" }));
+    } finally {
+      setQrChecking(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 pb-4 border-b" style={{ borderColor: COLORS.hairline }}>
@@ -376,7 +401,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
           >
             {scanningQr ? (
               <QRScanner
-                onScan={(val) => { update("wristband_qr", val); setScanningQr(false); }}
+                onScan={verifyAndSetWristband}
                 onCancel={() => setScanningQr(false)}
               />
             ) : (
@@ -387,13 +412,13 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
                   onChange={(e) => update("wristband_qr", e.target.value)}
                   className={inputClassBase}
                 />
-                <Button type="button" variant="secondary" onClick={() => setScanningQr(true)} className="shrink-0 px-3" aria-label="Scan QR">
+                <Button type="button" variant="secondary" onClick={() => { setErrors((e) => ({ ...e, wristband_qr: undefined })); setScanningQr(true); }} className="shrink-0 px-3" aria-label="Scan QR">
                   <Camera className="w-4 h-4" />
                 </Button>
                 {form.wristband_qr && (
                   <button
                     type="button"
-                    onClick={() => update("wristband_qr", "")}
+                    onClick={() => { update("wristband_qr", ""); setErrors((e) => ({ ...e, wristband_qr: undefined })); }}
                     aria-label="Clear QR"
                     className="shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center"
                     style={{ borderColor: COLORS.line, color: COLORS.muted }}
@@ -404,6 +429,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
               </div>
             )}
           </Field>
+          {errors.wristband_qr && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.wristband_qr}</p>}
         </div>
 
         <div className="col-span-2">
@@ -807,6 +833,7 @@ function RegistrationScreen() {
     if (!code) return;
     setQrCode(code);
     setStatusMessage("");
+    setRegError("");
     try {
       const res = await fetch(`${API}/api/qr/${encodeURIComponent(code)}/lookup`);
       const data = await res.json();
