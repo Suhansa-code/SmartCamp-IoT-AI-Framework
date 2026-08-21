@@ -1,4 +1,4 @@
-import { pagesDb, sqliteInsert, sqliteUpdate, sqliteRetrieve, sqliteGetLastChildId } from '../../config/database.js';
+import { pagesDb, sqliteInsert, sqliteUpdate, sqliteRetrieve, sqliteGetLastChildId, campDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { newId, todayDate, nowTime, nowISO, enqueue } from '../../utils/helpers.js';
@@ -14,11 +14,23 @@ function randomId() {
 
 export async function startSession(req, res, next) {
   try {
-    const { child_id, condition_label = 'A' } = req.body;
+    let { child_id, condition_label = 'A' } = req.body;
 
-    const childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [child_id]);
-    const child = childRows[0];
+    let childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [child_id]);
+    let child = childRows[0];
+
+    if (!child) {
+      const wristband = campDb.prepare(
+        'SELECT person_id FROM wristbands WHERE qr_identifier = ? OR barcode = ?'
+      ).get(child_id, child_id);
+      if (wristband && wristband.person_id) {
+        childRows = sqliteRetrieve('pages_children', undefined, 'res_id = ?', [String(wristband.person_id)]);
+        child = childRows[0];
+      }
+    }
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
+
+    const resolvedChildId = child.child_id;
 
     const sessionId = newId();
     const sessionDate = todayDate();
@@ -26,7 +38,7 @@ export async function startSession(req, res, next) {
     const condition = condition_label.toUpperCase();
 
     sqliteInsert('pages_sessions', {
-      session_id: sessionId, child_id, session_date: sessionDate,
+      session_id: sessionId, child_id: resolvedChildId, session_date: sessionDate,
       session_time: sessionTime, condition_label: condition,
       baseline_score_used: child.baseline_score, created_at: nowISO(),
     });
@@ -34,7 +46,7 @@ export async function startSession(req, res, next) {
     enqueue('pages_sessions', sessionId, 'INSERT');
 
     return res.status(201).json({
-      success: true, session_id: sessionId, child_id,
+      success: true, session_id: sessionId, child_id: resolvedChildId,
       grade: child.grade, language: child.language,
       session_number: child.total_sessions + 1,
       baseline_score: child.baseline_score,
