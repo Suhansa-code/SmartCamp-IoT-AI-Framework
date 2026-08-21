@@ -60,12 +60,12 @@ export default function PageHeader({ search, pendingCount, escalatedCount, onBel
         </Link> */}
         <div className="flex items-center">
           {/* ── Alert-page style title / subtitle ─────────────────── */}
-          <PageTitle
+          {/* <PageTitle
             title={title}
             // subtitle={refreshing ? "Refreshing live overview…" : "View resource usage and availability "}
             subtitle={subtitle}
             className="w-full"
-          />
+          /> */}
         </div>
 
         <div className="flex justify-end items-center w-full">{search && <SearchBar {...search} />}</div>

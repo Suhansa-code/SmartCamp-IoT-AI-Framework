@@ -1,19 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Users, MapPin, HeartHandshake, Gauge, ArrowLeft,
   Droplets, CloudRain, Wind, Cloud, Activity, ChevronRight,
 } from 'lucide-react'
-import { STATUS_META, statusColor, getCampById, CAMP_DETAIL, W, STATUS_COLOR } from '@/data/disaster.data'
+import { STATUS_META, statusColor, getCampById, CAMP_DETAIL, STATUS_COLOR } from '@/data/disaster.data'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import Button from '@/components/common/Button'
 import KpiCard from '@/components/dashboard/KpiCard'
 import MiniStat from '@/components/dashboard/MiniStat'
 import DashboardCard from '@/components/dashboard/DashboardCard'
-import { P } from '@/data/theme.data'
+import { useTheme } from '@/components/common/ThemeProvider'
 
 // Applies the global navigation rail + offsets content to the right of it.
 function WithRail({ children }) {
@@ -78,7 +78,7 @@ function buildFallbackCamp(campId) {
   }
 }
 
-function Chip({ children, color = P.muted, style }) {
+function Chip({ children, color = '#64748B', style }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -93,6 +93,7 @@ function Chip({ children, color = P.muted, style }) {
 export default function DisasterCampDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const { T } = useTheme()
   const [camp, setCamp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -147,7 +148,7 @@ export default function DisasterCampDetailPage() {
   const predictionError = camp?.prediction_error || ''
   const occupancy = camp ? Math.round((camp.displaced / camp.capacity) * 100) : 0
   const campElevation = Number.isFinite(Number(detail?.elev)) ? `${Math.round(Number(detail.elev))} m` : 'N/A'
-  const predictionTone = prediction ? getPredictionTone(prediction.probability, W) : W.t2
+  const predictionTone = prediction ? getPredictionTone(prediction.probability, W) : T.muted
 
   const [predLoading, setPredLoading] = useState(false)
   const [predResult, setPredResult] = useState(prediction)
@@ -155,6 +156,24 @@ export default function DisasterCampDetailPage() {
   const [waterLevelHistory, setWaterLevelHistory] = useState([])
   const [waterLevelLoading, setWaterLevelLoading] = useState(false)
   const [hoveredBarIndex, setHoveredBarIndex] = useState(null)
+
+  const W = useMemo(() => ({
+    mode: T.mode,
+    bg: T.card,
+    surface: T.card,
+    panel: T.card,
+    border: T.border,
+    borderHi: T.border,
+    t0: T.ink,
+    t1: T.inkSoft,
+    t2: T.muted,
+    t3: T.slate,
+    red: T.red,
+    orange: T.orange,
+    yellow: T.amber,
+    cyan: T.teal,
+    green: T.green,
+  }), [T])
 
   useEffect(() => {
     let active = true
@@ -314,25 +333,25 @@ export default function DisasterCampDetailPage() {
     return String(label).toLowerCase().includes(q) || String(value ?? '').toLowerCase().includes(q)
   }
 
-  const waterTone = detail ? (detail.wl > detail.alertL ? P.red : detail.wl > 0 ? P.amber : P.teal) : P.teal
+  const waterTone = detail ? (detail.wl > detail.alertL ? T.red : detail.wl > 0 ? T.amber : T.teal) : T.teal
 
   const kpis = camp ? [
     { label: 'Displaced', value: camp.displaced.toLocaleString(), color: '#F97316', icon: <Users size={16} />, pct: Math.min(100, Math.round((camp.displaced / camp.capacity) * 100)) },
-    { label: 'Capacity', value: camp.capacity.toLocaleString(), color: P.ink, icon: <MapPin size={16} />, pct: 100 },
-    { label: 'Occupancy', value: `${occupancy}%`, color: P.amber, icon: <Gauge size={16} />, pct: occupancy },
-    { label: 'Aid Coverage', value: `${camp.aid}%`, color: P.green, icon: <HeartHandshake size={16} />, pct: camp.aid },
+    { label: 'Capacity', value: camp.capacity.toLocaleString(), color: T.ink, icon: <MapPin size={16} />, pct: 100 },
+    { label: 'Occupancy', value: `${occupancy}%`, color: T.amber, icon: <Gauge size={16} />, pct: occupancy },
+    { label: 'Aid Coverage', value: `${camp.aid}%`, color: T.green, icon: <HeartHandshake size={16} />, pct: camp.aid },
   ] : []
 
   if (loading) {
     return (
       <WithRail>
-        <div style={{ minHeight: '100vh', background: P.panel, display: 'grid', placeItems: 'center', color: P.ink, fontFamily: "'Inter',sans-serif", padding: 24 }}>
+        <div style={{ minHeight: '100vh', background: T.panel, display: 'grid', placeItems: 'center', color: T.ink, fontFamily: "'Inter',sans-serif", padding: 24 }}>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           <div style={{  width: '100%', padding: 28, textAlign: 'center',}}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 48, height: 48, border: `4px solid ${P.border}`, borderTop: `4px solid ${P.teal}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <div style={{ width: 48, height: 48, border: `4px solid ${T.border}`, borderTop: `4px solid ${T.teal}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Loading camp details…</div>
-              <div style={{ color: P.muted, lineHeight: 1.6, marginBottom: 8, fontSize: 13 }}>Fetching latest camp data for {campId}</div>
+              <div style={{ color: T.muted, lineHeight: 1.6, marginBottom: 8, fontSize: 13 }}>Fetching latest camp data for {campId}</div>
             </div>
           </div>
         </div>
@@ -343,10 +362,10 @@ export default function DisasterCampDetailPage() {
   if (!camp) {
     return (
       <WithRail>
-        <div style={{ minHeight: '100vh', background: P.outer, display: 'grid', placeItems: 'center', color: P.ink, fontFamily: "'Inter',sans-serif", padding: 24 }}>
-          <div style={{ maxWidth: 560, width: '100%', border: `1px solid ${P.border}`, borderRadius: 20, padding: 28, background: P.panel, textAlign: 'center', boxShadow: '0 24px 60px rgba(20,30,40,0.12)' }}>
+        <div style={{ minHeight: '100vh', background: T.outer, display: 'grid', placeItems: 'center', color: T.ink, fontFamily: "'Inter',sans-serif", padding: 24 }}>
+          <div style={{ maxWidth: 560, width: '100%', border: `1px solid ${T.border}`, borderRadius: 20, padding: 28, background: T.panel, textAlign: 'center', boxShadow: '0 24px 60px rgba(20,30,40,0.12)' }}>
             <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Camp not found</div>
-            <div style={{ color: P.muted, lineHeight: 1.7, marginBottom: 18, fontSize: 14 }}>
+            <div style={{ color: T.muted, lineHeight: 1.7, marginBottom: 18, fontSize: 14 }}>
               {error || `The selected camp id is not available in the disaster dashboard data set.`}
             </div>
             <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>
@@ -360,12 +379,12 @@ export default function DisasterCampDetailPage() {
 
   return (
     <WithRail>
-      <div style={{ minHeight: '100vh', background: P.outer, fontFamily: "'Inter',sans-serif", color: P.ink }}>
+      <div style={{ minHeight: '100vh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink }}>
         <style>{`
           * { box-sizing: border-box; }
           ::-webkit-scrollbar { width: 6px; }
           ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb { background: ${P.border}; border-radius: 9999px; }
+          ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
           button:hover { opacity: 0.92; }
           @keyframes disPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
           .det-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
@@ -381,7 +400,7 @@ export default function DisasterCampDetailPage() {
         `}</style>
 
         <div className='header-wrapper'>
-          <main style={{ background: P.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <main style={{ background: T.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             <HeaderShell>
               <PageHeader
@@ -420,11 +439,11 @@ export default function DisasterCampDetailPage() {
                 >
                   <div style={{ position: 'relative' }}>
                     {hoveredBarIndex !== null && chartPoints[hoveredBarIndex] ? (
-                      <div style={{ position: 'absolute', top: 4, right: 8, padding: '6px 10px', borderRadius: 10, background: `${P.panelSoft}f2`, border: `1px solid ${P.border}`, fontSize: 9, color: P.ink, letterSpacing: '0.04em', zIndex: 2, boxShadow: '0 10px 24px rgba(20,30,40,0.14)' }}>
-                        <div style={{ fontSize: 8, color: P.muted, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Water level</div>
+                      <div style={{ position: 'absolute', top: 4, right: 8, padding: '6px 10px', borderRadius: 10, background: `${T.panelSoft}f2`, border: `1px solid ${T.border}`, fontSize: 9, color: T.ink, letterSpacing: '0.04em', zIndex: 2, boxShadow: '0 10px 24px rgba(20,30,40,0.14)' }}>
+                        <div style={{ fontSize: 8, color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Water level</div>
                         <div style={{ fontSize: 12, fontWeight: 800 }}>{chartPoints[hoveredBarIndex].value.toFixed(2)} m</div>
                         {chartPoints[hoveredBarIndex].timestamp ? (
-                          <div style={{ marginTop: 2, fontSize: 8, color: P.muted }}>{formatChartTimestamp(chartPoints[hoveredBarIndex].timestamp)}</div>
+                          <div style={{ marginTop: 2, fontSize: 8, color: T.muted }}>{formatChartTimestamp(chartPoints[hoveredBarIndex].timestamp)}</div>
                         ) : null}
                       </div>
                     ) : null}
@@ -432,21 +451,21 @@ export default function DisasterCampDetailPage() {
                       <svg viewBox="0 0 170 100" preserveAspectRatio="xMidYMid meet" style={{ width: 'calc(100% + 40px)', height: '100%', display: 'block', marginLeft: '-40px' }}>
                         <defs>
                           <linearGradient id="waterLevelArea" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={P.teal} stopOpacity="0.3" />
-                            <stop offset="100%" stopColor={P.teal} stopOpacity="0.02" />
+                            <stop offset="0%" stopColor={T.teal} stopOpacity="0.3" />
+                            <stop offset="100%" stopColor={T.teal} stopOpacity="0.02" />
                           </linearGradient>
                           <linearGradient id="waterLevelBar" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={P.teal} stopOpacity="0.9" />
+                            <stop offset="0%" stopColor={T.teal} stopOpacity="0.9" />
                             <stop offset="100%" stopColor="#F97316" stopOpacity="0.6" />
                           </linearGradient>
                         </defs>
 
                         {[0, 25, 50, 75, 100].map((lineY) => (
-                          <line key={lineY} x1="10" y1={lineY} x2="150" y2={lineY} stroke={P.border} strokeWidth="0.45" strokeDasharray="1.6 2.8" opacity="0.8" />
+                          <line key={lineY} x1="10" y1={lineY} x2="150" y2={lineY} stroke={T.border} strokeWidth="0.45" strokeDasharray="1.6 2.8" opacity="0.8" />
                         ))}
 
                         {thresholdY !== null ? (
-                          <line x1="10" y1={thresholdY} x2="150" y2={thresholdY} stroke={P.red} strokeWidth="0.7" strokeDasharray="3 2" opacity="0.8" />
+                          <line x1="10" y1={thresholdY} x2="150" y2={thresholdY} stroke={T.red} strokeWidth="0.7" strokeDasharray="3 2" opacity="0.8" />
                         ) : null}
 
                         {chartPoints.length > 1 ? (
@@ -467,7 +486,7 @@ export default function DisasterCampDetailPage() {
                         ))}
 
                         {chartPoints.length > 1 ? (
-                          <path d={chartLinePath} fill="none" stroke={P.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 2px ${P.teal}80)` }} />
+                          <path d={chartLinePath} fill="none" stroke={T.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 2px ${T.teal}80)` }} />
                         ) : null}
 
                         {chartPoints.map((point, index) => (
@@ -486,10 +505,10 @@ export default function DisasterCampDetailPage() {
                               cx={point.x}
                               cy={point.y}
                               r={hoveredBarIndex === index ? 2.6 : 2.15}
-                              fill={P.panel}
-                              stroke={index % 2 === 0 ? P.teal : '#F97316'}
+                              fill={T.panel}
+                              stroke={index % 2 === 0 ? T.teal : '#F97316'}
                               strokeWidth="1.4"
-                              style={{ cursor: 'pointer', filter: `drop-shadow(0 0 5px ${(index % 2 === 0 ? P.teal : '#F97316')}78)` }}
+                              style={{ cursor: 'pointer', filter: `drop-shadow(0 0 5px ${(index % 2 === 0 ? T.teal : '#F97316')}78)` }}
                               onMouseEnter={() => setHoveredBarIndex(index)}
                               onMouseLeave={() => setHoveredBarIndex(null)}
                             />
@@ -497,7 +516,7 @@ export default function DisasterCampDetailPage() {
                               cx={point.x}
                               cy={point.y}
                               r={hoveredBarIndex === index ? 0.9 : 0.75}
-                              fill={index % 2 === 0 ? P.teal : '#F97316'}
+                              fill={index % 2 === 0 ? T.teal : '#F97316'}
                               pointerEvents="none"
                             />
                             {index === chartPoints.length - 1 ? (
@@ -505,7 +524,7 @@ export default function DisasterCampDetailPage() {
                                 x={point.x}
                                 y={point.y - 4}
                                 textAnchor="middle"
-                                fill={P.teal}
+                                fill={T.teal}
                                 fontSize="4.8"
                                 fontWeight="800"
                                 letterSpacing="0.12em"
@@ -519,12 +538,12 @@ export default function DisasterCampDetailPage() {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${chartLabels.length}, minmax(0, 1fr))`, gap: 4, marginTop: 6, paddingLeft: 2, paddingRight: 2 }}>
                       {chartLabels.map((label, index) => (
-                        <div key={`${label}-${index}`} style={{ textAlign: 'center', fontSize: 8, color: index === chartLabels.length - 1 ? P.teal : P.muted, letterSpacing: '0.08em', fontWeight: index === chartLabels.length - 1 ? 800 : 600 }}>
+                        <div key={`${label}-${index}`} style={{ textAlign: 'center', fontSize: 8, color: index === chartLabels.length - 1 ? T.teal : T.muted, letterSpacing: '0.08em', fontWeight: index === chartLabels.length - 1 ? 800 : 600 }}>
                           {label}
                         </div>
                       ))}
                     </div>
-                    <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', color: P.muted, fontSize: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', color: T.muted, fontSize: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                       <span>{waterLevelLoading ? 'loading levels' : 'relative water trend'}</span>
                       <span>{detail?.station || 'gauging station'}</span>
                     </div>
@@ -532,33 +551,33 @@ export default function DisasterCampDetailPage() {
                 </DashboardCard>
 
                 {/* terrain reference image card */}
-                <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '1.25rem', border: `1px solid ${P.border}`, minHeight: 320, boxShadow: '0 18px 42px rgba(19,47,74,0.1)', display: 'flex', flexDirection: 'column' }}>
-                  <img src="/disaster/terrain-topography-light.png" alt="Terrain reference" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.72) 0%, rgba(15,23,42,0.25) 45%, rgba(15,23,42,0.08) 100%)' }} />
+                <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '1.25rem', border: `1px solid ${T.border}`, minHeight: 320, boxShadow: T.mode === 'dark' ? '0 18px 42px rgba(0,0,0,0.4)' : '0 18px 42px rgba(19,47,74,0.1)', display: 'flex', flexDirection: 'column' }}>
+                  <img src={T.mode === 'dark' ? '/disaster/terrain-topography-dark.png' : '/disaster/terrain-topography-light.png'} alt="Terrain reference" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: T.mode === 'dark' ? 'linear-gradient(180deg, rgba(3,8,15,0.78) 0%, rgba(3,8,15,0.35) 45%, rgba(3,8,15,0.12) 100%)' : 'linear-gradient(180deg, rgba(15,23,42,0.72) 0%, rgba(15,23,42,0.25) 45%, rgba(15,23,42,0.08) 100%)' }} />
                   <div style={{ position: 'relative', zIndex: 2, padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1 }}>
                     <div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: P.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 4 }}>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 4 }}>
                         Terrain reference
                       </div>
                       <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', lineHeight: 1.1 }}>Relief Operations Grid</div>
                       <div style={{ marginTop: 4, fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '0.05em', maxWidth: 300 }}>Terrain-topography alignment for the selected camp and live operational data.</div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <Chip color={P.lime} style={{ background: `${P.lime}22`, border: `1px solid ${P.lime}66` }}>{camp.code}</Chip>
+                      <Chip color={T.lime} style={{ background: `${T.lime}22`, border: `1px solid ${T.lime}66` }}>{camp.code}</Chip>
                       <Chip color={STATUS_COLOR[camp.status]}>{STATUS_META[camp.status]?.label}</Chip>
                     </div>
 
                     {/* alert profile */}
-                    <div style={{ marginTop: 'auto', padding: '0.7rem 0.85rem', borderRadius: 14, background: 'rgba(255,255,255,0.92)', border: `1px solid ${P.border}`, boxShadow: '0 12px 28px rgba(20,30,40,0.16)' }}>
+                    <div style={{ marginTop: 'auto', padding: '0.7rem 0.85rem', borderRadius: 14, background: T.mode === 'dark' ? 'rgba(19,19,22,0.92)' : 'rgba(255,255,255,0.92)', border: `1px solid ${T.border}`, boxShadow: '0 12px 28px rgba(20,30,40,0.16)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-                        <div style={{ fontSize: 8, color: P.muted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>Alert profile</div>
+                        <div style={{ fontSize: 8, color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>Alert profile</div>
                         <div style={{ fontSize: 8, color: STATUS_COLOR[camp.status], letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{STATUS_META[camp.status]?.label}</div>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, fontSize: 10, color: P.ink }}>
-                        <div style={{ padding: '7px 8px', borderRadius: 12, background: P.cardSoft, border: `1px solid ${P.border}` }}><div style={{ color: P.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Level</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.wl} m</div></div>
-                        <div style={{ padding: '7px 8px', borderRadius: 12, background: P.cardSoft, border: `1px solid ${P.border}` }}><div style={{ color: P.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Rainfall</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.rain} mm</div></div>
-                        <div style={{ padding: '7px 8px', borderRadius: 12, background: P.cardSoft, border: `1px solid ${P.border}` }}><div style={{ color: P.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Alert lvl</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.alertL} m</div></div>
-                        <div style={{ padding: '7px 8px', borderRadius: 12, background: P.cardSoft, border: `1px solid ${P.border}` }}><div style={{ color: P.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Major flood</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.majorL} m</div></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, fontSize: 10, color: T.ink }}>
+                        <div style={{ padding: '7px 8px', borderRadius: 12, background: T.cardSoft, border: `1px solid ${T.border}` }}><div style={{ color: T.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Level</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.wl} m</div></div>
+                        <div style={{ padding: '7px 8px', borderRadius: 12, background: T.cardSoft, border: `1px solid ${T.border}` }}><div style={{ color: T.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Rainfall</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.rain} mm</div></div>
+                        <div style={{ padding: '7px 8px', borderRadius: 12, background: T.cardSoft, border: `1px solid ${T.border}` }}><div style={{ color: T.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Alert lvl</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.alertL} m</div></div>
+                        <div style={{ padding: '7px 8px', borderRadius: 12, background: T.cardSoft, border: `1px solid ${T.border}` }}><div style={{ color: T.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Major flood</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.majorL} m</div></div>
                       </div>
                     </div>
                   </div>
@@ -571,19 +590,19 @@ export default function DisasterCampDetailPage() {
                   <Section title="Camp snapshot" theme={W}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, height: '100%' }}>
                       {detailMatch('Displaced', camp.displaced.toLocaleString()) && <InfoCard label="Displaced" value={camp.displaced.toLocaleString()} tone="#F97316" theme={W} style={{ height: '100%' }} />}
-                      {detailMatch('Capacity', camp.capacity.toLocaleString()) && <InfoCard label="Capacity" value={camp.capacity.toLocaleString()} tone={P.ink} theme={W} style={{ height: '100%' }} />}
-                      {detailMatch('Occupancy', `${occupancy}%`) && <InfoCard label="Occupancy" value={`${occupancy}%`} tone={P.amber} theme={W} style={{ height: '100%' }} />}
-                      {detailMatch('Aid coverage', `${camp.aid}%`) && <InfoCard label="Aid coverage" value={`${camp.aid}%`} tone={P.green} theme={W} style={{ height: '100%' }} />}
+                      {detailMatch('Capacity', camp.capacity.toLocaleString()) && <InfoCard label="Capacity" value={camp.capacity.toLocaleString()} tone={T.ink} theme={W} style={{ height: '100%' }} />}
+                      {detailMatch('Occupancy', `${occupancy}%`) && <InfoCard label="Occupancy" value={`${occupancy}%`} tone={T.amber} theme={W} style={{ height: '100%' }} />}
+                      {detailMatch('Aid coverage', `${camp.aid}%`) && <InfoCard label="Aid coverage" value={`${camp.aid}%`} tone={T.green} theme={W} style={{ height: '100%' }} />}
                     </div>
                   </Section>
 
                   <Section title="Camp details" theme={W}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {detailMatch('Camp code', camp.code) && <Row label="Camp code" value={camp.code} tone={P.ink} theme={W} />}
-                      {detailMatch('Disaster type', camp.type) && <Row label="Disaster type" value={camp.type} tone={P.ink} theme={W} />}
-                      {detailMatch('Camp elevation', campElevation) && <Row label="Camp elevation" value={campElevation} tone={P.teal} theme={W} />}
-                      {detailMatch('Workers', camp.workers) && <Row label="Workers" value={camp.workers} tone={P.teal} theme={W} />}
-                      {detailMatch('Location', `${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`) && <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={P.ink} theme={W} />}
+                      {detailMatch('Camp code', camp.code) && <Row label="Camp code" value={camp.code} tone={T.ink} theme={W} />}
+                      {detailMatch('Disaster type', camp.type) && <Row label="Disaster type" value={camp.type} tone={T.ink} theme={W} />}
+                      {detailMatch('Camp elevation', campElevation) && <Row label="Camp elevation" value={campElevation} tone={T.teal} theme={W} />}
+                      {detailMatch('Workers', camp.workers) && <Row label="Workers" value={camp.workers} tone={T.teal} theme={W} />}
+                      {detailMatch('Location', `${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`) && <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={T.ink} theme={W} />}
                     </div>
                   </Section>
                 </div>
@@ -591,9 +610,9 @@ export default function DisasterCampDetailPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <Section title="Hydrology details" theme={W} compact>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, height: '100%' }}>
-                      <InfoCard label="Gauge lat" value={`${detail.gauLat.toFixed(4)}°`} tone={P.teal} theme={W} style={{ height: '100%' }} />
-                      <InfoCard label="Gauge lng" value={`${detail.gauLng.toFixed(4)}°`} tone={P.teal} theme={W} style={{ height: '100%' }} />
-                      <InfoCard label="Upstream" value={`${detail.upDist.toFixed(0)} m`} tone={P.ink} theme={W} style={{ height: '100%' }} />
+                      <InfoCard label="Gauge lat" value={`${detail.gauLat.toFixed(4)}°`} tone={T.teal} theme={W} style={{ height: '100%' }} />
+                      <InfoCard label="Gauge lng" value={`${detail.gauLng.toFixed(4)}°`} tone={T.teal} theme={W} style={{ height: '100%' }} />
+                      <InfoCard label="Upstream" value={`${detail.upDist.toFixed(0)} m`} tone={T.ink} theme={W} style={{ height: '100%' }} />
                       <InfoCard label="Minor flood" value={`${detail.minorL} m`} tone="#F97316" theme={W} style={{ height: '100%' }} />
                     </div>
                   </Section>
@@ -601,9 +620,9 @@ export default function DisasterCampDetailPage() {
                   <Section title="Operational summary" theme={W} compact>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, height: '100%' }}>
                       <InfoCard label="Precip (24h)" value={`${detail.precip.toFixed(1)} mm`} tone="#F97316" theme={W} compact style={{ height: '100%', padding: 16 }} />
-                      <InfoCard label="Peak hour" value={`${detail.maxHrPrec} mm`} tone={P.amber} theme={W} compact style={{ height: '100%', padding: 16 }} />
-                      <InfoCard label="Max wind" value={`${detail.maxWind} km/h`} tone={P.ink} theme={W} compact style={{ height: '100%', padding: 16 }} />
-                      <InfoCard label="Cloud cover" value={`${detail.cloud}%`} tone={P.inkSoft} theme={W} compact style={{ height: '100%', padding: 16 }} />
+                      <InfoCard label="Peak hour" value={`${detail.maxHrPrec} mm`} tone={T.amber} theme={W} compact style={{ height: '100%', padding: 16 }} />
+                      <InfoCard label="Max wind" value={`${detail.maxWind} km/h`} tone={T.ink} theme={W} compact style={{ height: '100%', padding: 16 }} />
+                      <InfoCard label="Cloud cover" value={`${detail.cloud}%`} tone={T.inkSoft} theme={W} compact style={{ height: '100%', padding: 16 }} />
                     </div>
                   </Section>
 
@@ -615,25 +634,25 @@ export default function DisasterCampDetailPage() {
                         <InfoCard label="Category" value={predResult.category} tone={predictionTone} theme={W} style={{ height: '100%' }} />
                         <InfoCard label="Probability" value={`${Math.round(predResult.probability * 100)}%`} tone={predictionTone} theme={W} style={{ height: '100%' }} />
                       </div>
-                      <div style={{ border: `1px solid ${P.border}`, borderRadius: 14, padding: 12, background: P.cardSoft, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+                      <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, padding: 12, background: T.cardSoft, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-                            <div style={{ fontSize: 9, color: P.muted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Future forecast</div>
+                            <div style={{ fontSize: 9, color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Future forecast</div>
                             <div style={{ fontSize: 9, color: predictionTone, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{predResult.future_forecast?.category || 'UNKNOWN'}</div>
                           </div>
-                          <div style={{ height: 10, borderRadius: 999, background: `${P.border}`, overflow: 'hidden' }}>
+                          <div style={{ height: 10, borderRadius: 999, background: `${T.border}`, overflow: 'hidden' }}>
                             <div style={{ width: `${Math.round((predResult.future_forecast?.probability || 0) * 100)}%`, height: '100%', background: predictionTone }} />
                           </div>
                         </div>
-                        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: P.inkSoft }}>
+                        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: T.inkSoft }}>
                           <span>Forecast chance</span>
                           <strong style={{ color: predictionTone }}>{Math.round((predResult.future_forecast?.probability || 0) * 100)}%</strong>
                         </div>
-                        <div style={{ marginTop: 8, fontSize: 11, color: P.muted, lineHeight: 1.6 }}>Source: {predResult.source}</div>
+                        <div style={{ marginTop: 8, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>Source: {predResult.source}</div>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ border: `1px solid ${P.border}`, borderRadius: 14, padding: 12, background: P.cardSoft, color: P.muted, fontSize: 11, lineHeight: 1.6, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, padding: 12, background: T.cardSoft, color: T.muted, fontSize: 11, lineHeight: 1.6, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <div>
                         <div>Model output is unavailable for this camp.</div>
                         {predError ? <div style={{ marginTop: 6, color: '#F97316' }}>{predError}</div> : null}
@@ -647,11 +666,11 @@ export default function DisasterCampDetailPage() {
               {/* ── bottom metric strip ────────────────────────────────── */}
               <div className="det-strip">
                 <MiniStat label="Water Level" value={`${Number(detail?.wl).toFixed(2)} m`} icon={<Droplets size={12} />} color={waterTone} sub="Gauging station" />
-                <MiniStat label="Rainfall" value={`${detail.rain} mm`} icon={<CloudRain size={12} />} color={detail.rain > 20 ? P.red : detail.rain > 5 ? P.amber : P.teal} sub="Last 24h" />
-                <MiniStat label="Humidity" value={`${detail.hum}%`} icon={<Cloud size={12} />} color={P.teal} sub="Ambient" />
-                <MiniStat label="Pressure" value={`${detail.pres} hPa`} icon={<Activity size={12} />} color={P.ink} sub="Station" />
+                <MiniStat label="Rainfall" value={`${detail.rain} mm`} icon={<CloudRain size={12} />} color={detail.rain > 20 ? T.red : detail.rain > 5 ? T.amber : T.teal} sub="Last 24h" />
+                <MiniStat label="Humidity" value={`${detail.hum}%`} icon={<Cloud size={12} />} color={T.teal} sub="Ambient" />
+                <MiniStat label="Pressure" value={`${detail.pres} hPa`} icon={<Activity size={12} />} color={T.ink} sub="Station" />
                 <MiniStat label="Precip (24h)" value={`${detail.precip.toFixed(1)} mm`} icon={<CloudRain size={12} />} color="#F97316" sub="Accumulated" />
-                <MiniStat label="Responders" value={String(camp.workers)} icon={<Users size={12} />} color={P.purple} sub="Deployed" />
+                <MiniStat label="Responders" value={String(camp.workers)} icon={<Users size={12} />} color={T.purple} sub="Deployed" />
               </div>
 
               {/* ── footer ──────────────────────────────────────────────── */}
