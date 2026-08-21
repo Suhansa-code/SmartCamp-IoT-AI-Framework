@@ -12,7 +12,6 @@ import MiniStat from '@/components/dashboard/MiniStat'
 import ProgressBar from '@/components/dashboard/ProgressBar'
 import StatusDonut from '@/components/dashboard/StatusDonut'
 import ArrowChip from '@/components/alert/ArrowChip'
-import { P } from '@/data/theme.data'
 import { MOCK_CAMPS, MOCK_EDUCATION, MOCK_RESOURCES, MOCK_DISASTER, DISASTER_MATCH, CAMP_STATUS, DIS_STATUS } from '@/data/dashboard.data'
 import { Droplets, Users, BookOpen, Bell, Radio, Tent, CalendarCheck, HeartHandshake } from 'lucide-react'
 
@@ -193,7 +192,7 @@ export default function DashboardPage() {
 
       <div style={{
         minHeight: '100svh',
-        background: dark ? 'linear-gradient(180deg, #0A0A0B 0%, #0E0E10 100%)' : P.outer,
+        background: dark ? 'linear-gradient(180deg, #0A0A0B 0%, #0E0E10 100%)' : T.outer,
         fontFamily: "'Inter', sans-serif",
         paddingLeft: 'var(--rail-width, 236px)',
         transition: 'padding-left 0.2s ease',
@@ -203,7 +202,7 @@ export default function DashboardPage() {
 <div className='header-wrapper'>
 
 
-        <main style={{background: dark ? T.bg : P.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <main style={{background: dark ? T.bg : T.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
                   <HeaderShell>
           <PageHeader
