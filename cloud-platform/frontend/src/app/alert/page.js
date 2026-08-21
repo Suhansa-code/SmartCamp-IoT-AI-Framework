@@ -421,25 +421,26 @@ export default function AlertsPage() {
                 <div
                   onClick={() => mostCritical && viewAlert(mostCritical.id)}
                   style={{
-                    background: `linear-gradient(155deg, ${T.textPrimary} 0%, ${T.bgDeep} 100%)`,
+                    background: T.mode === 'dark'
+                      ? `linear-gradient(155deg, #F8FAFC 0%, #E2E8F0 100%)`
+                      : `linear-gradient(155deg, #0F172A 0%, #1E293B 100%)`,
                     borderRadius: "1.25rem",
                     padding: "1.1rem 1.25rem",
-                    color: T.bg,
+                    color: T.mode === 'dark' ? '#0F172A' : '#fff',
                     cursor: mostCritical ? "pointer" : "default",
                     display: "flex",
                     flexDirection: "column",
                     gap: "0.5rem",
-                    border: `1px solid ${T.border}`,
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: `${T.bg}aa` }}>Most Critical</p>
-                    <ArrowChip dark={T.mode === 'dark'} />
+                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: T.mode === 'dark' ? '#475569' : "rgba(255,255,255,0.65)" }}>Most Critical</p>
+                    <ArrowChip dark={T.mode === 'light'} />
                   </div>
                   {mostCritical ? (
                     <>
                       <p style={{ fontSize: "1.15rem", fontWeight: 800 }}>{mostCritical.childId}</p>
-                      <p style={{ fontSize: "0.76rem", color: `${T.bg}bb` }}>{mostCritical.alertType}</p>
+                      <p style={{ fontSize: "0.76rem", color: T.mode === 'dark' ? '#64748B' : "rgba(255,255,255,0.7)" }}>{mostCritical.alertType}</p>
                     </>
                   ) : (
                     <p style={{ fontSize: "0.95rem", fontWeight: 700 }}>No Recodes</p>
