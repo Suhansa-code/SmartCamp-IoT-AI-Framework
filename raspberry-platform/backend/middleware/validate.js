@@ -5,9 +5,8 @@ export function validateEnrol(req, res, next) {
   if (!res_id || typeof res_id !== 'string' || !res_id.trim()) {
     return next(createError(400, 'res_id is required'));
   }
-  const g = Number(grade);
-  if (isNaN(g) || g < 1 || g > 13) {
-    return next(createError(400, 'grade must be 1–13'));
+  if (!grade && grade !== 0) {
+    return next(createError(400, 'grade is required'));
   }
   if (language && !['si', 'ta', 'en'].includes(language)) {
     return next(createError(400, 'language must be si, ta, or en'));
