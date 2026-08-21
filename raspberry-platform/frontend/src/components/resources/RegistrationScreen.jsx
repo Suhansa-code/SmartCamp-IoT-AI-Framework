@@ -895,6 +895,12 @@ function RegistrationScreen() {
       setScanState("success");
       addToast("Check-in successful", "success");
       fetchPersons();
+
+      try {
+        const qrRes = await fetch(`${API}/api/register/${profile.id}/qrcode`);
+        const qrPayload = await qrRes.json();
+        if (qrRes.ok && qrPayload.data_url) setQrData(qrPayload);
+      } catch {}
     } catch (err) {
       setStatusMessage("Check-in failed: " + err.message);
       setScanState("found");
@@ -928,6 +934,12 @@ function RegistrationScreen() {
       setScanState("success");
       addToast(`${data.person.full_name} registered successfully`, "success");
       fetchPersons();
+
+      try {
+        const qrRes = await fetch(`${API}/api/register/${data.person.id}/qrcode`);
+        const qrPayload = await qrRes.json();
+        if (qrRes.ok && qrPayload.data_url) setQrData(qrPayload);
+      } catch {}
     } catch (err) {
       const msg = "Registration failed: " + err.message;
       setRegError(msg);
@@ -1160,7 +1172,14 @@ function RegistrationScreen() {
                       <p className="text-[12px] sm:text-[13px] mt-1.5 sm:mt-2 px-3 sm:px-5 py-2 rounded-lg border font-medium" style={{ color: COLORS.brand, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>{statusMessage}</p>
                     </div>
 
-                    {wristband && <div className="scale-90 sm:scale-100 origin-top"><Barcode value={wristband} /></div>}
+                    {qrData && qrData.data_url ? (
+                      <div className="scale-90 sm:scale-100 origin-top flex flex-col items-center">
+                        <img src={qrData.data_url} alt="Wristband QR" className="w-40 h-40 sm:w-48 sm:h-48" />
+                        <p className="mt-2 text-[11px] font-mono font-semibold tracking-wide" style={{ color: COLORS.ink }}>{qrData.qr_identifier}</p>
+                      </div>
+                    ) : wristband ? (
+                      <div className="text-[12px] font-mono font-medium px-3 py-2 rounded-lg border" style={{ color: COLORS.ink, borderColor: COLORS.line }}>{wristband}</div>
+                    ) : null}
 
                     {profile && (
                       <p className="text-[11px] sm:text-[12px]" style={{ color: COLORS.muted }}>Registered: <span className="font-semibold" style={{ color: COLORS.ink }}>{profile.full_name}</span></p>
