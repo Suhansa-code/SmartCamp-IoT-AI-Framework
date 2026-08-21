@@ -1,14 +1,16 @@
 'use client'
 
-import { C } from './theme'
+import { useTheme } from './ThemeProvider'
 
-// Loading skeleton card used by the alerts + welfare dashboards.
+// Loading skeleton card used by the alerts dashboard.
 export default function SkeletonCard() {
+  const { T } = useTheme()
   return (
     <div style={{
-      background: C.navyCard,
+      background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
       borderRadius: '1rem',
-      borderLeft: `6px solid ${C.border}`,
+      border: `1px solid ${T.border}`,
+      borderLeft: `6px solid ${T.border}`,
       padding: '1.25rem',
       display: 'flex',
       flexDirection: 'column',
@@ -18,7 +20,7 @@ export default function SkeletonCard() {
         <div key={i} style={{
           height: i === 3 ? 52 : 14,
           width: `${Math.min(100, (w / 2))}%`,
-          background: C.navyLight,
+          background: T.navyLight,
           borderRadius: '9999px',
           animation: 'skeletonPulse 1.5s ease-in-out infinite',
           animationDelay: `${i * 0.15}s`,

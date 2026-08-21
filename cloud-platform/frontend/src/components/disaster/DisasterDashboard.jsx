@@ -1,122 +1,89 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { DONUT_SEGS, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA } from './disasterData'
+import {
+  Users, HeartHandshake, TriangleAlert, MapPin, ChevronRight, X,
+  Droplets, Radio, ShieldAlert, Crosshair, ChevronDown,
+} from 'lucide-react'
+import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS, ALERTS } from '@/data/disaster.data'
 import { DisasterGeoMap } from './DisasterGeoMap'
-import { DisasterCampSummaryPanel } from './DisasterCampSummaryPanel'
-import { DonutChart, Ring, Sparkline, ThemeToggle, TrendChart } from './DisasterVisuals'
+import { Ring, Sparkline, TrendChart } from './DisasterVisuals'
 import SideNav from '@/components/common/SideNav'
+import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
+import Button from '@/components/common/Button'
+import MiniStat from '@/components/dashboard/MiniStat'
+import DashboardCard from '@/components/dashboard/DashboardCard'
+import StatusDonut from '@/components/dashboard/StatusDonut'
+import ArrowChip from '@/components/alert/ArrowChip'
+import FilterPills from '@/components/alert/FilterPills'
+import { useTheme } from '@/components/common/ThemeProvider'
 
-const DARK = {
-  mode: 'dark',
-  bg: '#03080f',
-  surface: '#06101a',
-  panel: '#070e19',
-  border: '#0e2030',
-  borderHi: '#163448',
-  t0: '#e2edf7',
-  t1: '#93b7d2',
-  t2: '#6790aa',
-  t3: '#35556d',
-  red: '#ef4444',
-  orange: '#f97316',
-  yellow: '#eab308',
-  cyan: '#22d3ee',
-  green: '#4ade80',
-  mapBg: '#030c18',
-  mapLand: '#0d2236',
-  mapBorder: '#1a4060',
-  mapGrid: '#07182a',
-}
-
-const LIGHT = {
-  mode: 'light',
-  bg: '#eef4f8',
-  surface: '#ffffff',
-  panel: '#f8fbfe',
-  border: '#d3dde7',
-  borderHi: '#b3c6d5',
-  t0: '#0f2336',
-  t1: '#284b67',
-  t2: '#5f7f94',
-  t3: '#91a9ba',
-  red: '#dc2626',
-  orange: '#ea6a0a',
-  yellow: '#ca8a04',
-  cyan: '#0891b2',
-  green: '#16a34a',
-  mapBg: '#ddeaf5',
-  mapLand: '#b8d4e8',
-  mapBorder: '#6090b0',
-  mapGrid: '#c8daea',
-}
-
-function compactStatusLabel(status) {
-  return { critical: 'Critical', high: 'High', medium: 'Medium', stable: 'Stable', recovery: 'Recovery' }[status] || 'Unknown'
-}
-
+// Map themes — the relief image follows the app's light/dark mode.
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
 
-function formatSriLankaTime(date = new Date()) {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Colombo',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(date)
+function Chip({ children, color = '#64748B', style }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '2px 9px', borderRadius: 999, fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.06em',
+      background: `${color}1a`, border: `1px solid ${color}44`, color, whiteSpace: 'nowrap', ...style,
+    }}>
+      {children}
+    </span>
+  )
 }
 
 export default function DisasterDashboard() {
   const router = useRouter()
-  const [mode, setMode] = useState('dark')
+  const { mode, T } = useTheme()
   const [selected, setSelected] = useState(null)
   const [overview, setOverview] = useState(null)
   const [selectedDetail, setSelectedDetail] = useState(null)
   const [selectedDetailLoading, setSelectedDetailLoading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
-  const [utc, setUtc] = useState('')
   const [tick, setTick] = useState(0)
-  const theme = mode === 'dark' ? DARK : LIGHT
+  const [search, setSearch] = useState('')
+  const [showAllCamps, setShowAllCamps] = useState(false)
+  const [campFilter, setCampFilter] = useState('all')
+  const [campQuery, setCampQuery] = useState('')
+
+  const dark = mode === 'dark'
+  const MAP_THEME = dark ? MAP_DARK : MAP_LIGHT
+  const hudInk = dark ? '#f0f7ff' : '#0f2336'
+  const hudMuted = dark ? 'rgba(214,235,250,0.72)' : 'rgba(47,84,112,0.75)'
+  const hudFaint = dark ? 'rgba(214,235,250,0.5)' : 'rgba(60,100,130,0.6)'
+  const hudCardBg = dark ? 'rgba(4,10,17,0.72)' : 'rgba(255,255,255,0.85)'
+  const hudCardBorder = dark ? 'rgba(255,255,255,0.1)' : 'rgba(60,110,150,0.18)'
+
+  const loadOverview = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`${DISASTER_API_BASE}/api/disaster/overview`)
+      const payload = res.ok ? await res.json() : null
+      setOverview(payload)
+    } catch (err) {
+      setOverview(null)
+      setError(err instanceof Error ? err.message : 'Failed to load disaster overview')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
 
   useEffect(() => {
-    setUtc(formatSriLankaTime())
     const id = setInterval(() => {
-      setUtc(formatSriLankaTime())
       setTick((value) => value + 1)
     }, 1000)
     return () => clearInterval(id)
   }, [])
 
   useEffect(() => {
-    let active = true
-
-    async function loadOverview() {
-      setLoading(true)
-      setError('')
-
-      try {
-        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/overview`)
-        const payload = res.ok ? await res.json() : null
-        if (!active) return
-        setOverview(payload)
-      } catch (err) {
-        if (!active) return
-        setOverview(null)
-        setError(err instanceof Error ? err.message : 'Failed to load disaster overview')
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
     loadOverview()
-
-    return () => {
-      active = false
-    }
-  }, [])
+  }, [loadOverview])
 
   useEffect(() => {
     let active = true
@@ -128,18 +95,20 @@ export default function DisasterDashboard() {
         return
       }
 
-      // show loading state for the selected camp card
       setSelectedDetail(null)
       setSelectedDetailLoading(true)
 
       try {
-        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${selected}`)
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 6000)
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${selected}`, { signal: controller.signal })
+        clearTimeout(timer)
         const camp = res.ok ? await res.json() : null
         if (!active) return
-        setSelectedDetail(camp?.detail || null)
+        setSelectedDetail(camp?.detail || CAMP_DETAIL[selected] || null)
       } catch {
         if (!active) return
-        setSelectedDetail(null)
+        setSelectedDetail(CAMP_DETAIL[selected] || null)
       } finally {
         if (active) setSelectedDetailLoading(false)
       }
@@ -152,8 +121,35 @@ export default function DisasterDashboard() {
     }
   }, [selected])
 
-  const camps = overview?.camps || []
+  const camps = (overview?.camps && overview.camps.length ? overview.camps : CAMPS)
   const mapNodes = overview?.map_nodes || camps
+  const filteredCamps = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return camps
+    return camps.filter((camp) =>
+      camp.name.toLowerCase().includes(q)
+      || camp.code.toLowerCase().includes(q)
+      || camp.type.toLowerCase().includes(q),
+    )
+  }, [camps, search])
+  const criticalCamps = useMemo(() => camps.filter((camp) => camp.status === 'critical'), [camps])
+  const modalCamps = useMemo(() => {
+    const q = campQuery.trim().toLowerCase()
+    return camps.filter((camp) => {
+      if (campFilter !== 'all' && camp.status !== campFilter) return false
+      if (!q) return true
+      return camp.name.toLowerCase().includes(q)
+        || camp.code.toLowerCase().includes(q)
+        || camp.type.toLowerCase().includes(q)
+    })
+  }, [camps, campFilter, campQuery])
+  const filterCounts = useMemo(() => {
+    const counts = { all: camps.length }
+    FILTER_OPTIONS.slice(1).forEach(({ key }) => {
+      counts[key] = camps.filter((camp) => camp.status === key).length
+    })
+    return counts
+  }, [camps])
   const selectedCamp = useMemo(() => camps.find((camp) => camp.id === selected) || null, [camps, selected])
   const totalDisplaced = overview?.total_displaced || camps.reduce((sum, camp) => sum + camp.displaced, 0)
   const totalWorkers = overview?.total_workers || camps.reduce((sum, camp) => sum + camp.workers, 0)
@@ -165,222 +161,494 @@ export default function DisasterDashboard() {
     recovery: camps.filter((camp) => camp.status === 'recovery').length,
   }
 
-  const handleNavigate = () => {
-    if (!selectedCamp) return
-    router.push(`/disaster/${selectedCamp.id}`)
-  }
+  const donutSegs = [
+    { color: T.red, value: statusCounts.critical || 0 },
+    { color: '#F97316', value: statusCounts.high || 0 },
+    { color: T.amber, value: statusCounts.medium || 0 },
+    { color: T.teal, value: statusCounts.stable || 0 },
+    { color: T.green, value: statusCounts.recovery || 0 },
+  ]
+
+  const selColor = selectedCamp ? STATUS_COLOR[selectedCamp.status] : T.teal
+  const selOccupancy = selectedCamp ? Math.round((selectedCamp.displaced / selectedCamp.capacity) * 100) : 0
 
   return (
-    <div style={{ minHeight: '100vh', background: theme.bg, padding: 18, paddingLeft: 'calc(var(--rail-width, 236px) + 18px)', transition: 'background 0.3s, padding-left 0.2s ease', fontFamily: "'Inter','Segoe UI',sans-serif" }}>
-      <SideNav />
-      <div style={{ width: '100%', background: theme.surface, border: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 36px)', boxShadow: mode === 'dark' ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px #0c1d2e inset' : '0 18px 44px rgba(19,47,74,0.12)', transition: 'all 0.3s' }}>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          ::-webkit-scrollbar { width: 6px; }
-          ::-webkit-scrollbar-track { background: ${theme.bg}; }
-          ::-webkit-scrollbar-thumb { background: ${theme.border}; border-radius: 9999px; }
-          button:hover { opacity: 0.9; }
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
+    <>
+      <style>{`
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
+        @keyframes disPulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+        @keyframes disSpin { to { transform: rotate(360deg); } }
+        @keyframes disGlow { 0%,100%{opacity:0.5; transform: translate(-50%,-50%) scale(1);} 50%{opacity:0.9; transform: translate(-50%,-50%) scale(1.12);} }
+        @keyframes disRise { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+        @keyframes disPop { from { opacity:0; transform: translateY(14px) scale(0.98); } to { opacity:1; transform: translateY(0) scale(1); } }
 
-        <header style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, padding: '12px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: theme.red, boxShadow: `0 0 10px ${theme.red}80`, animation: 'blink 1.1s infinite' }} />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', color: theme.t0 }}>DISASTER CAMP TRACKING SYSTEM</div>
-              <div style={{ marginTop: 4, fontSize: 10, letterSpacing: '0.16em', color: theme.t2 }}>SRI LANKA REGION · DMCS-01</div>
-            </div>
-          </div>
+        /* ── hero: map left · right side panel ── */
+        .dis-hero-grid { display: grid; grid-template-columns: minmax(0,1fr) clamp(320px, 26vw, 380px); gap: 1rem; align-items: stretch; }
+        .map-col { position: relative; overflow: hidden; border-radius: 1.75rem;
+          border: 1px solid rgba(80,140,190,0.22);
+          background: #030c18; min-height: 640px; }
+        .map-scrim { position:absolute; inset:0; pointer-events:none; border-radius: inherit; z-index: 5; }
+        .map-canvas-wrap { position: absolute; inset: 0; }
+        .hero-glow { position:absolute; top:50%; left:50%; width: 62%; height: 90%; border-radius:50%;
+          background: radial-gradient(circle, rgba(34,211,238,0.16) 0%, rgba(34,211,238,0.05) 45%, transparent 70%);
+          animation: disGlow 6s ease-in-out infinite; pointer-events:none; }
 
-          <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[
-              { label: 'TOTAL CAMPS', value: loading ? '—' : String(camps.length), color: theme.t0 },
-              { label: 'DISPLACED', value: totalDisplaced.toLocaleString(), color: theme.orange },
-              { label: 'AID WORKERS', value: totalWorkers.toLocaleString(), color: theme.cyan },
-              { label: 'COVERAGE', value: '89%', color: theme.green },
-              { label: 'CRITICAL', value: String(statusCounts.critical || 0), color: theme.red },
-            ].map((item) => (
-              <div key={item.label} style={{ textAlign: 'center', minWidth: 76 }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: item.color, lineHeight: 1.1 }}>{item.value}</div>
-                <div style={{ marginTop: 4, fontSize: 9, color: theme.t2, letterSpacing: '0.16em' }}>{item.label}</div>
-              </div>
-            ))}
-          </div>
+        .hud { position: absolute; z-index: 13; pointer-events: none; }
+        .hud-interactive { pointer-events: auto; }
+        .hud-title { top: 25px; left: 58px; max-width: 420px; animation: disRise 0.6s ease both; }
+        .hud-live { top: 30px; right: 16px; display: flex; align-items: center; gap: 8px; animation: disRise 0.6s 0.08s ease both; }
+        .hud-legend { bottom: 10px; right: 16px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; animation: disRise 0.6s 0.16s ease both; }
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ color: tick % 2 === 0 ? theme.t1 : theme.t3 }}>●</span>
-              LIVE LK {utc}
-            </div>
-            <ThemeToggle mode={mode} onToggle={() => setMode((value) => value === 'dark' ? 'light' : 'dark')} theme={theme} />
-          </div>
-        </header>
+        .rings-dock { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 12; animation: disRise 0.6s 0.2s ease both; }
 
-        <div className="disaster-grid" style={{ display: 'grid', flex: 1, minHeight: 720 }}>
-          <aside style={{ borderRight: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
-              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>ACTIVE CAMPS</div>
-              <div style={{ maxHeight: 284, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${theme.border} ${theme.bg}` }}>
-                {camps.map((camp) => {
-                  const isSelected = selected === camp.id
-                  const color = { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[camp.status]
+        .dis-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .dis-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.9rem; }
 
-                  return (
-                    <button key={camp.id} onClick={() => setSelected(camp.id === selected ? null : camp.id)} style={{ width: '100%', textAlign: 'left', padding: '10px 10px 10px 8px', background: isSelected ? `${color}10` : 'transparent', border: 'none', borderLeft: `3px solid ${isSelected ? color : 'transparent'}`, borderBottom: `1px solid ${theme.border}20`, cursor: 'pointer' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                        <div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: isSelected ? theme.t0 : theme.t1, lineHeight: 1.3 }}>{camp.name}</div>
-                          <div style={{ marginTop: 3, fontSize: 9, color: theme.t2, letterSpacing: '0.08em' }}>{camp.code} · {camp.type}</div>
+        /* ── right side panel ── */
+        .right-panel { display: flex; flex-direction: column; overflow: hidden; background: ${T.card};
+          border: 1px solid ${T.border}; border-radius: 1.75rem; box-shadow: 0 30px 70px rgba(20,30,40,0.12); }
+        .right-section { display: flex; flex-direction: column; min-height: 0; }
+        .right-head { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; border-bottom: 1px solid ${T.border}; flex-shrink: 0; }
+        .right-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: ${T.border} transparent; }
+
+        .camp-row { width:100%; text-align:left; display:flex; align-items:center; gap:10px; padding: 0.62rem 0.9rem; cursor:pointer; font-family:inherit;
+          background: transparent; border: none; border-bottom: 1px solid ${T.border}; transition: background 0.15s ease; }
+        .camp-row:hover { background: ${T.cardSoft}; }
+
+        /* ── all camps modal ── */
+        .modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,0.55); backdrop-filter: blur(6px);
+          display: flex; align-items: center; justify-content: center; padding: 1.25rem; animation: disPop 0.22s ease both; }
+        .modal-card { background: ${T.panel}; border: 1px solid ${T.border}; border-radius: 1.5rem; width: min(680px, 100%); max-height: 84vh;
+          display: flex; flex-direction: column; box-shadow: 0 50px 120px rgba(15,23,42,0.35); overflow: hidden; }
+        .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.4rem; border-bottom: 1px solid ${T.border}; }
+        .modal-body { padding: 1rem 1.4rem; overflow-y: auto; flex: 1; }
+
+        @media (max-width: 1280px) {
+          .dis-hero-grid { grid-template-columns: 1fr; }
+          .map-col { min-height: 460px; }
+          .right-panel { max-height: none; }
+          .rings-dock { position: static; transform: none; }
+        }
+        @media (max-width: 700px) {
+          .map-col { min-height: 400px; }
+          .hud-legend { display: none; }
+          .hud-title { left: 52px; top: 52px; }
+          .rings-dock { display: none; }
+        }
+        @media (max-width: 900px) { .dis-two { grid-template-columns: 1fr; } }
+        @media (max-width: 560px) { .dis-strip { grid-template-columns: repeat(2, 1fr); } }
+      `}</style>
+
+      <div style={{ minHeight: '100svh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+        <SideNav />
+
+        <div className='header-wrapper'>
+
+          <main style={{ background: T.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            <HeaderShell>
+              <PageHeader
+                title="Disaster Relief Operations"
+                subtitle={
+                  loading
+                    ? 'Connecting to the cloud backend…'
+                    : `Interactive relief grid · ${camps.length} camps · click a node or camp to inspect`
+                }
+                pendingCount={statusCounts.high}
+                escalatedCount={statusCounts.critical}
+                search={{
+                  value: search,
+                  onChange: setSearch,
+                  placeholder: 'Search active camps…',
+                  onRefresh: () => {
+                    setRefreshing(true)
+                    loadOverview()
+                  },
+                  refreshing: refreshing || loading,
+                }}
+              />
+            </HeaderShell>
+
+            <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+              {/* ── HERO: map (left) + side panel (right) ─────────────── */}
+              <div className="dis-hero-grid">
+                {/* Map (left) */}
+                <div className="map-col" style={{ background: dark ? '#030c18' : '#ddeaf5', border: dark ? '1px solid rgba(80,140,190,0.22)' : `1px solid ${T.border}`,}}>
+                  <div className="map-canvas-wrap">
+                    <div className="hero-glow" style={{ background: dark ? 'radial-gradient(circle, rgba(34,211,238,0.16) 0%, rgba(34,211,238,0.05) 45%, transparent 70%)' : 'radial-gradient(circle, rgba(8,145,178,0.12) 0%, rgba(8,145,178,0.03) 45%, transparent 70%)' }} />
+                    <DisasterGeoMap camps={mapNodes} selected={selected} onSelect={setSelected} theme={MAP_THEME} />
+                  </div>
+                  <div className="map-scrim" style={{ background: dark ? 'linear-gradient(180deg, rgba(3,8,15,0.55) 0%, transparent 30%, transparent 68%, rgba(3,8,15,0.4) 100%)' : 'linear-gradient(180deg, rgba(221,234,245,0.35) 0%, transparent 30%, transparent 68%, rgba(221,234,245,0.25) 100%)' }} />
+
+                  {/* HUD title */}
+                  <div className="hud hud-title">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', fontWeight: 800, color: dark ? '#22d3ee' : '#0891b2', textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 4 }}>
+                      <Crosshair size={14} /> Relief Operations Grid
+                    </div>
+
+                    <div style={{ fontSize: '0.68rem', color: hudMuted, fontWeight: 600, marginTop: 2, textShadow: dark ? '0 1px 8px rgba(0,0,0,0.5)' : 'none' }}>
+                      Terrain reference aligned with live camp nodes · drag to pan · scroll to zoom
+                    </div>
+                  </div>
+
+                  {/* HUD live */}
+                  <div className="hud hud-live">
+                    <Chip color={dark ? '#22d3ee' : '#0891b2'} style={{ background: dark ? 'rgba(34,211,238,0.12)' : 'rgba(8,145,178,0.12)', border: `1px solid ${dark ? 'rgba(34,211,238,0.4)' : 'rgba(8,145,178,0.4)'}` }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? '#22d3ee' : '#0891b2', boxShadow: `0 0 8px ${dark ? '#22d3ee' : '#0891b2'}`, animation: 'disPulse 2s infinite' }} />
+                      LIVE MAP
+                    </Chip>
+                    <Chip color={error ? T.red : dark ? '#4ade80' : '#16a34a'} style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}` }}>
+                      {error ? 'DEGRADED' : `${mapNodes.length} NODES`}
+                    </Chip>
+                  </div>
+
+                  {/* HUD legend */}
+                  <div className="hud hud-legend" style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}`, borderRadius: 12, padding: '7px 10px', backdropFilter: 'blur(10px)' }}>
+                    {['critical', 'high', 'medium', 'stable', 'recovery'].map((status) => (
+                      <span key={status} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[status], boxShadow: `0 0 6px ${STATUS_COLOR[status]}`, flexShrink: 0 }} />
+                        <span style={{ color: hudInk, letterSpacing: '0.06em', textTransform: 'capitalize' }}>{status}</span>
+                        <span style={{ color: hudFaint, fontSize: 8, fontFamily: 'monospace' }}>{statusCounts[status] || 0}</span>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Resource readiness dock */}
+                  <div className="rings-dock" style={{
+                    background: dark ? 'linear-gradient(165deg, rgba(16,32,50,0.94) 0%, rgba(5,13,23,0.9) 100%)' : 'rgba(255,255,255,0.9)',
+                    border: dark ? '1px solid rgba(120,180,225,0.16)' : `1px solid ${T.border}`,
+                    backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                    boxShadow: dark ? '0 28px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)' : '0 24px 60px rgba(20,30,40,0.16)',
+                    borderRadius: '1.1rem',
+                  }}>
+
+                  </div>
+                </div>
+
+                {/* Right side panel — Active Camps + Selected Camp */}
+                <aside className="right-panel">
+                  {/* Active camps (critical only) */}
+                  <div className="right-section" style={{ flex: '1 1 46%' }}>
+                    <div className="right-head">
+                      <button
+                        onClick={() => setShowAllCamps(true)}
+                        aria-label="Show all camps"
+                        title="Show all camps"
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                      >
+                        <ArrowChip dark={false} />
+                      </button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active Camps</div>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: T.ink, marginTop: 1 }}>Critical only</div>
+                      </div>
+                      <Chip color={T.red} style={{ background: `${T.red}14`, border: `1px solid ${T.red}44` }}>{criticalCamps.length} CRITICAL</Chip>
+                    </div>
+                    <div className="right-scroll" style={{ flex: 1 }}>
+                      {criticalCamps.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: T.muted, padding: '1.5rem 0.5rem', fontSize: '0.78rem', fontWeight: 600 }}>
+                          No critical camps right now
                         </div>
-                        <span style={{ fontSize: 9, fontWeight: 800, color, letterSpacing: '0.08em' }}>{compactStatusLabel(camp.status)}</span>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
-              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>SELECTED CAMP</div>
-                {selectedCamp ? (
-                  selectedDetailLoading ? (
-                    <div style={{ textAlign: 'center', color: theme.t3, fontSize: 12, lineHeight: 1.6, letterSpacing: '0.04em', padding: '18px 0' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 36, height: 36, border: `4px solid ${theme.border}`, borderTop: `4px solid ${theme.cyan}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                        <div style={{ fontSize: 12, color: theme.t2, fontWeight: 700 }}>Loading camp details…</div>
-                      </div>
+                      ) : criticalCamps.map((camp) => {
+                        const isSelected = selected === camp.id
+                        const occ = Math.round((camp.displaced / camp.capacity) * 100)
+                        return (
+                          <button
+                            key={camp.id}
+                            onClick={() => { setSelected(camp.id === selected ? null : camp.id); setShowAllCamps(false) }}
+                            className="camp-row"
+                            style={{
+                              background: isSelected ? `${T.red}12` : 'transparent',
+                              borderLeft: isSelected ? `3px solid ${T.red}` : '3px solid transparent',
+                              borderBottom: `1px solid ${T.border}`,
+                            }}
+                          >
+                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_COLOR[camp.status], boxShadow: `0 0 8px ${STATUS_COLOR[camp.status]}`, flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: T.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{camp.name}</div>
+                              <div style={{ fontSize: '0.62rem', color: T.muted, fontWeight: 600, marginTop: 1 }}>{camp.code} · {camp.type} · {occ}%</div>
+                            </div>
+                            <span style={{ fontSize: '0.66rem', fontWeight: 800, color: T.red, letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>CRITICAL</span>
+                          </button>
+                        )
+                      })}
                     </div>
-                  ) : selectedDetail ? (
-                    <DisasterCampSummaryPanel camp={selectedCamp} detail={selectedDetail} theme={theme} onNavigate={handleNavigate} />
-                  ) : (
-                    <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
-                      NO CAMP DETAILS
+                  </div>
+
+                  {/* Selected camp */}
+                  <div className="right-section" style={{ flex: '1 1 54%', borderTop: `1px solid ${T.border}` }}>
+                    <div className="right-head">
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: T.cardSoft, border: `1px solid ${T.border}`, color: T.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <MapPin size={15} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.64rem', fontWeight: 600, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Selected Camp</div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: 600, color: T.ink, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedCamp ? selectedCamp.name : 'Pick a camp'}</div>
+                      </div>
+                      {selectedCamp && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999,
+                          fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap',
+                          background: `${selColor}14`, border: `1px solid ${selColor}44`, color: selColor,
+                        }}>
+                          {STATUS_TEXT[selectedCamp.status]}
+                        </span>
+                      )}
                     </div>
-                  )
-                ) : loading ? (
-                  <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
-                    LOADING CAMP DATA
+                    <div className="right-scroll" style={{ flex: 1 }}>
+                      {!selectedCamp ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.muted, textAlign: 'center', padding: '1rem' }}>
+                          <MapPin size={36} style={{ opacity: 0.3 }} />
+                          <p style={{ fontWeight: 600, fontSize: '0.84rem', marginTop: 10, color: T.inkSoft }}>No camp selected</p>
+                          <p style={{ fontSize: '0.7rem', opacity: 0.75, marginTop: 2, fontWeight: 500 }}>Click a node on the map or a camp in the list above</p>
+                        </div>
+                      ) : selectedDetailLoading ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.muted, textAlign: 'center' }}>
+                          <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTop: `3px solid ${T.textPrimary}`, borderRadius: '50%', animation: 'disSpin 1s linear infinite' }} />
+                          <p style={{ fontWeight: 600, fontSize: '0.8rem', marginTop: 12, color: T.inkSoft }}>Loading camp details…</p>
+                        </div>
+                      ) : (
+                        <div style={{ padding: '0.9rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                          <div style={{ fontSize: '0.64rem', color: T.muted, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                            {selectedCamp.code} · {selectedCamp.type} · {selectedCamp.lat.toFixed(2)}°N, {selectedCamp.lng.toFixed(2)}°E
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                            {[
+                              { label: 'Displaced', value: selectedCamp.displaced.toLocaleString(), accent: '#F97316' },
+                              { label: 'Capacity', value: selectedCamp.capacity.toLocaleString(), accent: T.inkSoft },
+                              { label: 'Aid', value: `${selectedCamp.aid}%`, accent: T.green },
+                              { label: 'Occupancy', value: `${selOccupancy}%`, accent: T.amber },
+                            ].map((s) => (
+                              <div key={s.label} style={{ padding: '0.6rem 0.75rem', borderRadius: 12, background: T.panelSoft, border: `1px solid ${T.border}`, borderLeft: `3px solid ${s.accent}` }}>
+                                <div style={{ fontSize: '0.56rem', fontWeight: 600, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
+                                <div style={{ fontSize: '1.05rem', fontWeight: 600, color: s.accent, marginTop: 3, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{s.value}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div style={{ display: 'grid', gap: 4 }}>
+                            {[
+                              { label: 'Nearest river', value: selectedDetail?.river || '—', color: T.teal },
+                              { label: 'Station', value: selectedDetail?.station || '—', color: T.inkSoft },
+                            ].map((row) => (
+                              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.35rem 0.25rem', borderBottom: `1px solid ${T.border}`, fontSize: '0.68rem' }}>
+                                <span style={{ color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 500 }}>{row.label}</span>
+                                <span style={{ color: row.color, fontWeight: 600 }}>{row.value}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <Button href={`/disaster/${selectedCamp.id}`} icon={<ChevronRight size={15} />}>
+                            View Full Details
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ) : error ? (
-                  <div style={{ textAlign: 'center', color: theme.red, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
-                    {error}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', color: theme.t3, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.08em' }}>
-                    SELECT A CAMP<br />TO VIEW DETAILS
-                  </div>
-                )}
-            </div>
-
-            <div style={{ padding: 16, flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <div />
-             </div>
-          </aside>
-
-          <section style={{ display: 'flex', flexDirection: 'column', background: theme.mapBg, borderRight: `1px solid ${theme.border}`, minHeight: 720, maxHeight: 720 }}>
-            <div style={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DisasterGeoMap camps={mapNodes} selected={selected} onSelect={setSelected} theme={theme} />
-              
-              {/* Center Title */}
-               {/* Title - Top Left */}
-               <div style={{ position: 'absolute', top: 12, left: 58, zIndex: 5 }}>
-                 <div style={{ fontSize: 18, fontWeight: 900, color: theme.t0, letterSpacing: '0.08em' }}>RELIEF OPERATIONS GRID</div>
-                 <div style={{ marginTop: 2, fontSize: 10, color: theme.cyan, letterSpacing: '0.14em' }}>Terrain reference aligned with live camp nodes</div>
-               </div>
-
-               {/* NODE STATUS - Bottom Right */}
-               <div style={{ position: 'absolute', bottom: 12, right: 12, background: `${theme.bg}e8`, border: `1px solid ${theme.border}`, borderRadius: 10, padding: '10px 12px', zIndex: 10 }}>
-                 <div style={{ textAlign: 'center', color: theme.t3, fontSize: 10, letterSpacing: '0.12em', marginBottom: 8, fontWeight: 700 }}>NODE STATUS</div>
-                 <div style={{ display: 'grid', gap: 5 }}>
-                   {['critical', 'high', 'medium', 'stable', 'recovery'].map((status) => (
-                     <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
-                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: { critical: theme.red, high: theme.orange, medium: theme.yellow, stable: theme.cyan, recovery: theme.green }[status], flexShrink: 0 }} />
-                       <span style={{ color: theme.t1, letterSpacing: '0.08em', flex: 1 }}>{compactStatusLabel(status)}</span>
-                       <span style={{ color: theme.t2, fontSize: 9 }}>{statusCounts[status] || 0}</span>
-                     </div>
-                   ))}
-                 </div>
-               </div>
-              <div style={{ position: 'absolute', top: 10, right: 12, fontSize: 10, color: theme.t2, letterSpacing: '0.12em', background: `${theme.bg}e0`, padding: '5px 12px', border: `1px solid ${theme.border}`, zIndex: 10 }}>DMCS-01 · ACTIVE</div>
-            </div>
-
-            <div style={{ borderTop: `1px solid ${theme.border}`, padding: '16px 22px 14px', flexShrink: 0, background: theme.surface }}>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 22, marginBottom: 14, flexWrap: 'wrap' }}>
-                <Ring value={87} label="FOOD" color={theme.green} theme={theme} />
-                <Ring value={58} label="WATER" color={theme.cyan} theme={theme} />
-                <Ring value={41} label="MEDICAL" color={theme.red} theme={theme} />
-                <Ring value={75} label="SHELTER" color={theme.orange} theme={theme} />
-                <Ring value={65} label="POWER" color={theme.yellow} theme={theme} />
+                </aside>
               </div>
 
-              <div className="disaster-grid-5" style={{ display: 'grid', gap: 10 }}>
-                {[
-                  { label: 'DISPLACED', value: '12,480', tone: theme.orange, fill: theme.orange, percent: 72 },
-                  { label: 'EVACUATED', value: '8,340', tone: theme.green, fill: theme.green, percent: 55 },
-                  { label: 'TOTAL CAMPS', value: String(camps.length || 0), tone: theme.cyan, fill: theme.cyan, percent: camps.length ? 100 : 0 },
-                  { label: 'AID REQ.', value: '89%', tone: theme.yellow, fill: theme.yellow, percent: 89 },
-                  { label: 'CRITICAL', value: '3', tone: theme.red, fill: theme.red, percent: 21 },
-                ].map((item) => (
-                  <div key={item.label} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.1em', marginBottom: 4 }}>{item.label}</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: item.tone, marginBottom: 6 }}>{item.value}</div>
-                    <div style={{ height: 2, background: theme.border }}><div style={{ height: '100%', width: `${item.percent}%`, background: item.fill, boxShadow: `0 0 4px ${item.fill}60` }} /></div>
+              {/* ── Live alerts + distribution ────────────────────────── */}
+              <div className="dis-two">
+                <DashboardCard
+                  title="Disaster Distribution"
+                  subtitle="Live camp status profile"
+                  right={<Chip color={T.teal}>{camps.length} CAMPS</Chip>}
+                  bodyStyle={{ alignItems: 'center' }}
+                >
+                  <StatusDonut
+                    segments={donutSegs}
+                    size={176}
+                    center={loading ? '—' : String(camps.length)}
+                    label="Active Camps"
+                  />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }}>
+                    {['critical', 'high', 'medium', 'stable', 'recovery'].map((s) => (
+                      <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0.4rem 0.6rem', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', fontWeight: 700, color: T.inkSoft, textTransform: 'capitalize' }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLOR[s] }} /> {s}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: STATUS_COLOR[s] }}>{statusCounts[s] || 0}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
+                </DashboardCard>
 
-          <aside style={{ display: 'flex', flexDirection: 'column', background: theme.surface }}>
-            <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}` }}>
-              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>DISASTER DISTRIBUTION</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'right' }}>{DONUT_SEGS.slice(2, 4).map((segment) => <div key={segment.code}><div style={{ fontSize: 13, color: theme.t0, fontWeight: 700 }}>{segment.label}</div><div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.1em' }}>{segment.code}</div></div>)}</div>
-                <DonutChart segs={DONUT_SEGS} theme={theme} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{DONUT_SEGS.slice(0, 2).map((segment) => <div key={segment.code}><div style={{ fontSize: 13, color: theme.t0, fontWeight: 700 }}>{segment.label}</div><div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.1em' }}>{segment.code}</div></div>)}</div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 10 }}>{DONUT_SEGS.slice(4).map((segment) => <div key={segment.code} style={{ textAlign: 'center' }}><div style={{ fontSize: 12, color: theme.t1, fontWeight: 700 }}>{segment.label}</div><div style={{ fontSize: 10, color: theme.t3, letterSpacing: '0.1em' }}>{segment.code}</div></div>)}</div>
-            </div>
-
-            <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}` }}>
-              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>STATISTICS</div>
-              <div className="disaster-grid-2" style={{ display: 'grid', gap: 14 }}>
-                {[
-                  { label: 'DISPLACED', value: '12,480', arrow: '↑ 8.4%', accent: theme.orange, data: DISPLACED_SPARK, sparkColor: theme.orange },
-                  { label: 'AIDED', value: '9,340', arrow: '↑ 12.1%', accent: theme.green, data: AIDED_SPARK, sparkColor: theme.cyan },
-                ].map((stat) => (
-                  <div key={stat.label}>
-                    <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.1em', marginBottom: 5 }}>{stat.label}</div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><span style={{ fontSize: 20, fontWeight: 800, color: theme.t0 }}>{stat.value}</span><span style={{ fontSize: 10, color: stat.accent }}>{stat.arrow}</span></div>
-                    <Sparkline data={stat.data} color={stat.sparkColor} w={118} h={30} />
+                <div style={{ background: dark ? '#0F172A' : '#0F172A', color: '#fff', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', boxShadow: dark ? '0 30px 70px rgba(0,0,0,0.5)' : '0 30px 70px rgba(20,30,40,0.25)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                      Live Alerts
+                    </div>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.62rem', fontWeight: 800, color: T.red }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.red, boxShadow: `0 0 8px ${T.red}`, animation: 'disPulse 1.5s infinite' }} />
+                      LIVE
+                    </span>
                   </div>
-                ))}
+                  {ALERTS.map((a) => (
+                    <div key={a.message} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0.42rem 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.color, boxShadow: `0 0 5px ${a.color}`, marginTop: 5, flexShrink: 0, animation: a.live ? 'disPulse 1.1s infinite' : 'none' }} />
+                      <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.45 }}>{a.message}</span>
+                      <span style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{a.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Trend + relief statistics ──────────────────────────── */}
+              <div className="dis-two">
+                <DashboardCard
+                  title="Displacement Trend"
+                  subtitle="Persons displaced across the network · 12-month view"
+                  right={<Chip color={T.teal}>12-MONTH</Chip>}
+                >
+                  <TrendChart data={TREND_DATA} color={T.teal} theme={MAP_THEME} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: T.muted, fontWeight: 700, letterSpacing: '0.1em', marginTop: 2 }}>
+                    {['JAN', 'MAR', 'MAY', 'JUL', 'SEP', 'NOV'].map((month) => <span key={month}>{month}</span>)}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: T.ink, marginTop: 4 }}>
+                    <span>Last reading <span style={{ color: T.teal }}>1,982</span></span>
+                    <span>↑ 12.1% YoY</span>
+                  </div>
+                </DashboardCard>
+
+                <DashboardCard
+                  title="Relief Statistics"
+                  subtitle="Displacement vs. aided persons"
+                  right={<Chip color={T.green}>ON TRACK</Chip>}
+                >
+                  <div style={{ display: 'grid', gap: '0.85rem' }}>
+                    {[
+                      { label: 'Displaced', value: '12,480', arrow: '↑ 8.4%', accent: '#F97316', data: DISPLACED_SPARK, sparkColor: '#F97316' },
+                      { label: 'Aided', value: '9,340', arrow: '↑ 12.1%', accent: T.green, data: AIDED_SPARK, sparkColor: T.teal },
+                    ].map((stat) => (
+                      <div key={stat.label} style={{ padding: '0.7rem 0.85rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <div>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{stat.label}</div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
+                              <span style={{ fontSize: '1.3rem', fontWeight: 800, color: T.ink }}>{stat.value}</span>
+                              <span style={{ fontSize: '0.66rem', fontWeight: 700, color: stat.accent }}>{stat.arrow}</span>
+                            </div>
+                          </div>
+                          <Sparkline data={stat.data} color={stat.sparkColor} w={110} h={30} />
+                        </div>
+                        <div style={{ height: 4, borderRadius: 99, background: T.panel, overflow: 'hidden' }}>
+                          <div style={{ width: `${stat.label === 'Displaced' ? 72 : 88}%`, height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${stat.sparkColor}88, ${stat.sparkColor})` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </DashboardCard>
+              </div>
+
+              {/* ── bottom metric strip ────────────────────────────────── */}
+              <div className="dis-strip">
+                <MiniStat label="Total Camps" value={String(camps.length || 0)} icon={<MapPin size={12} />} color={T.teal} sub="Active sites" />
+                <MiniStat label="Displaced" value={totalDisplaced.toLocaleString()} icon={<Users size={12} />} color="#F97316" sub="Region-wide" />
+                <MiniStat label="Aid Workers" value={totalWorkers.toLocaleString()} icon={<HeartHandshake size={12} />} color={T.purple} sub="Deployed" />
+                <MiniStat label="Critical" value={String(statusCounts.critical || 0)} icon={<TriangleAlert size={12} />} color={T.red} sub="Needs attention" />
+                <MiniStat label="Coverage" value="89%" icon={<ShieldAlert size={12} />} color={T.green} sub="Aid coverage" />
+                <MiniStat label="Tick" value={String(tick)} icon={<Radio size={12} />} color={T.muted} sub="Live refresh" />
               </div>
             </div>
-
-            <div style={{ padding: 16, borderBottom: `1px solid ${theme.border}` }}>
-              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>LIVE ALERTS</div>
-              {[
-                { color: theme.red, message: 'Medical critical — Galle C-2', time: '06:42', live: true },
-                { color: theme.red, message: 'Water unit failure — Batticaloa', time: '05:18', live: true },
-                { color: theme.orange, message: '340 new arrivals — Kandy C-1', time: '04:55', live: false },
-                { color: theme.yellow, message: 'Supply delay — Ratnapura', time: '04:10', live: false },
-                { color: theme.cyan, message: 'Delivery confirmed — Jaffna North', time: '03:30', live: false },
-                { color: theme.green, message: 'Rain forecast — Matara coast', time: '02:00', live: false },
-              ].map((alert) => <div key={alert.message} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', borderBottom: `1px solid ${theme.border}20` }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: alert.color, boxShadow: `0 0 4px ${alert.color}80`, marginTop: 5, flexShrink: 0, animation: alert.live ? 'blink 1.1s infinite' : 'none' }} /><span style={{ fontSize: 12, color: theme.t1, flex: 1, lineHeight: 1.5 }}>{alert.message}</span><span style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{alert.time}</span></div>)}
-            </div>
-
-            <div style={{ padding: 16, flex: 1 }}>
-              <div style={{ fontSize: 10, color: theme.t2, letterSpacing: '0.18em', marginBottom: 10 }}>DISPLACEMENT TREND</div>
-              <TrendChart data={TREND_DATA} color={theme.cyan} theme={theme} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: theme.t3, letterSpacing: '0.08em' }}>{['JAN', 'MAR', 'MAY', 'JUL', 'SEP', 'NOV'].map((month) => <span key={month}>{month}</span>)}</div>
-            </div>
-          </aside>
+          </main>
         </div>
       </div>
 
-      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }`}</style>
-    </div>
+      {/* ── ALL CAMPS MODAL (alert-page style) ─────────────────────────── */}
+      {showAllCamps && (
+        <div className="modal-overlay" onClick={() => setShowAllCamps(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3 }}>
+                  Disaster Relief Operations
+                </div>
+                <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: T.ink }}>All Active Camps</h2>
+                <p style={{ fontSize: '0.78rem', color: T.muted, margin: '2px 0 0', fontWeight: 600 }}>{camps.length} camps in the network · select one to inspect</p>
+              </div>
+              <button
+                onClick={() => setShowAllCamps(false)}
+                aria-label="Close"
+                style={{
+                  width: 36, height: 36, borderRadius: '50%', border: `1px solid ${T.border}`, background: T.cardSoft,
+                  color: T.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <div style={{ padding: '0.85rem 1.4rem', borderBottom: `1px solid ${T.border}`, background: T.panelSoft, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 200, background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.75rem', padding: '8px 12px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                  <input
+                    value={campQuery}
+                    onChange={(e) => setCampQuery(e.target.value)}
+                    placeholder="Search camps, codes or types…"
+                    style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', fontWeight: 600, color: T.ink }}
+                  />
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', fontWeight: 800, color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                  <ChevronDown size={13} /> Filter by status
+                </span>
+              </div>
+              <FilterPills options={FILTER_OPTIONS} active={campFilter} onSelect={setCampFilter} counts={filterCounts} />
+            </div>
+
+            <div className="modal-body">
+              {modalCamps.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: T.muted, fontSize: '0.85rem', fontWeight: 600 }}>
+                  No camps match your filters
+                </div>
+              ) : modalCamps.map((camp) => {
+                const isSelected = selected === camp.id
+                const color = STATUS_COLOR[camp.status]
+                const occ = Math.round((camp.displaced / camp.capacity) * 100)
+                return (
+                  <button
+                    key={camp.id}
+                    onClick={() => {
+                      setSelected(camp.id === selected ? null : camp.id)
+                      setShowAllCamps(false)
+                    }}
+                    style={{
+                      width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                      background: isSelected ? `${color}12` : T.card, border: `1px solid ${isSelected ? `${color}66` : T.border}`,
+                      borderRadius: '1rem', padding: '0.85rem 1rem', marginBottom: '0.6rem', fontFamily: 'inherit',
+                      transition: 'border-color 0.15s ease', boxShadow: '0 2px 8px rgba(20,30,40,0.05)',
+                    }}
+                  >
+                    <span style={{ width: 11, height: 11, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 800, color: T.ink }}>{camp.name}</span>
+                        <Chip color={color}>{STATUS_TEXT[camp.status]}</Chip>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: T.muted, fontWeight: 600, marginTop: 3 }}>
+                        {camp.code} · {camp.type} · {occ}% occupancy · {camp.lat.toFixed(2)}°N, {camp.lng.toFixed(2)}°E
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: T.ink, textAlign: 'right' }}>
+                        <span style={{ display: 'block', color: T.muted, fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Displaced</span>
+                        {camp.displaced.toLocaleString()}
+                      </span>
+                      <ChevronRight size={16} color={T.muted} />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

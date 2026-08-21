@@ -3,18 +3,7 @@
  * Uses weighted linear regression — no external ML library required.
  * More recent days carry exponentially higher weight in all averages.
  */
-
-const BASE_QTY = {
-  breakfast: 0.5, // kg per person
-  lunch: 0.6,
-  dinner: 0.5,
-  water: 15, // litres per person
-};
-
-const VULNERABLE_EXTRA = {
-  pregnant: { breakfast: 0.2, lunch: 0.2, dinner: 0.2, water: 2 },
-  chronic_illness: { breakfast: 0.1, lunch: 0.1, dinner: 0.1, water: 1 },
-};
+import { BASE_QTY, VULNERABLE_EXTRA } from '../../data/resources/prediction.data.js';
 
 function r1(v) {
   return Math.round(v * 10) / 10;
