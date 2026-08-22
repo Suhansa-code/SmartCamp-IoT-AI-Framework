@@ -8,6 +8,7 @@ import { initializeCampDb } from './config/database.js';
 import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
 import { startConnectivityWatcher } from './services/network/connectivity.js';
 import { checkFlaskHealth } from './services/education/scoring.js';
+import { startSync } from './services/sync/sync-manager.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -29,7 +30,6 @@ import personsRoute from './routes/resource/persons.js';
 import childRoute from './routes/education/child.js';
 import sessionRoute from './routes/education/session.js';
 import dashboardRoute from './routes/education/dashboard.js';
-import syncRoute from './routes/education/sync.js';
 
 const app = express();
 const PORT = C.PORT;
@@ -82,6 +82,9 @@ checkFlaskHealth().then(healthy => {
 // Start connectivity watcher
 startConnectivityWatcher();
 
+// Start cloud sync (after MQTT connects)
+startSync();
+
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'smartcamp-backend', device: C.DEVICE_ID, camp: C.CAMP_ID });
@@ -106,7 +109,6 @@ app.use('/api/persons', personsRoute);
 app.use('/api/child', childRoute);
 app.use('/api/session', sessionRoute);
 app.use('/api', dashboardRoute);
-app.use('/api/sync', syncRoute);
 
 // ── Error Handling ──────────────────────────────────────────
 app.use(notFound);

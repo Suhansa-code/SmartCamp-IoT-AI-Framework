@@ -140,6 +140,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [campId, setCampId] = useState('')
 
   const fetchStats = () => {
     fetch(`${API}/api/stats/overview`)
@@ -159,6 +160,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchStats()
+    fetch(`${API}/api/disaster/camp-identity`)
+      .then(r => r.json())
+      .then(data => { if (data.camp_id) setCampId(data.camp_id) })
+      .catch(() => {})
     const interval = setInterval(fetchStats, 15000)
     return () => clearInterval(interval)
   }, [])
@@ -190,7 +195,7 @@ export default function DashboardPage() {
           className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
         >
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
+            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{campId || 'Camp'}</p>
             <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight mt-1.5">Camp Dashboard</h1>
             <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Live overview of population, distribution &amp; readiness</p>
           </div>

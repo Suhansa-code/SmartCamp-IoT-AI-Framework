@@ -219,14 +219,9 @@ async function handleQR(childId, selectedLang = lang) {
   setScreen('loading');
 
   let sid = 'offline';
+  let resolvedChildId = '';
 
-  // Always persist the scanned childId
   const effectiveChildId = (childId || '').trim();
-  if (typeof window !== 'undefined' && effectiveChildId) {
-    sessionStorage.setItem('selectedChildId', effectiveChildId);
-    localStorage.setItem('selectedChildId', effectiveChildId);
-  }
-
   if (!effectiveChildId) {
     setSessionId(sid);
     if (typeof onNavigate === 'function') {
@@ -238,25 +233,28 @@ async function handleQR(childId, selectedLang = lang) {
   try {
     const payload = await startSession(effectiveChildId);
     sid = payload?.sessionId ?? payload?.session_id ?? 'offline';
+    resolvedChildId = payload?.child_id || '';
   } catch (err) {
-    // Fallback to offline mode if session creation fails
-    // This is expected for test child IDs that don't exist in the backend
     if (process.env.NODE_ENV === 'development') {
       console.log('[DEV] Session creation failed, using offline mode:', err?.message);
     }
     sid = 'offline';
   }
 
+  const childToStore = resolvedChildId || effectiveChildId;
+  if (typeof window !== 'undefined' && childToStore) {
+    sessionStorage.setItem('selectedChildId', childToStore);
+    localStorage.setItem('selectedChildId', childToStore);
+  }
+
   setSessionId(sid);
 
-  // Persist language preference
   if (typeof window !== 'undefined') {
     localStorage.setItem('preferredLanguage', selectedLang);
   }
 
-  // Navigate to task screen with session, child, and language
   if (typeof onNavigate === 'function') {
-    onNavigate({ session: sid, child: effectiveChildId, lang: selectedLang });
+    onNavigate({ session: sid, child: childToStore, lang: selectedLang });
   }
 }
 

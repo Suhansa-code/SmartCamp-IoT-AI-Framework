@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Fingerprint, Satellite, CloudRain, Droplets, ScanBarcode, Radio, RefreshCw, Activity } from 'lucide-react';
+import { Fingerprint, Satellite, CloudRain, Droplets, ScanBarcode, Radio, RefreshCw, Activity, MapPin } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 
 /* ------------------------------------------------------------------ */
@@ -178,6 +178,22 @@ function DeviceCard({ device }) {
             <div className="mt-1.5"><SignalBar signal={device.signal} /></div>
           </div>
         </div>
+
+        {device.location && (
+          <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
+            <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
+            <div className="flex-1">
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Current Location</p>
+              <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>{device.location}</p>
+            </div>
+            {device.campId && (
+              <div className="text-right shrink-0">
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Camp ID</p>
+                <p className="text-[12.5px] font-mono font-semibold mt-0.5" style={{ color: COLORS.brand }}>{device.campId}</p>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
     </motion.div>
   );
@@ -190,15 +206,66 @@ function DeviceCard({ device }) {
 export default function DeviceHealthScreen() {
   const [devices, setDevices] = useState(INITIAL_DEVICES);
   const [lastAt, setLastAt] = useState(new Date());
+  const [locationName, setLocationName] = useState(null);
+  const [campPrefix, setCampPrefix] = useState('');
+  const [campSymbol, setCampSymbol] = useState('');
+  const [mappedCampId, setMappedCampId] = useState('');
+
+  const fetchLocation = useCallback(async () => {
+    try {
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const [gpsRes, campRes] = await Promise.all([
+        fetch(`${API}/api/disaster/gps`),
+        fetch(`${API}/api/disaster/camp-identity`),
+      ]);
+      const gps = await gpsRes.json();
+      const camp = await campRes.json();
+
+      let locName = null;
+      if (gps.latitude && gps.longitude) {
+        const geo = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${gps.latitude}&lon=${gps.longitude}&zoom=18&addressdetails=1`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        const geoData = await geo.json();
+        if (geoData.address) {
+          const a = geoData.address;
+          const parts = [a.village || a.town || a.city || a.hamlet, a.district || a.county || a.state_district].filter(Boolean);
+          locName = parts.join(', ') || geoData.display_name || `${gps.latitude}, ${gps.longitude}`;
+        } else {
+          locName = `${gps.latitude}, ${gps.longitude}`;
+        }
+      } else if (camp.location) {
+        locName = camp.location.charAt(0).toUpperCase() + camp.location.slice(1).toLowerCase();
+      }
+
+      if (locName) setLocationName(locName);
+      if (camp.prefix) setCampPrefix(camp.prefix);
+      if (camp.symbol) setCampSymbol(camp.symbol);
+
+      const firstWord = locName ? locName.split(',')[0].trim().toUpperCase() : '';
+      if (firstWord && camp.prefix) {
+        setMappedCampId(`${camp.prefix}-${firstWord}`);
+      }
+    } catch {
+      setLocationName(null);
+    }
+  }, []);
+
+  useEffect(() => { fetchLocation(); }, [fetchLocation]);
 
   const connected = devices.filter((d) => d.status === 'connected').length;
   const degraded = devices.filter((d) => d.status === 'degraded').length;
   const offline = devices.filter((d) => d.status === 'offline').length;
 
+  const devicesWithLocation = devices.map((d) =>
+    d.id === 'gps' && locationName ? { ...d, location: locationName, campId: mappedCampId, campSymbol } : d
+  );
+
   const refresh = () => {
-    // Static demo — re-render only. Swap in real /api/device/health fetch later.
     setDevices([...INITIAL_DEVICES]);
     setLastAt(new Date());
+    fetchLocation();
   };
 
   return (
@@ -208,7 +275,7 @@ export default function DeviceHealthScreen() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
+            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{mappedCampId || 'Camp'}</p>
             <div className="flex items-center gap-3 mt-1.5">
               <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">Device Health</h1>
               <Chip tone="neutral">Demo data</Chip>
@@ -249,7 +316,7 @@ export default function DeviceHealthScreen() {
 
         {/* ================= DEVICE GRID ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {devices.map((device) => (
+          {devicesWithLocation.map((device) => (
             <DeviceCard key={device.id} device={device} />
           ))}
         </div>
