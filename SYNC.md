@@ -47,6 +47,10 @@ CRITICAL → HIGH → MEDIUM → LOW (oldest first within level)
 ## Offline Resilience
 
 - **enqueueSync()** never throws — always succeeds locally
+- **Adaptive sync interval** — adjusts to network quality:
+  - `STABLE` → 5 seconds (fast sync)
+  - `DEGRADED` → 15 seconds
+  - `CRITICAL` → 60 seconds (defer new publishes)
 - **SAAMP buffering** — non-CRITICAL messages buffered when network is CRITICAL
 - **Exponential backoff** — retry 1min → 2min → 4min → 8min → 16min → 30min (max 10 retries, ~10 hours total)
 - **Restart-safe** — `sync_pending` persists in SQLite, survives power loss

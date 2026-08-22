@@ -32,6 +32,9 @@ import { fetchAllPending, countPending } from './sync-queue.js';
 import { PRIORITY } from './sync-priority.js';
 
 const SYNC_INTERVAL_MS = 30_000;
+const SYNC_INTERVAL_STABLE_MS = 5_000;
+const SYNC_INTERVAL_DEGRADED_MS = 15_000;
+const SYNC_INTERVAL_CRITICAL_MS = 60_000;
 const ACK_CHECK_INTERVAL_MS = 15_000;
 const BASE_RETRY_DELAY_MS = 60_000;
 const MAX_RETRY_DELAY_MS = 1_800_000;
@@ -85,6 +88,7 @@ let ackTimer = null;
 let isRunning = false;
 let lastSyncAt = null;
 let syncCount = 0;
+let currentIntervalMs = SYNC_INTERVAL_MS;
 
 // ── Structured sync logging ──────────────────────────────────────────────
 
@@ -242,6 +246,29 @@ function retryPendingAcks() {
   }
 }
 
+// ── Adaptive sync interval ──────────────────────────────────────────────
+
+function getAdaptiveInterval(networkState) {
+  switch (networkState) {
+    case 'STABLE':    return SYNC_INTERVAL_STABLE_MS;
+    case 'DEGRADED':  return SYNC_INTERVAL_DEGRADED_MS;
+    case 'CRITICAL':  return SYNC_INTERVAL_CRITICAL_MS;
+    default:          return SYNC_INTERVAL_MS;
+  }
+}
+
+function adjustSyncInterval() {
+  const networkState = saamp.getNetworkState();
+  const newInterval = getAdaptiveInterval(networkState);
+
+  if (newInterval !== currentIntervalMs && syncTimer) {
+    clearInterval(syncTimer);
+    syncTimer = setInterval(runSyncCycle, newInterval);
+    currentIntervalMs = newInterval;
+    logger.info(`[SYNC] Interval adjusted to ${newInterval}ms (network: ${networkState})`);
+  }
+}
+
 // ── Sync cycle ───────────────────────────────────────────────────────────
 
 export async function runSyncCycle() {
@@ -315,6 +342,7 @@ export async function runSyncCycle() {
     return { error: err.message, skipped: false };
   } finally {
     isRunning = false;
+    adjustSyncInterval();
   }
 }
 
@@ -329,13 +357,15 @@ export function startSync(intervalMs = SYNC_INTERVAL_MS) {
   saamp.onMessage('smartcamp/sync/ack', handleAck);
   saamp.onFlush(handleFlush);
 
+  currentIntervalMs = intervalMs;
+
   setTimeout(() => {
     runSyncCycle();
     syncTimer = setInterval(runSyncCycle, intervalMs);
     ackTimer = setInterval(retryPendingAcks, ACK_CHECK_INTERVAL_MS);
   }, 5000);
 
-  logger.info(`[SYNC] Started (interval: ${intervalMs}ms, device: ${C.DEVICE_ID})`);
+  logger.info(`[SYNC] Started (initial interval: ${intervalMs}ms, adaptive: 5s/15s/60s, device: ${C.DEVICE_ID})`);
 }
 
 export function stopSync() {
