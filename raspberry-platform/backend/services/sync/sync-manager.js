@@ -32,9 +32,9 @@ import { PRIORITY } from './sync-priority.js';
 
 const SYNC_INTERVAL_MS = 30_000;
 const ACK_CHECK_INTERVAL_MS = 15_000;
-const BASE_RETRY_DELAY_MS = 30_000;
-const MAX_RETRY_DELAY_MS = 300_000;
-const MAX_RETRIES = 5;
+const BASE_RETRY_DELAY_MS = 60_000;
+const MAX_RETRY_DELAY_MS = 1_800_000;
+const MAX_RETRIES = 10;
 
 const TABLE_TO_ENTITY = {
   persons:                    'persons',

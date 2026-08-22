@@ -192,18 +192,18 @@ describe('TEST 4 — Neon failure retry', () => {
   });
 
   it('exponential backoff increases delay', () => {
-    const BASE = 30000;
-    const MAX = 300000;
+    const BASE = 60000;
+    const MAX = 1800000;
     const delays = [0, 1, 2, 3, 4].map(i => Math.min(BASE * Math.pow(2, i), MAX));
-    expect(delays[0]).toBe(30000);
-    expect(delays[1]).toBe(60000);
-    expect(delays[2]).toBe(120000);
-    expect(delays[3]).toBe(240000);
-    expect(delays[4]).toBe(300000);
+    expect(delays[0]).toBe(60000);
+    expect(delays[1]).toBe(120000);
+    expect(delays[2]).toBe(240000);
+    expect(delays[3]).toBe(480000);
+    expect(delays[4]).toBe(960000);
   });
 
-  it('max retries of 5 is enforced', () => {
-    const MAX_RETRIES = 5;
+  it('max retries of 10 is enforced', () => {
+    const MAX_RETRIES = 10;
     campDb.prepare('UPDATE sync_pending SET retry_count = ? WHERE sync_id = ?').run(MAX_RETRIES, 'retry-1');
     const row = campDb.prepare('SELECT * FROM sync_pending WHERE sync_id = ?').get('retry-1');
     expect(row.retry_count).toBeGreaterThanOrEqual(MAX_RETRIES);
