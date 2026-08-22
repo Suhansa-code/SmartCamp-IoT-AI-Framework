@@ -49,7 +49,7 @@ export function nextChildId(campId) {
     'SELECT COUNT(*) AS cnt FROM pages_children WHERE camp_id = ?'
   ).get(campId);
   const next = (row.cnt || 0) + 1;
-  return `${prefix}-${String(next).padStart(3, '0')}`;
+  return `${prefix}-${String(next).padStart(6, '0')}`;
 }
 
 export function round(value, places = 2) {
