@@ -27,6 +27,7 @@ import { randomUUID } from 'crypto';
 import logger from '../../utils/logger.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import { campDb, pagesDb } from '../../config/database.js';
+import C from '../../config/constants.js';
 import { fetchAllPending, countPending } from './sync-queue.js';
 import { PRIORITY } from './sync-priority.js';
 
@@ -78,8 +79,6 @@ const TABLE_DB_MAP = {
 };
 
 const META_FIELDS = ['_priority', '_reason', '_qos', '_timestamp'];
-const CAMP_ID = process.env.CAMP_ID || 'CAMP-B';
-const DEVICE_ID = process.env.DEVICE_ID || 'SCB-UNIT-01';
 
 let syncTimer = null;
 let ackTimer = null;
@@ -111,7 +110,7 @@ function insertPending(syncId, entity, tableName, localId, operation, priority, 
     `INSERT INTO sync_pending
        (sync_id, entity, table_name, local_id, operation, priority, camp_id, device_id, payload, published)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
-  ).run(syncId, entity, tableName, String(localId), operation, priority, CAMP_ID, DEVICE_ID, JSON.stringify(payload));
+  ).run(syncId, entity, tableName, String(localId), operation, priority, C.CAMP_ID, C.DEVICE_ID, JSON.stringify(payload));
 }
 
 function markPublished(syncId) {
@@ -199,8 +198,8 @@ function buildSyncMessage(entity, row) {
     local_id: row[pk],
     operation: row.synced === 0 ? 'CREATE' : 'UPDATE',
     priority: row._priority || PRIORITY.MEDIUM,
-    camp_id: CAMP_ID,
-    device_id: DEVICE_ID,
+    camp_id: C.CAMP_ID,
+    device_id: C.DEVICE_ID,
     timestamp: new Date().toISOString(),
     payload: row,
   };
@@ -336,7 +335,7 @@ export function startSync(intervalMs = SYNC_INTERVAL_MS) {
     ackTimer = setInterval(retryPendingAcks, ACK_CHECK_INTERVAL_MS);
   }, 5000);
 
-  logger.info(`[SYNC] Started (interval: ${intervalMs}ms, device: ${DEVICE_ID})`);
+  logger.info(`[SYNC] Started (interval: ${intervalMs}ms, device: ${C.DEVICE_ID})`);
 }
 
 export function stopSync() {

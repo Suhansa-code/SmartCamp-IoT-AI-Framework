@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Fingerprint, Satellite, CloudRain, Droplets, ScanBarcode, Radio, RefreshCw, Activity, MapPin } from 'lucide-react';
+import { Fingerprint, Satellite, CloudRain, Droplets, ScanBarcode, Radio, RefreshCw, Activity, MapPin, ArrowLeft } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 
 /* ------------------------------------------------------------------ */
@@ -282,14 +282,24 @@ export default function DeviceHealthScreen() {
             </div>
             <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Peripheral sensor &amp; peripheral connectivity status</p>
           </div>
-          <button
-            onClick={refresh}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-[12.5px] font-semibold rounded-lg border outline-none transition-colors duration-200 self-start sm:self-auto"
-            style={{ color: COLORS.brand, backgroundColor: `${COLORS.brand}0F`, borderColor: `${COLORS.brand}33` }}
-          >
-            <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.8} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => window.history.back()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-semibold rounded-lg border outline-none transition-colors duration-200"
+              style={{ color: COLORS.body, backgroundColor: 'transparent', borderColor: COLORS.line }}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
+              Back
+            </button>
+            <button
+              onClick={refresh}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-[12.5px] font-semibold rounded-lg border outline-none transition-colors duration-200"
+              style={{ color: COLORS.brand, backgroundColor: `${COLORS.brand}0F`, borderColor: `${COLORS.brand}33` }}
+            >
+              <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.8} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* ================= SUMMARY STRIP ================= */}
