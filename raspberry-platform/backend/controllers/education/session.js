@@ -12,25 +12,34 @@ function randomId() {
   return `${C.CAMP_ID}-${suffix}`;
 }
 
+function resolveChildFromPersonId(personId) {
+  const trimmed = String(personId).trim();
+
+  let childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [trimmed]);
+  if (childRows[0]) return childRows[0];
+
+  childRows = sqliteRetrieve('pages_children', undefined, 'res_id = ?', [trimmed]);
+  if (childRows[0]) return childRows[0];
+
+  const wristband = campDb.prepare(
+    'SELECT person_id FROM wristbands WHERE qr_identifier = ? OR barcode = ?'
+  ).get(trimmed, trimmed);
+  if (wristband && wristband.person_id) {
+    childRows = sqliteRetrieve('pages_children', undefined, 'res_id = ?', [String(wristband.person_id)]);
+    if (childRows[0]) return childRows[0];
+  }
+
+  return null;
+}
+
 export async function startSession(req, res, next) {
   try {
-    let { child_id, condition_label = 'A' } = req.body;
+    const { person_id, condition_label = 'A' } = req.body;
 
-    let childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [child_id]);
-    let child = childRows[0];
+    const child = resolveChildFromPersonId(person_id);
+    if (!child) return next(createError(404, `Child not found for person: ${person_id}`));
 
-    if (!child) {
-      const wristband = campDb.prepare(
-        'SELECT person_id FROM wristbands WHERE qr_identifier = ? OR barcode = ?'
-      ).get(child_id, child_id);
-      if (wristband && wristband.person_id) {
-        childRows = sqliteRetrieve('pages_children', undefined, 'res_id = ?', [String(wristband.person_id)]);
-        child = childRows[0];
-      }
-    }
-    if (!child) return next(createError(404, `Child not found: ${child_id}`));
-
-    const resolvedChildId = child.child_id;
+    const childId = child.child_id;
 
     const sessionId = newId();
     const sessionDate = todayDate();
@@ -38,7 +47,7 @@ export async function startSession(req, res, next) {
     const condition = condition_label.toUpperCase();
 
     sqliteInsert('pages_sessions', {
-      session_id: sessionId, child_id: resolvedChildId, session_date: sessionDate,
+      session_id: sessionId, child_id: childId, session_date: sessionDate,
       session_time: sessionTime, condition_label: condition,
       baseline_score_used: child.baseline_score, created_at: nowISO(),
     });
@@ -46,7 +55,7 @@ export async function startSession(req, res, next) {
     enqueue('pages_sessions', sessionId, 'INSERT');
 
     return res.status(201).json({
-      success: true, session_id: sessionId, child_id: resolvedChildId,
+      success: true, session_id: sessionId, child_id: childId,
       grade: child.grade, language: child.language,
       session_number: child.total_sessions + 1,
       baseline_score: child.baseline_score,
@@ -56,26 +65,13 @@ export async function startSession(req, res, next) {
 
 export async function taskComplete(req, res, next) {
   try {
-    let { child_id, session_id, attempt = 1, taskMetrics, passiveSignals } = req.body;
+    const { child_id, session_id, attempt = 1, taskMetrics, passiveSignals } = req.body;
 
     const sessionRows = sqliteRetrieve('pages_sessions', 'session_id, child_id, baseline_score_used', 'session_id = ?', [session_id]);
     const session = sessionRows[0];
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
 
-    let childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [child_id]);
-    let child = childRows[0];
-    if (!child) {
-      const wristband = campDb.prepare(
-        'SELECT person_id FROM wristbands WHERE qr_identifier = ? OR barcode = ?'
-      ).get(child_id, child_id);
-      if (wristband && wristband.person_id) {
-        childRows = sqliteRetrieve('pages_children', undefined, 'res_id = ?', [String(wristband.person_id)]);
-        child = childRows[0];
-      }
-    }
-    const resolvedChildId = child ? child.child_id : child_id;
-
-    const scoring = await scoringService.getScore(resolvedChildId, session_id, taskMetrics, passiveSignals);
+    const scoring = await scoringService.getScore(child_id, session_id, taskMetrics, passiveSignals);
     const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
 
     let gateDecision, sessionAnomalyFlag;
@@ -102,7 +98,7 @@ export async function taskComplete(req, res, next) {
     };
 
     sqliteInsert('pages_behavioral_signals', {
-      signal_id: signalId, session_id, child_id: resolvedChildId,
+      signal_id: signalId, session_id, child_id,
       accuracy_rate: normalizeRate(taskMetrics.accuracyRate, 'accuracyRate'),
       false_tap_rate: normalizeRate(taskMetrics.falseTapRate, 'falseTapRate'),
       avg_reaction_time: normalizeNum(taskMetrics.avgReactionTime, 'avgReactionTime'),
@@ -121,24 +117,24 @@ export async function taskComplete(req, res, next) {
     }, 'session_id = ?', [session_id]);
 
     sqliteInsert('pages_gate_decisions', {
-      decision_id: decisionId, session_id, child_id: resolvedChildId,
+      decision_id: decisionId, session_id, child_id,
       attempt_number: parseInt(attempt, 10) || 1,
       composite_score: compositeScore, decision: gateDecision,
     });
 
     if (parseInt(attempt, 10) >= 2 && gateDecision === C.GATE.FAIL_CONFIRMED) {
-      const childRows = sqliteRetrieve('pages_children', 'consecutive_low', 'child_id = ?', [resolvedChildId]);
+      const childRows = sqliteRetrieve('pages_children', 'consecutive_low', 'child_id = ?', [child_id]);
       const currentChild = childRows[0];
       const newConsecutiveLow = (Number(currentChild?.consecutive_low) || 0) + 1;
-      sqliteUpdate('pages_children', { consecutive_low: newConsecutiveLow }, 'child_id = ?', [resolvedChildId]);
+      sqliteUpdate('pages_children', { consecutive_low: newConsecutiveLow }, 'child_id = ?', [child_id]);
     }
 
     enqueue('pages_behavioral_signals', signalId, 'INSERT');
     enqueue('pages_gate_decisions', decisionId, 'INSERT');
     enqueue('pages_sessions', session_id, 'UPDATE');
-    enqueue('pages_children', resolvedChildId, 'UPDATE');
+    enqueue('pages_children', child_id, 'UPDATE');
 
-    if (sessionAnomalyFlag) checkAndCreateAlert(resolvedChildId, session_id);
+    if (sessionAnomalyFlag) checkAndCreateAlert(child_id, session_id);
 
     return res.json({
       success: true, gate_decision: gateDecision, composite_score: compositeScore,
@@ -200,21 +196,9 @@ export async function completeSession(req, res, next) {
     const session = sessionRows[0];
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
 
-    let childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [child_id]);
-    let child = childRows[0];
-
-    if (!child) {
-      const wristband = campDb.prepare(
-        'SELECT person_id FROM wristbands WHERE qr_identifier = ? OR barcode = ?'
-      ).get(child_id, child_id);
-      if (wristband && wristband.person_id) {
-        childRows = sqliteRetrieve('pages_children', undefined, 'res_id = ?', [String(wristband.person_id)]);
-        child = childRows[0];
-      }
-    }
+    const childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [child_id]);
+    const child = childRows[0];
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
-
-    const resolvedChildId = child.child_id;
 
     const compositeScore = session.composite_score || child.baseline_score;
     const newBaseline = updateBaseline(child.baseline_score, compositeScore);
@@ -222,7 +206,7 @@ export async function completeSession(req, res, next) {
     for (const r of contentResponses) {
       const responseId = newId();
       sqliteInsert('pages_content_responses', {
-        response_id: responseId, session_id, child_id: resolvedChildId,
+        response_id: responseId, session_id, child_id,
         task_id: r.taskId, selected_answer: r.answer,
         is_correct: r.isCorrect ? 1 : 0, time_taken_ms: r.timeTakenMs || 0,
         responded_at: nowISO(),
@@ -238,10 +222,10 @@ export async function completeSession(req, res, next) {
     sqliteUpdate('pages_children', {
       baseline_score: newBaseline, total_sessions: child.total_sessions + 1,
       consecutive_low: compositeScore >= C.GATE_THRESHOLD ? 0 : child.consecutive_low,
-    }, 'child_id = ?', [resolvedChildId]);
+    }, 'child_id = ?', [child_id]);
 
     enqueue('pages_sessions', session_id, 'UPDATE');
-    enqueue('pages_children', resolvedChildId, 'UPDATE');
+    enqueue('pages_children', child_id, 'UPDATE');
 
     return res.json({ success: true, message: 'Session saved', new_baseline: newBaseline });
   } catch (err) { next(err); }

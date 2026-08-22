@@ -15,9 +15,9 @@ export function validateEnrol(req, res, next) {
 }
 
 export function validateSessionStart(req, res, next) {
-  const { child_id } = req.body;
-  if (!child_id || typeof child_id !== 'string' || !child_id.trim()) {
-    return next(createError(400, 'child_id is required'));
+  const { person_id } = req.body;
+  if (!person_id || typeof person_id !== 'string' || !person_id.trim()) {
+    return next(createError(400, 'person_id is required'));
   }
   const condition = req.body.condition_label;
   if (condition && !['A', 'B', 'C'].includes(condition)) {

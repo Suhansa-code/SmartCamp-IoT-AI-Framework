@@ -174,7 +174,7 @@ export default function AnimalGame({ onComplete, sessionId = '', childId = '', a
         const response = await fetch(`${API_BASE}/api/session/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ child_id: childId }),
+          body: JSON.stringify({ person_id: childId }),
         })
 
         const payload = await response.json().catch(() => ({}))
