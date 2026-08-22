@@ -90,6 +90,26 @@ function initializeCampDb() {
       sent_at TEXT,
       result TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS sync_pending (
+      sync_id TEXT PRIMARY KEY,
+      entity TEXT NOT NULL,
+      table_name TEXT NOT NULL,
+      local_id TEXT NOT NULL,
+      operation TEXT NOT NULL DEFAULT 'CREATE',
+      priority TEXT NOT NULL DEFAULT 'MEDIUM',
+      camp_id TEXT,
+      device_id TEXT,
+      payload TEXT NOT NULL,
+      published INTEGER DEFAULT 0,
+      retry_count INTEGER DEFAULT 0,
+      max_retries INTEGER DEFAULT 5,
+      next_retry_at TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now')),
+      acked_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_sync_pending_retry
+      ON sync_pending(published, retry_count, next_retry_at);
   `);
 
   try { campDb.exec("ALTER TABLE persons ADD COLUMN person_type TEXT DEFAULT 'refugee'"); } catch (_) {}

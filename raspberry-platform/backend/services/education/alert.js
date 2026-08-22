@@ -2,6 +2,7 @@ import { pagesDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { newId, nowISO } from '../../utils/helpers.js';
+import { enqueueSync } from '../sync/sync-notify.js';
 
 export function checkAndCreateAlert(childId, sessionId) {
   try {
@@ -45,6 +46,7 @@ function createAlert(child, alertType, detail) {
     INSERT INTO pages_alerts (alert_id, child_id, camp_id, res_id, alert_type, trigger_detail, triggered_at, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
   `).run(alertId, child.child_id, child.camp_id, child.res_id, alertType, detail, nowISO());
+  enqueueSync('pages_alerts', alertId);
   logger.info(`[ALERT] Created ${alertType} alert for child ${child.child_id}: ${detail}`);
 }
 
@@ -97,6 +99,7 @@ export function resolveAlert(alertId, notes) {
   });
 
   resolveTransaction();
+  enqueueSync('pages_alerts', alertId);
   logger.info(`[ALERT] Resolved alert ${alertId}`);
   return true;
 }

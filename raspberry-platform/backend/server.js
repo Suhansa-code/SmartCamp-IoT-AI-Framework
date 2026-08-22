@@ -8,6 +8,7 @@ import { initializeCampDb } from './config/database.js';
 import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
 import { startConnectivityWatcher } from './services/network/connectivity.js';
 import { checkFlaskHealth } from './services/education/scoring.js';
+import { startSync } from './services/sync/sync-manager.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -80,6 +81,9 @@ checkFlaskHealth().then(healthy => {
 
 // Start connectivity watcher
 startConnectivityWatcher();
+
+// Start cloud sync (after MQTT connects)
+startSync();
 
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {

@@ -6,6 +6,7 @@ import { createError } from '../../middleware/error-handler.js';
 import * as scoringService from '../../services/education/scoring.js';
 import { applyFirstGate, applySecondGate, updateBaseline } from '../../services/education/gating.js';
 import { checkAndCreateAlert } from '../../services/education/alert.js';
+import { enqueueSync } from '../../services/sync/sync-notify.js';
 
 function randomId() {
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -52,6 +53,7 @@ export async function startSession(req, res, next) {
       baseline_score_used: child.baseline_score, created_at: nowISO(),
     });
 
+    enqueueSync('pages_sessions', sessionId);
 
     return res.status(201).json({
       success: true, session_id: sessionId, child_id: childId,
@@ -108,6 +110,8 @@ export async function taskComplete(req, res, next) {
       completion_ratio: normalizeRate(passiveSignals.completionRatio, 'completionRatio'),
     });
 
+    enqueueSync('pages_behavioral_signals', signalId);
+
     sqliteUpdate('pages_sessions', {
       composite_score: compositeScore, task_score: taskScore,
       passive_score: passiveScore, gate_decision: gateDecision,
@@ -120,6 +124,8 @@ export async function taskComplete(req, res, next) {
       attempt_number: parseInt(attempt, 10) || 1,
       composite_score: compositeScore, decision: gateDecision,
     });
+
+    enqueueSync('pages_gate_decisions', decisionId);
 
     if (parseInt(attempt, 10) >= 2 && gateDecision === C.GATE.FAIL_CONFIRMED) {
       const childRows = sqliteRetrieve('pages_children', 'consecutive_low', 'child_id = ?', [child_id]);
@@ -169,6 +175,8 @@ export async function secondGate(req, res, next) {
       composite_score: compositeScore, decision: gateDecision, decided_at: nowISO(),
     });
 
+    enqueueSync('pages_gate_decisions', decisionId);
+
     if (gateDecision === C.GATE.FAIL_CONFIRMED) {
       sqliteUpdate('pages_children', { consecutive_low: (Number(child?.consecutive_low) || 0) + 1 }, 'child_id = ?', [child_id]);
       checkAndCreateAlert(child_id, session_id);
@@ -201,6 +209,7 @@ export async function completeSession(req, res, next) {
         is_correct: r.isCorrect ? 1 : 0, time_taken_ms: r.timeTakenMs || 0,
         responded_at: nowISO(),
       });
+      enqueueSync('pages_content_responses', responseId);
     }
 
     sqliteUpdate('pages_sessions', {

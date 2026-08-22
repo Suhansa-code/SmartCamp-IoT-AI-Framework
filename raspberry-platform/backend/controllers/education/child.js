@@ -4,6 +4,7 @@ import logger from '../../utils/logger.js';
 import { nextChildId, nowISO } from '../../utils/helpers.js';
 import { createError } from '../../middleware/error-handler.js';
 import { generateChildQRCode } from '../../services/education/qr-code.js';
+import { enqueueSync } from '../../services/sync/sync-notify.js';
 
 export async function enrolChild(req, res, next) {
   try {
@@ -36,6 +37,8 @@ export async function enrolChild(req, res, next) {
       `).run(childId, res_id.trim(), Number(grade), campId, zone_id, language, nowISO(), qrCodeData);
     });
     insertChild();
+
+    enqueueSync('pages_children', childId);
 
     return res.status(201).json({
       success: true, child_id: childId, qr_code: qrCodeData,
@@ -182,6 +185,7 @@ export async function saveLanguagePreference(req, res, next) {
     if (!['en', 'si', 'ta'].includes(language)) return next(createError(400, 'Invalid language code'));
 
     sqliteUpdate('pages_children', { language }, 'child_id = ?', [child_id]);
+    enqueueSync('pages_children', child_id);
     logger.info(`[CHILD] Language preference saved for ${child_id}: ${language}`);
     return res.json({ success: true, message: `Language preference updated to ${language}`, child_id, language });
   } catch (err) { next(err); }

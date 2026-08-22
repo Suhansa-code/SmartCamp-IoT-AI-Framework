@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { campDb as db } from '../../config/database.js';
 import * as saamp from '../network/saamp-mqtt.js';
+import { enqueueSync } from '../sync/sync-notify.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_PATH = path.join(__dirname, '..', '..', 'data', 'resource', 'distribution.json');
@@ -33,6 +34,8 @@ export async function distributeResource(barcode, resourceType) {
 
   db.prepare('INSERT INTO distributions (wristband_barcode, resource_type, quantity) VALUES (?, ?, ?)')
     .run(barcode, resourceType, quantities[resourceType]);
+
+  enqueueSync('distributions', barcode);
 
   const wristband = db.prepare('SELECT * FROM wristbands WHERE barcode = ?').get(barcode);
   const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(wristband.person_id);
