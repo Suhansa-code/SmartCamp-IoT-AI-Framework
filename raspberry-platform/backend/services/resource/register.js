@@ -1,9 +1,12 @@
-import { campDb as db } from '../../config/database.js';
+import { campDb as db, pagesDb } from '../../config/database.js';
+import C from '../../config/constants.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import * as emqx from '../network/emqx-manager.js';
 import { genPassword, genId } from '../../utils/crypto.js';
 import { generateWristbandQRCode } from './wristband.js';
 import { audit } from './resources.js';
+import { nextChildId, nowISO } from '../../utils/helpers.js';
+import { enqueueSync, enqueueSyncBatch } from '../sync/sync-notify.js';
 
 const VALID_GENDERS = ['M', 'F', 'O'];
 const VALID_TYPES = ['refugee', 'asylum_seeker', 'idp', 'returned_refugee', 'returned_idp', 'stateless', 'ooc'];
@@ -119,7 +122,7 @@ export function getCheckinsByPersonId(id) {
 
 // ── Register (transactional) ────────────────────────────────
 export async function registerPerson(data) {
-  const { full_name, age, gender, person_type, family_size, is_pregnant, has_chronic_illness, medical_notes } = data;
+  const { full_name, age, gender, person_type, family_size, is_pregnant, has_chronic_illness, medical_notes, grade, school_going } = data;
   validatePerson(data);
 
   const existing = db.prepare(
@@ -176,6 +179,25 @@ export async function registerPerson(data) {
 
   const { personId, barcode } = insertDb();
 
+  enqueueSyncBatch('persons', [personId]);
+  enqueueSyncBatch('camp_checkins', [personId]);
+  enqueueSyncBatch('wristbands', [personId]);
+
+  // Auto-enrol child in pages_children when age < 18
+  let childId = null;
+  if (parseInt(age) < 18) {
+    const campId = C.CAMP_ID;
+    childId = nextChildId(campId);
+    const resolvedGrade = school_going === false ? 3 : (Number(grade) || 3);
+
+    pagesDb.prepare(`
+      INSERT INTO pages_children (child_id, res_id, grade, camp_id, language, enrolled_at)
+      VALUES (?, ?, ?, ?, 'si', ?)
+    `).run(childId, String(personId), resolvedGrade, campId, nowISO());
+
+    enqueueSync('pages_children', childId);
+  }
+
   let mqttResult = null;
   try {
     const clientId = `sc-person-${personId}`;
@@ -195,7 +217,7 @@ export async function registerPerson(data) {
   }
 
   const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(personId);
-  return { person, wristband_barcode: barcode, mqtt: mqttResult };
+  return { person, wristband_barcode: barcode, mqtt: mqttResult, child_id: childId };
 }
 
 // ── QR Card ─────────────────────────────────────────────────
@@ -265,6 +287,8 @@ export function updatePerson(id, data) {
   params.push(id);
   db.prepare(`UPDATE persons SET ${updates.join(', ')} WHERE id = ?`).run(...params);
 
+  enqueueSync('persons', id);
+
   return getPersonById(id);
 }
 
@@ -279,6 +303,9 @@ export function deactivatePerson(id) {
 
   db.prepare('UPDATE persons SET is_active = 0 WHERE id = ?').run(id);
   db.prepare('UPDATE wristbands SET is_active = 0 WHERE person_id = ?').run(id);
+
+  enqueueSyncBatch('persons', [id]);
+  enqueueSyncBatch('wristbands', [id]);
 
   return { success: true, message: `Person "${person.full_name}" deactivated` };
 }

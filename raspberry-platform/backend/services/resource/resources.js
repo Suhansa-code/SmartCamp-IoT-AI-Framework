@@ -1,4 +1,5 @@
 import { campDb as db } from '../../config/database.js';
+import { enqueueSync, enqueueSyncBatch } from '../sync/sync-notify.js';
 
 const VALID_STATUSES = ['AVAILABLE', 'OUT_OF_STOCK', 'INACTIVE'];
 const MEALS = ['breakfast', 'lunch', 'dinner'];
@@ -83,6 +84,7 @@ export function createResource({ resource_name, category, unit, total_quantity, 
 
   const resource = getResourceById(result.lastInsertRowid);
   audit({ actor: null, action: 'resource_create', resource_id: resource.id, quantity: total, details: `${resource.resource_name}` });
+  enqueueSync('resources', resource.id);
   return resource;
 }
 
@@ -126,6 +128,7 @@ export function updateResource(id, data) {
     actor: null, action: 'resource_update', resource_id: resource.id,
     details: `${resource.resource_name}`,
   });
+  enqueueSync('resources', id);
   return resource;
 }
 
@@ -202,6 +205,8 @@ export function recordResourceUsage({ person_id, resource_id, meal, quantity, re
   });
 
   const { usage_id, resource } = record();
+  enqueueSync('resource_usage', usage_id);
+  enqueueSync('resources', resource.id);
   return { success: true, usage_id, person: person.full_name, resource_name: resource.resource_name, available_quantity: resource.available_quantity - qty };
 }
 

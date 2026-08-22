@@ -23,6 +23,7 @@ import {
   X,
   QrCode,
   Camera,
+  GraduationCap,
 } from "lucide-react";
 import DataTable from "../ui/display/DataTable";
 import ConfirmDialog from "../ui/feedback/ConfirmDialog";
@@ -227,10 +228,10 @@ function ScanningVisual({ scanState }) {
         <motion.div
           animate={{ scale: scanState === "scanning" ? [1, 1.07, 1] : 1 }}
           transition={{ duration: 2, repeat: scanState === "scanning" ? Infinity : 0 }}
-          className="w-48 h-48 sm:w-52 sm:h-52 rounded-full border-2 flex items-center justify-center relative overflow-hidden transition-colors duration-500"
+          className="w-36 h-36 sm:w-48 sm:h-48 lg:w-52 lg:h-52 rounded-full border-2 flex items-center justify-center relative overflow-hidden transition-colors duration-500"
           style={ring}
         >
-          <Fingerprint className="w-16 h-16 sm:w-20 sm:h-20 transition-colors duration-500" style={{ color: iconColor }} />
+          <Fingerprint className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 transition-colors duration-500" style={{ color: iconColor }} />
 
           <AnimatePresence>
             {scanState === "scanning" && (
@@ -308,9 +309,22 @@ function Field({ label, required, children, hint }) {
 function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error }) {
   const [errors, setErrors] = useState({});
   const [scanningQr, setScanningQr] = useState(false);
+  const [qrChecking, setQrChecking] = useState(false);
 
   const update = (field, value) => {
-    setForm((f) => ({ ...f, [field]: value }));
+    setForm((f) => {
+      const next = { ...f, [field]: value };
+      if (field === "age") {
+        if (Number(value) < 18) {
+          next.is_pregnant = 0;
+          next.has_chronic_illness = 0;
+        } else {
+          next.school_going = 1;
+          next.grade = 3;
+        }
+      }
+      return next;
+    });
     setErrors((e) => ({ ...e, [field]: undefined }));
   };
 
@@ -325,6 +339,29 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
 
   const handleSubmit = () => {
     if (validate()) onSubmit();
+  };
+
+  const verifyAndSetWristband = async (code) => {
+    setScanningQr(false);
+    if (!code) return;
+    setQrChecking(true);
+    try {
+      const res = await fetch(`${API}/api/qr/${encodeURIComponent(code)}/lookup`);
+      const data = await res.json();
+      if (data.state === "available") {
+        update("wristband_qr", code);
+      } else if (data.state === "assigned") {
+        setErrors((e) => ({ ...e, wristband_qr: `Wristband already assigned to ${data.person?.full_name || "someone"}` }));
+      } else if (data.state === "inactive") {
+        setErrors((e) => ({ ...e, wristband_qr: "This wristband is inactive" }));
+      } else {
+        setErrors((e) => ({ ...e, wristband_qr: "QR code not recognized" }));
+      }
+    } catch {
+      setErrors((e) => ({ ...e, wristband_qr: "Failed to verify wristband" }));
+    } finally {
+      setQrChecking(false);
+    }
   };
 
   return (
@@ -358,7 +395,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
           >
             {scanningQr ? (
               <QRScanner
-                onScan={(val) => { update("wristband_qr", val); setScanningQr(false); }}
+                onScan={verifyAndSetWristband}
                 onCancel={() => setScanningQr(false)}
               />
             ) : (
@@ -369,13 +406,13 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
                   onChange={(e) => update("wristband_qr", e.target.value)}
                   className={inputClassBase}
                 />
-                <Button type="button" variant="secondary" onClick={() => setScanningQr(true)} className="shrink-0 px-3" aria-label="Scan QR">
+                <Button type="button" variant="secondary" onClick={() => { setErrors((e) => ({ ...e, wristband_qr: undefined })); setScanningQr(true); }} className="shrink-0 px-3" aria-label="Scan QR">
                   <Camera className="w-4 h-4" />
                 </Button>
                 {form.wristband_qr && (
                   <button
                     type="button"
-                    onClick={() => update("wristband_qr", "")}
+                    onClick={() => { update("wristband_qr", ""); setErrors((e) => ({ ...e, wristband_qr: undefined })); }}
                     aria-label="Clear QR"
                     className="shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center"
                     style={{ borderColor: COLORS.line, color: COLORS.muted }}
@@ -386,6 +423,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
               </div>
             )}
           </Field>
+          {errors.wristband_qr && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.wristband_qr}</p>}
         </div>
 
         <div className="col-span-2">
@@ -407,6 +445,43 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
             <option value="O">Other</option>
           </select>
         </Field>
+
+        {Number(form.age) < 18 && Number(form.age) >= 0 && form.age !== "" && (
+          <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Field label="School Going">
+              <button
+                type="button"
+                onClick={() => update("school_going", form.school_going ? 0 : 1)}
+                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all active:scale-[0.98] w-full"
+                style={form.school_going ? { backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border, color: TONE.brand.color } : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }}
+              >
+                <GraduationCap className="w-4 h-4" /> {form.school_going ? "School Going" : "Not School Going"}
+              </button>
+            </Field>
+
+            {form.school_going ? (
+              <Field label="Grade" required>
+                <input
+                  type="number"
+                  min={1}
+                  max={12}
+                  placeholder="1–12"
+                  value={form.grade}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") { update("grade", ""); return; }
+                    const n = Number(v);
+                    if (n >= 1 && n <= 12) update("grade", n);
+                  }}
+                  className={inputClassBase}
+                />
+                {errors.grade && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.grade}</p>}
+              </Field>
+            ) : (
+              <div />
+            )}
+          </div>
+        )}
 
         <div className="col-span-2">
           <Field label="Person Type" required>
@@ -449,7 +524,8 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
           </Field>
         </div>
 
-        <div className="col-span-2 grid grid-cols-2 gap-2">
+        {Number(form.age) >= 18 && (
+        <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => update("is_pregnant", form.is_pregnant ? 0 : 1)}
@@ -467,6 +543,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
             <AlertTriangle className="w-4 h-4" /> Chronic Illness
           </button>
         </div>
+        )}
 
         <div className="col-span-2">
           <Field label="Medical Notes" hint="Optional — e.g. pregnancy stage, medication, allergies">
@@ -647,7 +724,7 @@ function RegistrationScreen() {
   const [newPersonForm, setNewPersonForm] = useState({
     full_name: "", age: "", gender: "M", person_type: "refugee",
     family_size: 1, is_pregnant: 0, has_chronic_illness: 0, medical_notes: "",
-    wristband_qr: "",
+    wristband_qr: "", grade: 3, school_going: 1,
   });
 
   const [persons, setPersons] = useState([]);
@@ -750,6 +827,7 @@ function RegistrationScreen() {
     if (!code) return;
     setQrCode(code);
     setStatusMessage("");
+    setRegError("");
     try {
       const res = await fetch(`${API}/api/qr/${encodeURIComponent(code)}/lookup`);
       const data = await res.json();
@@ -817,6 +895,12 @@ function RegistrationScreen() {
       setScanState("success");
       addToast("Check-in successful", "success");
       fetchPersons();
+
+      try {
+        const qrRes = await fetch(`${API}/api/register/${profile.id}/qrcode`);
+        const qrPayload = await qrRes.json();
+        if (qrRes.ok && qrPayload.data_url) setQrData(qrPayload);
+      } catch {}
     } catch (err) {
       setStatusMessage("Check-in failed: " + err.message);
       setScanState("found");
@@ -850,6 +934,12 @@ function RegistrationScreen() {
       setScanState("success");
       addToast(`${data.person.full_name} registered successfully`, "success");
       fetchPersons();
+
+      try {
+        const qrRes = await fetch(`${API}/api/register/${data.person.id}/qrcode`);
+        const qrPayload = await qrRes.json();
+        if (qrRes.ok && qrPayload.data_url) setQrData(qrPayload);
+      } catch {}
     } catch (err) {
       const msg = "Registration failed: " + err.message;
       setRegError(msg);
@@ -886,14 +976,12 @@ function RegistrationScreen() {
       <div className="sm:px-5 lg:px-6 py-2 sm:py-7 space-y-4 sm:space-y-6">
 
         {/* ================= TITLE ROW ================= */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 sm:gap-3">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
-            <div className="flex items-center gap-3 mt-1.5">
-              <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight" style={{ color: COLORS.ink }}>Registration</h1>
-            </div>
+            <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
+            <h1 className="font-serif font-medium text-[22px] sm:text-[26px] lg:text-[32px] leading-[1.1] tracking-tight mt-1" style={{ color: COLORS.ink }}>Registration</h1>
           </div>
-          <div className="flex items-center gap-1.5 text-[12px] font-mono" style={{ color: COLORS.muted }}>
+          <div className="hidden sm:flex items-center gap-1.5 text-[12px] font-mono" style={{ color: COLORS.muted }}>
             <CalendarDays className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
             <span className="font-medium">{today}</span>
           </div>
@@ -907,7 +995,7 @@ function RegistrationScreen() {
         {/* ================= SCAN + RESULT ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4 sm:gap-5 lg:gap-6">
           <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}>
-            <Card className="p-5 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-80 lg:min-h-105">
+            <Card className="p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-64 sm:min-h-80 lg:min-h-105">
               <ScanningVisual scanState={scanState} />
 
               {scanState === "idle" && (
@@ -936,7 +1024,7 @@ function RegistrationScreen() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}>
-            <Card className="p-5 sm:p-6 lg:p-8 min-h-70 lg:min-h-105 flex flex-col justify-center">
+            <Card className="p-4 sm:p-6 lg:p-8 min-h-60 sm:min-h-70 lg:min-h-105 flex flex-col justify-center">
               <AnimatePresence mode="wait">
                 {(scanState === "idle" || scanState === "scanning") && (
                   <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
@@ -965,11 +1053,11 @@ function RegistrationScreen() {
                 )}
 
                 {scanState === "found" && profile && (
-                  <motion.div key="found" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} className="space-y-6">
-                    <div className="flex items-start gap-5">
+                  <motion.div key="found" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} className="space-y-4 sm:space-y-6">
+                    <div className="flex items-start gap-3 sm:gap-5">
                       <Avatar name={profile.full_name} size="lg" />
                       <div>
-                        <h2 className="font-serif font-medium text-[20px] tracking-tight" style={{ color: COLORS.ink }}>{profile.full_name}</h2>
+                        <h2 className="font-serif font-medium text-[17px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>{profile.full_name}</h2>
                         <div className="mt-1.5">
                           {qrBound ? (
                             <Chip tone="brand"><QrCode className="w-3.5 h-3.5" /> Profile Loaded{qrCode ? ` · ${qrCode}` : ""}</Chip>
@@ -1050,7 +1138,7 @@ function RegistrationScreen() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <ProfileTile icon={User} label="Age & Gender" value={`${profile.age} yrs · ${profile.gender}`} />
                           <ProfileTile icon={Users} label="Family" value={`${profile.family_size} Members`} />
                         </div>
@@ -1070,33 +1158,40 @@ function RegistrationScreen() {
                 )}
 
                 {scanState === "success" && (
-                  <motion.div key="success" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="flex flex-col items-center text-center space-y-5">
+                  <motion.div key="success" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="flex flex-col items-center text-center space-y-3 sm:space-y-5">
                     <motion.div
                       initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 18 }}
-                      className="w-16 h-16 rounded-full flex items-center justify-center border"
+                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center border"
                       style={{ backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}
                     >
-                      <CheckCircle className="w-8 h-8" style={{ color: COLORS.brand }} />
+                      <CheckCircle className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: COLORS.brand }} />
                     </motion.div>
 
                     <div>
-                      <h2 className="font-serif font-medium text-[20px]" style={{ color: COLORS.ink }}>Ready to Go</h2>
-                      <p className="text-[13px] mt-2 px-5 py-2 rounded-lg border font-medium" style={{ color: COLORS.brand, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>{statusMessage}</p>
+                      <h2 className="font-serif font-medium text-[17px] sm:text-[20px]" style={{ color: COLORS.ink }}>Ready to Go</h2>
+                      <p className="text-[12px] sm:text-[13px] mt-1.5 sm:mt-2 px-3 sm:px-5 py-2 rounded-lg border font-medium" style={{ color: COLORS.brand, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>{statusMessage}</p>
                     </div>
 
-                    {wristband && <Barcode value={wristband} />}
+                    {qrData && qrData.data_url ? (
+                      <div className="scale-90 sm:scale-100 origin-top flex flex-col items-center">
+                        <img src={qrData.data_url} alt="Wristband QR" className="w-40 h-40 sm:w-48 sm:h-48" />
+                        <p className="mt-2 text-[11px] font-mono font-semibold tracking-wide" style={{ color: COLORS.ink }}>{qrData.qr_identifier}</p>
+                      </div>
+                    ) : wristband ? (
+                      <div className="text-[12px] font-mono font-medium px-3 py-2 rounded-lg border" style={{ color: COLORS.ink, borderColor: COLORS.line }}>{wristband}</div>
+                    ) : null}
 
                     {profile && (
-                      <p className="text-[12px]" style={{ color: COLORS.muted }}>Registered: <span className="font-semibold" style={{ color: COLORS.ink }}>{profile.full_name}</span></p>
+                      <p className="text-[11px] sm:text-[12px]" style={{ color: COLORS.muted }}>Registered: <span className="font-semibold" style={{ color: COLORS.ink }}>{profile.full_name}</span></p>
                     )}
 
                     {qosInfo && (
-                      <div className="text-[11px] font-mono font-medium flex items-center gap-1.5" style={{ color: COLORS.muted }}>
-                        <Activity className="w-3.5 h-3.5" /> Syncing to cloud (QoS {qosInfo.final_qos})
+                      <div className="text-[10px] sm:text-[11px] font-mono font-medium flex items-center gap-1.5" style={{ color: COLORS.muted }}>
+                        <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Syncing to cloud (QoS {qosInfo.final_qos})
                       </div>
                     )}
 
-                    <Button onClick={reset}>Process Next Person</Button>
+                    <Button onClick={reset} className="w-full sm:w-auto">Process Next Person</Button>
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -18,6 +18,7 @@ const CLIENT_ID = `smartcamp_pi_${Math.random().toString(16).slice(2, 8)}`;
 let client = null;
 let isConnected = false;
 const messageHandlers = {};
+const flushListeners = [];
 let predictedNetworkState = 'STABLE';
 
 export function connect() {
@@ -66,6 +67,8 @@ export function classifyMessage(source, action) {
     'fingerprint_scanner|checkin': { priority: 'CRITICAL', qos: 2 },
     'wristband_scanner|distribution': { priority: 'CRITICAL', qos: 2 },
     'prediction_model|daily_forecast': { priority: 'HIGH', qos: 1 },
+    'sync|education': { priority: 'HIGH', qos: 1 },
+    'sync|resources': { priority: 'HIGH', qos: 1 },
     'system|heartbeat': { priority: 'LOW', qos: 0 },
     'dashboard|status_poll': { priority: 'LOW', qos: 0 },
     'system|network_state': { priority: 'MEDIUM', qos: 1 },
@@ -107,6 +110,7 @@ function flushBuffer() {
   if (!isConnected) return;
   const order = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
   let flushed = 0;
+  const flushedMessages = [];
   for (const priority of order) {
     const rows = campDb.prepare(
       'SELECT * FROM mqtt_buffer WHERE flushed = 0 AND priority = ? ORDER BY created_at ASC'
@@ -115,14 +119,24 @@ function flushBuffer() {
       try {
         client.publish(row.topic, row.payload, { qos: row.qos, retain: false });
         campDb.prepare('UPDATE mqtt_buffer SET flushed = 1 WHERE id = ?').run(row.id);
+        flushedMessages.push({ topic: row.topic, payload: row.payload, priority: row.priority });
         flushed++;
       } catch (e) { console.error('[SAAMP] Flush error:', e.message); }
     }
   }
-  if (flushed > 0) console.log(`[SAAMP] Flushed ${flushed} buffered messages in priority order`);
+  if (flushed > 0) {
+    console.log(`[SAAMP] Flushed ${flushed} buffered messages in priority order`);
+    for (const listener of flushListeners) {
+      try { listener(flushedMessages); } catch (e) { console.error('[SAAMP] Flush listener error:', e.message); }
+    }
+  }
 }
 
 export { flushBuffer };
+
+export function onFlush(callback) {
+  flushListeners.push(callback);
+}
 
 export async function publishAsClient(topic, payload, clientId, password, source, action) {
   const { priority, qos: baseQos } = classifyMessage(source, action);
@@ -197,4 +211,8 @@ export function publish(topic, payload, source, action) {
 
 export function onMessage(topic, callback) {
   messageHandlers[topic] = callback;
+}
+
+export function isConnectedToBroker() {
+  return isConnected;
 }

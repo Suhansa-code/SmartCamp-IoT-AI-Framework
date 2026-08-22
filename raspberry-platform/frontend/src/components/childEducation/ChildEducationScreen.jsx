@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap, AlertTriangle, CheckCircle,
   Clock, RefreshCw, ShieldCheck, CalendarDays,
-  Activity, BookOpen, List, ChevronRight, User,
+  BookOpen, List, ChevronRight, User,
 } from "lucide-react";
 import DataTable from "../ui/display/DataTable";
 import ErrorState from "../ui/feedback/ErrorState";
@@ -73,16 +73,6 @@ function Chip({ children, tone = "neutral" }) {
     >
       {children}
     </span>
-  );
-}
-
-function SyncChip({ synced }) {
-  const on = Number(synced) === 1;
-  return (
-    <Chip tone={on ? "brand" : "neutral"}>
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "currentColor" }} />
-      {on ? "Synced" : "Pending"}
-    </Chip>
   );
 }
 
@@ -225,7 +215,6 @@ function ChildEducationScreen() {
   const alertSummary = {
     pending: alerts.filter((a) => a.status === "pending").length,
     resolved: alerts.filter((a) => a.status === "resolved").length,
-    unsynced: alerts.filter((a) => Number(a.synced) !== 1).length,
   };
 
   return (
@@ -270,11 +259,10 @@ function ChildEducationScreen() {
             </div>
 
             {/* Stats Row */}
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
               <StatCard label="Total Sessions" value={stats.total_sessions ?? child.total_sessions ?? 0} icon={BookOpen} tone="brand" />
               <StatCard label="Pending Alerts" value={alertSummary.pending} icon={AlertTriangle} tone="warning" />
               <StatCard label="Resolved" value={alertSummary.resolved} icon={CheckCircle} tone="info" />
-              <StatCard label="Sync State" value={Number(child.synced) === 1 ? "Synced" : "Pending"} icon={Activity} tone="brand" />
             </div>
 
             {/* Profile + Alerts Grid */}
@@ -367,7 +355,6 @@ function ChildEducationScreen() {
                               </Chip>
                             </div>
                           </td>
-                          <td className="px-3 sm:px-4 py-3"><SyncChip synced={s.synced} /></td>
                         </tr>
                       ))
                     )}
@@ -408,10 +395,6 @@ function ChildEducationScreen() {
                 {
                   key: "alert_status", label: "Alert",
                   render: (val) => <Chip tone={val === "active" ? "danger" : val === "resolved" ? "brand" : "neutral"}>{val || "none"}</Chip>,
-                },
-                {
-                  key: "synced", label: "Sync",
-                  render: (val) => <SyncChip synced={val} />,
                 },
               ]}
               data={children}

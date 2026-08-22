@@ -22,10 +22,11 @@ async function apiFetch(path, options = {}) {
 }
 
 //Session 
-export async function startSession(childId) {
+export async function startSession(personId) {
+  console.log('Starting session for person ID:', personId)
   return apiFetch('/api/session/start', {
     method: 'POST',
-    body: JSON.stringify({ child_id: childId }),
+    body: JSON.stringify({ person_id: personId }),
   })
 }
 

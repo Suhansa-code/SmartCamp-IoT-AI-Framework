@@ -4,6 +4,7 @@ import { NetworkMonitor } from './services/network/networkMonitor.service.js';
 import { SimulationService } from './services/network/simulation.service.js';
 import { startCampDataService } from './services/resources/campData.service.js';
 import { AlertSyncService } from './services/education/alertSync.service.js';
+import { startSyncReceiver, stopSyncReceiver } from './services/sync/syncReceiver.service.js';
 import { env } from './config/env.js';
 import { initSchema, testConnection, closeDatabase } from './config/database.js';
 
@@ -41,6 +42,11 @@ async function startServer() {
     startCampDataService();
     console.log('[Camp Data] Camp data service started');
 
+    if (env.db.enabled) {
+      startSyncReceiver();
+      console.log('[Sync Receiver] Started — listening to smartcamp/sync/#');
+    }~
+
     app.listen(env.port, () => {
       console.log(`[Server] Running on port ${env.port}`);
     });
@@ -55,6 +61,7 @@ process.on('SIGTERM', async () => {
   console.log('[Server] Shutting down...');
   simulationService.stop();
   alertSyncService.stop();
+  stopSyncReceiver();
   mqttService.disconnect();
   await closeDatabase();
   process.exit(0);

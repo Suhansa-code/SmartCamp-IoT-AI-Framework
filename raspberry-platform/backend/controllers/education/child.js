@@ -1,9 +1,10 @@
 import { pagesDb, sqliteInsert, sqliteUpdate, sqliteGetLastChildId } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
-import { nextChildId, enqueue, nowISO } from '../../utils/helpers.js';
+import { nextChildId, nowISO } from '../../utils/helpers.js';
 import { createError } from '../../middleware/error-handler.js';
 import { generateChildQRCode } from '../../services/education/qr-code.js';
+import { enqueueSync } from '../../services/sync/sync-notify.js';
 
 export async function enrolChild(req, res, next) {
   try {
@@ -34,9 +35,10 @@ export async function enrolChild(req, res, next) {
         INSERT INTO pages_children (child_id, res_id, grade, camp_id, zone_id, language, enrolled_at, qr_code_data)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(childId, res_id.trim(), Number(grade), campId, zone_id, language, nowISO(), qrCodeData);
-      enqueue('pages_children', childId, 'INSERT');
     });
     insertChild();
+
+    enqueueSync('pages_children', childId);
 
     return res.status(201).json({
       success: true, child_id: childId, qr_code: qrCodeData,
@@ -72,7 +74,7 @@ export async function testChildIdGeneration(req, res, next) {
     }
 
     sqliteInsert('pages_children', {
-      child_id, res_id: 'TEST-RES-001', grade: 3, camp_id: 'CAMP-TEST',
+      child_id, res_id: 'TEST-RES-001', grade: 3, camp_id: C.CAMP_ID,
       zone_id: 'ZONE-TEST', language: 'si', qr_code_data: qrCodeData,
     });
 
@@ -183,6 +185,7 @@ export async function saveLanguagePreference(req, res, next) {
     if (!['en', 'si', 'ta'].includes(language)) return next(createError(400, 'Invalid language code'));
 
     sqliteUpdate('pages_children', { language }, 'child_id = ?', [child_id]);
+    enqueueSync('pages_children', child_id);
     logger.info(`[CHILD] Language preference saved for ${child_id}: ${language}`);
     return res.json({ success: true, message: `Language preference updated to ${language}`, child_id, language });
   } catch (err) { next(err); }

@@ -43,17 +43,6 @@ export default {
   TURSO_URL: firstDefined(process.env.TURSO_URL, process.env.TURSO_DATABASE_URL, process.env.LIBSQL_URL, process.env.DATABASE_URL),
   TURSO_AUTH_TOKEN: firstDefined(process.env.TURSO_AUTH_TOKEN, process.env.TURSO_TOKEN, process.env.LIBSQL_AUTH_TOKEN, process.env.DATABASE_AUTH_TOKEN),
 
-  AWS_RDS_HOST: process.env.AWS_RDS_HOST,
-  AWS_RDS_PORT: parseInt(process.env.AWS_RDS_PORT, 10) || 5432,
-  AWS_RDS_DB: process.env.AWS_RDS_DB || 'pages_db',
-  AWS_RDS_USER: process.env.AWS_RDS_USER || 'pages_user',
-  AWS_RDS_PASSWORD: process.env.AWS_RDS_PASSWORD,
-  AWS_S3_BUCKET: process.env.AWS_S3_BUCKET || 'pages-models',
-  AWS_REGION: process.env.AWS_REGION || 'ap-south-1',
-
-  SYNC_INTERVAL_MINUTES: parseInt(process.env.SYNC_INTERVAL_MINUTES, 10) || 2,
-  SYNC_BATCH_SIZE: 50,
-
   CORS_ORIGINS: [
     ...parseOrigins(process.env.CORS_ORIGINS),
     ...parseOrigins(process.env.FRONTEND_URL),
@@ -76,11 +65,6 @@ export default {
     CONSECUTIVE: '3_consecutive_flagged',
     OF_FIVE: '3_of_5_flagged',
   },
-
-  SYNC_TABLE_ORDER: [
-    'pages_children', 'pages_sessions', 'pages_behavioral_signals',
-    'pages_gate_decisions', 'pages_alerts', 'pages_content_responses',
-  ],
 
   CAMP_DB_PATH: process.env.CAMP_DB_PATH || './db/camp.db',
   PAGES_DB_PATH: process.env.PAGES_DB_PATH || './db/pages.db',
