@@ -1,11 +1,8 @@
-# MQTT & Sync Architecture — SmartCamp Raspberry Platform
+# MQTT Architecture — SmartCamp Raspberry Platform
 
 ## Overview
 
-The Raspberry Pi unit communicates with the cloud platform through two independent mechanisms:
-
-1. **MQTT** — Real-time event publishing over TLS to an EMQX broker
-2. **Sync** — Batch data push from local SQLite to cloud databases (Turso, AWS RDS)
+The Raspberry Pi unit communicates with the cloud platform through MQTT, a lightweight publish-subscribe protocol ideal for IoT.
 
 ---
 
@@ -112,59 +109,7 @@ During registration and check-in, a unique MQTT user is created per person via t
 
 ---
 
-## 2. Sync
-
-### 2.1 Education Data Sync (SQLite → Turso)
-
-**Source**: Local `pages.db` (PAGES education tables)
-**Destination**: Turso cloud (LibSQL HTTP API)
-
-**Tables synced** (in order):
-
-| Table | Description |
-|---|---|
-| `pages_children` | Enrolled children |
-| `pages_sessions` | Education sessions |
-| `pages_behavioral_signals` | Task/passive metrics per session |
-| `pages_gate_decisions` | Gate pass/fail decisions |
-| `pages_alerts` | Triggered alerts |
-| `pages_content_responses` | Per-task answers |
-
-**Mechanism**:
-1. Each synced table has a `synced` column (`0` = pending, `1` = done)
-2. Queries `SELECT * FROM table WHERE synced = 0 LIMIT 50`
-3. POSTs rows to `${TURSO_URL}/sync/${table_name}`
-4. On success: marks rows as `synced = 1`
-5. Logs to `pages_sync_log` table
-
-**Trigger**: Manual via `POST /api/sync/trigger`
-
-**Sync Queue** (`pages_sync_queue`):
-```sql
-queue_id, table_name, record_id, operation, sync_status, retry_count, created_at, synced_at
-```
-Populated by `enqueue()` helper when records are created (e.g., child enrollment).
-
-### 2.2 Alert Sync (SQLite → Cloud Platform HTTP)
-
-**Source**: Local `pages.db`
-**Destination**: Cloud platform backend (`http://cloud-platform-backend:3001`)
-
-| Sync Method | Endpoint | Data |
-|---|---|---|
-| `syncChildren()` | `POST /api/alerts/sync/children` | child_id, res_id, camp_id, grade, language, baseline_score |
-| `syncSessions()` | `POST /api/alerts/sync/sessions` | session metrics (last 7 days) |
-| `syncPendingAlerts()` | `POST /api/alerts` | One pending alert at a time |
-
-Runs on a 60-second interval (if `AlertSyncManager` is started).
-
-### 2.3 PostgreSQL (AWS RDS) — Infrastructure Ready
-
-A `pg` connection pool is configured for AWS RDS PostgreSQL. Connectivity is monitored every 30 seconds. No actual data sync is implemented yet — the pool and health checks are infrastructure-ready for future use.
-
----
-
-## 3. Functions Using MQTT
+## 2. Functions Using MQTT
 
 | Service | MQTT Function | Purpose |
 |---|---|---|
@@ -181,24 +126,21 @@ A `pg` connection pool is configured for AWS RDS PostgreSQL. Connectivity is mon
 
 ---
 
-## 4. Key Files
+## 3. Key Files
 
 | File | Role |
 |---|---|
 | `services/network/saamp-mqtt.js` | Core MQTT client: connect, publish, subscribe, buffer, adaptive QoS |
 | `services/network/emqx-manager.js` | EMQX REST API user management |
 | `services/network/network.js` | Network state facade |
-| `services/network/connectivity.js` | PostgreSQL connectivity watcher |
-| `services/education/sync.js` | Education data sync: SQLite → Turso |
-| `services/education/alertSyncManager.js` | Alert sync: SQLite → cloud platform |
-| `config/constants.js` | All EMQX/Sync/DB configuration |
-| `config/database.js` | SQLite schemas, mqtt_buffer, PostgreSQL pool |
-| `server.js` | Bootstraps MQTT, connectivity watcher, routes |
-| `utils/helpers.js` | `enqueue()` for sync queue |
+| `services/network/connectivity.js` | Connectivity watcher |
+| `config/constants.js` | All EMQX/DB configuration |
+| `config/database.js` | SQLite schemas, mqtt_buffer |
+| `server.js` | Bootstraps MQTT, routes |
 
 ---
 
-## 5. Environment Variables
+## 4. Environment Variables
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -209,15 +151,10 @@ A `pg` connection pool is configured for AWS RDS PostgreSQL. Connectivity is mon
 | `EMQX_API_KEY` | *(empty)* | EMQX REST API key |
 | `EMQX_API_SECRET` | *(empty)* | EMQX REST API secret |
 | `EMQX_CA_CERT` | `./db/emqxsl-ca.crt` | CA certificate path |
-| `TURSO_URL` | *(set in .env)* | Turso cloud database URL |
-| `TURSO_AUTH_TOKEN` | *(set in .env)* | Turso auth token |
-| `AWS_RDS_HOST` | *(set in .env)* | PostgreSQL host |
-| `SYNC_INTERVAL_MINUTES` | `2` | Sync interval (not auto-wired) |
-| `SYNC_BATCH_SIZE` | `50` | Rows per sync batch |
 
 ---
 
-## 6. Flow Diagram
+## 5. Flow Diagram
 
 ```
 [Server Boot]
@@ -226,13 +163,13 @@ A `pg` connection pool is configured for AWS RDS PostgreSQL. Connectivity is mon
   ├── mqttConnect()              → connects to EMQX (mqtts:8883)
   │     ├── subscribes to smartcamp/# (QoS 2)
   │     └── flushBuffer()        → drains any buffered messages
-  ├── startConnectivityWatcher() → polls PostgreSQL every 30s
+  ├── startConnectivityWatcher() → monitors connectivity
   └── setupMqttListener()        → registers forecast_result handler
 
 [Registration]
   register.js → INSERT person → INSERT wristband
     → createMqttUser() → publishAsClient(smartcamp/registration/new)
-    → if age < 18: INSERT pages_children → enqueue()
+    → if age < 18: INSERT pages_children
 
 [Check-in]
   checkin.js → INSERT checkin → ensureMqttUser()
@@ -247,10 +184,6 @@ A `pg` connection pool is configured for AWS RDS PostgreSQL. Connectivity is mon
     → If fail or CRITICAL: publish(smartcamp/prediction/forecast_request)
     → Cloud responds on smartcamp/prediction/forecast_result
     → Handler stores result in prediction_requests table
-
-[Education Sync]
-  POST /api/sync/trigger → runSync()
-    → For each table: SELECT WHERE synced=0 → POST to Turso → mark synced=1
 
 [Buffer]
   On publish failure or CRITICAL network:

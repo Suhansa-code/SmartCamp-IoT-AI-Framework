@@ -12,11 +12,9 @@ const mockPagesDb = {
 vi.mock('../../config/database.js', () => ({ pagesDb: mockPagesDb }));
 vi.mock('../../utils/logger.js', () => ({ default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() } }));
 
-const mockEnqueue = vi.fn();
 vi.mock('../../utils/helpers.js', () => ({
   newId: vi.fn(() => 'alert-uuid-123'),
   nowISO: vi.fn(() => '2026-08-02T15:00:00+05:30'),
-  enqueue: mockEnqueue,
 }));
 
 let alert;
@@ -54,13 +52,6 @@ describe('checkAndCreateAlert', () => {
 
     const sqlCalls = mockPagesDb.prepare.mock.calls.map(c => c[0]);
     expect(sqlCalls.some(s => s.includes('consecutive_low = 0'))).toBe(true);
-  });
-
-  it('calls enqueue after creating alert', () => {
-    mockGet.mockReturnValue({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 3 });
-
-    alert.checkAndCreateAlert('B-001', 'sess-1');
-    expect(mockEnqueue).toHaveBeenCalled();
   });
 
   it('does not create alert when consecutive_low < 3 and few sessions', () => {

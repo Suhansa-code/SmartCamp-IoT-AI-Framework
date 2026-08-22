@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid';
-import { pagesDb } from '../config/database.js';
 
 const APP_TIME_ZONE = 'Asia/Colombo';
 
@@ -59,11 +58,4 @@ export function round(value, places = 2) {
 
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
-}
-
-export function enqueue(tableName, recordId, operation = 'INSERT') {
-  pagesDb.prepare(`
-    INSERT INTO pages_sync_queue (table_name, record_id, operation, created_at)
-    VALUES (?, ?, ?, ?)
-  `).run(tableName, recordId, operation, nowISO());
 }

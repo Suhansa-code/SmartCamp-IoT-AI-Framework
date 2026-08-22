@@ -1,7 +1,7 @@
 import { pagesDb, sqliteInsert, sqliteUpdate, sqliteGetLastChildId } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
-import { nextChildId, enqueue, nowISO } from '../../utils/helpers.js';
+import { nextChildId, nowISO } from '../../utils/helpers.js';
 import { createError } from '../../middleware/error-handler.js';
 import { generateChildQRCode } from '../../services/education/qr-code.js';
 
@@ -34,7 +34,6 @@ export async function enrolChild(req, res, next) {
         INSERT INTO pages_children (child_id, res_id, grade, camp_id, zone_id, language, enrolled_at, qr_code_data)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(childId, res_id.trim(), Number(grade), campId, zone_id, language, nowISO(), qrCodeData);
-      enqueue('pages_children', childId, 'INSERT');
     });
     insertChild();
 

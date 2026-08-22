@@ -5,7 +5,7 @@ import * as emqx from '../network/emqx-manager.js';
 import { genPassword, genId } from '../../utils/crypto.js';
 import { generateWristbandQRCode } from './wristband.js';
 import { audit } from './resources.js';
-import { nextChildId, enqueue, nowISO } from '../../utils/helpers.js';
+import { nextChildId, nowISO } from '../../utils/helpers.js';
 
 const VALID_GENDERS = ['M', 'F', 'O'];
 const VALID_TYPES = ['refugee', 'asylum_seeker', 'idp', 'returned_refugee', 'returned_idp', 'stateless', 'ooc'];
@@ -189,7 +189,6 @@ export async function registerPerson(data) {
       INSERT INTO pages_children (child_id, res_id, grade, camp_id, language, enrolled_at)
       VALUES (?, ?, ?, ?, 'si', ?)
     `).run(childId, String(personId), resolvedGrade, campId, nowISO());
-    enqueue('pages_children', childId, 'INSERT');
   }
 
   let mqttResult = null;

@@ -1,7 +1,7 @@
 import { pagesDb, sqliteInsert, sqliteUpdate, sqliteRetrieve, sqliteGetLastChildId, campDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
-import { newId, todayDate, nowTime, nowISO, enqueue } from '../../utils/helpers.js';
+import { newId, todayDate, nowTime, nowISO } from '../../utils/helpers.js';
 import { createError } from '../../middleware/error-handler.js';
 import * as scoringService from '../../services/education/scoring.js';
 import { applyFirstGate, applySecondGate, updateBaseline } from '../../services/education/gating.js';
@@ -52,7 +52,6 @@ export async function startSession(req, res, next) {
       baseline_score_used: child.baseline_score, created_at: nowISO(),
     });
 
-    enqueue('pages_sessions', sessionId, 'INSERT');
 
     return res.status(201).json({
       success: true, session_id: sessionId, child_id: childId,
@@ -129,11 +128,6 @@ export async function taskComplete(req, res, next) {
       sqliteUpdate('pages_children', { consecutive_low: newConsecutiveLow }, 'child_id = ?', [child_id]);
     }
 
-    enqueue('pages_behavioral_signals', signalId, 'INSERT');
-    enqueue('pages_gate_decisions', decisionId, 'INSERT');
-    enqueue('pages_sessions', session_id, 'UPDATE');
-    enqueue('pages_children', child_id, 'UPDATE');
-
     if (sessionAnomalyFlag) checkAndCreateAlert(child_id, session_id);
 
     return res.json({
@@ -177,12 +171,8 @@ export async function secondGate(req, res, next) {
 
     if (gateDecision === C.GATE.FAIL_CONFIRMED) {
       sqliteUpdate('pages_children', { consecutive_low: (Number(child?.consecutive_low) || 0) + 1 }, 'child_id = ?', [child_id]);
-      enqueue('pages_children', child_id, 'UPDATE');
       checkAndCreateAlert(child_id, session_id);
     }
-
-    enqueue('pages_gate_decisions', decisionId, 'INSERT');
-    enqueue('pages_sessions', session_id, 'UPDATE');
 
     return res.json({ success: true, gate_decision: gateDecision, composite_score: compositeScore });
   } catch (err) { next(err); }
@@ -211,7 +201,6 @@ export async function completeSession(req, res, next) {
         is_correct: r.isCorrect ? 1 : 0, time_taken_ms: r.timeTakenMs || 0,
         responded_at: nowISO(),
       });
-      enqueue('pages_content_responses', responseId, 'INSERT');
     }
 
     sqliteUpdate('pages_sessions', {
@@ -223,9 +212,6 @@ export async function completeSession(req, res, next) {
       baseline_score: newBaseline, total_sessions: child.total_sessions + 1,
       consecutive_low: compositeScore >= C.GATE_THRESHOLD ? 0 : child.consecutive_low,
     }, 'child_id = ?', [child_id]);
-
-    enqueue('pages_sessions', session_id, 'UPDATE');
-    enqueue('pages_children', child_id, 'UPDATE');
 
     return res.json({ success: true, message: 'Session saved', new_baseline: newBaseline });
   } catch (err) { next(err); }
