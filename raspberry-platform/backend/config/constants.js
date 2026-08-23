@@ -68,6 +68,7 @@ export default {
 
   CAMP_DB_PATH: process.env.CAMP_DB_PATH || './db/camp.db',
   PAGES_DB_PATH: process.env.PAGES_DB_PATH || './db/pages.db',
+  DISASTER_DB_PATH: process.env.DISASTER_DB_PATH || './db/disaster.db',
   MODELS_DIR: './models',
 
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',

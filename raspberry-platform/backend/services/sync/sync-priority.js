@@ -97,6 +97,28 @@ export function classifyRowPriority(tableName, row) {
     case 'pages_content_responses':
       return lo('content_response');
 
+    // ── Disaster tables ───────────────────────────────────────────
+    case 'disaster_alerts':
+      return classifyDisasterAlert(row);
+    case 'flood_predictions':
+      return classifyFloodPrediction(row);
+    case 'sensor_readings':
+      return classifySensorReading(row);
+    case 'water_level_readings':
+      return classifyWaterLevel(row);
+    case 'disaster_events':
+      return classifyDisasterEvent(row);
+    case 'environmental_data':
+      return md('environmental_data');
+    case 'weather_data':
+      return md('weather_data');
+    case 'gps_readings':
+      return md('gps_readings');
+    case 'hydrospatial_data':
+      return md('hydrospatial_data');
+    case 'prediction_requests':
+      return md('prediction_request');
+
     default:
       return md('unknown_table');
   }
@@ -175,6 +197,49 @@ function classifyChild(row) {
   return lo('child_enrolled');
 }
 
+// ── Disaster classifiers ────────────────────────────────────────────────
+
+function classifyDisasterAlert(row) {
+  const severity = (row.severity || '').toUpperCase();
+  if (severity === 'CRITICAL' || severity === 'EXTREME') return crit('disaster_alert_critical');
+  if (severity === 'HIGH' || severity === 'SEVERE') return hi('disaster_alert_high');
+  return md('disaster_alert_normal');
+}
+
+function classifyFloodPrediction(row) {
+  const category = (row.flood_category || '').toLowerCase();
+  if (category.includes('high') || category.includes('severe') || category.includes('extreme')) {
+    return crit('flood_prediction_critical');
+  }
+  if (row.flood_probability != null && row.flood_probability >= 0.7) {
+    return crit('flood_prediction_high_prob');
+  }
+  return hi('flood_prediction');
+}
+
+function classifySensorReading(row) {
+  const type = (row.sensor_type || '').toLowerCase();
+  if (type.includes('water') || type.includes('flood') || type.includes('rain')) {
+    return hi('sensor_water');
+  }
+  return hi('sensor_reading');
+}
+
+function classifyWaterLevel(row) {
+  if (row.water_level != null && row.water_level > 5) return hi('water_level_high');
+  return hi('water_level');
+}
+
+function classifyDisasterEvent(row) {
+  const status = (row.status || '').toUpperCase();
+  const severity = (row.severity || '').toUpperCase();
+  if (status === 'ACTIVE' && (severity === 'CRITICAL' || severity === 'EXTREME')) {
+    return crit('disaster_event_critical');
+  }
+  if (status === 'ACTIVE') return hi('disaster_event_active');
+  return md('disaster_event_inactive');
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function crit(reason) {
@@ -229,6 +294,16 @@ export function getTableDefaultPriority(tableName) {
     audit_logs:            PRIORITY.LOW,
     pages_behavioral_signals: PRIORITY.LOW,
     pages_content_responses:  PRIORITY.LOW,
+    disaster_alerts:       PRIORITY.CRITICAL,
+    flood_predictions:     PRIORITY.CRITICAL,
+    sensor_readings:       PRIORITY.HIGH,
+    water_level_readings:  PRIORITY.HIGH,
+    disaster_events:       PRIORITY.HIGH,
+    environmental_data:    PRIORITY.MEDIUM,
+    weather_data:          PRIORITY.MEDIUM,
+    gps_readings:          PRIORITY.MEDIUM,
+    hydrospatial_data:     PRIORITY.MEDIUM,
+    prediction_requests:   PRIORITY.MEDIUM,
   };
   const p = TABLE_DEFAULTS[tableName] || PRIORITY.MEDIUM;
   return { priority: p, qos: QOS_MAP[p] };

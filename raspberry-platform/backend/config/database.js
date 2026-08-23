@@ -370,6 +370,35 @@ function migrateAddQRCodeColumn(db) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// DISASTER DB — disaster monitoring (sensor readings, alerts, predictions, etc.)
+// ═════════════════════════════════════════════════════════════════════════════
+
+ensureDir(C.DISASTER_DB_PATH);
+
+let disasterDb;
+try {
+  disasterDb = new Database(path.resolve(rootDir, C.DISASTER_DB_PATH), { timeout: 30000 });
+  disasterDb.pragma('journal_mode = WAL');
+  disasterDb.pragma('foreign_keys = ON');
+  disasterDb.pragma('synchronous = NORMAL');
+  disasterDb.pragma('busy_timeout = 30000');
+
+  const disasterSchemaPath = path.resolve(rootDir, 'db/disaster-schema.sql');
+  if (fs.existsSync(disasterSchemaPath)) {
+    const disasterSchema = fs.readFileSync(disasterSchemaPath, 'utf8');
+    disasterDb.exec(disasterSchema);
+    logger.info('[DISASTER DB] Schema applied successfully');
+  } else {
+    logger.warn('[DISASTER DB] disaster-schema.sql not found — tables may not exist');
+  }
+
+  logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
+} catch (err) {
+  logger.error(`[DISASTER DB] Initialisation failed: ${err.message}`);
+  process.exit(1);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // PostgreSQL — cloud sync pool
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -474,4 +503,4 @@ export function sqliteCheckResId(resId) {
   }
 }
 
-export { campDb, pagesDb, pgPool, initializeCampDb };
+export { campDb, pagesDb, disasterDb, pgPool, initializeCampDb };

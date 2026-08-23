@@ -292,8 +292,8 @@ describe('TEST 7 — Local vs cloud verification', () => {
     expect(() => enqueueSync('pages_sessions', 'S-1')).not.toThrow();
   });
 
-  it('TABLE_PK covers all 13 syncable tables', () => {
-    expect(Object.keys(TABLE_PK).length).toBe(13);
+  it('TABLE_PK covers all 23 syncable tables', () => {
+    expect(Object.keys(TABLE_PK).length).toBe(23);
   });
 
   it('mark synced: SET synced=1 on source table', () => {
@@ -315,5 +315,27 @@ describe('TEST 7 — Local vs cloud verification', () => {
     expect(classifyRowPriority('camp_checkins', {}).priority).toBe(PRIORITY.HIGH);
     expect(classifyRowPriority('resources', { available_quantity: 100, minimum_threshold: 20 }).priority).toBe(PRIORITY.MEDIUM);
     expect(classifyRowPriority('audit_logs', {}).priority).toBe(PRIORITY.LOW);
+  });
+
+  it('disaster alerts with SEVERE/EXTREME severity are CRITICAL', () => {
+    expect(classifyRowPriority('disaster_alerts', { severity: 'EXTREME' }).priority).toBe(PRIORITY.CRITICAL);
+    expect(classifyRowPriority('disaster_alerts', { severity: 'CRITICAL' }).priority).toBe(PRIORITY.CRITICAL);
+    expect(classifyRowPriority('disaster_alerts', { severity: 'SEVERE' }).priority).toBe(PRIORITY.HIGH);
+    expect(classifyRowPriority('disaster_alerts', { severity: 'MODERATE' }).priority).toBe(PRIORITY.MEDIUM);
+  });
+
+  it('flood predictions with high probability are CRITICAL', () => {
+    expect(classifyRowPriority('flood_predictions', { flood_probability: 0.8 }).priority).toBe(PRIORITY.CRITICAL);
+    expect(classifyRowPriority('flood_predictions', { flood_probability: 0.3 }).priority).toBe(PRIORITY.HIGH);
+  });
+
+  it('disaster events with ACTIVE status are HIGH', () => {
+    expect(classifyRowPriority('disaster_events', { status: 'ACTIVE', severity: 'EXTREME' }).priority).toBe(PRIORITY.CRITICAL);
+    expect(classifyRowPriority('disaster_events', { status: 'ACTIVE', severity: 'MODERATE' }).priority).toBe(PRIORITY.HIGH);
+    expect(classifyRowPriority('disaster_events', { status: 'RESOLVED' }).priority).toBe(PRIORITY.MEDIUM);
+  });
+
+  it('sensor readings default to HIGH', () => {
+    expect(classifyRowPriority('sensor_readings', {}).priority).toBe(PRIORITY.HIGH);
   });
 });

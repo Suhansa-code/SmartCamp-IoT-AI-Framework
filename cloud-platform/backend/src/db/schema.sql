@@ -225,3 +225,148 @@ CREATE TABLE IF NOT EXISTS sync_log (
 
 CREATE INDEX IF NOT EXISTS idx_sync_log_entity ON sync_log (entity, local_id);
 CREATE INDEX IF NOT EXISTS idx_sync_log_received ON sync_log (received_at);
+
+-- ── Disaster domain (synced from Raspberry Pi via MQTT) ─────────────────
+
+CREATE TABLE IF NOT EXISTS disaster_events (
+  id              INTEGER PRIMARY KEY,
+  event_type      TEXT NOT NULL,
+  status          TEXT DEFAULT 'ACTIVE',
+  severity        TEXT,
+  location_lat    REAL,
+  location_lng    REAL,
+  started_at      TIMESTAMPTZ,
+  ended_at        TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ,
+  updated_at      TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_disaster_events_status ON disaster_events (status);
+
+CREATE TABLE IF NOT EXISTS sensor_readings (
+  id              INTEGER PRIMARY KEY,
+  sensor_id       TEXT NOT NULL,
+  sensor_type     TEXT NOT NULL,
+  value           REAL NOT NULL,
+  unit            TEXT,
+  latitude        REAL,
+  longitude       REAL,
+  recorded_at     TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sensor_readings_sensor ON sensor_readings (sensor_id);
+CREATE INDEX IF NOT EXISTS idx_sensor_readings_recorded ON sensor_readings (recorded_at);
+
+CREATE TABLE IF NOT EXISTS environmental_data (
+  id              INTEGER PRIMARY KEY,
+  temperature     REAL,
+  humidity        REAL,
+  pressure        REAL,
+  rainfall        REAL,
+  wind_speed      REAL,
+  wind_direction  REAL,
+  recorded_at     TIMESTAMPTZ,
+  source          TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_env_data_recorded ON environmental_data (recorded_at);
+
+CREATE TABLE IF NOT EXISTS water_level_readings (
+  id              INTEGER PRIMARY KEY,
+  station_id      TEXT,
+  water_level     REAL NOT NULL,
+  unit            TEXT,
+  latitude        REAL,
+  longitude       REAL,
+  recorded_at     TIMESTAMPTZ,
+  source          TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_water_level_station ON water_level_readings (station_id);
+CREATE INDEX IF NOT EXISTS idx_water_level_recorded ON water_level_readings (recorded_at);
+
+CREATE TABLE IF NOT EXISTS gps_readings (
+  id              INTEGER PRIMARY KEY,
+  device_id       TEXT,
+  latitude        REAL NOT NULL,
+  longitude       REAL NOT NULL,
+  altitude        REAL,
+  accuracy        REAL,
+  recorded_at     TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_gps_readings_recorded ON gps_readings (recorded_at);
+
+CREATE TABLE IF NOT EXISTS weather_data (
+  id              INTEGER PRIMARY KEY,
+  latitude        REAL,
+  longitude       REAL,
+  temperature     REAL,
+  precipitation   REAL,
+  rainfall        REAL,
+  wind_speed      REAL,
+  weather_code    INTEGER,
+  forecast_time   TIMESTAMPTZ,
+  source          TEXT,
+  created_at      TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_weather_forecast ON weather_data (forecast_time);
+
+CREATE TABLE IF NOT EXISTS hydrospatial_data (
+  id                  INTEGER PRIMARY KEY,
+  latitude            REAL,
+  longitude           REAL,
+  elevation           REAL,
+  river_distance      REAL,
+  nearest_station_id  TEXT,
+  river_name          TEXT,
+  source              TEXT,
+  created_at          TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS flood_predictions (
+  id                  INTEGER PRIMARY KEY,
+  prediction_id       TEXT UNIQUE,
+  latitude            REAL,
+  longitude           REAL,
+  rainfall            REAL,
+  elevation           REAL,
+  river_distance      REAL,
+  flood_probability   REAL,
+  flood_category      TEXT,
+  forecast_hours      INTEGER,
+  model_version       TEXT,
+  predicted_at        TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_flood_predictions_category ON flood_predictions (flood_category);
+CREATE INDEX IF NOT EXISTS idx_flood_predictions_predicted ON flood_predictions (predicted_at);
+
+CREATE TABLE IF NOT EXISTS disaster_alerts (
+  id              INTEGER PRIMARY KEY,
+  alert_type      TEXT NOT NULL,
+  severity        TEXT NOT NULL,
+  title           TEXT,
+  message         TEXT,
+  latitude        REAL,
+  longitude       REAL,
+  prediction_id   TEXT,
+  status          TEXT DEFAULT 'ACTIVE',
+  created_at      TIMESTAMPTZ,
+  acknowledged_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_status ON disaster_alerts (status);
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_severity ON disaster_alerts (severity);
+
+CREATE TABLE IF NOT EXISTS prediction_requests (
+  id              INTEGER PRIMARY KEY,
+  request_id      TEXT UNIQUE,
+  request_type    TEXT,
+  input_data      TEXT,
+  status          TEXT DEFAULT 'PENDING',
+  response_data   TEXT,
+  requested_at    TIMESTAMPTZ,
+  completed_at    TIMESTAMPTZ
+);

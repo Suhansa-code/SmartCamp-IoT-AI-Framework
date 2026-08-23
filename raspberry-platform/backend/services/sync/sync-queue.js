@@ -8,7 +8,7 @@
  * enabling priority-based processing order: CRITICAL → HIGH → MEDIUM → LOW,
  * oldest record first within each level.
  */
-import { campDb, pagesDb } from '../../config/database.js';
+import { campDb, pagesDb, disasterDb } from '../../config/database.js';
 import { classifyRowPriority, comparePriority } from './sync-priority.js';
 
 const BATCH_SIZE = 50;
@@ -32,6 +32,17 @@ const TABLE_DB = {
   pages_gate_decisions:       pagesDb,
   pages_alerts:               pagesDb,
   pages_content_responses:    pagesDb,
+  // disaster.db
+  disaster_events:            disasterDb,
+  sensor_readings:            disasterDb,
+  environmental_data:         disasterDb,
+  water_level_readings:       disasterDb,
+  gps_readings:               disasterDb,
+  weather_data:               disasterDb,
+  hydrospatial_data:          disasterDb,
+  flood_predictions:          disasterDb,
+  disaster_alerts:            disasterDb,
+  prediction_requests:        disasterDb,
 };
 
 /**
@@ -51,6 +62,16 @@ const PK_MAP = {
   pages_gate_decisions:       'decision_id',
   pages_alerts:               'alert_id',
   pages_content_responses:    'response_id',
+  disaster_events:            'id',
+  sensor_readings:            'id',
+  environmental_data:         'id',
+  water_level_readings:       'id',
+  gps_readings:               'id',
+  weather_data:               'id',
+  hydrospatial_data:          'id',
+  flood_predictions:          'id',
+  disaster_alerts:            'id',
+  prediction_requests:        'id',
 };
 
 /**
@@ -71,6 +92,16 @@ const TS_COLUMN = {
   pages_gate_decisions:       'decided_at',
   pages_alerts:               'triggered_at',
   pages_content_responses:    'responded_at',
+  disaster_events:            'created_at',
+  sensor_readings:            'recorded_at',
+  environmental_data:         'recorded_at',
+  water_level_readings:       'recorded_at',
+  gps_readings:               'recorded_at',
+  weather_data:               'created_at',
+  hydrospatial_data:          'created_at',
+  flood_predictions:          'predicted_at',
+  disaster_alerts:            'created_at',
+  prediction_requests:        'requested_at',
 };
 
 function dbFor(table) {

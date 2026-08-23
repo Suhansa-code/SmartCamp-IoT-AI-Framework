@@ -26,7 +26,7 @@
 import { randomUUID } from 'crypto';
 import logger from '../../utils/logger.js';
 import * as saamp from '../network/saamp-mqtt.js';
-import { campDb, pagesDb } from '../../config/database.js';
+import { campDb, pagesDb, disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import { fetchAllPending, countPending } from './sync-queue.js';
 import { PRIORITY } from './sync-priority.js';
@@ -54,6 +54,16 @@ const TABLE_TO_ENTITY = {
   pages_gate_decisions:       'gate-decisions',
   pages_alerts:               'alerts',
   pages_content_responses:    'content-responses',
+  disaster_events:            'disaster-events',
+  sensor_readings:            'sensor-readings',
+  environmental_data:         'environmental-data',
+  water_level_readings:       'water-level-readings',
+  gps_readings:               'gps-readings',
+  weather_data:               'weather-data',
+  hydrospatial_data:          'hydrospatial-data',
+  flood_predictions:          'flood-predictions',
+  disaster_alerts:            'disaster-alerts',
+  prediction_requests:        'prediction-requests',
 };
 
 const ENTITY_PK = {
@@ -70,6 +80,16 @@ const ENTITY_PK = {
   'gate-decisions':           'decision_id',
   alerts:                     'alert_id',
   'content-responses':        'response_id',
+  'disaster-events':          'id',
+  'sensor-readings':          'id',
+  'environmental-data':       'id',
+  'water-level-readings':     'id',
+  'gps-readings':             'id',
+  'weather-data':             'id',
+  'hydrospatial-data':        'id',
+  'flood-predictions':        'id',
+  'disaster-alerts':          'id',
+  'prediction-requests':      'id',
 };
 
 const TABLE_DB_MAP = {
@@ -79,6 +99,11 @@ const TABLE_DB_MAP = {
   pages_children: pagesDb, pages_sessions: pagesDb,
   pages_behavioral_signals: pagesDb, pages_gate_decisions: pagesDb,
   pages_alerts: pagesDb, pages_content_responses: pagesDb,
+  disaster_events: disasterDb, sensor_readings: disasterDb,
+  environmental_data: disasterDb, water_level_readings: disasterDb,
+  gps_readings: disasterDb, weather_data: disasterDb,
+  hydrospatial_data: disasterDb, flood_predictions: disasterDb,
+  disaster_alerts: disasterDb, prediction_requests: disasterDb,
 };
 
 const META_FIELDS = ['_priority', '_reason', '_qos', '_timestamp'];
@@ -89,6 +114,18 @@ let isRunning = false;
 let lastSyncAt = null;
 let syncCount = 0;
 let currentIntervalMs = SYNC_INTERVAL_MS;
+
+const DISASTER_TABLES = new Set([
+  'disaster_events', 'sensor_readings', 'environmental_data', 'water_level_readings',
+  'gps_readings', 'weather_data', 'hydrospatial_data', 'flood_predictions',
+  'disaster_alerts', 'prediction_requests',
+]);
+
+function getDomainForTable(table) {
+  if (table.startsWith('pages_')) return 'education';
+  if (DISASTER_TABLES.has(table)) return 'disaster';
+  return 'resources';
+}
 
 // ── Structured sync logging ──────────────────────────────────────────────
 
@@ -234,7 +271,7 @@ function retryPendingAcks() {
   for (const row of rows) {
     const topic = `smartcamp/sync/${row.entity}`;
     const payload = JSON.parse(row.payload);
-    const domain = row.table_name.startsWith('pages_') ? 'education' : 'resources';
+    const domain = getDomainForTable(row.table_name);
     const result = saamp.publish(topic, payload, 'sync', domain);
 
     if (result.published) {
@@ -314,7 +351,7 @@ export async function runSyncCycle() {
         insertPending(syncId, entity, batch.table, payload.local_id, payload.operation, payload.priority, payload.payload);
         syncLog('queued', entity, row[payload.local_id] || row.id, { sync_id: syncId, priority: payload.priority });
 
-        const domain = batch.table.startsWith('pages_') ? 'education' : 'resources';
+        const domain = getDomainForTable(batch.table);
         const result = saamp.publish(topic, payload, 'sync', domain);
 
         if (result.published) {
