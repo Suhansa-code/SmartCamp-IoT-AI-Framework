@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
-import { Crosshair } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Crosshair, Box, Layers } from 'lucide-react'
 import * as MapLibreGL from 'maplibre-gl'
 import { STATUS_COLOR } from '@/data/disaster.data'
 import { useTheme } from '@/components/common/ThemeProvider'
-import { Map, MapControls, useMap } from '@/components/ui/map'
+import { Map, MapControls, MapArc, useMap } from '@/components/ui/map'
 
 export const COLOMBO_HUB = { name: 'Colombo Hub', lat: 6.9271, lng: 79.8612 }
 
@@ -21,132 +21,23 @@ function Chip({ children, color = '#64748B', style }) {
   )
 }
 
-function buildArcCoordinates(from, to, curvature = 0.25, samples = 64) {
-  const [x0, y0] = from
-  const [xTo, y2] = to
-  const rawDx = xTo - x0
-  const x2 = rawDx > 180 ? xTo - 360 : rawDx < -180 ? xTo + 360 : xTo
-  const dx = x2 - x0
-  const dy = y2 - y0
-  const distance = Math.hypot(dx, dy)
-  if (distance === 0 || curvature === 0) return [from, [x2, y2]]
-
-  const mx = (x0 + x2) / 2
-  const my = (y0 + y2) / 2
-  const nx = -dy / distance
-  const ny = dx / distance
-  const offset = distance * curvature
-  const cx = mx + nx * offset
-  const cy = my + ny * offset
-
-  const points = []
-  const segments = Math.max(2, Math.floor(samples))
-  for (let i = 0; i <= segments; i++) {
-    const t = i / segments
-    const inv = 1 - t
-    points.push([
-      inv * inv * x0 + 2 * inv * t * cx + t * t * x2,
-      inv * inv * y0 + 2 * inv * t * cy + t * t * y2,
-    ])
-  }
-  return points
-}
-
-function AnimatedArcs({ camps, dark }) {
+function MapViewController({ is3D }) {
   const { map, isLoaded } = useMap()
-  const animRef = useRef(null)
-  const offsetRef = useRef(0)
-  const layerReadyRef = useRef(false)
-
-  const arcData = useMemo(() => {
-    if (!camps?.length) return []
-    return camps
-      .filter((c) => typeof c.lat === 'number' && typeof c.lng === 'number')
-      .map((camp) => ({
-        id: camp.id,
-        status: camp.status,
-        from: [camp.lng, camp.lat],
-        to: [COLOMBO_HUB.lng, COLOMBO_HUB.lat],
-      }))
-  }, [camps])
-
-  const geojson = useMemo(() => ({
-    type: 'FeatureCollection',
-    features: arcData.map((arc) => ({
-      type: 'Feature',
-      properties: { id: arc.id, status: arc.status },
-      geometry: {
-        type: 'LineString',
-        coordinates: buildArcCoordinates(arc.from, arc.to, 0.25, 64),
-      },
-    })),
-  }), [arcData])
 
   useEffect(() => {
-    if (!map || !isLoaded || !geojson.features.length) return
-
-    const sourceId = 'animated-arcs-source'
-    const layerId = 'animated-arcs-layer'
-
-    if (!map.getSource(sourceId)) {
-      map.addSource(sourceId, { type: 'geojson', data: geojson })
-    } else {
-      map.getSource(sourceId).setData(geojson)
-    }
-
-    if (!map.getLayer(layerId)) {
-      map.addLayer({
-        id: layerId,
-        type: 'line',
-        source: sourceId,
-        paint: {
-          'line-color': [
-            'match',
-            ['get', 'status'],
-            'critical', STATUS_COLOR.critical,
-            'high', STATUS_COLOR.high,
-            'medium', STATUS_COLOR.medium,
-            'stable', STATUS_COLOR.stable,
-            'recovery', STATUS_COLOR.recovery,
-            dark ? '#4a90d9' : '#3b82f6',
-          ],
-          'line-width': 2,
-          'line-opacity': 0.7,
-          'line-dasharray': [0, 6, 3],
-        },
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-      })
-      layerReadyRef.current = true
-    }
-
-    let lastTime = performance.now()
-    const animate = (time) => {
-      const dt = (time - lastTime) / 1000
-      lastTime = time
-      offsetRef.current = (offsetRef.current + dt * 12) % 100
-
-      if (map.getLayer(layerId)) {
-        map.setPaintProperty(layerId, 'line-dashoffset', -offsetRef.current)
-      }
-      animRef.current = requestAnimationFrame(animate)
-    }
-    animRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current)
-      if (map.getLayer(layerId)) map.removeLayer(layerId)
-      if (map.getSource(sourceId)) map.removeSource(sourceId)
-      layerReadyRef.current = false
-    }
-  }, [map, isLoaded, geojson, dark])
+    if (!map || !isLoaded) return
+    map.easeTo({
+      pitch: is3D ? 55 : 0,
+      bearing: is3D ? 25 : 0,
+      duration: 800,
+      easing: (t) => t * (2 - t),
+    })
+  }, [map, isLoaded, is3D])
 
   return null
 }
 
-function CampMarkers({ camps, selected, onSelect, dark }) {
+function CampMarkers({ camps, selected, onSelect }) {
   const { map, isLoaded } = useMap()
 
   const validCamps = useMemo(() => {
@@ -226,11 +117,25 @@ function ColomboHubMarker() {
 export default function MainMap({ camps, selected, onSelect, statusCounts, error, mapNodes }) {
   const { mode, T } = useTheme()
   const dark = mode === 'dark'
+  const [is3D, setIs3D] = useState(false)
 
   const hudInk = dark ? '#f0f7ff' : '#0f2336'
   const hudMuted = dark ? 'rgba(214,235,250,0.72)' : 'rgba(47,84,112,0.75)'
   const hudCardBg = dark ? 'rgba(4,10,17,0.72)' : 'rgba(255,255,255,0.85)'
   const hudCardBorder = dark ? 'rgba(255,255,255,0.1)' : 'rgba(60,110,150,0.18)'
+
+  const arcData = useMemo(() => {
+    if (!camps?.length) return []
+    return camps
+      .filter((c) => typeof c.lat === 'number' && typeof c.lng === 'number')
+      .map((camp) => ({
+        id: `camp-${camp.id}-colombo`,
+        from: [camp.lng, camp.lat],
+        to: [COLOMBO_HUB.lng, COLOMBO_HUB.lat],
+      }))
+  }, [camps])
+
+  const toggle3D = useCallback(() => setIs3D((v) => !v), [])
 
   return (
     <div
@@ -245,24 +150,53 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
         zoom={6.5}
         className="absolute inset-0"
       >
-        <MapControls showZoom showLocate />
-        <AnimatedArcs camps={camps} dark={dark} />
-        <CampMarkers camps={camps} selected={selected} onSelect={onSelect} dark={dark} />
+        <MapControls showZoom showLocate showCompass />
+        <MapViewController is3D={is3D} />
+
+        {/* Arc layer — solid blue curved lines behind markers */}
+        {arcData.length > 0 && (
+          <MapArc
+            data={arcData}
+            curvature={0.25}
+            interactive={false}
+            paint={{
+              'line-color': dark ? 'rgba(56,189,248,0.55)' : 'rgba(14,116,144,0.5)',
+              'line-width': 1.8,
+              'line-opacity': 0.8,
+            }}
+          />
+        )}
+
+        <CampMarkers camps={camps} selected={selected} onSelect={onSelect} />
         <ColomboHubMarker />
       </Map>
 
       {/* HUD title */}
-      <div className="absolute z-[13] pointer-events-none top-[25px] left-[58px] max-w-[420px]">
+      <div className="absolute z-[13] pointer-events-none top-[15px] left-[20px] max-w-[420px]">
         <div className="flex items-center gap-[6px] text-[12px] font-extrabold uppercase tracking-[0.16em] mb-1" style={{ color: dark ? '#22d3ee' : '#0891b2' }}>
           <Crosshair size={14} /> Relief Operations Grid
         </div>
-        <div className="text-[0.68rem] font-semibold mt-[2px]" style={{ color: hudMuted, textShadow: dark ? '0 1px 8px rgba(0,0,0,0.5)' : 'none' }}>
-          Terrain reference aligned with live camp nodes · drag to pan · scroll to zoom
-        </div>
+
       </div>
 
-      {/* HUD live */}
-      <div className="absolute z-[13] pointer-events-none top-[30px] right-4 flex items-center gap-2">
+      {/* HUD live + 3D toggle */}
+      <div className="absolute z-[13] pointer-events-auto top-[15px] right-4 flex items-center gap-2">
+        <button
+          onClick={toggle3D}
+          title={is3D ? 'Switch to 2D view' : 'Switch to 3D view'}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '4px 10px', borderRadius: 999, fontSize: '0.6rem', fontWeight: 800,
+            letterSpacing: '0.06em', cursor: 'pointer', border: 'none',
+            background: is3D ? (dark ? 'rgba(34,211,238,0.2)' : 'rgba(8,145,178,0.18)') : hudCardBg,
+            color: is3D ? (dark ? '#22d3ee' : '#0891b2') : T.muted,
+            border: `1px solid ${is3D ? (dark ? 'rgba(34,211,238,0.4)' : 'rgba(8,145,178,0.4)') : hudCardBorder}`,
+            transition: 'all 0.2s ease',
+          }}
+        >
+          {is3D ? <Box size={12} /> : <Layers size={12} />}
+          {is3D ? '3D' : '2D'}
+        </button>
         <Chip color={dark ? '#22d3ee' : '#0891b2'} style={{ background: dark ? 'rgba(34,211,238,0.12)' : 'rgba(8,145,178,0.12)', border: `1px solid ${dark ? 'rgba(34,211,238,0.4)' : 'rgba(8,145,178,0.4)'}` }}>
           <span className="w-[6px] h-[6px] rounded-full" style={{ background: dark ? '#22d3ee' : '#0891b2', boxShadow: `0 0 8px ${dark ? '#22d3ee' : '#0891b2'}` }} />
           LIVE MAP
@@ -273,7 +207,7 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
       </div>
 
       {/* HUD legend */}
-      <div className="absolute z-[13] pointer-events-none bottom-[10px] right-4 flex items-center gap-[9px] flex-wrap rounded-xl px-[10px] py-[7px] backdrop-blur-[10px]" style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}` }}>
+      <div className="absolute z-[13] pointer-events-none bottom-[10px] left-4 flex items-center gap-[9px] flex-wrap rounded-xl px-[10px] py-[7px] backdrop-blur-[10px]" style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}` }}>
         {['critical', 'high', 'medium', 'stable', 'recovery'].map((status) => (
           <span key={status} className="flex items-center gap-[5px] text-[9px]">
             <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: STATUS_COLOR[status], boxShadow: `0 0 6px ${STATUS_COLOR[status]}` }} />
@@ -286,6 +220,13 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
           <span className="tracking-[0.06em]" style={{ color: hudInk }}>Hub</span>
         </span>
       </div>
+
+      {/* Reset Map Button */}
+<div>
+    
+
+</div>
+
     </div>
   )
 }
