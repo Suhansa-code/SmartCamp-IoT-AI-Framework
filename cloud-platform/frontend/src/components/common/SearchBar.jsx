@@ -31,6 +31,7 @@ export default function SearchBar({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          suppressHydrationWarning
           style={{
             flex: 1, border: 'none', outline: 'none', background: 'transparent',
             padding: '8px 10px', fontSize: '0.84rem', fontWeight: 600, color: T.textPrimary,

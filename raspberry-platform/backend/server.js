@@ -9,6 +9,7 @@ import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
 import { startConnectivityWatcher } from './services/network/connectivity.js';
 import { checkFlaskHealth } from './services/education/scoring.js';
 import { startSync } from './services/sync/sync-manager.js';
+import { startGpsStorage } from './services/disaster/gps-storage.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -85,6 +86,9 @@ startConnectivityWatcher();
 // Start cloud sync (after MQTT connects)
 startSync();
 
+// Start periodic GPS storage to disaster.db
+startGpsStorage();
+
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'smartcamp-backend', device: C.DEVICE_ID, camp: C.CAMP_ID });
@@ -115,8 +119,9 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ── Start Server ────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT,'0.0.0.0', () => {
   logger.info('════════════════════════════════════════════');
+  console.log(`Server running on port ${PORT}`);
   logger.info('  SmartCamp Unified Backend');
   logger.info(`  Device:  ${C.DEVICE_ID}`);
   logger.info(`  Camp:    ${C.CAMP_ID}`);

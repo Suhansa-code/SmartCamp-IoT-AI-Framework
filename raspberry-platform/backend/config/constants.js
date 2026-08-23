@@ -68,7 +68,11 @@ export default {
 
   CAMP_DB_PATH: process.env.CAMP_DB_PATH || './db/camp.db',
   PAGES_DB_PATH: process.env.PAGES_DB_PATH || './db/pages.db',
+  DISASTER_DB_PATH: process.env.DISASTER_DB_PATH || './db/disaster.db',
   MODELS_DIR: './models',
+
+  GPS_STORAGE_INTERVAL_MINUTES: parseInt(process.env.GPS_STORAGE_INTERVAL_MINUTES, 10) || 30,
+  GPS_MOVEMENT_THRESHOLD_METERS: parseFloat(process.env.GPS_MOVEMENT_THRESHOLD_METERS) || 100,
 
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,
@@ -78,4 +82,10 @@ export default {
   EMQX_API_SECRET: process.env.EMQX_API_SECRET || '',
   CA_CERT_PATH: process.env.EMQX_CA_CERT || './db/emqxsl-ca.crt',
   PREDICTION_API_URL: process.env.PREDICTION_API_URL,
+
+  AWS_RDS_HOST: process.env.AWS_RDS_HOST || '',
+  AWS_RDS_PORT: parseInt(process.env.AWS_RDS_PORT, 10) || 5432,
+  AWS_RDS_DB: process.env.AWS_RDS_DB || '',
+  AWS_RDS_USER: process.env.AWS_RDS_USER || '',
+  AWS_RDS_PASSWORD: process.env.AWS_RDS_PASSWORD || '',
 };

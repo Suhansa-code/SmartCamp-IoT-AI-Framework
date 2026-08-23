@@ -16,6 +16,10 @@ import {
   upsertResource, upsertResourceUsage, upsertAuditLog,
   upsertChild, upsertSession, upsertBehavioralSignal,
   upsertGateDecision, upsertAlert, upsertContentResponse,
+  upsertDisasterEvent, upsertSensorReading, upsertEnvironmentalData,
+  upsertWaterLevelReading, upsertGpsReading, upsertWeatherData,
+  upsertHydrospatialData, upsertFloodPrediction, upsertDisasterAlert,
+  upsertPredictionRequest,
 } from '../../data/sync/sync.postgres.repository.js';
 
 const { host, port, username, password, caCertPath } = env.emqx;
@@ -37,6 +41,16 @@ const ENTITY_HANDLERS = {
   'gate-decisions':     upsertGateDecision,
   alerts:               upsertAlert,
   'content-responses':  upsertContentResponse,
+  'disaster-events':    upsertDisasterEvent,
+  'sensor-readings':    upsertSensorReading,
+  'environmental-data': upsertEnvironmentalData,
+  'water-level-readings': upsertWaterLevelReading,
+  'gps-readings':       upsertGpsReading,
+  'weather-data':       upsertWeatherData,
+  'hydrospatial-data':  upsertHydrospatialData,
+  'flood-predictions':  upsertFloodPrediction,
+  'disaster-alerts':    upsertDisasterAlert,
+  'prediction-requests': upsertPredictionRequest,
 };
 
 let client = null;
@@ -108,6 +122,7 @@ async function handleSyncMessage(topic, buffer) {
 
   if (!sync_id || !entity || !payload) {
     console.warn('[Sync Receiver] Invalid envelope: missing sync_id/entity/payload');
+    console.warn('[Sync Receiver] Topic:', topic, '| Keys:', Object.keys(envelope).join(','), '| Snippet:', JSON.stringify(envelope).slice(0, 200));
     return;
   }
 
