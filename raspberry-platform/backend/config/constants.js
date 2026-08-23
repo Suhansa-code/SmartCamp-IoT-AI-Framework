@@ -51,6 +51,7 @@ export default {
     'http://localhost:5173',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
+    'http://192.168.137.1:5173',
   ].filter((origin, index, origins) => origins.indexOf(origin) === index),
   ALLOW_VERCEL_PREVIEWS: parseBoolean(process.env.ALLOW_VERCEL_PREVIEWS, true),
 
