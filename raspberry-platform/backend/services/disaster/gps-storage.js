@@ -35,8 +35,8 @@ let insertStmt = null;
 function ensureStatements() {
   if (insertStmt) return;
   insertStmt = disasterDb.prepare(`
-    INSERT INTO gps_readings (device_id, latitude, longitude, altitude, accuracy, recorded_at, synced)
-    VALUES (?, ?, ?, ?, ?, ?, 0)
+    INSERT INTO gps_readings (device_id, latitude, longitude, altitude, accuracy, source, recorded_at, synced)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0)
   `);
 }
 
@@ -82,7 +82,7 @@ export async function storeCurrentLocation() {
     return false;
   }
 
-  const { latitude: lat, longitude: lng, altitude, accuracy } = gps ?? {};
+  const { latitude: lat, longitude: lng, altitude, accuracy, source } = gps ?? {};
 
   if (!isValidCoord(lat, lng)) {
     logger.debug('[GPS-STORAGE] No valid fix — skipping');
@@ -102,7 +102,7 @@ export async function storeCurrentLocation() {
   }
 
   try {
-    insertStmt.run(DEVICE_ID, lat, lng, altitude ?? null, accuracy ?? null, now);
+    insertStmt.run(DEVICE_ID, lat, lng, altitude ?? null, accuracy ?? null, source || 'GPS_SENSOR', now);
     lastStoredLat = lat;
     lastStoredLng = lng;
     logger.info(`[GPS-STORAGE] Stored reading: ${lat.toFixed(6)}, ${lng.toFixed(6)} @ ${now}`);

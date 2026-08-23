@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS gps_readings (
     longitude REAL NOT NULL,
     altitude REAL,
     accuracy REAL,
+    source TEXT DEFAULT 'GPS_SENSOR',
     recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced INTEGER NOT NULL DEFAULT 0
 );

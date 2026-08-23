@@ -278,13 +278,13 @@ export async function upsertWaterLevelReading(r) {
 export async function upsertGpsReading(r) {
   const pool = getPool();
   await pool.query(
-    `INSERT INTO gps_readings (id,device_id,latitude,longitude,altitude,accuracy,recorded_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)
+    `INSERT INTO gps_readings (id,device_id,latitude,longitude,altitude,accuracy,source,recorded_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      ON CONFLICT (id) DO UPDATE SET device_id=EXCLUDED.device_id,latitude=EXCLUDED.latitude,
        longitude=EXCLUDED.longitude,altitude=EXCLUDED.altitude,accuracy=EXCLUDED.accuracy,
-       recorded_at=EXCLUDED.recorded_at`,
+       source=EXCLUDED.source,recorded_at=EXCLUDED.recorded_at`,
     [r.id,r.device_id||null,r.latitude,r.longitude,
-     r.altitude||null,r.accuracy||null,r.recorded_at||null]
+     r.altitude||null,r.accuracy||null,r.source||'GPS_SENSOR',r.recorded_at||null]
   );
 }
 

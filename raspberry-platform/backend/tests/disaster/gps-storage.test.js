@@ -24,7 +24,7 @@ vi.mock('../../utils/logger.js', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-let mockGpsResult = { latitude: 6.9271, longitude: 79.8612, altitude: 10, accuracy: 5, live: true };
+let mockGpsResult = { latitude: 6.9271, longitude: 79.8612, altitude: 10, accuracy: 5, source: 'GPS_SENSOR', live: true };
 
 vi.mock('../../services/disaster/gps.js', () => ({
   getGpsLocation: vi.fn(async () => mockGpsResult),
@@ -90,7 +90,8 @@ describe('storeCurrentLocation', () => {
     expect(args[2]).toBeCloseTo(79.8612, 4);
     expect(args[3]).toBe(10);
     expect(args[4]).toBe(5);
-    expect(typeof args[5]).toBe('string'); // recorded_at ISO string
+    expect(args[5]).toBe('GPS_SENSOR');
+    expect(typeof args[6]).toBe('string'); // recorded_at ISO string
     // synced = 0 is in the SQL, not passed as param
   });
 
@@ -121,15 +122,23 @@ describe('storeCurrentLocation', () => {
     const args = mockRun.mock.calls[0];
     expect(args[3]).toBeNull(); // altitude
     expect(args[4]).toBeNull(); // accuracy
+    expect(args[5]).toBe('GPS_SENSOR'); // default source
   });
 
   it('records the actual time in recorded_at', async () => {
     const before = Date.now();
     await gpsStorage.storeCurrentLocation();
-    const recordedAt = new Date(mockRun.mock.calls[0][5]).getTime();
+    const recordedAt = new Date(mockRun.mock.calls[0][6]).getTime();
     const after = Date.now();
     expect(recordedAt).toBeGreaterThanOrEqual(before);
     expect(recordedAt).toBeLessThanOrEqual(after);
+  });
+
+  it('stores MOCK_LOCATION source when GPS is mock', async () => {
+    mockGpsResult = { latitude: 6.9271, longitude: 79.8612, altitude: 0, accuracy: null, source: 'MOCK_LOCATION', live: false };
+    await gpsStorage.storeCurrentLocation();
+    const args = mockRun.mock.calls[0];
+    expect(args[5]).toBe('MOCK_LOCATION');
   });
 });
 

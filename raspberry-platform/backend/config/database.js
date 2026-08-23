@@ -392,6 +392,8 @@ try {
     logger.warn('[DISASTER DB] disaster-schema.sql not found — tables may not exist');
   }
 
+  try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN source TEXT DEFAULT 'GPS_SENSOR'"); } catch (_) {}
+
   logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
 } catch (err) {
   logger.error(`[DISASTER DB] Initialisation failed: ${err.message}`);
