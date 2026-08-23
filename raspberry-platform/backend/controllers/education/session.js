@@ -128,10 +128,23 @@ export async function taskComplete(req, res, next) {
     enqueueSync('pages_gate_decisions', decisionId);
 
     if (parseInt(attempt, 10) >= 2 && gateDecision === C.GATE.FAIL_CONFIRMED) {
-      const childRows = sqliteRetrieve('pages_children', 'consecutive_low', 'child_id = ?', [child_id]);
+      const childRows = sqliteRetrieve('pages_children', 'baseline_score, total_sessions, consecutive_low', 'child_id = ?', [child_id]);
       const currentChild = childRows[0];
       const newConsecutiveLow = (Number(currentChild?.consecutive_low) || 0) + 1;
-      sqliteUpdate('pages_children', { consecutive_low: newConsecutiveLow }, 'child_id = ?', [child_id]);
+      const newBaseline = updateBaseline(currentChild?.baseline_score || 60.0, compositeScore);
+
+      sqliteUpdate('pages_children', {
+        consecutive_low: newConsecutiveLow,
+        baseline_score: newBaseline,
+        total_sessions: (currentChild?.total_sessions || 0) + 1,
+      }, 'child_id = ?', [child_id]);
+      enqueueSync('pages_children', child_id);
+
+      sqliteUpdate('pages_sessions', {
+        session_complete: 1,
+        anomaly_flagged: 1,
+      }, 'session_id = ?', [session_id]);
+      enqueueSync('pages_sessions', session_id);
     }
 
     if (sessionAnomalyFlag) checkAndCreateAlert(child_id, session_id);
@@ -178,7 +191,22 @@ export async function secondGate(req, res, next) {
     enqueueSync('pages_gate_decisions', decisionId);
 
     if (gateDecision === C.GATE.FAIL_CONFIRMED) {
-      sqliteUpdate('pages_children', { consecutive_low: (Number(child?.consecutive_low) || 0) + 1 }, 'child_id = ?', [child_id]);
+      const newConsecutiveLow = (Number(child?.consecutive_low) || 0) + 1;
+      const newBaseline = updateBaseline(child?.baseline_score || 60.0, compositeScore);
+
+      sqliteUpdate('pages_children', {
+        consecutive_low: newConsecutiveLow,
+        baseline_score: newBaseline,
+        total_sessions: (child?.total_sessions || 0) + 1,
+      }, 'child_id = ?', [child_id]);
+      enqueueSync('pages_children', child_id);
+
+      sqliteUpdate('pages_sessions', {
+        session_complete: 1,
+        anomaly_flagged: 1,
+      }, 'session_id = ?', [session_id]);
+      enqueueSync('pages_sessions', session_id);
+
       checkAndCreateAlert(child_id, session_id);
     }
 
