@@ -190,22 +190,27 @@ export async function registerPerson(data) {
     const resId = String(personId);
     const resolvedGrade = school_going === false ? 3 : (Number(grade) || 3);
 
-    const existingChild = pagesDb.prepare(
-      'SELECT child_id FROM pages_children WHERE res_id = ? AND camp_id = ? LIMIT 1'
-    ).get(resId, campId);
+    const enrollChild = pagesDb.transaction(() => {
+      const existingChild = pagesDb.prepare(
+        'SELECT child_id FROM pages_children WHERE res_id = ? AND camp_id = ? LIMIT 1'
+      ).get(resId, campId);
 
-    if (existingChild) {
-      childId = existingChild.child_id;
-    } else {
-      childId = nextChildId(campId);
+      if (existingChild) {
+        return existingChild.child_id;
+      }
+
+      const newChildId = nextChildId(campId);
 
       pagesDb.prepare(`
         INSERT INTO pages_children (child_id, res_id, grade, camp_id, language, enrolled_at)
         VALUES (?, ?, ?, ?, 'si', ?)
-      `).run(childId, resId, resolvedGrade, campId, nowISO());
+      `).run(newChildId, resId, resolvedGrade, campId, nowISO());
 
-      enqueueSync('pages_children', childId);
-    }
+      return newChildId;
+    });
+
+    childId = enrollChild();
+    enqueueSync('pages_children', childId);
   }
 
   let mqttResult = null;
