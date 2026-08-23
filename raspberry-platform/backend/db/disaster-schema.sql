@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS disaster_events (
     started_at TEXT,
     ended_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced INTEGER NOT NULL DEFAULT 0
 );
 
 -- ============================================================

@@ -393,6 +393,7 @@ try {
   }
 
   try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN source TEXT DEFAULT 'GPS_SENSOR'"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE disaster_events ADD COLUMN synced INTEGER NOT NULL DEFAULT 0"); } catch (_) {}
 
   logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
 } catch (err) {
@@ -404,24 +405,30 @@ try {
 // PostgreSQL — cloud sync pool
 // ═════════════════════════════════════════════════════════════════════════════
 
-const pgPool = new Pool({
-  host: C.AWS_RDS_HOST,
-  port: C.AWS_RDS_PORT,
-  database: C.AWS_RDS_DB,
-  user: C.AWS_RDS_USER,
-  password: C.AWS_RDS_PASSWORD,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  ssl: C.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
+let pgPool;
+if (C.AWS_RDS_HOST) {
+  pgPool = new Pool({
+    host: C.AWS_RDS_HOST,
+    port: C.AWS_RDS_PORT,
+    database: C.AWS_RDS_DB,
+    user: C.AWS_RDS_USER,
+    password: C.AWS_RDS_PASSWORD,
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    ssl: C.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  });
 
-pgPool.on('error', (err) => {
-  logger.warn(`[PG] Pool error (offline?): ${err.message}`);
-});
+  pgPool.on('error', (err) => {
+    logger.warn(`[PG] Pool error (offline?): ${err.message}`);
+  });
+} else {
+  pgPool = null;
+  logger.info('[PG] No AWS_RDS_HOST configured — PostgreSQL disabled');
+}
 
 export async function pgIsReachable() {
-  if (!C.AWS_RDS_HOST) return false;
+  if (!pgPool) return false;
   try {
     const client = await pgPool.connect();
     await client.query('SELECT 1');
@@ -431,6 +438,7 @@ export async function pgIsReachable() {
 }
 
 export async function pgQuery(text, params = []) {
+  if (!pgPool) throw new Error('PostgreSQL not configured');
   const client = await pgPool.connect();
   try {
     return await client.query(text, params);

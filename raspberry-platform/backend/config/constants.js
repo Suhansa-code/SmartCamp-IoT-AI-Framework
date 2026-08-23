@@ -82,4 +82,10 @@ export default {
   EMQX_API_SECRET: process.env.EMQX_API_SECRET || '',
   CA_CERT_PATH: process.env.EMQX_CA_CERT || './db/emqxsl-ca.crt',
   PREDICTION_API_URL: process.env.PREDICTION_API_URL,
+
+  AWS_RDS_HOST: process.env.AWS_RDS_HOST || '',
+  AWS_RDS_PORT: parseInt(process.env.AWS_RDS_PORT, 10) || 5432,
+  AWS_RDS_DB: process.env.AWS_RDS_DB || '',
+  AWS_RDS_USER: process.env.AWS_RDS_USER || '',
+  AWS_RDS_PASSWORD: process.env.AWS_RDS_PASSWORD || '',
 };
