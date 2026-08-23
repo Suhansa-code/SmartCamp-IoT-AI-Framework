@@ -349,17 +349,17 @@ export async function runSyncCycle() {
         const payload = buildSyncMessage(entity, stripMeta(row));
 
         insertPending(syncId, entity, batch.table, payload.local_id, payload.operation, payload.priority, payload.payload);
-        syncLog('queued', entity, row[payload.local_id] || row.id, { sync_id: syncId, priority: payload.priority });
+        syncLog('queued', entity, payload.local_id, { sync_id: syncId, priority: payload.priority });
 
         const domain = getDomainForTable(batch.table);
         const result = saamp.publish(topic, payload, 'sync', domain);
 
         if (result.published) {
           markPublished(syncId);
-          syncLog('published', entity, row[payload.local_id] || row.id, { sync_id: syncId, qos: result.final_qos });
+          syncLog('published', entity, payload.local_id, { sync_id: syncId, qos: result.final_qos });
           totalPublished++;
         } else {
-          syncLog('buffered', entity, row[payload.local_id] || row.id, { sync_id: syncId, network: networkState });
+          syncLog('buffered', entity, payload.local_id, { sync_id: syncId, network: networkState });
           totalBuffered++;
         }
       }
