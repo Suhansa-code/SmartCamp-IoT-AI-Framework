@@ -122,6 +122,7 @@ async function handleSyncMessage(topic, buffer) {
 
   if (!sync_id || !entity || !payload) {
     console.warn('[Sync Receiver] Invalid envelope: missing sync_id/entity/payload');
+    console.warn('[Sync Receiver] Topic:', topic, '| Keys:', Object.keys(envelope).join(','), '| Snippet:', JSON.stringify(envelope).slice(0, 200));
     return;
   }
 

@@ -49,8 +49,10 @@ export function connect() {
     try {
       payload = JSON.parse(messageBuffer.toString());
     } catch { return; }
-    if (messageHandlers[topic]) {
-      try { messageHandlers[topic](payload); } catch (e) {
+    const handler = messageHandlers[topic]
+      || Object.entries(messageHandlers).find(([prefix]) => topic.startsWith(prefix + '/'))?.[1];
+    if (handler) {
+      try { handler(payload); } catch (e) {
         console.error('[MQTT] Handler error for', topic, e.message);
       }
     }
