@@ -1,12 +1,9 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import os from 'node:os';
-import path from 'node:path';
-import fs from 'node:fs';
 
-process.env.ALERTS_DB_PATH = path.join(os.tmpdir(), `alerts-api-test-${process.pid}.db`);
+// Force the in-memory repository — HTTP tests must not depend on a live DB.
+process.env.DB_ENABLED = 'false';
 
-const { initializeSchema, closeDatabase } = await import('../src/config/database.js');
 const { createApp } = await import('../src/app.js');
 
 // Minimal monitor stub exposing the contract the network router needs.
@@ -24,7 +21,6 @@ let baseUrl;
 let server;
 
 before(async () => {
-  initializeSchema();
   const app = createApp({ monitor });
   server = app.listen(0);
   const address = server.address();
@@ -33,12 +29,6 @@ before(async () => {
 
 after(() => {
   server.close();
-  try {
-    fs.unlinkSync(process.env.ALERTS_DB_PATH);
-  } catch {
-    // already cleaned
-  }
-  closeDatabase();
 });
 
 async function api(pathname, options = {}) {

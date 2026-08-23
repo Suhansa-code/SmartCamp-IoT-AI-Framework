@@ -4,17 +4,12 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Bell, GraduationCap, Droplets, Activity,
-  Package, HeartHandshake, ChevronsLeft, ChevronsRight, Menu, X,
+  ChevronsLeft, ChevronsRight, Menu, X, Sun, Moon, TriangleAlert,
 } from 'lucide-react'
-import { C } from './theme'
+import { useTheme } from './ThemeProvider'
+import { RAIL_EXPANDED, RAIL_COLLAPSED, STORAGE_KEY, MOBILE_BREAKPOINT, DEFAULT_RAIL_WIDTH, NAV_ITEMS } from '@/data/navigation.data'
 
-export const RAIL_EXPANDED = 236
-export const RAIL_COLLAPSED = 68
-
-const STORAGE_KEY = 'smartcamp.rail'
-const MOBILE_BREAKPOINT = 768
-const DEFAULT_RAIL_WIDTH = `${RAIL_EXPANDED}px`
+const LIME = '#D8F24E'
 
 const SideNavContext = createContext({ collapsed: false, toggle: () => {}, isMobile: false, mobileOpen: false, openMobile: () => {} })
 
@@ -67,19 +62,13 @@ export function useSideNav() {
   return useContext(SideNavContext)
 }
 
-const NAV_ITEMS = [
-  { label: 'All Camps', path: '/',          icon: LayoutDashboard },
-  { label: 'Alerts',    path: '/alert',     icon: Bell },
-  { label: 'Education', path: '/education', icon: GraduationCap },
-  { label: 'Disaster',  path: '/disaster',  icon: Droplets },
-  { label: 'Network',   path: '/network',   icon: Activity },
-  { label: 'Resources', path: '/resources', icon: Package },
-  { label: 'Welfare',   path: '/welfare',   icon: HeartHandshake },
-]
-
 export default function SideNav() {
   const { collapsed, toggle, isMobile, mobileOpen, openMobile, closeMobile } = useSideNav()
+  const { mode, T, toggle: toggleTheme } = useTheme()
   const pathname = usePathname()
+
+  const dark = mode === 'dark'
+  const activeBg = dark ? T.card : T.textPrimary
 
   const isActive = (path) => {
     if (path === '/disaster') return pathname?.startsWith('/disaster')
@@ -89,9 +78,17 @@ export default function SideNav() {
 
   const railWidth = isMobile ? RAIL_EXPANDED : (collapsed ? RAIL_COLLAPSED : RAIL_EXPANDED)
   const drawerOpen = isMobile ? mobileOpen : true
+  const centered = collapsed && !isMobile
 
   return (
     <>
+      <style>{`
+        @keyframes navPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .smartcamp-navlink { transition: background 0.15s ease, color 0.15s ease; }
+        .smartcamp-navlink:hover { background: ${T.bar}; }
+        .smartcamp-navlink:hover span { color: ${T.textPrimary}; }
+      `}</style>
+
       {/* Mobile hamburger — only on small screens when the drawer is closed */}
       {isMobile && !mobileOpen && (
         <button
@@ -99,10 +96,10 @@ export default function SideNav() {
           aria-label="Open navigation"
           style={{
             position: 'fixed', top: 12, left: 12, zIndex: 600,
-            width: 40, height: 40, borderRadius: '0.6rem',
-            background: C.navyDeep, border: `1px solid ${C.border}`,
-            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
+            width: 42, height: 42, borderRadius: '0.8rem',
+            background: T.card, border: `1px solid ${T.border}`,
+            color: T.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 8px 20px rgba(15,23,42,0.14)',
             cursor: 'pointer',
           }}
         >
@@ -117,7 +114,7 @@ export default function SideNav() {
           aria-hidden="true"
           style={{
             position: 'fixed', inset: 0, zIndex: 398,
-            background: 'rgba(2, 10, 20, 0.55)', backdropFilter: 'blur(2px)',
+            background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(3px)',
           }}
         />
       )}
@@ -125,44 +122,45 @@ export default function SideNav() {
       <aside style={{
         position: 'fixed', top: 0, left: 0, bottom: 0,
         width: railWidth,
-        background: C.navyDeep,
-        borderRight: `1px solid ${C.border}`,
+        background: T.bgDeep,
+        borderRight: `1px solid ${T.border}`,
         zIndex: 400,
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
         transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'width 0.2s ease, transform 0.25s ease',
-        boxShadow: isMobile && mobileOpen ? '0 24px 60px rgba(0,0,0,0.5)' : 'none',
+        boxShadow: isMobile && mobileOpen ? '0 24px 60px rgba(15,23,42,0.35)' : '0 0 0 0 transparent',
       }}>
         {/* Brand */}
         <div style={{
           height: 60, flexShrink: 0,
           display: 'flex', alignItems: 'center',
-          justifyContent: isMobile ? 'space-between' : (collapsed ? 'center' : 'flex-start'),
-          gap: 10, padding: isMobile ? '0 14px' : (collapsed ? 0 : '0 14px'),
-          borderBottom: `1px solid ${C.border}`,
+          justifyContent: isMobile ? 'space-between' : (centered ? 'center' : 'flex-start'),
+          gap: 10, padding: isMobile ? '0 14px' : (centered ? 0 : '0 16px'),
+          borderBottom: `1px solid ${T.border}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <div style={{
-              width: 32, height: 32, borderRadius: '0.6rem',
-              background: C.teal, color: '#fff',
+              width: 36, height: 36, borderRadius: '0.7rem', flexShrink: 0,
+              background: dark ? T.tealMid : T.textPrimary, color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 900, fontSize: '1rem', flexShrink: 0,
             }}>
-              P
+              <TriangleAlert size={18} />
             </div>
             {(!collapsed || isMobile) && (
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', lineHeight: 1.1, whiteSpace: 'nowrap' }}>PAGES</div>
-                <div style={{ fontSize: '0.6rem', color: C.muted, letterSpacing: '0.14em', fontWeight: 700, whiteSpace: 'nowrap' }}>SMART CAMP CLOUD</div>
+                <div style={{ fontSize: '1.02rem', fontWeight: 800, color: T.textPrimary, lineHeight: 1.1, whiteSpace: 'nowrap' }}>smartcamp.</div>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', fontWeight: 700, whiteSpace: 'nowrap' }}>SMART CAMP CLOUD</div>
               </div>
             )}
           </div>
           {isMobile && (
             <button onClick={closeMobile} aria-label="Close navigation" style={{
-              background: 'transparent', border: 'none', color: C.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4,
+              background: T.bar, border: `1px solid ${T.border}`, borderRadius: '0.7rem',
+              color: T.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 34, height: 34, padding: 0,
             }}>
-              <X size={20} />
+              <X size={18} />
             </button>
           )}
         </div>
@@ -170,13 +168,13 @@ export default function SideNav() {
         {/* Navigation */}
         <nav style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden',
-          padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 2,
+          padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 3,
         }}>
           {(!collapsed || isMobile) && (
             <p style={{
-              fontSize: '0.62rem', fontWeight: 800, color: C.muted,
+              fontSize: '0.62rem', fontWeight: 800, color: T.muted,
               letterSpacing: '0.12em', textTransform: 'uppercase',
-              padding: '6px 10px 4px', whiteSpace: 'nowrap',
+              padding: '6px 10px 6px', whiteSpace: 'nowrap',
             }}>
               Navigation
             </p>
@@ -191,58 +189,116 @@ export default function SideNav() {
                 href={path}
                 title={showLabel ? undefined : label}
                 onClick={() => { if (isMobile) closeMobile() }}
+                className="smartcamp-navlink"
                 style={{
                   display: 'flex', alignItems: 'center',
                   gap: 12,
                   justifyContent: showLabel ? 'flex-start' : 'center',
-                  padding: showLabel ? '10px 12px' : '10px 0',
-                  borderRadius: '0.6rem',
-                  background: active ? C.navyCard : 'transparent',
-                  color: active ? '#fff' : C.muted,
+                  padding: showLabel ? '10px 14px' : '10px 0',
+                  borderRadius: '9999px',
+                  background: active ? activeBg : 'transparent',
+                  color: active ? '#fff' : T.muted,
                   fontWeight: active ? 700 : 600,
-                  fontSize: '0.88rem',
+                  fontSize: '0.84rem',
                   textDecoration: 'none',
                   whiteSpace: 'nowrap',
-                  transition: 'background 0.15s, color 0.15s',
+                  boxShadow: active ? '0 6px 16px rgba(15,23,42,0.18)' : 'none',
                 }}
               >
                 <Icon
                   size={18}
                   strokeWidth={active ? 2.2 : 1.8}
-                  color={active ? C.teal : C.muted}
+                  color={active ? LIME : T.muted}
                   style={{ flexShrink: 0 }}
                 />
                 {showLabel && (
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: active ? '#fff' : T.muted, transition: 'color 0.15s ease' }}>{label}</span>
                 )}
               </Link>
             )
           })}
         </nav>
 
-        {/* Collapse / expand toggle (desktop only) */}
-        {!isMobile && (
-          <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, flexShrink: 0 }}>
+        {/* Footer: theme toggle · collapse (before profile) · profile */}
+        <div style={{ borderTop: `1px solid ${T.border}`, padding: 10, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
+            suppressHydrationWarning
+            style={{
+              width: '100%',
+              display: 'flex', alignItems: 'center',
+              justifyContent: centered ? 'center' : 'flex-start',
+              gap: 12,
+              padding: centered ? '9px 0' : '9px 14px',
+              background: 'transparent', border: 'none', borderRadius: '9999px',
+              color: T.muted, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600,
+              whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            {mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {(!collapsed || isMobile) && <span>{mode === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
+          </button>
+
+          {/* Collapse / expand toggle (desktop only) — placed before profile */}
+          {!isMobile && (
             <button
               onClick={toggle}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              suppressHydrationWarning
               style={{
                 width: '100%',
                 display: 'flex', alignItems: 'center',
                 justifyContent: collapsed ? 'center' : 'flex-start',
                 gap: 12,
-                padding: collapsed ? '10px 0' : '10px 12px',
-                background: 'transparent', border: 'none', borderRadius: '0.6rem',
-                color: C.muted, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600,
-                whiteSpace: 'nowrap',
+                padding: collapsed ? '9px 0' : '9px 14px',
+                background: 'transparent', border: 'none', borderRadius: '9999px',
+                color: T.muted, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600,
+                whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s',
               }}
             >
               {collapsed
                 ? <ChevronsRight size={18} />
                 : <><ChevronsLeft size={18} /><span>Collapse</span></>}
             </button>
+          )}
+
+          {/* Profile avatar */}
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            justifyContent: centered ? 'center' : 'flex-start',
+            gap: 10, padding: centered ? '8px 0' : '8px 12px',
+            borderRadius: '9999px',
+            background: T.bar, border: `1px solid ${T.border}`,
+            marginTop: 4,
+          }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #14B8A6, #0D9488)',
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(13,148,136,0.35)',
+              }}>
+                DP
+              </div>
+              <span style={{
+                position: 'absolute', bottom: 0, right: 0, width: 11, height: 11,
+                borderRadius: '50%', background: LIME,
+                border: `2px solid ${T.bar}`,
+                boxShadow: `0 0 6px ${LIME}`,
+                animation: 'navPulse 2.4s ease-in-out infinite',
+              }} />
+            </div>
+            {(!collapsed || isMobile) && (
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: T.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Dr. Perera</div>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.08em', fontWeight: 700, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Administrator</div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </aside>
     </>
   )

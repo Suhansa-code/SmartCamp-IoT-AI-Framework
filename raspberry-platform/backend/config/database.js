@@ -90,7 +90,29 @@ function initializeCampDb() {
       sent_at TEXT,
       result TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS sync_pending (
+      sync_id TEXT PRIMARY KEY,
+      entity TEXT NOT NULL,
+      table_name TEXT NOT NULL,
+      local_id TEXT NOT NULL,
+      operation TEXT NOT NULL DEFAULT 'CREATE',
+      priority TEXT NOT NULL DEFAULT 'MEDIUM',
+      camp_id TEXT,
+      device_id TEXT,
+      payload TEXT NOT NULL,
+      published INTEGER DEFAULT 0,
+      retry_count INTEGER DEFAULT 0,
+      max_retries INTEGER DEFAULT 5,
+      next_retry_at TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now')),
+      acked_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_sync_pending_retry
+      ON sync_pending(published, retry_count, next_retry_at);
   `);
+
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_sync_pending_table_local ON sync_pending(table_name, local_id)');
 
   try { campDb.exec("ALTER TABLE persons ADD COLUMN person_type TEXT DEFAULT 'refugee'"); } catch (_) {}
   campDb.exec('CREATE INDEX IF NOT EXISTS idx_persons_type ON persons(person_type)');
@@ -350,27 +372,65 @@ function migrateAddQRCodeColumn(db) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// DISASTER DB — disaster monitoring (sensor readings, alerts, predictions, etc.)
+// ═════════════════════════════════════════════════════════════════════════════
+
+ensureDir(C.DISASTER_DB_PATH);
+
+let disasterDb;
+try {
+  disasterDb = new Database(path.resolve(rootDir, C.DISASTER_DB_PATH), { timeout: 30000 });
+  disasterDb.pragma('journal_mode = WAL');
+  disasterDb.pragma('foreign_keys = ON');
+  disasterDb.pragma('synchronous = NORMAL');
+  disasterDb.pragma('busy_timeout = 30000');
+
+  const disasterSchemaPath = path.resolve(rootDir, 'db/disaster-schema.sql');
+  if (fs.existsSync(disasterSchemaPath)) {
+    const disasterSchema = fs.readFileSync(disasterSchemaPath, 'utf8');
+    disasterDb.exec(disasterSchema);
+    logger.info('[DISASTER DB] Schema applied successfully');
+  } else {
+    logger.warn('[DISASTER DB] disaster-schema.sql not found — tables may not exist');
+  }
+
+  try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN source TEXT DEFAULT 'GPS_SENSOR'"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE disaster_events ADD COLUMN synced INTEGER NOT NULL DEFAULT 0"); } catch (_) {}
+
+  logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
+} catch (err) {
+  logger.error(`[DISASTER DB] Initialisation failed: ${err.message}`);
+  process.exit(1);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // PostgreSQL — cloud sync pool
 // ═════════════════════════════════════════════════════════════════════════════
 
-const pgPool = new Pool({
-  host: C.AWS_RDS_HOST,
-  port: C.AWS_RDS_PORT,
-  database: C.AWS_RDS_DB,
-  user: C.AWS_RDS_USER,
-  password: C.AWS_RDS_PASSWORD,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  ssl: C.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
+let pgPool;
+if (C.AWS_RDS_HOST) {
+  pgPool = new Pool({
+    host: C.AWS_RDS_HOST,
+    port: C.AWS_RDS_PORT,
+    database: C.AWS_RDS_DB,
+    user: C.AWS_RDS_USER,
+    password: C.AWS_RDS_PASSWORD,
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    ssl: C.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  });
 
-pgPool.on('error', (err) => {
-  logger.warn(`[PG] Pool error (offline?): ${err.message}`);
-});
+  pgPool.on('error', (err) => {
+    logger.warn(`[PG] Pool error (offline?): ${err.message}`);
+  });
+} else {
+  pgPool = null;
+  logger.info('[PG] No AWS_RDS_HOST configured — PostgreSQL disabled');
+}
 
 export async function pgIsReachable() {
-  if (!C.AWS_RDS_HOST) return false;
+  if (!pgPool) return false;
   try {
     const client = await pgPool.connect();
     await client.query('SELECT 1');
@@ -380,6 +440,7 @@ export async function pgIsReachable() {
 }
 
 export async function pgQuery(text, params = []) {
+  if (!pgPool) throw new Error('PostgreSQL not configured');
   const client = await pgPool.connect();
   try {
     return await client.query(text, params);
@@ -454,4 +515,4 @@ export function sqliteCheckResId(resId) {
   }
 }
 
-export { campDb, pagesDb, pgPool, initializeCampDb };
+export { campDb, pagesDb, disasterDb, pgPool, initializeCampDb };

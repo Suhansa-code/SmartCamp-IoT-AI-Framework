@@ -56,3 +56,18 @@ export function getOverview() {
     updated_at: new Date().toISOString(),
   };
 }
+
+export function getCampIdentity(campId) {
+  if (!campId) return { prefix: '', location: '', symbol: '' };
+  const parts = campId.split('-');
+  if (parts.length >= 3) {
+    const prefix = parts.slice(0, 2).join('-');
+    const location = parts.slice(2).join('-');
+    const symbol = location.charAt(0).toUpperCase();
+    return { prefix, location, symbol };
+  }
+  if (parts.length === 2) {
+    return { prefix: parts[0], location: parts[1], symbol: parts[1].charAt(0).toUpperCase() };
+  }
+  return { prefix: campId, location: '', symbol: campId.charAt(0).toUpperCase() };
+}

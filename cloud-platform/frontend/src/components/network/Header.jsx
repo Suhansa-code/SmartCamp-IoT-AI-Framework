@@ -1,103 +1,93 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Activity, Wifi, WifiOff, Server, Box, Sun, Moon } from 'lucide-react';
+'use client'
 
-export default function Header({ networkState, connected, metrics, isDarkMode, toggleTheme }) {
-  const getStateColorClass = (state) => ({
-    GOOD: 'text-emerald-600 dark:text-emerald-500 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-emerald-500/30',
-    WEAK: 'text-amber-600 dark:text-amber-500 border-amber-500 bg-amber-50 dark:bg-amber-500/10 shadow-amber-500/30',
-    POOR: 'text-orange-600 dark:text-orange-500 border-orange-500 bg-orange-50 dark:bg-orange-500/10 shadow-orange-500/30',
-    OFFLINE: 'text-rose-600 dark:text-rose-500 border-rose-500 bg-rose-50 dark:bg-rose-500/10 shadow-rose-500/30'
-  }[state] || 'text-emerald-600 dark:text-emerald-500 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-emerald-500/30');
+import { motion } from 'framer-motion'
+import { Activity, Box, Server } from 'lucide-react'
+import { useTheme } from '@/components/common/ThemeProvider'
 
-  const sc = getStateColorClass(networkState);
-  
-  const getDotColorClass = (state) => ({
-    GOOD: 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]',
-    WEAK: 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]',
-    POOR: 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]',
-    OFFLINE: 'bg-rose-500 shadow-[0_0_10px_rgba(225,29,72,0.8)]'
-  }[state] || 'bg-emerald-500');
+export default function Header({ networkState, connected, metrics }) {
+  const { T } = useTheme()
 
-  const dot = getDotColorClass(networkState);
+  const stateColor = {
+    GOOD: T.green,
+    WEAK: T.amber,
+    POOR: T.coral,
+    OFFLINE: T.red,
+  }[networkState] || T.green
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: -20 }}
+    <motion.div
+      initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 p-6 sm:p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] relative overflow-hidden transition-colors duration-500"
+      style={{
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 12, marginBottom: '1.4rem',
+      }}
     >
-      {/* Background Glows */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative z-10 flex items-center gap-5">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-indigo-500 dark:to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 dark:shadow-indigo-500/30 border border-white/20 dark:border-white/10">
-          <Activity className="w-8 h-8" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 14,
+          background: 'linear-gradient(135deg, #14B8A6, #0D9488)',
+          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 8px 22px rgba(13,148,136,0.4)', flexShrink: 0,
+        }}>
+          <Activity size={24} />
         </div>
         <div>
-          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-900 to-slate-800 dark:from-white dark:to-slate-400 tracking-tight transition-all">
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: T.tealMid, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 4 }}>
+            <Box size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Smart Camp Box · Semantic-Aware
+          </div>
+          <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.45rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: T.textPrimary }}>
             SAAMP Network Monitor
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-indigo-400 font-semibold tracking-wider uppercase mt-1 flex items-center gap-2">
-            <Box className="w-4 h-4" /> Smart Camp Box · Semantic-Aware
-          </p>
         </div>
       </div>
 
-      <div className="relative z-10 flex flex-wrap items-center gap-4">
-        
-        {/* Connection Status */}
-        <div className="flex items-center gap-3 bg-white/80 dark:bg-slate-800/80 border border-white dark:border-slate-700 rounded-2xl px-5 py-3 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-inner transition-colors duration-500">
-          <div className="flex items-center justify-center relative">
-            <div className={`w-3 h-3 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-            {connected && <div className="absolute w-3 h-3 rounded-full bg-emerald-500 animate-ping opacity-75" />}
-          </div>
-          <span className={`text-sm font-bold tracking-widest ${connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-            {connected ? 'LIVE' : 'DISCONNECTED'}
-          </span>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {/* Connection status */}
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999,
+          padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700,
+          color: connected ? T.green : T.red,
+        }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: connected ? T.green : T.red,
+            boxShadow: `0 0 8px ${connected ? T.green : T.red}`,
+            animation: 'pulse 2s infinite',
+          }} />
+          {connected ? 'LIVE' : 'DISCONNECTED'}
+        </span>
 
-        {/* Prediction Display */}
-        <div className={`flex items-center gap-4 border border-white/50 dark:border-transparent bg-white/60 dark:bg-transparent rounded-2xl px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-lg transition-all duration-500 ${sc}`}>
+        {/* Predicted state */}
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: `${stateColor}1a`, border: `1px solid ${stateColor}55`,
+          borderRadius: 12, padding: '6px 12px',
+        }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Predicted (60s)</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: stateColor, lineHeight: 1.1 }}>{networkState}</div>
+          </div>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: stateColor, boxShadow: `0 0 10px ${stateColor}`, animation: 'pulse 2s infinite' }} />
+        </span>
+
+        {/* MQTT broker */}
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12,
+          padding: '6px 12px',
+        }}>
+          <Server size={18} color={metrics?.bridge_alive ? T.blue : T.muted} />
           <div>
-            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest mb-0.5 opacity-80">
-              PREDICTED STATE (60S)
-            </div>
-            <div className="text-xl font-black tracking-tight">
-              {networkState}
-            </div>
-          </div>
-          <div className={`w-3 h-3 rounded-full ${dot} animate-pulse`} />
-        </div>
-
-        {/* MQTT Broker Status */}
-        <div className="bg-white/80 dark:bg-slate-800/80 border border-white dark:border-slate-700 rounded-2xl px-5 py-3 flex items-center gap-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-inner transition-colors duration-500">
-          <Server className={`w-8 h-8 ${metrics?.bridge_alive ? 'text-blue-500 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
-          <div>
-            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest mb-0.5">
-              MQTT BROKER
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-bold ${metrics?.bridge_alive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                {metrics?.bridge_alive ? 'CONNECTED' : 'OFFLINE'}
-              </span>
-              <span className="text-slate-400 dark:text-slate-500 text-sm">·</span>
-              <span className="text-blue-600 dark:text-blue-400 text-sm font-semibold">{metrics?.clients || 0} clients</span>
+            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>MQTT Broker</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: metrics?.bridge_alive ? T.green : T.red, lineHeight: 1.1 }}>
+              {metrics?.bridge_alive ? 'CONNECTED' : 'OFFLINE'}
+              <span style={{ color: T.muted, fontWeight: 600 }}> · {metrics?.clients || 0} clients</span>
             </div>
           </div>
-        </div>
-
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="bg-white/80 dark:bg-slate-800 border border-white dark:border-slate-700 text-slate-600 dark:text-slate-300 p-3 rounded-2xl hover:bg-white dark:hover:bg-slate-700 transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-sm active:scale-95"
-          aria-label="Toggle theme"
-        >
-          {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </button>
-
+        </span>
       </div>
     </motion.div>
-  );
+  )
 }

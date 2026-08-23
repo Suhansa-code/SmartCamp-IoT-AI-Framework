@@ -1,128 +1,132 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Activity, ListFilter } from 'lucide-react';
+'use client'
 
-const getStatusColor = (s) => ({
-  sent:     'text-emerald-600 dark:text-emerald-400 bg-white/80 dark:bg-emerald-500/10 border-white dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.2)]',
-  buffered: 'text-amber-600 dark:text-amber-400 bg-white/80 dark:bg-amber-500/10 border-white dark:border-amber-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(245,158,11,0.2)]',
-  dropped:  'text-rose-600 dark:text-rose-400 bg-white/80 dark:bg-rose-500/10 border-white dark:border-rose-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(244,63,94,0.2)]',
-  delayed:  'text-amber-600 dark:text-amber-400 bg-white/80 dark:bg-amber-500/10 border-white dark:border-amber-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(245,158,11,0.2)]',
-}[s] || 'text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-500/10 border-white dark:border-slate-500/30');
+import React from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Terminal, Activity, ListFilter } from 'lucide-react'
+import { useTheme } from '@/components/common/ThemeProvider'
+
+const getStatusColor = (T, s) => ({
+  sent:     T.green,
+  buffered: T.amber,
+  dropped:  T.red,
+  delayed:  T.amber,
+}[s] || T.muted)
 
 const getStatusLabel = (s, qos) => ({
-  sent:     `QoS ${qos}`,
+  sent: `QoS ${qos}`,
   buffered: 'BUFFERED',
-  dropped:  'DROPPED',
-  delayed:  'DELAYED',
-}[s] || (s || '').toUpperCase());
+  dropped: 'DROPPED',
+  delayed: 'DELAYED',
+}[s] || (s || '').toUpperCase())
 
-const getPriorityColor = (p) => ({
-  CRITICAL: 'text-rose-600 dark:text-rose-400 bg-white/80 dark:bg-rose-500/10 border-white dark:border-rose-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(244,63,94,0.2)]',
-  IMPORTANT: 'text-amber-600 dark:text-amber-400 bg-white/80 dark:bg-amber-500/10 border-white dark:border-amber-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(245,158,11,0.2)]',
-  ROUTINE: 'text-blue-600 dark:text-blue-400 bg-white/80 dark:bg-blue-500/10 border-white dark:border-blue-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(59,130,246,0.2)]'
-}[p] || 'text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-500/10 border-white dark:border-slate-500/30');
+const getPriorityColor = (T, p) => ({
+  CRITICAL: T.red,
+  IMPORTANT: T.amber,
+  ROUTINE: T.blue,
+}[p] || T.muted)
 
-const getStateTextColor = (state) => ({
-  GOOD: 'text-emerald-600 dark:text-emerald-400',
-  WEAK: 'text-amber-600 dark:text-amber-400',
-  POOR: 'text-orange-600 dark:text-orange-400',
-  OFFLINE: 'text-rose-600 dark:text-rose-400'
-}[state] || 'text-slate-500 dark:text-slate-400');
+const getStateTextColor = (T, state) => ({
+  GOOD: T.green,
+  WEAK: T.amber,
+  POOR: T.coral,
+  OFFLINE: T.red,
+}[state] || T.muted)
 
 export default function MessageLog({ messages, networkState }) {
-  return (
-    <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-lg flex flex-col h-full relative overflow-hidden transition-colors duration-500">
-      
-      {/* Background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/5 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+  const { T } = useTheme()
 
-      <div className="flex justify-between items-center mb-6 relative z-10">
-        <div className="flex items-center gap-2">
-          <Terminal className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">SAAMP Live Log</h3>
+  return (
+    <div style={{
+      background: `linear-gradient(160deg, ${T.card} 0%, ${T.bg} 100%)`,
+      border: `1px solid ${T.border}`, borderRadius: 18,
+      boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
+      display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.9rem 1.1rem', borderBottom: `1px solid ${T.line}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Terminal size={17} color={T.tealMid} />
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: T.textPrimary, textTransform: 'uppercase', letterSpacing: '0.1em' }}>SAAMP Live Log</span>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1 bg-white/80 dark:bg-emerald-500/10 border border-white dark:border-emerald-500/30 rounded-full transition-colors duration-500 shadow-sm dark:shadow-none">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)] dark:shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-widest">
-            LIVE · {messages.length} MSG
-          </span>
-        </div>
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: `${T.green}1a`, border: `1px solid ${T.green}55`,
+          borderRadius: 999, padding: '3px 10px', fontSize: '0.62rem', fontWeight: 800,
+          color: T.green, letterSpacing: '0.08em',
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.green, boxShadow: `0 0 8px ${T.green}`, animation: 'pulse 2s infinite' }} />
+          LIVE · {messages.length} MSG
+        </span>
       </div>
 
-      <div className="grid grid-cols-[60px_100px_100px_80px_1fr_80px] gap-4 pb-3 border-b border-white/80 dark:border-slate-700/50 text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase relative z-10">
+      <div style={{ display: 'grid', gridTemplateColumns: '70px 110px 110px 90px 1fr 90px', gap: 12, padding: '0.6rem 1.1rem', borderBottom: `1px solid ${T.line}`, fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
         <span>Time</span>
         <span>Source</span>
         <span>Action</span>
         <span>Priority</span>
         <span>Topic</span>
-        <span className="text-right">Status</span>
+        <span style={{ textAlign: 'right' }}>Status</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar mt-2 relative z-10 min-h-[300px]">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0.4rem 1.1rem 1rem', minHeight: 300 }}>
         {messages.length === 0 ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
-            <ListFilter className="w-12 h-12 mb-3 opacity-50" />
-            <div className="text-sm font-semibold tracking-wide">Awaiting Traffic</div>
-            <div className="text-xs mt-1 opacity-75">Monitoring MQTT broker for messages</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 0', color: T.muted }}>
+            <ListFilter size={40} style={{ opacity: 0.4 }} />
+            <p style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: 10 }}>Awaiting Traffic</p>
+            <p style={{ fontSize: '0.78rem', opacity: 0.75 }}>Monitoring MQTT broker for messages</p>
           </div>
         ) : (
           <AnimatePresence>
             {messages.map((msg, i) => {
-              const sl = getStatusLabel(msg.status, msg.qos_assigned || msg.qos);
-              const timeStr = msg.time || (msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : '—');
-
+              const sl = getStatusLabel(msg.status, msg.qos_assigned || msg.qos)
+              const timeStr = msg.time || (msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : '—')
+              const statusColor = getStatusColor(T, msg.status)
+              const priorityColor = getPriorityColor(T, msg.priority)
               return (
                 <motion.div
                   key={msg.id || i}
-                  initial={{ opacity: 0, x: -10, backgroundColor: 'rgba(99, 102, 241, 0.05)' }}
-                  animate={{ opacity: 1, x: 0, backgroundColor: 'rgba(255, 255, 255, 0)' }}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4 }}
-                  className="grid grid-cols-[60px_100px_100px_80px_1fr_80px] gap-4 py-3 border-b border-white/40 dark:border-slate-800 hover:bg-white/80 dark:hover:bg-slate-800/40 transition-colors items-center"
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '70px 110px 110px 90px 1fr 90px', gap: 12,
+                    padding: '0.55rem 0', borderBottom: `1px solid ${T.line}`,
+                    alignItems: 'center', fontSize: '0.78rem',
+                  }}
                 >
-                  <span className="text-[10px] font-mono text-slate-500">
-                    {timeStr.slice(-8, -3)}
-                  </span>
-
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 capitalize truncate">
-                    {msg.source || msg.source_type || '—'}
-                  </span>
-
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 capitalize truncate">
-                    {(msg.action || '').replace(/_/g, ' ')}
-                  </span>
-
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: T.muted }}>{timeStr.slice(-8, -3)}</span>
+                  <span style={{ fontWeight: 700, color: T.textPrimary, textTransform: 'capitalize' }}>{msg.source || msg.source_type || '—'}</span>
+                  <span style={{ color: T.muted, textTransform: 'capitalize' }}>{(msg.action || '').replace(/_/g, ' ')}</span>
                   <div>
-                    <span className={`inline-block px-2 py-1 rounded border text-[9px] font-black tracking-widest text-center transition-colors duration-500 ${getPriorityColor(msg.priority)}`}>
-                      {(msg.priority || '').slice(0, 4)}
-                    </span>
+                    <span style={{
+                      display: 'inline-block', padding: '2px 8px', borderRadius: 999, fontSize: '0.6rem', fontWeight: 800,
+                      background: `${priorityColor}1a`, border: `1px solid ${priorityColor}55`, color: priorityColor,
+                      letterSpacing: '0.06em',
+                    }}>{(msg.priority || '').slice(0, 4)}</span>
                   </div>
-
-                  <span className="text-[10px] font-mono text-slate-500 truncate" title={msg.topic}>
-                    {msg.topic || '—'}
-                  </span>
-
-                  <div className="text-right">
-                    <span className={`inline-block px-2 py-1 rounded border text-[9px] font-black tracking-widest text-center transition-colors duration-500 ${getStatusColor(msg.status)}`}>
-                      {sl}
-                    </span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: T.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={msg.topic}>{msg.topic || '—'}</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{
+                      display: 'inline-block', padding: '2px 8px', borderRadius: 999, fontSize: '0.6rem', fontWeight: 800,
+                      background: `${statusColor}1a`, border: `1px solid ${statusColor}55`, color: statusColor,
+                      letterSpacing: '0.06em',
+                    }}>{sl}</span>
                   </div>
                 </motion.div>
-              );
+              )
             })}
           </AnimatePresence>
         )}
       </div>
 
-      <div className="mt-6 p-4 bg-white/80 dark:bg-slate-950/50 rounded-2xl border border-white dark:border-slate-800 text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center justify-between relative z-10 transition-colors duration-500 shadow-sm dark:shadow-none">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-          <span>SAAMP active classification mode</span>
-        </div>
-        <div>
-          Current State: <span className={`font-black tracking-wider ml-1 ${getStateTextColor(networkState)}`}>{networkState}</span>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.7rem 1.1rem', borderTop: `1px solid ${T.line}`, fontSize: '0.75rem', fontWeight: 600, color: T.muted }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Activity size={14} /> SAAMP active classification mode
+        </span>
+        <span>
+          Current State: <span style={{ fontWeight: 800, color: getStateTextColor(T, networkState) }}>{networkState}</span>
+        </span>
       </div>
     </div>
-  );
+  )
 }

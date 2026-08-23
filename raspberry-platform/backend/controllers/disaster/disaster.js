@@ -1,5 +1,6 @@
 import * as disasterService from '../../services/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
+import C from '../../config/constants.js';
 
 export function getCamps(req, res) {
   const camps = disasterService.getCampsData();
@@ -25,4 +26,9 @@ export function getOverview(req, res) {
 export async function getGpsLocation(req, res) {
   const gps = await gpsService.getGpsLocation();
   res.json(gps);
+}
+
+export function getCampIdentity(req, res) {
+  const identity = disasterService.getCampIdentity(C.CAMP_ID);
+  res.json({ camp_id: C.CAMP_ID, ...identity });
 }
