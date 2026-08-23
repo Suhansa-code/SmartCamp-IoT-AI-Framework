@@ -45,14 +45,15 @@ export function campPrefix(campId) {
 
 export function nextChildId(campId) {
   const prefix = campPrefix(campId);
-  const row = pagesDb.prepare(
-    "SELECT child_id FROM pages_children WHERE camp_id = ? ORDER BY child_id DESC LIMIT 1"
-  ).get(campId);
-  let next = 1;
-  if (row) {
-    const match = row.child_id.match(/(\d+)$/);
-    if (match) next = parseInt(match[1], 10) + 1;
-  }
+  const startPos = prefix.length + 2;
+  const row = pagesDb.prepare(`
+    SELECT CAST(SUBSTR(child_id, ?) AS INTEGER) AS num
+    FROM pages_children
+    WHERE camp_id = ? AND child_id LIKE ?
+    ORDER BY num DESC
+    LIMIT 1
+  `).get(startPos, campId, `${prefix}-%`);
+  const next = (row?.num || 0) + 1;
   return `${prefix}-${String(next).padStart(6, '0')}`;
 }
 
