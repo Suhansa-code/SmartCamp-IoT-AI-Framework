@@ -1,11 +1,9 @@
 'use client'
 
 import { Crosshair } from 'lucide-react'
-import { DisasterGeoMap } from './DisasterGeoMap'
 import { STATUS_COLOR } from '@/data/disaster.data'
 import { useTheme } from '@/components/common/ThemeProvider'
-
-const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
+import { Map, MapControls } from '@/components/ui/map'
 
 function Chip({ children, color = '#64748B', style }) {
   return (
@@ -28,36 +26,23 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
   const hudCardBg = dark ? 'rgba(4,10,17,0.72)' : 'rgba(255,255,255,0.85)'
   const hudCardBorder = dark ? 'rgba(255,255,255,0.1)' : 'rgba(60,110,150,0.18)'
 
+  const selectedCamp = camps?.find((c) => c.id === selected)
+
   return (
     <div
-      className={`relative overflow-hidden rounded-[1.75rem] min-h-[640px] max-xl:min-h-[460px] max-sm:min-h-[400px]`}
+      className="relative overflow-hidden rounded-[1.75rem] min-h-[640px] max-xl:min-h-[460px] max-sm:min-h-[400px]"
       style={{
         background: dark ? '#030c18' : '#ddeaf5',
         border: dark ? '1px solid rgba(80,140,190,0.22)' : `1px solid ${T.border}`,
       }}
     >
-      {/* Map canvas */}
-      <div className="absolute inset-0">
-        <div
-          className="absolute top-1/2 left-1/2 w-[62%] h-[90%] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
-          style={{
-            background: dark
-              ? 'radial-gradient(circle, rgba(34,211,238,0.16) 0%, rgba(34,211,238,0.05) 45%, transparent 70%)'
-              : 'radial-gradient(circle, rgba(8,145,178,0.12) 0%, rgba(8,145,178,0.03) 45%, transparent 70%)',
-          }}
-        />
-        <DisasterGeoMap camps={mapNodes} selected={selected} onSelect={onSelect} theme={dark ? 'dark' : 'light'} />
-      </div>
-
-      {/* Scrim */}
-      <div
-        className="absolute inset-0 pointer-events-none rounded-[inherit] z-[5]"
-        style={{
-          background: dark
-            ? 'linear-gradient(180deg, rgba(3,8,15,0.55) 0%, transparent 30%, transparent 68%, rgba(3,8,15,0.4) 100%)'
-            : 'linear-gradient(180deg, rgba(221,234,245,0.35) 0%, transparent 30%, transparent 68%, rgba(221,234,245,0.25) 100%)',
-        }}
-      />
+      <Map
+        center={[81.5, 7.8]}
+        zoom={6}
+        className="absolute inset-0"
+      >
+        <MapControls showZoom showLocate />
+      </Map>
 
       {/* HUD title */}
       <div className="absolute z-[13] pointer-events-none top-[25px] left-[58px] max-w-[420px]">
