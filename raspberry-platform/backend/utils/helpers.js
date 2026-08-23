@@ -46,9 +46,13 @@ export function campPrefix(campId) {
 export function nextChildId(campId) {
   const prefix = campPrefix(campId);
   const row = pagesDb.prepare(
-    'SELECT COUNT(*) AS cnt FROM pages_children WHERE camp_id = ?'
+    "SELECT child_id FROM pages_children WHERE camp_id = ? ORDER BY child_id DESC LIMIT 1"
   ).get(campId);
-  const next = (row.cnt || 0) + 1;
+  let next = 1;
+  if (row) {
+    const match = row.child_id.match(/(\d+)$/);
+    if (match) next = parseInt(match[1], 10) + 1;
+  }
   return `${prefix}-${String(next).padStart(6, '0')}`;
 }
 
