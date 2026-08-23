@@ -26,12 +26,15 @@
 import { randomUUID } from 'crypto';
 import logger from '../../utils/logger.js';
 import * as saamp from '../network/saamp-mqtt.js';
-import { campDb, pagesDb } from '../../config/database.js';
+import { campDb, pagesDb, disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import { fetchAllPending, countPending } from './sync-queue.js';
 import { PRIORITY } from './sync-priority.js';
 
 const SYNC_INTERVAL_MS = 30_000;
+const SYNC_INTERVAL_STABLE_MS = 5_000;
+const SYNC_INTERVAL_DEGRADED_MS = 15_000;
+const SYNC_INTERVAL_CRITICAL_MS = 60_000;
 const ACK_CHECK_INTERVAL_MS = 15_000;
 const BASE_RETRY_DELAY_MS = 60_000;
 const MAX_RETRY_DELAY_MS = 1_800_000;
@@ -51,6 +54,16 @@ const TABLE_TO_ENTITY = {
   pages_gate_decisions:       'gate-decisions',
   pages_alerts:               'alerts',
   pages_content_responses:    'content-responses',
+  disaster_events:            'disaster-events',
+  sensor_readings:            'sensor-readings',
+  environmental_data:         'environmental-data',
+  water_level_readings:       'water-level-readings',
+  gps_readings:               'gps-readings',
+  weather_data:               'weather-data',
+  hydrospatial_data:          'hydrospatial-data',
+  flood_predictions:          'flood-predictions',
+  disaster_alerts:            'disaster-alerts',
+  prediction_requests:        'prediction-requests',
 };
 
 const ENTITY_PK = {
@@ -67,6 +80,16 @@ const ENTITY_PK = {
   'gate-decisions':           'decision_id',
   alerts:                     'alert_id',
   'content-responses':        'response_id',
+  'disaster-events':          'id',
+  'sensor-readings':          'id',
+  'environmental-data':       'id',
+  'water-level-readings':     'id',
+  'gps-readings':             'id',
+  'weather-data':             'id',
+  'hydrospatial-data':        'id',
+  'flood-predictions':        'id',
+  'disaster-alerts':          'id',
+  'prediction-requests':      'id',
 };
 
 const TABLE_DB_MAP = {
@@ -76,6 +99,11 @@ const TABLE_DB_MAP = {
   pages_children: pagesDb, pages_sessions: pagesDb,
   pages_behavioral_signals: pagesDb, pages_gate_decisions: pagesDb,
   pages_alerts: pagesDb, pages_content_responses: pagesDb,
+  disaster_events: disasterDb, sensor_readings: disasterDb,
+  environmental_data: disasterDb, water_level_readings: disasterDb,
+  gps_readings: disasterDb, weather_data: disasterDb,
+  hydrospatial_data: disasterDb, flood_predictions: disasterDb,
+  disaster_alerts: disasterDb, prediction_requests: disasterDb,
 };
 
 const META_FIELDS = ['_priority', '_reason', '_qos', '_timestamp'];
@@ -85,6 +113,19 @@ let ackTimer = null;
 let isRunning = false;
 let lastSyncAt = null;
 let syncCount = 0;
+let currentIntervalMs = SYNC_INTERVAL_MS;
+
+const DISASTER_TABLES = new Set([
+  'disaster_events', 'sensor_readings', 'environmental_data', 'water_level_readings',
+  'gps_readings', 'weather_data', 'hydrospatial_data', 'flood_predictions',
+  'disaster_alerts', 'prediction_requests',
+]);
+
+function getDomainForTable(table) {
+  if (table.startsWith('pages_')) return 'education';
+  if (DISASTER_TABLES.has(table)) return 'disaster';
+  return 'resources';
+}
 
 // ── Structured sync logging ──────────────────────────────────────────────
 
@@ -106,11 +147,24 @@ function syncLog(event, entity, localId, extra = {}) {
 // ── sync_pending helpers ─────────────────────────────────────────────────
 
 function insertPending(syncId, entity, tableName, localId, operation, priority, payload) {
-  campDb.prepare(
-    `INSERT INTO sync_pending
-       (sync_id, entity, table_name, local_id, operation, priority, camp_id, device_id, payload, published)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
-  ).run(syncId, entity, tableName, String(localId), operation, priority, C.CAMP_ID, C.DEVICE_ID, JSON.stringify(payload));
+  const strLocalId = String(localId);
+  const existing = campDb.prepare(
+    'SELECT sync_id FROM sync_pending WHERE table_name = ? AND local_id = ?'
+  ).get(tableName, strLocalId);
+
+  if (existing) {
+    campDb.prepare(
+      `UPDATE sync_pending SET sync_id = ?, entity = ?, operation = ?, priority = ?,
+         payload = ?, published = 0, retry_count = 0, next_retry_at = datetime('now')
+       WHERE table_name = ? AND local_id = ?`
+    ).run(syncId, entity, operation, priority, JSON.stringify(payload), tableName, strLocalId);
+  } else {
+    campDb.prepare(
+      `INSERT INTO sync_pending
+         (sync_id, entity, table_name, local_id, operation, priority, camp_id, device_id, payload, published)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
+    ).run(syncId, entity, tableName, strLocalId, operation, priority, C.CAMP_ID, C.DEVICE_ID, JSON.stringify(payload));
+  }
 }
 
 function markPublished(syncId) {
@@ -130,8 +184,10 @@ function ackSuccess(syncId) {
   if (db) {
     db.prepare(`UPDATE ${row.table_name} SET synced = 1 WHERE ${pk} = ?`).run(row.local_id);
   }
+  campDb.prepare(
+    'DELETE FROM sync_pending WHERE table_name = ? AND local_id = ?'
+  ).run(row.table_name, row.local_id);
   syncLog('synchronized', row.entity, row.local_id, { sync_id: syncId });
-  deletePending(syncId);
 }
 
 function ackFailed(syncId, errorMsg) {
@@ -230,7 +286,7 @@ function retryPendingAcks() {
   for (const row of rows) {
     const topic = `smartcamp/sync/${row.entity}`;
     const payload = JSON.parse(row.payload);
-    const domain = row.table_name.startsWith('pages_') ? 'education' : 'resources';
+    const domain = getDomainForTable(row.table_name);
     const result = saamp.publish(topic, payload, 'sync', domain);
 
     if (result.published) {
@@ -239,6 +295,29 @@ function retryPendingAcks() {
     } else {
       syncLog('buffered', row.entity, row.local_id, { sync_id: row.sync_id, retry: row.retry_count + 1 });
     }
+  }
+}
+
+// ── Adaptive sync interval ──────────────────────────────────────────────
+
+function getAdaptiveInterval(networkState) {
+  switch (networkState) {
+    case 'STABLE':    return SYNC_INTERVAL_STABLE_MS;
+    case 'DEGRADED':  return SYNC_INTERVAL_DEGRADED_MS;
+    case 'CRITICAL':  return SYNC_INTERVAL_CRITICAL_MS;
+    default:          return SYNC_INTERVAL_MS;
+  }
+}
+
+function adjustSyncInterval() {
+  const networkState = saamp.getNetworkState();
+  const newInterval = getAdaptiveInterval(networkState);
+
+  if (newInterval !== currentIntervalMs && syncTimer) {
+    clearInterval(syncTimer);
+    syncTimer = setInterval(runSyncCycle, newInterval);
+    currentIntervalMs = newInterval;
+    logger.info(`[SYNC] Interval adjusted to ${newInterval}ms (network: ${networkState})`);
   }
 }
 
@@ -285,17 +364,17 @@ export async function runSyncCycle() {
         const payload = buildSyncMessage(entity, stripMeta(row));
 
         insertPending(syncId, entity, batch.table, payload.local_id, payload.operation, payload.priority, payload.payload);
-        syncLog('queued', entity, row[payload.local_id] || row.id, { sync_id: syncId, priority: payload.priority });
+        syncLog('queued', entity, payload.local_id, { sync_id: syncId, priority: payload.priority });
 
-        const domain = batch.table.startsWith('pages_') ? 'education' : 'resources';
+        const domain = getDomainForTable(batch.table);
         const result = saamp.publish(topic, payload, 'sync', domain);
 
         if (result.published) {
           markPublished(syncId);
-          syncLog('published', entity, row[payload.local_id] || row.id, { sync_id: syncId, qos: result.final_qos });
+          syncLog('published', entity, payload.local_id, { sync_id: syncId, qos: result.final_qos });
           totalPublished++;
         } else {
-          syncLog('buffered', entity, row[payload.local_id] || row.id, { sync_id: syncId, network: networkState });
+          syncLog('buffered', entity, payload.local_id, { sync_id: syncId, network: networkState });
           totalBuffered++;
         }
       }
@@ -315,10 +394,21 @@ export async function runSyncCycle() {
     return { error: err.message, skipped: false };
   } finally {
     isRunning = false;
+    adjustSyncInterval();
   }
 }
 
 // ── Start / stop ─────────────────────────────────────────────────────────
+
+function cleanupStalePending() {
+  try {
+    const count = campDb.prepare('SELECT COUNT(*) as c FROM sync_pending').get().c;
+    if (count > 0) {
+      campDb.prepare('DELETE FROM sync_pending').run();
+      logger.info(`[SYNC] Cleared ${count} stale sync_pending entries (ACKs were not being processed)`);
+    }
+  } catch { /* best-effort */ }
+}
 
 export function startSync(intervalMs = SYNC_INTERVAL_MS) {
   if (syncTimer) {
@@ -326,8 +416,11 @@ export function startSync(intervalMs = SYNC_INTERVAL_MS) {
     return;
   }
 
+  cleanupStalePending();
   saamp.onMessage('smartcamp/sync/ack', handleAck);
   saamp.onFlush(handleFlush);
+
+  currentIntervalMs = intervalMs;
 
   setTimeout(() => {
     runSyncCycle();
@@ -335,7 +428,7 @@ export function startSync(intervalMs = SYNC_INTERVAL_MS) {
     ackTimer = setInterval(retryPendingAcks, ACK_CHECK_INTERVAL_MS);
   }, 5000);
 
-  logger.info(`[SYNC] Started (interval: ${intervalMs}ms, device: ${C.DEVICE_ID})`);
+  logger.info(`[SYNC] Started (initial interval: ${intervalMs}ms, adaptive: 5s/15s/60s, device: ${C.DEVICE_ID})`);
 }
 
 export function stopSync() {

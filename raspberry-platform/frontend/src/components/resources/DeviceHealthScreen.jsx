@@ -155,6 +155,9 @@ function DeviceCard({ device }) {
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${online ? 'animate-pulse' : ''}`} style={{ backgroundColor: t.color }} />
             <Chip tone={tone}>{STATUS_LABEL[device.status]}</Chip>
+            {device.gpsStatusLabel && (
+              <Chip tone={device.isMock ? 'warning' : 'brand'}>{device.gpsStatusLabel}</Chip>
+            )}
           </div>
         </div>
 
@@ -210,6 +213,8 @@ export default function DeviceHealthScreen() {
   const [campPrefix, setCampPrefix] = useState('');
   const [campSymbol, setCampSymbol] = useState('');
   const [mappedCampId, setMappedCampId] = useState('');
+  const [gpsStatus, setGpsStatus] = useState('UNKNOWN');
+  const [isMock, setIsMock] = useState(false);
 
   const fetchLocation = useCallback(async () => {
     try {
@@ -221,8 +226,13 @@ export default function DeviceHealthScreen() {
       const gps = await gpsRes.json();
       const camp = await campRes.json();
 
+      setGpsStatus(gps.gps_status || 'UNKNOWN');
+      setIsMock(!!gps.is_mock);
+
       let locName = null;
-      if (gps.latitude && gps.longitude) {
+      if (gps.location_name) {
+        locName = gps.location_name;
+      } else if (gps.latitude && gps.longitude) {
         const geo = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${gps.latitude}&lon=${gps.longitude}&zoom=18&addressdetails=1`,
           { headers: { 'Accept-Language': 'en' } }
@@ -249,6 +259,7 @@ export default function DeviceHealthScreen() {
       }
     } catch {
       setLocationName(null);
+      setGpsStatus('UNAVAILABLE');
     }
   }, []);
 
@@ -258,9 +269,19 @@ export default function DeviceHealthScreen() {
   const degraded = devices.filter((d) => d.status === 'degraded').length;
   const offline = devices.filter((d) => d.status === 'offline').length;
 
-  const devicesWithLocation = devices.map((d) =>
-    d.id === 'gps' && locationName ? { ...d, location: locationName, campId: mappedCampId, campSymbol } : d
-  );
+  const devicesWithLocation = devices.map((d) => {
+    if (d.id !== 'gps') return d;
+    const gpsTone = gpsStatus === 'ACTIVE' ? 'connected' : 'degraded';
+    return {
+      ...d,
+      status: gpsStatus === 'ACTIVE' ? 'connected' : gpsStatus === 'UNAVAILABLE' ? 'offline' : 'degraded',
+      gpsStatusLabel: gpsStatus === 'ACTIVE' ? 'ACTIVE' : gpsStatus === 'MOCK' ? 'MOCK / UNAVAILABLE' : 'UNKNOWN',
+      isMock,
+      location: locationName ? (isMock ? `${locationName} (Mock)` : locationName) : null,
+      campId: mappedCampId,
+      campSymbol,
+    };
+  });
 
   const refresh = () => {
     setDevices([...INITIAL_DEVICES]);

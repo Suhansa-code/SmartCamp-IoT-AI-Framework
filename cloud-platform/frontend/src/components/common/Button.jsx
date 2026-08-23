@@ -106,7 +106,7 @@ export default function Button({
     )
   }
   return (
-    <button onClick={disabled ? undefined : onClick} style={base} disabled={disabled} {...rest}>
+    <button onClick={disabled ? undefined : onClick} style={base} disabled={disabled} suppressHydrationWarning {...rest}>
       {inner}
     </button>
   )

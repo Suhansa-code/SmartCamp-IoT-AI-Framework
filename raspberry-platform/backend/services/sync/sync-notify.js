@@ -28,6 +28,16 @@ const TABLE_PK = {
   pages_gate_decisions:       'decision_id',
   pages_alerts:               'alert_id',
   pages_content_responses:    'response_id',
+  disaster_events:            'id',
+  sensor_readings:            'id',
+  environmental_data:         'id',
+  water_level_readings:       'id',
+  gps_readings:               'id',
+  weather_data:               'id',
+  hydrospatial_data:          'id',
+  flood_predictions:          'id',
+  disaster_alerts:            'id',
+  prediction_requests:        'id',
 };
 
 /**

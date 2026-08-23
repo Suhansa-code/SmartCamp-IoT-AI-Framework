@@ -262,9 +262,9 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
           style={{ display: 'block', width: '100%', height: '100%', cursor: isDragging ? 'grabbing' : 'crosshair' }} 
         />
         <div style={{ position: 'absolute', top: 10, left: 12, display: 'flex', flexDirection: 'column', gap: 5, zIndex: 10 }}>
-          <button onClick={() => setZoom((z) => Math.min(3, z * 1.2))} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>+</button>
-          <button onClick={() => setZoom((z) => Math.max(0.5, z * 0.85))} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>−</button>
-          <button onClick={handleCenterMap} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>⊙</button>
+          <button suppressHydrationWarning onClick={() => setZoom((z) => Math.min(3, z * 1.2))} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>+</button>
+          <button suppressHydrationWarning onClick={() => setZoom((z) => Math.max(0.5, z * 0.85))} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>−</button>
+          <button suppressHydrationWarning onClick={handleCenterMap} style={{ width: 30, height: 30, background: `${theme.bg}e0`, border: `1px solid ${theme.border}`, color: theme.t1, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>⊙</button>
         </div>
       </>
     )

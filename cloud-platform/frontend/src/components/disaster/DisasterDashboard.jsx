@@ -7,7 +7,7 @@ import {
   Droplets, Radio, ShieldAlert, Crosshair, ChevronDown,
 } from 'lucide-react'
 import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS, ALERTS } from '@/data/disaster.data'
-import { DisasterGeoMap } from './DisasterGeoMap'
+import MainMap from './MainMap'
 import { Ring, Sparkline, TrendChart } from './DisasterVisuals'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
@@ -277,67 +277,25 @@ export default function DisasterDashboard() {
               {/* ── HERO: map (left) + side panel (right) ─────────────── */}
               <div className="dis-hero-grid">
                 {/* Map (left) */}
-                <div className="map-col" style={{ background: dark ? '#030c18' : '#ddeaf5', border: dark ? '1px solid rgba(80,140,190,0.22)' : `1px solid ${T.border}`,}}>
-                  <div className="map-canvas-wrap">
-                    <div className="hero-glow" style={{ background: dark ? 'radial-gradient(circle, rgba(34,211,238,0.16) 0%, rgba(34,211,238,0.05) 45%, transparent 70%)' : 'radial-gradient(circle, rgba(8,145,178,0.12) 0%, rgba(8,145,178,0.03) 45%, transparent 70%)' }} />
-                    <DisasterGeoMap camps={mapNodes} selected={selected} onSelect={setSelected} theme={MAP_THEME} />
-                  </div>
-                  <div className="map-scrim" style={{ background: dark ? 'linear-gradient(180deg, rgba(3,8,15,0.55) 0%, transparent 30%, transparent 68%, rgba(3,8,15,0.4) 100%)' : 'linear-gradient(180deg, rgba(221,234,245,0.35) 0%, transparent 30%, transparent 68%, rgba(221,234,245,0.25) 100%)' }} />
-
-                  {/* HUD title */}
-                  <div className="hud hud-title">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', fontWeight: 800, color: dark ? '#22d3ee' : '#0891b2', textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 4 }}>
-                      <Crosshair size={14} /> Relief Operations Grid
-                    </div>
-
-                    <div style={{ fontSize: '0.68rem', color: hudMuted, fontWeight: 600, marginTop: 2, textShadow: dark ? '0 1px 8px rgba(0,0,0,0.5)' : 'none' }}>
-                      Terrain reference aligned with live camp nodes · drag to pan · scroll to zoom
-                    </div>
-                  </div>
-
-                  {/* HUD live */}
-                  <div className="hud hud-live">
-                    <Chip color={dark ? '#22d3ee' : '#0891b2'} style={{ background: dark ? 'rgba(34,211,238,0.12)' : 'rgba(8,145,178,0.12)', border: `1px solid ${dark ? 'rgba(34,211,238,0.4)' : 'rgba(8,145,178,0.4)'}` }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? '#22d3ee' : '#0891b2', boxShadow: `0 0 8px ${dark ? '#22d3ee' : '#0891b2'}`, animation: 'disPulse 2s infinite' }} />
-                      LIVE MAP
-                    </Chip>
-                    <Chip color={error ? T.red : dark ? '#4ade80' : '#16a34a'} style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}` }}>
-                      {error ? 'DEGRADED' : `${mapNodes.length} NODES`}
-                    </Chip>
-                  </div>
-
-                  {/* HUD legend */}
-                  <div className="hud hud-legend" style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}`, borderRadius: 12, padding: '7px 10px', backdropFilter: 'blur(10px)' }}>
-                    {['critical', 'high', 'medium', 'stable', 'recovery'].map((status) => (
-                      <span key={status} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[status], boxShadow: `0 0 6px ${STATUS_COLOR[status]}`, flexShrink: 0 }} />
-                        <span style={{ color: hudInk, letterSpacing: '0.06em', textTransform: 'capitalize' }}>{status}</span>
-                        <span style={{ color: hudFaint, fontSize: 8, fontFamily: 'monospace' }}>{statusCounts[status] || 0}</span>
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Resource readiness dock */}
-                  <div className="rings-dock" style={{
-                    background: dark ? 'linear-gradient(165deg, rgba(16,32,50,0.94) 0%, rgba(5,13,23,0.9) 100%)' : 'rgba(255,255,255,0.9)',
-                    border: dark ? '1px solid rgba(120,180,225,0.16)' : `1px solid ${T.border}`,
-                    backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-                    boxShadow: dark ? '0 28px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)' : '0 24px 60px rgba(20,30,40,0.16)',
-                    borderRadius: '1.1rem',
-                  }}>
-
-                  </div>
-                </div>
+                <MainMap
+                  camps={camps}
+                  mapNodes={mapNodes}
+                  selected={selected}
+                  onSelect={setSelected}
+                  statusCounts={statusCounts}
+                  error={error}
+                />
 
                 {/* Right side panel — Active Camps + Selected Camp */}
                 <aside className="right-panel">
                   {/* Active camps (critical only) */}
                   <div className="right-section" style={{ flex: '1 1 46%' }}>
                     <div className="right-head">
-                      <button
+                       <button
                         onClick={() => setShowAllCamps(true)}
                         aria-label="Show all camps"
                         title="Show all camps"
+                        suppressHydrationWarning
                         style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                       >
                         <ArrowChip dark={false} />
@@ -361,6 +319,7 @@ export default function DisasterDashboard() {
                             key={camp.id}
                             onClick={() => { setSelected(camp.id === selected ? null : camp.id); setShowAllCamps(false) }}
                             className="camp-row"
+                            suppressHydrationWarning
                             style={{
                               background: isSelected ? `${T.red}12` : 'transparent',
                               borderLeft: isSelected ? `3px solid ${T.red}` : '3px solid transparent',
@@ -575,6 +534,7 @@ export default function DisasterDashboard() {
               <button
                 onClick={() => setShowAllCamps(false)}
                 aria-label="Close"
+                suppressHydrationWarning
                 style={{
                   width: 36, height: 36, borderRadius: '50%', border: `1px solid ${T.border}`, background: T.cardSoft,
                   color: T.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
@@ -592,6 +552,7 @@ export default function DisasterDashboard() {
                     value={campQuery}
                     onChange={(e) => setCampQuery(e.target.value)}
                     placeholder="Search camps, codes or types…"
+                    suppressHydrationWarning
                     style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', fontWeight: 600, color: T.ink }}
                   />
                 </span>
@@ -618,6 +579,7 @@ export default function DisasterDashboard() {
                       setSelected(camp.id === selected ? null : camp.id)
                       setShowAllCamps(false)
                     }}
+                    suppressHydrationWarning
                     style={{
                       width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                       background: isSelected ? `${color}12` : T.card, border: `1px solid ${isSelected ? `${color}66` : T.border}`,
