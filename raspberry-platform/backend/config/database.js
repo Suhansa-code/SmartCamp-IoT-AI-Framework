@@ -112,6 +112,8 @@ function initializeCampDb() {
       ON sync_pending(published, retry_count, next_retry_at);
   `);
 
+  campDb.exec('CREATE INDEX IF NOT EXISTS idx_sync_pending_table_local ON sync_pending(table_name, local_id)');
+
   try { campDb.exec("ALTER TABLE persons ADD COLUMN person_type TEXT DEFAULT 'refugee'"); } catch (_) {}
   campDb.exec('CREATE INDEX IF NOT EXISTS idx_persons_type ON persons(person_type)');
   try { campDb.exec('ALTER TABLE persons ADD COLUMN mqtt_client_id TEXT'); } catch (_) {}

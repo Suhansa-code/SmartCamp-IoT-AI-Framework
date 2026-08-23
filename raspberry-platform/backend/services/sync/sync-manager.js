@@ -147,11 +147,24 @@ function syncLog(event, entity, localId, extra = {}) {
 // ── sync_pending helpers ─────────────────────────────────────────────────
 
 function insertPending(syncId, entity, tableName, localId, operation, priority, payload) {
-  campDb.prepare(
-    `INSERT INTO sync_pending
-       (sync_id, entity, table_name, local_id, operation, priority, camp_id, device_id, payload, published)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
-  ).run(syncId, entity, tableName, String(localId), operation, priority, C.CAMP_ID, C.DEVICE_ID, JSON.stringify(payload));
+  const strLocalId = String(localId);
+  const existing = campDb.prepare(
+    'SELECT sync_id FROM sync_pending WHERE table_name = ? AND local_id = ?'
+  ).get(tableName, strLocalId);
+
+  if (existing) {
+    campDb.prepare(
+      `UPDATE sync_pending SET sync_id = ?, entity = ?, operation = ?, priority = ?,
+         payload = ?, published = 0, retry_count = 0, next_retry_at = datetime('now')
+       WHERE table_name = ? AND local_id = ?`
+    ).run(syncId, entity, operation, priority, JSON.stringify(payload), tableName, strLocalId);
+  } else {
+    campDb.prepare(
+      `INSERT INTO sync_pending
+         (sync_id, entity, table_name, local_id, operation, priority, camp_id, device_id, payload, published)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
+    ).run(syncId, entity, tableName, strLocalId, operation, priority, C.CAMP_ID, C.DEVICE_ID, JSON.stringify(payload));
+  }
 }
 
 function markPublished(syncId) {
@@ -171,8 +184,10 @@ function ackSuccess(syncId) {
   if (db) {
     db.prepare(`UPDATE ${row.table_name} SET synced = 1 WHERE ${pk} = ?`).run(row.local_id);
   }
+  campDb.prepare(
+    'DELETE FROM sync_pending WHERE table_name = ? AND local_id = ?'
+  ).run(row.table_name, row.local_id);
   syncLog('synchronized', row.entity, row.local_id, { sync_id: syncId });
-  deletePending(syncId);
 }
 
 function ackFailed(syncId, errorMsg) {
@@ -385,12 +400,23 @@ export async function runSyncCycle() {
 
 // ── Start / stop ─────────────────────────────────────────────────────────
 
+function cleanupStalePending() {
+  try {
+    const count = campDb.prepare('SELECT COUNT(*) as c FROM sync_pending').get().c;
+    if (count > 0) {
+      campDb.prepare('DELETE FROM sync_pending').run();
+      logger.info(`[SYNC] Cleared ${count} stale sync_pending entries (ACKs were not being processed)`);
+    }
+  } catch { /* best-effort */ }
+}
+
 export function startSync(intervalMs = SYNC_INTERVAL_MS) {
   if (syncTimer) {
     logger.warn('[SYNC] Already started');
     return;
   }
 
+  cleanupStalePending();
   saamp.onMessage('smartcamp/sync/ack', handleAck);
   saamp.onFlush(handleFlush);
 
