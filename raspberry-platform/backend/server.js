@@ -119,8 +119,9 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ── Start Server ────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT,'0.0.0.0', () => {
   logger.info('════════════════════════════════════════════');
+  console.log(`Server running on port ${PORT}`);
   logger.info('  SmartCamp Unified Backend');
   logger.info(`  Device:  ${C.DEVICE_ID}`);
   logger.info(`  Camp:    ${C.CAMP_ID}`);
