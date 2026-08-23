@@ -291,10 +291,11 @@ export default function DisasterDashboard() {
                   {/* Active camps (critical only) */}
                   <div className="right-section" style={{ flex: '1 1 46%' }}>
                     <div className="right-head">
-                      <button
+                       <button
                         onClick={() => setShowAllCamps(true)}
                         aria-label="Show all camps"
                         title="Show all camps"
+                        suppressHydrationWarning
                         style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                       >
                         <ArrowChip dark={false} />
@@ -318,6 +319,7 @@ export default function DisasterDashboard() {
                             key={camp.id}
                             onClick={() => { setSelected(camp.id === selected ? null : camp.id); setShowAllCamps(false) }}
                             className="camp-row"
+                            suppressHydrationWarning
                             style={{
                               background: isSelected ? `${T.red}12` : 'transparent',
                               borderLeft: isSelected ? `3px solid ${T.red}` : '3px solid transparent',
@@ -532,6 +534,7 @@ export default function DisasterDashboard() {
               <button
                 onClick={() => setShowAllCamps(false)}
                 aria-label="Close"
+                suppressHydrationWarning
                 style={{
                   width: 36, height: 36, borderRadius: '50%', border: `1px solid ${T.border}`, background: T.cardSoft,
                   color: T.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
@@ -549,6 +552,7 @@ export default function DisasterDashboard() {
                     value={campQuery}
                     onChange={(e) => setCampQuery(e.target.value)}
                     placeholder="Search camps, codes or types…"
+                    suppressHydrationWarning
                     style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', fontWeight: 600, color: T.ink }}
                   />
                 </span>
@@ -575,6 +579,7 @@ export default function DisasterDashboard() {
                       setSelected(camp.id === selected ? null : camp.id)
                       setShowAllCamps(false)
                     }}
+                    suppressHydrationWarning
                     style={{
                       width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                       background: isSelected ? `${color}12` : T.card, border: `1px solid ${isSelected ? `${color}66` : T.border}`,
