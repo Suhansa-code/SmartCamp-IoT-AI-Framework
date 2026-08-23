@@ -71,6 +71,9 @@ export default {
   DISASTER_DB_PATH: process.env.DISASTER_DB_PATH || './db/disaster.db',
   MODELS_DIR: './models',
 
+  GPS_STORAGE_INTERVAL_MINUTES: parseInt(process.env.GPS_STORAGE_INTERVAL_MINUTES, 10) || 30,
+  GPS_MOVEMENT_THRESHOLD_METERS: parseFloat(process.env.GPS_MOVEMENT_THRESHOLD_METERS) || 100,
+
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,
   EMQX_USERNAME: process.env.EMQX_USERNAME || 'admin',

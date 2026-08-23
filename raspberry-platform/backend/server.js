@@ -9,6 +9,7 @@ import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
 import { startConnectivityWatcher } from './services/network/connectivity.js';
 import { checkFlaskHealth } from './services/education/scoring.js';
 import { startSync } from './services/sync/sync-manager.js';
+import { startGpsStorage } from './services/disaster/gps-storage.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -84,6 +85,9 @@ startConnectivityWatcher();
 
 // Start cloud sync (after MQTT connects)
 startSync();
+
+// Start periodic GPS storage to disaster.db
+startGpsStorage();
 
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {
