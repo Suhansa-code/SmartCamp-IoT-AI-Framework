@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Crosshair, Box, Layers, Mountain } from 'lucide-react'
+import { Crosshair, Box, Layers, Mountain, Triangle } from 'lucide-react'
 import * as MapLibreGL from 'maplibre-gl'
 import { STATUS_COLOR } from '@/data/disaster.data'
 import { useTheme } from '@/components/common/ThemeProvider'
@@ -12,6 +12,9 @@ export const COLOMBO_HUB = { name: 'Colombo Hub', lat: 6.9271, lng: 79.8612 }
 const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
 const TERRAIN_SOURCE = 'disaster-terrain-dem'
 const TERRAIN_EXAGGERATION = 1.5
+const HILLSHADE_LAYER = 'disaster-hillshade'
+
+const VIEW_MODES = ['2d', '3d', 'terrain', 'slope']
 
 const ElevationContext = createContext({})
 
@@ -27,8 +30,9 @@ function Chip({ children, color = '#64748B', style }) {
   )
 }
 
-function MapViewController({ is3D }) {
+function MapViewController({ viewMode }) {
   const { map, isLoaded } = useMap()
+  const is3D = viewMode !== '2d'
 
   useEffect(() => {
     if (!map || !isLoaded) return
@@ -43,13 +47,15 @@ function MapViewController({ is3D }) {
   return null
 }
 
-function TerrainSetup({ is3D, onTerrainReady }) {
+function TerrainSetup({ viewMode, onTerrainReady }) {
   const { map, isLoaded } = useMap()
+  const enableTerrain = viewMode !== '2d'
+  const enableHillshade = viewMode === 'terrain' || viewMode === 'slope'
 
   useEffect(() => {
     if (!map || !isLoaded) return
 
-    if (is3D) {
+    if (enableTerrain) {
       if (!map.getSource(TERRAIN_SOURCE)) {
         map.addSource(TERRAIN_SOURCE, {
           type: 'raster-dem',
@@ -61,20 +67,41 @@ function TerrainSetup({ is3D, onTerrainReady }) {
       }
 
       map.setTerrain({ source: TERRAIN_SOURCE, exaggeration: TERRAIN_EXAGGERATION })
+
+      if (enableHillshade && !map.getLayer(HILLSHADE_LAYER)) {
+        const isSlope = viewMode === 'slope'
+        map.addLayer({
+          id: HILLSHADE_LAYER,
+          type: 'hillshade',
+          source: TERRAIN_SOURCE,
+          paint: {
+            'hillshade-exaggeration': isSlope ? 2.0 : 1.2,
+            'hillshade-shadow-color': isSlope ? '#1e293b' : '#334155',
+            'hillshade-highlight-color': isSlope ? '#fef3c7' : '#e2e8f0',
+            'hillshade-accent-color': isSlope ? '#f59e0b' : '#94a3b8',
+            'hillshade-z-offset': 0,
+          },
+        }, 'waterway')
+      } else if (!enableHillshade && map.getLayer(HILLSHADE_LAYER)) {
+        map.removeLayer(HILLSHADE_LAYER)
+      }
+
       setTimeout(() => onTerrainReady?.(true), 500)
     } else {
       map.setTerrain(null)
+      if (map.getLayer(HILLSHADE_LAYER)) map.removeLayer(HILLSHADE_LAYER)
       onTerrainReady?.(false)
     }
-  }, [map, isLoaded, is3D, onTerrainReady])
+  }, [map, isLoaded, enableTerrain, enableHillshade, viewMode, onTerrainReady])
 
   return null
 }
 
-function ElevationProvider({ camps, children }) {
+function ElevationProvider({ camps, viewMode, children }) {
   const { map, isLoaded } = useMap()
-  const [elevations, setElevations] = useState({})
+  const [elevData, setElevData] = useState({})
   const cacheRef = useRef({})
+  const enableTerrain = viewMode !== '2d'
 
   const validCamps = useMemo(() => {
     if (!camps) return []
@@ -82,11 +109,11 @@ function ElevationProvider({ camps, children }) {
   }, [camps])
 
   useEffect(() => {
-    if (!map || !isLoaded || !validCamps.length) return
+    if (!map || !isLoaded || !enableTerrain || !validCamps.length) return
 
     let cancelled = false
 
-    const queryElevations = async () => {
+    const queryData = async () => {
       const results = {}
       for (const camp of validCamps) {
         const key = `${camp.lng.toFixed(4)},${camp.lat.toFixed(4)}`
@@ -97,23 +124,40 @@ function ElevationProvider({ camps, children }) {
 
         try {
           const elev = map.queryTerrainElevation([camp.lng, camp.lat])
-          const value = typeof elev === 'number' && !isNaN(elev) ? Math.round(elev) : null
-          cacheRef.current[key] = value
-          results[camp.id] = value
+          const elevValue = typeof elev === 'number' && !isNaN(elev) ? Math.round(elev) : null
+
+          let slopeValue = null
+          if (elevValue !== null) {
+            const offset = 0.0005
+            const n = map.queryTerrainElevation([camp.lng, camp.lat + offset])
+            const s = map.queryTerrainElevation([camp.lng, camp.lat - offset])
+            const e = map.queryTerrainElevation([camp.lng + offset, camp.lat])
+            const w = map.queryTerrainElevation([camp.lng - offset, camp.lat])
+            if ([n, s, e, w].every((v) => typeof v === 'number' && !isNaN(v))) {
+              const dist = 111320 * offset
+              const dx = (e - w) / (2 * dist)
+              const dy = (n - s) / (2 * dist)
+              slopeValue = Math.round(Math.atan(Math.sqrt(dx * dx + dy * dy)) * (180 / Math.PI))
+            }
+          }
+
+          const data = { elevation: elevValue, slope: slopeValue }
+          cacheRef.current[key] = data
+          results[camp.id] = data
         } catch {
-          cacheRef.current[key] = null
-          results[camp.id] = null
+          cacheRef.current[key] = { elevation: null, slope: null }
+          results[camp.id] = { elevation: null, slope: null }
         }
       }
-      if (!cancelled) setElevations(results)
+      if (!cancelled) setElevData(results)
     }
 
-    const timer = setTimeout(queryElevations, 1500)
+    const timer = setTimeout(queryData, 1500)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [map, isLoaded, validCamps])
+  }, [map, isLoaded, enableTerrain, validCamps])
 
   return (
-    <ElevationContext.Provider value={elevations}>
+    <ElevationContext.Provider value={elevData}>
       {children}
     </ElevationContext.Provider>
   )
@@ -121,7 +165,7 @@ function ElevationProvider({ camps, children }) {
 
 function CampMarkers({ camps, selected, onSelect }) {
   const { map, isLoaded } = useMap()
-  const elevations = useContext(ElevationContext)
+  const elevData = useContext(ElevationContext)
   const popupsRef = useRef({})
 
   const validCamps = useMemo(() => {
@@ -168,18 +212,24 @@ function CampMarkers({ camps, selected, onSelect }) {
     const camp = validCamps.find((c) => c.id === selected)
     if (!camp) return
 
-    const elev = elevations[camp.id]
+    const data = elevData[camp.id] || {}
+    const elev = data.elevation
+    const slope = data.slope
     const statusColor = STATUS_COLOR[camp.status] || '#64748B'
+
+    const slopeLabel = slope !== null && slope !== undefined
+      ? `${slope}° — ${slope < 5 ? 'Flat' : slope < 15 ? 'Gentle' : slope < 25 ? 'Moderate' : slope < 35 ? 'Steep' : 'Very steep'}`
+      : 'Unavailable'
 
     const popup = new MapLibreGL.Popup({
       offset: 20,
       closeButton: true,
       closeOnClick: false,
-      maxWidth: '280px',
+      maxWidth: '300px',
     })
       .setLngLat([camp.lng, camp.lat])
       .setHTML(`
-        <div style="font-family:'Inter',sans-serif;padding:4px 0;min-width:180px">
+        <div style="font-family:'Inter',sans-serif;padding:4px 0;min-width:200px">
           <div style="font-size:0.82rem;font-weight:800;color:#0f2336;margin-bottom:6px;display:flex;align-items:center;gap:6px">
             <span style="width:8px;height:8px;border-radius:50%;background:${statusColor};box-shadow:0 0 6px ${statusColor};flex-shrink:0"></span>
             ${camp.name}
@@ -204,7 +254,13 @@ function CampMarkers({ camps, selected, onSelect }) {
             <div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid #e5e7eb;padding-top:4px;margin-top:4px">
               <span style="font-weight:600">Elevation</span>
               <span style="font-weight:700;color:${elev !== null && elev !== undefined ? '#0891b2' : '#9ca3af'};font-family:monospace">
-                ${elev !== null && elev !== undefined ? `${elev} m AMSL` : 'Elevation unavailable'}
+                ${elev !== null && elev !== undefined ? `${elev} m AMSL` : 'Unavailable'}
+              </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:12px">
+              <span style="font-weight:600">Slope</span>
+              <span style="font-weight:700;color:${slope !== null && slope !== undefined ? '#0891b2' : '#9ca3af'};font-family:monospace">
+                ${slopeLabel}
               </span>
             </div>
             <div style="display:flex;justify-content:space-between;gap:12px">
@@ -226,7 +282,7 @@ function CampMarkers({ camps, selected, onSelect }) {
       Object.values(popupsRef.current).forEach((p) => p.remove())
       popupsRef.current = {}
     }
-  }, [map, isLoaded, selected, validCamps, elevations])
+  }, [map, isLoaded, selected, validCamps, elevData])
 
   return null
 }
@@ -283,7 +339,7 @@ function ColomboHubMarker() {
 export default function MainMap({ camps, selected, onSelect, statusCounts, error, mapNodes }) {
   const { mode, T } = useTheme()
   const dark = mode === 'dark'
-  const [is3D, setIs3D] = useState(false)
+  const [viewMode, setViewMode] = useState('2d')
   const [terrainReady, setTerrainReady] = useState(false)
 
   const hudInk = dark ? '#f0f7ff' : '#0f2336'
@@ -301,7 +357,12 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
       }))
   }, [camps])
 
-  const toggle3D = useCallback(() => setIs3D((v) => !v), [])
+  const cycleMode = useCallback(() => {
+    setViewMode((prev) => {
+      const idx = VIEW_MODES.indexOf(prev)
+      return VIEW_MODES[(idx + 1) % VIEW_MODES.length]
+    })
+  }, [])
 
   return (
     <div
@@ -317,10 +378,9 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
         className="absolute inset-0"
       >
         <MapControls showZoom showLocate showCompass />
-        <MapViewController is3D={is3D} />
-        <TerrainSetup is3D={is3D} onTerrainReady={setTerrainReady} />
+        <MapViewController viewMode={viewMode} />
+        <TerrainSetup viewMode={viewMode} onTerrainReady={setTerrainReady} />
 
-        {/* Arc layer — solid blue curved lines behind markers */}
         {arcData.length > 0 && (
           <MapArc
             data={arcData}
@@ -334,7 +394,7 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
           />
         )}
 
-        <ElevationProvider camps={camps}>
+        <ElevationProvider camps={camps} viewMode={viewMode}>
           <CampMarkers camps={camps} selected={selected} onSelect={onSelect} />
         </ElevationProvider>
         <ColomboHubMarker />
@@ -347,24 +407,40 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
         </div>
       </div>
 
-      {/* HUD live + 3D toggle */}
+      {/* HUD top-right: mode toggle + chips */}
       <div className="absolute z-[13] pointer-events-auto top-[15px] right-4 flex items-center gap-2">
-        <button
-          onClick={toggle3D}
-          title={is3D ? 'Switch to 2D flat view' : 'Switch to 3D terrain view'}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '4px 10px', borderRadius: 999, fontSize: '0.6rem', fontWeight: 800,
-            letterSpacing: '0.06em', cursor: 'pointer', border: 'none',
-            background: is3D ? (dark ? 'rgba(34,211,238,0.2)' : 'rgba(8,145,178,0.18)') : hudCardBg,
-            color: is3D ? (dark ? '#22d3ee' : '#0891b2') : T.muted,
-            border: `1px solid ${is3D ? (dark ? 'rgba(34,211,238,0.4)' : 'rgba(8,145,178,0.4)') : hudCardBorder}`,
-            transition: 'all 0.2s ease',
-          }}
+        {/* View mode segmented control */}
+        <div
+          className="flex items-center rounded-full overflow-hidden"
+          style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}`, backdropFilter: 'blur(10px)' }}
         >
-          {is3D ? <Box size={12} /> : <Layers size={12} />}
-          {is3D ? '3D' : '2D'}
-        </button>
+          {VIEW_MODES.map((m) => {
+            const active = viewMode === m
+            const icon = m === '2d' ? <Layers size={10} /> : m === '3d' ? <Box size={10} /> : m === 'terrain' ? <Mountain size={10} /> : <Triangle size={10} />
+            return (
+              <button
+                key={m}
+                onClick={() => setViewMode(m)}
+                title={m === '2d' ? '2D flat view' : m === '3d' ? '3D perspective' : m === 'terrain' ? '3D terrain shading' : '3D slope analysis'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  padding: '4px 8px', fontSize: '0.55rem', fontWeight: 800,
+                  letterSpacing: '0.06em', cursor: 'pointer', border: 'none',
+                  background: active ? (dark ? 'rgba(34,211,238,0.2)' : 'rgba(8,145,178,0.18)') : 'transparent',
+                  color: active ? (dark ? '#22d3ee' : '#0891b2') : T.muted,
+                  transition: 'all 0.2s ease',
+                  borderRadius: 999,
+                  margin: active ? 1 : 0,
+                }}
+                suppressHydrationWarning
+              >
+                {icon}
+                {m.toUpperCase()}
+              </button>
+            )
+          })}
+        </div>
+
         <Chip color={dark ? '#22d3ee' : '#0891b2'} style={{ background: dark ? 'rgba(34,211,238,0.12)' : 'rgba(8,145,178,0.12)', border: `1px solid ${dark ? 'rgba(34,211,238,0.4)' : 'rgba(8,145,178,0.4)'}` }}>
           <span className="w-[6px] h-[6px] rounded-full" style={{ background: dark ? '#22d3ee' : '#0891b2', boxShadow: `0 0 8px ${dark ? '#22d3ee' : '#0891b2'}` }} />
           LIVE MAP
@@ -387,11 +463,13 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
           <span className="w-[8px] h-[8px] rounded-full shrink-0" style={{ background: '#0891b2', boxShadow: '0 0 8px #0891b2', border: '1.5px solid #fff' }} />
           <span className="tracking-[0.06em]" style={{ color: hudInk }}>Hub</span>
         </span>
-        {is3D && (
+        {viewMode !== '2d' && (
           <span className="flex items-center gap-[5px] text-[9px]">
             <Mountain size={10} style={{ color: '#0891b2' }} />
             <span className="tracking-[0.06em]" style={{ color: hudInk }}>
-              {terrainReady ? 'Terrain 1.5x' : 'Loading terrain…'}
+              {terrainReady
+                ? (viewMode === 'slope' ? 'Slope 2x' : 'Terrain 1.5x')
+                : 'Loading…'}
             </span>
           </span>
         )}
