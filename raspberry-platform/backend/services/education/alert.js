@@ -2,7 +2,7 @@ import { pagesDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { newId, nowISO } from '../../utils/helpers.js';
-import { enqueue } from '../../utils/helpers.js';
+import { enqueueSync } from '../sync/sync-notify.js';
 
 export function checkAndCreateAlert(childId, sessionId) {
   try {
@@ -46,7 +46,7 @@ function createAlert(child, alertType, detail) {
     INSERT INTO pages_alerts (alert_id, child_id, camp_id, res_id, alert_type, trigger_detail, triggered_at, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
   `).run(alertId, child.child_id, child.camp_id, child.res_id, alertType, detail, nowISO());
-  enqueue('pages_alerts', alertId, 'INSERT');
+  enqueueSync('pages_alerts', alertId);
   logger.info(`[ALERT] Created ${alertType} alert for child ${child.child_id}: ${detail}`);
 }
 
@@ -96,11 +96,10 @@ export function resolveAlert(alertId, notes) {
     if (pendingCount === 0) {
       pagesDb.prepare("UPDATE pages_children SET alert_status = 'none' WHERE child_id = ?").run(alert.child_id);
     }
-
-    enqueue('pages_alerts', alertId, 'UPDATE');
   });
 
   resolveTransaction();
+  enqueueSync('pages_alerts', alertId);
   logger.info(`[ALERT] Resolved alert ${alertId}`);
   return true;
 }

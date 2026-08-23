@@ -226,6 +226,7 @@ export default function SideNav() {
             onClick={toggleTheme}
             title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label="Toggle theme"
+            suppressHydrationWarning
             style={{
               width: '100%',
               display: 'flex', alignItems: 'center',
@@ -246,6 +247,7 @@ export default function SideNav() {
             <button
               onClick={toggle}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              suppressHydrationWarning
               style={{
                 width: '100%',
                 display: 'flex', alignItems: 'center',

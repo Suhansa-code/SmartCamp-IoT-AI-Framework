@@ -1,24 +1,46 @@
-import { pagesDb, sqliteInsert, sqliteUpdate, sqliteRetrieve, sqliteGetLastChildId } from '../../config/database.js';
+import { pagesDb, sqliteInsert, sqliteUpdate, sqliteRetrieve, sqliteGetLastChildId, campDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
-import { newId, todayDate, nowTime, nowISO, enqueue } from '../../utils/helpers.js';
+import { newId, todayDate, nowTime, nowISO } from '../../utils/helpers.js';
 import { createError } from '../../middleware/error-handler.js';
 import * as scoringService from '../../services/education/scoring.js';
 import { applyFirstGate, applySecondGate, updateBaseline } from '../../services/education/gating.js';
 import { checkAndCreateAlert } from '../../services/education/alert.js';
+import { enqueueSync } from '../../services/sync/sync-notify.js';
 
 function randomId() {
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `${C.CAMP_ID}-${suffix}`;
 }
 
+function resolveChildFromPersonId(personId) {
+  const trimmed = String(personId).trim();
+
+  let childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [trimmed]);
+  if (childRows[0]) return childRows[0];
+
+  childRows = sqliteRetrieve('pages_children', undefined, 'res_id = ?', [trimmed]);
+  if (childRows[0]) return childRows[0];
+
+  const wristband = campDb.prepare(
+    'SELECT person_id FROM wristbands WHERE qr_identifier = ? OR barcode = ?'
+  ).get(trimmed, trimmed);
+  if (wristband && wristband.person_id) {
+    childRows = sqliteRetrieve('pages_children', undefined, 'res_id = ?', [String(wristband.person_id)]);
+    if (childRows[0]) return childRows[0];
+  }
+
+  return null;
+}
+
 export async function startSession(req, res, next) {
   try {
-    const { child_id, condition_label = 'A' } = req.body;
+    const { person_id, condition_label = 'A' } = req.body;
 
-    const childRows = sqliteRetrieve('pages_children', undefined, 'child_id = ?', [child_id]);
-    const child = childRows[0];
-    if (!child) return next(createError(404, `Child not found: ${child_id}`));
+    const child = resolveChildFromPersonId(person_id);
+    if (!child) return next(createError(404, `Child not found for person: ${person_id}`));
+
+    const childId = child.child_id;
 
     const sessionId = newId();
     const sessionDate = todayDate();
@@ -26,15 +48,15 @@ export async function startSession(req, res, next) {
     const condition = condition_label.toUpperCase();
 
     sqliteInsert('pages_sessions', {
-      session_id: sessionId, child_id, session_date: sessionDate,
+      session_id: sessionId, child_id: childId, session_date: sessionDate,
       session_time: sessionTime, condition_label: condition,
       baseline_score_used: child.baseline_score, created_at: nowISO(),
     });
 
-    enqueue('pages_sessions', sessionId, 'INSERT');
+    enqueueSync('pages_sessions', sessionId);
 
     return res.status(201).json({
-      success: true, session_id: sessionId, child_id,
+      success: true, session_id: sessionId, child_id: childId,
       grade: child.grade, language: child.language,
       session_number: child.total_sessions + 1,
       baseline_score: child.baseline_score,
@@ -88,6 +110,8 @@ export async function taskComplete(req, res, next) {
       completion_ratio: normalizeRate(passiveSignals.completionRatio, 'completionRatio'),
     });
 
+    enqueueSync('pages_behavioral_signals', signalId);
+
     sqliteUpdate('pages_sessions', {
       composite_score: compositeScore, task_score: taskScore,
       passive_score: passiveScore, gate_decision: gateDecision,
@@ -101,17 +125,14 @@ export async function taskComplete(req, res, next) {
       composite_score: compositeScore, decision: gateDecision,
     });
 
+    enqueueSync('pages_gate_decisions', decisionId);
+
     if (parseInt(attempt, 10) >= 2 && gateDecision === C.GATE.FAIL_CONFIRMED) {
       const childRows = sqliteRetrieve('pages_children', 'consecutive_low', 'child_id = ?', [child_id]);
       const currentChild = childRows[0];
       const newConsecutiveLow = (Number(currentChild?.consecutive_low) || 0) + 1;
       sqliteUpdate('pages_children', { consecutive_low: newConsecutiveLow }, 'child_id = ?', [child_id]);
     }
-
-    enqueue('pages_behavioral_signals', signalId, 'INSERT');
-    enqueue('pages_gate_decisions', decisionId, 'INSERT');
-    enqueue('pages_sessions', session_id, 'UPDATE');
-    enqueue('pages_children', child_id, 'UPDATE');
 
     if (sessionAnomalyFlag) checkAndCreateAlert(child_id, session_id);
 
@@ -154,14 +175,12 @@ export async function secondGate(req, res, next) {
       composite_score: compositeScore, decision: gateDecision, decided_at: nowISO(),
     });
 
+    enqueueSync('pages_gate_decisions', decisionId);
+
     if (gateDecision === C.GATE.FAIL_CONFIRMED) {
       sqliteUpdate('pages_children', { consecutive_low: (Number(child?.consecutive_low) || 0) + 1 }, 'child_id = ?', [child_id]);
-      enqueue('pages_children', child_id, 'UPDATE');
       checkAndCreateAlert(child_id, session_id);
     }
-
-    enqueue('pages_gate_decisions', decisionId, 'INSERT');
-    enqueue('pages_sessions', session_id, 'UPDATE');
 
     return res.json({ success: true, gate_decision: gateDecision, composite_score: compositeScore });
   } catch (err) { next(err); }
@@ -190,7 +209,7 @@ export async function completeSession(req, res, next) {
         is_correct: r.isCorrect ? 1 : 0, time_taken_ms: r.timeTakenMs || 0,
         responded_at: nowISO(),
       });
-      enqueue('pages_content_responses', responseId, 'INSERT');
+      enqueueSync('pages_content_responses', responseId);
     }
 
     sqliteUpdate('pages_sessions', {
@@ -202,9 +221,6 @@ export async function completeSession(req, res, next) {
       baseline_score: newBaseline, total_sessions: child.total_sessions + 1,
       consecutive_low: compositeScore >= C.GATE_THRESHOLD ? 0 : child.consecutive_low,
     }, 'child_id = ?', [child_id]);
-
-    enqueue('pages_sessions', session_id, 'UPDATE');
-    enqueue('pages_children', child_id, 'UPDATE');
 
     return res.json({ success: true, message: 'Session saved', new_baseline: newBaseline });
   } catch (err) { next(err); }

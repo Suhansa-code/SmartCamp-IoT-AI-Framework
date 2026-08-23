@@ -5,8 +5,8 @@ export function validateEnrol(req, res, next) {
   if (!res_id || typeof res_id !== 'string' || !res_id.trim()) {
     return next(createError(400, 'res_id is required'));
   }
-  if (![3, 4].includes(Number(grade))) {
-    return next(createError(400, 'grade must be 3 or 4'));
+  if (!grade && grade !== 0) {
+    return next(createError(400, 'grade is required'));
   }
   if (language && !['si', 'ta', 'en'].includes(language)) {
     return next(createError(400, 'language must be si, ta, or en'));
@@ -15,9 +15,9 @@ export function validateEnrol(req, res, next) {
 }
 
 export function validateSessionStart(req, res, next) {
-  const { child_id } = req.body;
-  if (!child_id || typeof child_id !== 'string' || !child_id.trim()) {
-    return next(createError(400, 'child_id is required'));
+  const { person_id } = req.body;
+  if (!person_id || typeof person_id !== 'string' || !person_id.trim()) {
+    return next(createError(400, 'person_id is required'));
   }
   const condition = req.body.condition_label;
   if (condition && !['A', 'B', 'C'].includes(condition)) {

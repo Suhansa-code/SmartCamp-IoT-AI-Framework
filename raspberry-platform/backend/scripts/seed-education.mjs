@@ -1,5 +1,6 @@
 import { pagesDb, sqliteInsert } from '../config/database.js';
 import { newId, nowISO } from '../utils/helpers.js';
+import C from '../config/constants.js';
 
 const childId = 'B-000001';
 const sid1 = newId();
@@ -26,7 +27,7 @@ pagesDb.transaction(() => {
   pagesDb.prepare('UPDATE pages_children SET total_sessions = 2, baseline_score = 65.0 WHERE child_id = ?').run(childId);
 
   sqliteInsert('pages_alerts', {
-    alert_id: alertId, child_id: childId, camp_id: 'CAMP-B-HOMAGAMA',
+    alert_id: alertId, child_id: childId, camp_id: C.CAMP_ID,
     res_id: 'RES-001', alert_type: '3_of_5_flagged',
     trigger_detail: JSON.stringify({ trigger_session: sid2, recent_scores: [65, 42] }),
     triggered_at: nowISO(), status: 'pending',

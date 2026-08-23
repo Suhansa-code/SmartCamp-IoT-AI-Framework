@@ -1,42 +1,57 @@
-import { execFile } from 'node:child_process';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+/**
+ * gps.js — GPS location service for the Raspberry Pi backend.
+ *
+ * Fetches GPS data from the Edge Gateway GPS API (single source of truth).
+ * The Edge Gateway handles the serial GPS read, fallback to mock location,
+ * and reverse geocoding. This service caches the result for 5 seconds.
+ */
+import logger from '../../utils/logger.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PYTHON_SCRIPT = path.resolve(__dirname, '../../../../edge-gateway/scripts/gps_module/gps_reader.py');
-
-const GPS_PORT = process.env.GPS_PORT || 'COM5';
-const GPS_BAUD = process.env.GPS_BAUDRATE || '115200';
-const TIMEOUT_MS = 10000;
+const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
+const CACHE_MS = 5000;
 
 let lastFix = null;
 let lastFetch = 0;
 
-function readGps() {
-  return new Promise((resolve) => {
-    execFile('python', [PYTHON_SCRIPT, GPS_PORT, GPS_BAUD], { timeout: TIMEOUT_MS }, (err, stdout) => {
-      if (err) {
-        resolve({ latitude: null, longitude: null, altitude: null, satellites: 0, error: err.message, live: false });
-        return;
-      }
-      try {
-        const data = JSON.parse(stdout.trim());
-        const live = data.latitude != null && data.longitude != null;
-        lastFix = live ? { ...data, live, fetched_at: new Date().toISOString() } : { ...data, live: false, fetched_at: new Date().toISOString() };
-        lastFetch = Date.now();
-        resolve(lastFix);
-      } catch {
-        resolve({ latitude: null, longitude: null, altitude: null, satellites: 0, error: 'Invalid GPS response', live: false });
-      }
-    });
-  });
+async function fetchFromEdge() {
+  const res = await fetch(`${EDGE_API}/api/gps`, { signal: AbortSignal.timeout(12000) });
+  if (!res.ok) throw new Error(`Edge Gateway returned ${res.status}`);
+  return res.json();
+}
+
+function buildFallback() {
+  return {
+    latitude: null,
+    longitude: null,
+    altitude: null,
+    satellites: 0,
+    location_name: null,
+    gps_status: 'UNAVAILABLE',
+    is_mock: false,
+    source: 'UNAVAILABLE',
+    live: false,
+    fetched_at: new Date().toISOString(),
+  };
 }
 
 export async function getGpsLocation() {
-  if (lastFix && (Date.now() - lastFetch) < 5000) return lastFix;
-  return readGps();
+  if (lastFix && (Date.now() - lastFetch) < CACHE_MS) return lastFix;
+
+  try {
+    const data = await fetchFromEdge();
+    const live = data.latitude != null && data.longitude != null && data.gps_status === 'ACTIVE';
+    lastFix = { ...data, live, fetched_at: new Date().toISOString() };
+    lastFetch = Date.now();
+    return lastFix;
+  } catch (err) {
+    logger.warn(`[GPS] Edge Gateway fetch failed: ${err.message}`);
+    const fallback = buildFallback();
+    lastFix = fallback;
+    lastFetch = Date.now();
+    return fallback;
+  }
 }
 
 export function getLastKnownLocation() {
-  return lastFix || { latitude: null, longitude: null, altitude: null, satellites: 0, error: 'No GPS fix yet', live: false };
+  return lastFix || buildFallback();
 }

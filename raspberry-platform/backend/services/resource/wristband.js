@@ -2,6 +2,7 @@ import { campDb as db } from '../../config/database.js';
 import { audit } from './resources.js';
 import { getDailyLeft } from './rations.js';
 import QRCode from 'qrcode';
+import { enqueueSync } from '../sync/sync-notify.js';
 
 const VALID_STATUSES = ['AVAILABLE', 'ASSIGNED', 'LOST', 'DAMAGED', 'INACTIVE'];
 
@@ -251,6 +252,7 @@ export function createWristband({ wristband_id, qr_identifier, status } = {}) {
   `).run(barcode, qr, VALID_STATUSES.includes(status) ? status : 'AVAILABLE');
 
   audit({ actor: null, action: 'wristband_create', wristband_id: result.lastInsertRowid, details: `${barcode}` });
+  enqueueSync('wristbands', result.lastInsertRowid);
   return getWristbandById(result.lastInsertRowid);
 }
 
@@ -328,6 +330,7 @@ export function assignWristband(wristbandRef, personId, { actor } = {}) {
   assign();
 
   audit({ actor, action: 'wristband_assign', wristband_id: wristband.id, person_id: pid, details: `${wristband.barcode} → ${person.full_name}` });
+  enqueueSync('wristbands', wristband.id);
 
   return getWristbandById(wristband.id);
 }
@@ -350,6 +353,8 @@ export function unassignWristband(wristbandRef, { actor } = {}) {
 
   db.prepare("UPDATE wristbands SET status = 'AVAILABLE', person_id = NULL, assigned_at = NULL, updated_at = datetime('now') WHERE id = ?")
     .run(wristband.id);
+
+  enqueueSync('wristbands', wristband.id);
 
   return getWristbandById(wristband.id);
 }

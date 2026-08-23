@@ -137,6 +137,7 @@ export function ThemeToggle({ mode, onToggle, theme }) {
   return (
     <button
       onClick={onToggle}
+      suppressHydrationWarning
       style={{
         display: 'flex',
         alignItems: 'center',
