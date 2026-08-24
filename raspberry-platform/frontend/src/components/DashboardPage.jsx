@@ -309,16 +309,24 @@ function DonutChart({ data, size = 160, strokeWidth = 24 }) {
           ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[28px] font-semibold font-mono leading-none" style={{ color: COLORS.ink }}>{total}</span>
-          <span className="text-[10px] font-mono uppercase tracking-wider mt-1" style={{ color: COLORS.muted }}>Total</span>
+          <span className="text-[28px] font-semibold font-mono leading-none" style={{ color: COLORS.ink }}>
+            {total}
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-wider mt-1" style={{ color: COLORS.muted }}>
+            Total
+          </span>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full">
         {data.map((d) => (
           <div key={d.label} className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-            <span className="text-[11.5px] flex-1" style={{ color: COLORS.body }}>{d.label}</span>
-            <span className="text-[12px] font-semibold font-mono" style={{ color: COLORS.ink }}>{d.count}</span>
+            <span className="text-[11.5px] flex-1" style={{ color: COLORS.body }}>
+              {d.label}
+            </span>
+            <span className="text-[12px] font-semibold font-mono" style={{ color: COLORS.ink }}>
+              {d.count}
+            </span>
           </div>
         ))}
       </div>
@@ -478,7 +486,6 @@ export default function DashboardPage() {
               <SectionLabel>Population Distribution</SectionLabel>
               <DonutChart data={MOCK_POPULATION} />
             </Card>
-          
           </div>
           <div className="space-y-3 sm:space-y-4 h-full">
             <Card delay={0.15} className="h-auto">
@@ -490,7 +497,7 @@ export default function DashboardPage() {
               </div>
             </Card>
 
-            <Card delay={0.2} className="h-auto">
+            <Card delay={0.2} className="h-42">
               <div className="flex items-center justify-between mb-3">
                 <SectionLabel>Network</SectionLabel>
                 <Chip tone={netTone}>
@@ -508,9 +515,28 @@ export default function DashboardPage() {
                   messages
                 </span>
               </div>
+              <div className="flex items-center gap-2 text-[12.5px] mt-3" style={{ color: COLORS.muted }}>
+                <Activity className="w-3.5 h-3.5" style={{ color: "#D97706" }} />
+                <span>
+                  Uptime:{" "}
+                  <strong className="font-mono font-semibold" style={{ color: COLORS.ink }}>
+                    {mqtt.uptime_hours ?? 0}
+                  </strong>{" "}
+                  hours
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[12.5px] mt-3" style={{ color: COLORS.muted }}>
+                <ArrowUpRight className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
+                <span>
+                  Last sync:{" "}
+                  <strong className="font-mono font-semibold" style={{ color: COLORS.ink }}>
+                    {mqtt.last_sync ?? "—"}
+                  </strong>
+                </span>
+              </div>
             </Card>
 
-            <Card delay={0.25} className="h-54">
+            <Card delay={0.25} className="h-auto">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
                 <SectionLabel>Tomorrow</SectionLabel>
