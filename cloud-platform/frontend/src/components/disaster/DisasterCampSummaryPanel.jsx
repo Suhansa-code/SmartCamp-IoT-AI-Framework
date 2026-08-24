@@ -35,7 +35,7 @@ export function DisasterCampSummaryPanel({ camp, detail }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '0.55rem' }}>
-        <Mini label="Displaced" value={camp.displaced.toLocaleString()} color="#F97316" icon={<Droplets size={11} />} T={T} />
+        <Mini label="Displaced" value={camp.displaced.toLocaleString()} color="#D97706" icon={<Droplets size={11} />} T={T} />
         <Mini label="Capacity" value={camp.capacity.toLocaleString()} color={T.ink} icon={<MapPin size={11} />} T={T} />
         <Mini label="Aid" value={`${camp.aid}%`} color={T.green} icon={<Droplets size={11} />} T={T} />
         <Mini label="Occupancy" value={`${occupancy}%`} color={T.amber} icon={<MapPin size={11} />} T={T} />

@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
       <div style={{
         minHeight: '100svh',
-        background: dark ? 'linear-gradient(180deg, #0A0A0B 0%, #0E0E10 100%)' : T.outer,
+        background: dark ? 'linear-gradient(180deg, #0F172A 0%, #1A2332 100%)' : T.outer,
         fontFamily: "'Inter', sans-serif",
         paddingLeft: 'var(--rail-width, 236px)',
         transition: 'padding-left 0.2s ease',

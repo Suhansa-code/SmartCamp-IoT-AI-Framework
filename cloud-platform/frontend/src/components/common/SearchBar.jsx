@@ -45,8 +45,8 @@ export default function SearchBar({
             disabled={refreshing}
             aria-label="Refresh"
             style={{
-              background: dark ? '#FFFFFF' : '#121214',
-              color: dark ? '#121214' : '#FFFFFF',
+              background: dark ? '#FFFFFF' : '#0F172A',
+              color: dark ? '#0F172A' : '#FFFFFF',
             }}
           >
             <RefreshCw size={15} style={refreshing ? { animation: 'searchSpin 0.8s linear infinite' } : undefined} />

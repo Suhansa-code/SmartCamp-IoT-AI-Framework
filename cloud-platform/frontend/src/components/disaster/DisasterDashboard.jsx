@@ -163,7 +163,7 @@ export default function DisasterDashboard() {
 
   const donutSegs = [
     { color: T.red, value: statusCounts.critical || 0 },
-    { color: '#F97316', value: statusCounts.high || 0 },
+    { color: '#D97706', value: statusCounts.high || 0 },
     { color: T.amber, value: statusCounts.medium || 0 },
     { color: T.teal, value: statusCounts.stable || 0 },
     { color: T.green, value: statusCounts.recovery || 0 },
@@ -378,7 +378,7 @@ export default function DisasterDashboard() {
 
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                             {[
-                              { label: 'Displaced', value: selectedCamp.displaced.toLocaleString(), accent: '#F97316' },
+                              { label: 'Displaced', value: selectedCamp.displaced.toLocaleString(), accent: '#D97706' },
                               { label: 'Capacity', value: selectedCamp.capacity.toLocaleString(), accent: T.inkSoft },
                               { label: 'Aid', value: `${selectedCamp.aid}%`, accent: T.green },
                               { label: 'Occupancy', value: `${selOccupancy}%`, accent: T.amber },
@@ -438,7 +438,7 @@ export default function DisasterDashboard() {
                   </div>
                 </DashboardCard>
 
-                <div style={{ background: dark ? '#0F172A' : '#0F172A', color: '#fff', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', boxShadow: dark ? '0 30px 70px rgba(0,0,0,0.5)' : '0 30px 70px rgba(20,30,40,0.25)' }}>
+                <div style={{ background: dark ? '#0F172A' : '#1E293B', color: '#fff', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', boxShadow: dark ? '0 30px 70px rgba(0,0,0,0.5)' : '0 30px 70px rgba(20,30,40,0.25)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <div style={{ fontSize: '0.66rem', fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
                       Live Alerts
@@ -482,7 +482,7 @@ export default function DisasterDashboard() {
                 >
                   <div style={{ display: 'grid', gap: '0.85rem' }}>
                     {[
-                      { label: 'Displaced', value: '12,480', arrow: '↑ 8.4%', accent: '#F97316', data: DISPLACED_SPARK, sparkColor: '#F97316' },
+                      { label: 'Displaced', value: '12,480', arrow: '↑ 8.4%', accent: '#D97706', data: DISPLACED_SPARK, sparkColor: '#D97706' },
                       { label: 'Aided', value: '9,340', arrow: '↑ 12.1%', accent: T.green, data: AIDED_SPARK, sparkColor: T.teal },
                     ].map((stat) => (
                       <div key={stat.label} style={{ padding: '0.7rem 0.85rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
@@ -508,7 +508,7 @@ export default function DisasterDashboard() {
               {/* ── bottom metric strip ────────────────────────────────── */}
               <div className="dis-strip">
                 <MiniStat label="Total Camps" value={String(camps.length || 0)} icon={<MapPin size={12} />} color={T.teal} sub="Active sites" />
-                <MiniStat label="Displaced" value={totalDisplaced.toLocaleString()} icon={<Users size={12} />} color="#F97316" sub="Region-wide" />
+                <MiniStat label="Displaced" value={totalDisplaced.toLocaleString()} icon={<Users size={12} />} color="#D97706" sub="Region-wide" />
                 <MiniStat label="Aid Workers" value={totalWorkers.toLocaleString()} icon={<HeartHandshake size={12} />} color={T.purple} sub="Deployed" />
                 <MiniStat label="Critical" value={String(statusCounts.critical || 0)} icon={<TriangleAlert size={12} />} color={T.red} sub="Needs attention" />
                 <MiniStat label="Coverage" value="89%" icon={<ShieldAlert size={12} />} color={T.green} sub="Aid coverage" />

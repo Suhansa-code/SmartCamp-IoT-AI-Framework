@@ -254,7 +254,7 @@ export default function NetworkPage() {
                       <span style={{ width: 9, height: 9, borderRadius: '50%', background: stateColor, boxShadow: `0 0 12px ${stateColor}`, animation: 'netPulse 2s infinite' }} />
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
-                      <span style={{ background: '#D8F24E', color: '#0F172A', borderRadius: 999, padding: '3px 11px', fontSize: '0.62rem', fontWeight: 800 }}><Zap size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> Pi 5</span>
+                      <span style={{ background: '#2563EB', color: '#fff', borderRadius: 999, padding: '3px 11px', fontSize: '0.62rem', fontWeight: 800 }}><Zap size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> Pi 5</span>
                       <span style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', color: '#fff', borderRadius: 999, padding: '3px 11px', fontSize: '0.62rem', fontWeight: 800 }}>19 features</span>
                       <span style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', color: '#fff', borderRadius: 999, padding: '3px 11px', fontSize: '0.62rem', fontWeight: 800 }}>&lt;5ms</span>
                     </div>
