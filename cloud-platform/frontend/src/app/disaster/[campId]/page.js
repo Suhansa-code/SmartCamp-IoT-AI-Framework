@@ -14,6 +14,10 @@ import SideNav from '@/components/common/SideNav'
 import Button from '@/components/common/Button'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { Map, MapControls, useMap } from '@/components/ui/map'
+import KpiCard from '@/components/dashboard/KpiCard'
+import DashboardCard from '@/components/dashboard/DashboardCard'
+
+const PAGE_PAD = 'clamp(1rem, 2vw, 1.75rem)'
 
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3002'
 
@@ -54,8 +58,8 @@ function SkeletonCard({ children, delay = 0 }) {
   const { T } = useTheme()
   return (
     <div style={{
-      border: `1px solid ${T.border}`, borderRadius: 14, background: T.card,
-      padding: 16, display: 'flex', flexDirection: 'column', gap: 10,
+      border: `1px solid ${T.border}`, borderRadius: '1.25rem', background: T.card,
+      padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: 10,
       '--sk-base': T.cardSoft, '--sk-shine': T.border,
       animationDelay: `${delay}s`,
     }}>
@@ -76,7 +80,7 @@ function CampSkeleton() {
         <main style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
           {/* Header skeleton */}
-          <div style={{ padding: '16px 24px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ padding: `${PAGE_PAD} ${PAGE_PAD} 0`, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <SkeletonLine w={260} h={10} />
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -84,19 +88,19 @@ function CampSkeleton() {
                 <SkeletonLine w={180} h={12} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <SkeletonBlock w={90} h={30} r={8} />
-                <SkeletonBlock w={90} h={30} r={8} />
+                <SkeletonBlock w={90} h={36} r={999} />
+                <SkeletonBlock w={90} h={36} r={999} />
               </div>
             </div>
           </div>
 
           {/* Map skeleton */}
-          <div style={{ padding: '12px 24px' }}>
-            <SkeletonBlock h={480} r={16} />
+          <div style={{ padding: `1rem ${PAGE_PAD}` }}>
+            <SkeletonBlock h={480} r={20} />
           </div>
 
           {/* Stats skeleton */}
-          <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ padding: `0 ${PAGE_PAD} ${PAGE_PAD}`, display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
               {[0, 1, 2, 3].map(i => (
                 <SkeletonCard key={i} delay={i * 0.1}>
@@ -294,32 +298,12 @@ function StatusBadge({ status, T }) {
   )
 }
 
-function StatCard({ label, value, icon: Icon, color, T, sub }) {
-  return (
-    <div style={{
-      border: `1px solid ${T.border}`, borderRadius: 14, background: T.card,
-      padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: `${color}14`, border: `1px solid ${color}33`,
-        }}>
-          <Icon size={13} style={{ color }} />
-        </div>
-        <span style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{label}</span>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: T.ink, lineHeight: 1.1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: T.muted, marginTop: -2 }}>{sub}</div>}
-    </div>
-  )
-}
-
 function DataRow({ label, value, tone }) {
+  const { T } = useTheme()
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${tone ? 'transparent' : 'currentColor'}12` }}>
-      <span style={{ fontSize: 11, color: 'inherit', opacity: 0.55, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 700, color: tone || 'inherit' }}>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${T.border}` }}>
+      <span style={{ fontSize: 11, color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: tone || T.ink }}>{value}</span>
     </div>
   )
 }
@@ -339,19 +323,11 @@ function RiskBar({ label, level, color, T }) {
   )
 }
 
-function SectionHeading({ label, T }) {
-  return (
-    <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>
-      {label}
-    </div>
-  )
-}
-
 function InfoCard({ label, value, color, T }) {
   return (
-    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 800, color, marginTop: 2 }}>{value}</div>
+    <div style={{ padding: '12px 14px', borderRadius: '0.85rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: 17, fontWeight: 800, color, marginTop: 3, letterSpacing: '-0.01em' }}>{value}</div>
     </div>
   )
 }
@@ -464,12 +440,19 @@ export default function DisasterCampDetailPage() {
       <div style={{ minHeight: '100vh', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
         <SideNav />
         <div style={{ minHeight: '100vh', background: T.outer, display: 'grid', placeItems: 'center', color: T.ink, fontFamily: "'Inter',sans-serif", padding: 24 }}>
-          <div style={{ maxWidth: 480, width: '100%', border: `1px solid ${T.border}`, borderRadius: 20, padding: 32, background: T.card, textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Camp Not Found</div>
-            <div style={{ color: T.muted, fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
-              The requested disaster camp could not be found.
+          <div style={{ maxWidth: 440, width: '100%', border: `1px solid ${T.border}`, borderRadius: '1.5rem', padding: '2.25rem 2rem', background: T.card, textAlign: 'center' }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: '50%', margin: '0 auto 16px',
+              background: `${T.red}14`, border: `1px solid ${T.red}33`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <AlertTriangle size={22} style={{ color: T.red }} />
             </div>
-            <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>Back to Camps</Button>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 8, letterSpacing: '-0.01em' }}>Camp Not Found</div>
+            <div style={{ color: T.muted, fontSize: 13, marginBottom: 22, lineHeight: 1.6 }}>
+              The requested disaster camp could not be found. It may have been removed or the link is incorrect.
+            </div>
+            <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />} style={{ margin: '0 auto' }}>Back to Camps</Button>
           </div>
         </div>
       </div>
@@ -487,9 +470,14 @@ export default function DisasterCampDetailPage() {
         ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
         .camp-detail-popup .maplibregl-popup-content { border-radius: 12px !important; padding: 0 !important; box-shadow: 0 12px 32px rgba(0,0,0,0.2) !important; border: 1px solid ${T.border} !important; background: ${T.card} !important; }
         .camp-detail-popup .maplibregl-popup-tip { border-top-color: ${T.card} !important; }
-        .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .cd-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .cd-two { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1rem; align-items: start; }
         .cd-three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .cd-crumb-btn { background: none; border: none; color: inherit; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; font-size: 12px; transition: color 0.15s ease; }
+        .cd-crumb-btn:hover { color: ${T.teal}; }
+        .cd-toolbtn { display: flex; align-items: center; gap: 6px; padding: 0 16px; height: 38px; border-radius: 999px; border: 1px solid ${T.border}; background: ${T.card}; color: ${T.ink}; font-size: 12px; font-weight: 700; cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease; }
+        .cd-toolbtn:hover { border-color: ${T.teal}66; }
+        .cd-toolbtn:active { transform: scale(0.97); }
         @media (max-width: 1100px) { .cd-grid { grid-template-columns: repeat(2, 1fr); } .cd-two { grid-template-columns: 1fr; } }
         @media (max-width: 700px) { .cd-grid { grid-template-columns: 1fr; } .cd-three { grid-template-columns: 1fr; } }
       `}</style>
@@ -498,65 +486,51 @@ export default function DisasterCampDetailPage() {
         <main style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
           {/* ── Breadcrumb + Header ─────────────────────────────── */}
-          <div style={{ padding: '16px 24px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ padding: `1.25rem ${PAGE_PAD} 0`, display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* breadcrumb */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: T.muted }}>
-              <button onClick={() => router.push('/disaster')} style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: T.muted }}>
+              <button className="cd-crumb-btn" onClick={() => router.push('/disaster')}>
                 <ArrowLeft size={12} /> Disaster Operations
               </button>
-              <span style={{ opacity: 0.4 }}>/</span>
-              <button onClick={() => router.push('/disaster')} style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: 0, fontSize: 11 }}>Camps</button>
-              <span style={{ opacity: 0.4 }}>/</span>
-              <span style={{ color: T.ink, fontWeight: 600 }}>{camp.name}</span>
+              <span style={{ opacity: 0.35 }}>/</span>
+              <button className="cd-crumb-btn" onClick={() => router.push('/disaster')}>Camps</button>
+              <span style={{ opacity: 0.35 }}>/</span>
+              <span style={{ color: T.ink, fontWeight: 700 }}>{camp.name}</span>
             </div>
 
             {/* header row */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{camp.name}</h1>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <h1 style={{ fontSize: 'clamp(1.4rem, 2vw, 1.7rem)', fontWeight: 800, margin: 0, lineHeight: 1.15, letterSpacing: '-0.015em' }}>{camp.name}</h1>
                   <StatusBadge status={camp.status} T={T} />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.muted }}>
-                  <span style={{ fontWeight: 700, color: T.teal }}>{camp.code}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: T.muted, fontWeight: 500 }}>
+                  <span style={{ fontWeight: 800, color: T.teal }}>{camp.code}</span>
                   <span style={{ opacity: 0.3 }}>·</span>
                   <span>{camp.type}</span>
                   {detail?.station && (<><span style={{ opacity: 0.3 }}>·</span><span>{detail.station} station</span></>)}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={refreshCamp}
-                  disabled={refreshing}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
-                    border: `1px solid ${T.border}`, background: T.card, color: T.ink,
-                    fontSize: 11, fontWeight: 700, cursor: 'pointer', opacity: refreshing ? 0.5 : 1,
-                  }}
-                >
-                  <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> Refresh
+                <button className="cd-toolbtn" onClick={refreshCamp} disabled={refreshing} style={{ opacity: refreshing ? 0.55 : 1 }}>
+                  <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Refresh
                 </button>
-                <button
-                  onClick={() => router.push('/disaster')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
-                    border: `1px solid ${T.border}`, background: T.card, color: T.ink,
-                    fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  }}
-                >
-                  <ArrowLeft size={12} /> Overview
+                <button className="cd-toolbtn" onClick={() => router.push('/disaster')}>
+                  <ArrowLeft size={13} /> Overview
                 </button>
               </div>
             </div>
           </div>
 
           {/* ── Large Interactive Map ────────────────────────────── */}
-          <div style={{ padding: '12px 24px' }}>
+          <div style={{ padding: `1rem ${PAGE_PAD}` }}>
             <div style={{
-              position: 'relative', borderRadius: 16, overflow: 'hidden',
+              position: 'relative', borderRadius: '1.5rem', overflow: 'hidden',
               border: `1px solid ${T.border}`,
               height: 'clamp(400px, 50vh, 600px)',
               background: dark ? '#030c18' : '#ddeaf5',
+              boxShadow: dark ? '0 20px 50px rgba(0,0,0,0.35)' : '0 20px 50px rgba(15,23,42,0.08)',
             }}>
               <Map
                 center={[camp.lng, camp.lat]}
@@ -571,21 +545,21 @@ export default function DisasterCampDetailPage() {
               </Map>
 
               {/* View mode toggle */}
-              <div className="absolute z-[13] top-3 right-3 flex items-center rounded-full overflow-hidden" style={{ background: dark ? 'rgba(13,13,16,0.85)' : 'rgba(255,255,255,0.85)', border: `1px solid ${T.border}`, backdropFilter: 'blur(10px)' }}>
+              <div className="absolute z-[13] top-3 right-3 flex items-center rounded-full overflow-hidden" style={{ background: dark ? 'rgba(13,13,16,0.85)' : 'rgba(255,255,255,0.9)', border: `1px solid ${T.border}`, backdropFilter: 'blur(10px)', boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}>
                 {VIEW_MODES.map((m) => {
                   const active = viewMode === m
-                  const icon = m === '2d' ? <Layers size={10} /> : m === '3d' ? <Box size={10} /> : m === 'terrain' ? <Mountain size={10} /> : <Triangle size={10} />
+                  const icon = m === '2d' ? <Layers size={11} /> : m === '3d' ? <Box size={11} /> : m === 'terrain' ? <Mountain size={11} /> : <Triangle size={11} />
                   return (
                     <button
                       key={m}
                       onClick={() => setViewMode(m)}
                       title={m.toUpperCase()}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 3,
-                        padding: '5px 10px', fontSize: '0.55rem', fontWeight: 800,
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        padding: '7px 12px', fontSize: '0.6rem', fontWeight: 800,
                         letterSpacing: '0.06em', cursor: 'pointer', border: 'none',
-                        background: active ? (dark ? 'rgba(34,211,238,0.2)' : 'rgba(8,145,178,0.18)') : 'transparent',
-                        color: active ? (dark ? '#22d3ee' : '#0891b2') : T.muted,
+                        background: active ? T.teal : 'transparent',
+                        color: active ? '#fff' : T.muted,
                         transition: 'all 0.2s ease',
                       }}
                     >
@@ -596,7 +570,7 @@ export default function DisasterCampDetailPage() {
               </div>
 
               {/* Camp label overlay */}
-              <div className="absolute z-[13] bottom-3 left-3 flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: dark ? 'rgba(13,13,16,0.85)' : 'rgba(255,255,255,0.85)', border: `1px solid ${T.border}`, backdropFilter: 'blur(10px)' }}>
+              <div className="absolute z-[13] bottom-3 left-3 flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: dark ? 'rgba(13,13,16,0.85)' : 'rgba(255,255,255,0.9)', border: `1px solid ${T.border}`, backdropFilter: 'blur(10px)', boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: STATUS_COLOR[camp.status], boxShadow: `0 0 10px ${STATUS_COLOR[camp.status]}88` }} />
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: T.ink, lineHeight: 1.2 }}>{camp.code}</div>
@@ -607,28 +581,27 @@ export default function DisasterCampDetailPage() {
           </div>
 
           {/* ── Content grid ─────────────────────────────────────── */}
-          <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ padding: `0 ${PAGE_PAD} ${PAGE_PAD}`, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
             {/* ── Key Stats ── */}
             <div className="cd-grid">
-              <StatCard label="Displaced" value={camp.displaced.toLocaleString()} icon={Users} color="#F97316" T={T} sub={`${occupancy}% occupancy`} />
-              <StatCard label="Capacity" value={camp.capacity.toLocaleString()} icon={MapPin} color={T.ink} T={T} sub="Maximum" />
-              <StatCard label="Aid Coverage" value={`${camp.aid}%`} icon={HeartHandshake} color={T.green} T={T} sub="Active aid" />
-              <StatCard label="Workers" value={String(camp.workers)} icon={Shield} color={T.purple} T={T} sub="Deployed" />
+              <KpiCard label="Displaced" value={camp.displaced.toLocaleString()} icon={<Users size={16} />} color={T.coral} delta={`${occupancy}% occupancy`} pct={occupancy} />
+              <KpiCard label="Capacity" value={camp.capacity.toLocaleString()} icon={<MapPin size={16} />} color={T.blue} delta="Maximum" pct={100} />
+              <KpiCard label="Aid Coverage" value={`${camp.aid}%`} icon={<HeartHandshake size={16} />} color={T.green} delta="Active aid" pct={camp.aid} />
+              <KpiCard label="Workers" value={String(camp.workers)} icon={<Shield size={16} />} color={T.purple} delta="Deployed" pct={100} />
             </div>
 
             {/* ── Two-column: Prediction + Location ── */}
             <div className="cd-two">
               {/* Prediction + Risk */}
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <SectionHeading label="Flood Prediction" T={T} />
+              <DashboardCard title="Flood Prediction" subtitle="Risk model & live thresholds">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <RiskBar label="Flood Risk" level={prediction?.flood_possibility?.toLowerCase() || camp.status} color={STATUS_COLOR[prediction?.flood_possibility?.toLowerCase() || camp.status] || T.amber} T={T} />
                   <RiskBar label="Camp Status" level={camp.status} color={STATUS_COLOR[camp.status]} T={T} />
                   {detail?.rain > 20 && <RiskBar label="Rainfall Alert" level="high" color={T.red} T={T} />}
                 </div>
                 {predResult && (
-                  <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ padding: '12px 14px', borderRadius: '0.85rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <span style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Flood Probability</span>
                       <span style={{ fontSize: 16, fontWeight: 800, color: predResult.probability >= 0.7 ? T.red : predResult.probability >= 0.4 ? T.amber : T.green }}>
@@ -636,21 +609,20 @@ export default function DisasterCampDetailPage() {
                       </span>
                     </div>
                     <div style={{ height: 6, borderRadius: 999, background: T.border, overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.round(predResult.probability * 100)}%`, height: '100%', background: predResult.probability >= 0.7 ? T.red : predResult.probability >= 0.4 ? T.amber : T.green, borderRadius: 999 }} />
+                      <div style={{ width: `${Math.round(predResult.probability * 100)}%`, height: '100%', background: predResult.probability >= 0.7 ? T.red : predResult.probability >= 0.4 ? T.amber : T.green, borderRadius: 999, transition: 'width 0.6s ease' }} />
                     </div>
                     <div style={{ marginTop: 6, fontSize: 10, color: T.muted }}>Source: {predResult.source}</div>
                   </div>
                 )}
                 {predLoading && (
-                  <div style={{ marginTop: 10, fontSize: 11, color: T.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 11, color: T.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <RefreshCw size={11} className="animate-spin" /> Running flood model…
                   </div>
                 )}
-              </div>
+              </DashboardCard>
 
               {/* Location info */}
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <SectionHeading label="Location" T={T} />
+              <DashboardCard title="Location" subtitle="Coordinates & terrain context">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   <DataRow label="Latitude" value={`${camp.lat.toFixed(4)}°`} tone={T.teal} />
                   <DataRow label="Longitude" value={`${camp.lng.toFixed(4)}°`} tone={T.teal} />
@@ -658,12 +630,11 @@ export default function DisasterCampDetailPage() {
                   {detail?.river && <DataRow label="Water body" value={detail.river} tone={T.ink} />}
                   {detail?.upDist != null && <DataRow label="Upstream dist." value={`${detail.upDist} m`} tone={T.ink} />}
                 </div>
-              </div>
+              </DashboardCard>
             </div>
 
             {/* ── Environmental ── */}
-            <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-              <SectionHeading label="Environment" T={T} />
+            <DashboardCard title="Environment" subtitle="Live sensor readings">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
                 {detail?.wl != null && (
                   <InfoCard label="Water Level" value={`${detail.wl} m`} color={waterTone} T={T} />
@@ -684,11 +655,10 @@ export default function DisasterCampDetailPage() {
                   <InfoCard label="Soil Moisture" value={`${Math.round(detail.soil * 100)}%`} color={T.teal} T={T} />
                 )}
               </div>
-            </div>
+            </DashboardCard>
 
             {/* ── Operational ── */}
-            <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-              <SectionHeading label="Operational" T={T} />
+            <DashboardCard title="Operational" subtitle="24h weather & logistics signal">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
                 {detail?.precip != null && (
                   <InfoCard label="Precip (24h)" value={`${detail.precip.toFixed(1)} mm`} color={detail.precip > 15 ? T.red : T.amber} T={T} />
@@ -703,13 +673,12 @@ export default function DisasterCampDetailPage() {
                   <InfoCard label="Peak Hourly" value={`${detail.maxHrPrec} mm/hr`} color={T.amber} T={T} />
                 )}
               </div>
-            </div>
+            </DashboardCard>
 
             {/* ── Alerts + Hydrology ── */}
             <div className="cd-two">
               {/* Active alerts */}
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <SectionHeading label="Active Alerts" T={T} />
+              <DashboardCard title="Active Alerts" subtitle="Automated threshold monitoring">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {detail?.wl > detail?.alertL && (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, background: `${T.red}10`, border: `1px solid ${T.red}33` }}>
@@ -744,11 +713,10 @@ export default function DisasterCampDetailPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </DashboardCard>
 
               {/* Hydrology details */}
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <SectionHeading label="Hydrology" T={T} />
+              <DashboardCard title="Hydrology" subtitle="Gauge station reference levels">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {detail?.station && <DataRow label="Station" value={detail.station} />}
                   {detail?.river && <DataRow label="River" value={detail.river} />}
@@ -757,11 +725,11 @@ export default function DisasterCampDetailPage() {
                   {detail?.majorL != null && <DataRow label="Major flood" value={`${detail.majorL} m`} tone={T.red} />}
                   {detail?.gauLat != null && <DataRow label="Gauge coords" value={`${detail.gauLat.toFixed(4)}°, ${detail.gauLng.toFixed(4)}°`} />}
                 </div>
-              </div>
+              </DashboardCard>
             </div>
 
             {/* ── Footer ── */}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', paddingTop: 8, paddingBottom: 24 }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', paddingTop: 8, paddingBottom: 8 }}>
               <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>Back to Overview</Button>
             </div>
           </div>
