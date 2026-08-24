@@ -217,7 +217,6 @@ export default function DashboardPage() {
               onRefresh: () => loadAll(true),
               refreshing,
             }}
-            pendingCount={overallAlerts}
           />
         </HeaderShell>
 

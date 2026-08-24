@@ -166,16 +166,6 @@ export default function AlertsPage() {
                 onRefresh: fetchAlerts,
                 refreshing: loading,
               }}
-              pendingCount={pendingCount}
-              escalatedCount={escalatedCount}
-              onBellClick={() => {
-                const a = alerts.find((x) => x.status === "pending");
-                if (a) viewAlert(a.id);
-              }}
-              onEscalatedClick={() => {
-                const a = alerts.find((x) => x.status === "escalated");
-                if (a) viewAlert(a.id);
-              }}
             />
 
             {/* ── Hero: left copy panel + right widget stack ── */}

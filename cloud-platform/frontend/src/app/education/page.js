@@ -474,7 +474,6 @@ export default function EducationPage() {
                       ? `${meta?.code || ""} · ${meta?.location || "Sector"} · ${detail.children_count} children tracked`
                       : `${camps.length} camps · ${totals.children.toLocaleString()} children · ${totals.sessions.toLocaleString()} sessions`
                 }
-                pendingCount={totals.alerts}
                 search={{
                   value: search,
                   onChange: setSearch,
