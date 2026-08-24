@@ -15,7 +15,7 @@ import ArrowChip from '@/components/alert/ArrowChip'
 import { MOCK_CAMPS, MOCK_EDUCATION, MOCK_RESOURCES, MOCK_DISASTER, DISASTER_MATCH, CAMP_STATUS, DIS_STATUS } from '@/data/dashboard.data'
 import { Droplets, Users, BookOpen, Bell, Radio, Tent, CalendarCheck, HeartHandshake } from 'lucide-react'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
 
 function eduCode(id) {
   const known = {

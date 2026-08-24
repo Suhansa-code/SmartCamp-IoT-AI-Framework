@@ -10,7 +10,7 @@ import StatusDonut from '@/components/dashboard/StatusDonut'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { BLUE, STATE_COLOR, PRIO_COLOR, STATUS_COLOR, QOS_MATRIX } from '@/data/network.data'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
 
 function valColor(T, v, warn, crit, invert = false) {
   if (invert ? v < warn : v > crit) return T.red

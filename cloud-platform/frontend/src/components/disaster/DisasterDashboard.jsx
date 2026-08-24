@@ -20,7 +20,7 @@ import FilterPills from '@/components/alert/FilterPills'
 import { useTheme } from '@/components/common/ThemeProvider'
 
 // Map themes — the relief image follows the app's light/dark mode.
-const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
+const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3002'
 
 function Chip({ children, color = '#64748B', style }) {
   return (

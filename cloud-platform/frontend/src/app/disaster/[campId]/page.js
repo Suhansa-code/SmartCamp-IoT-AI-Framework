@@ -15,7 +15,7 @@ import Button from '@/components/common/Button'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { Map, MapControls, useMap } from '@/components/ui/map'
 
-const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
+const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3002'
 
 const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
 const TERRAIN_SOURCE = 'camp-detail-dem'
@@ -24,20 +24,133 @@ const HILLSHADE_LAYER = 'camp-detail-hillshade'
 
 const VIEW_MODES = ['2d', '3d', 'terrain', 'slope']
 
-function buildFallbackCamp(campId) {
-  const camp = getCampById(campId)
-  if (!camp) return null
-  return {
-    ...camp,
-    detail: CAMP_DETAIL[campId] || {
-      waterPath: 'Local stream', river: 'Unknown', station: 'Local gauge', stDist: 8000, upDist: 600,
-      wl: 0.5, rain: 10, alertL: 4.0, minorL: 5.0, majorL: 6.5,
-      gauLat: camp.lat, gauLng: camp.lng, fcLat: camp.lat, fcLng: camp.lng,
-      elev: 10, minT: 24, maxT: 31, hum: 85, precip: 10, maxHrPrec: 2, maxWind: 15, avgWind: 6,
-      soil: 0.3, pres: 1008, cloud: 80,
-    },
-    prediction: null,
-  }
+/* ── Skeleton primitives ────────────────────────────────────────────────── */
+
+function SkeletonLine({ w = '100%', h = 14, style = {} }) {
+  return (
+    <div style={{
+      width: w, height: h, borderRadius: 9999,
+      background: 'linear-gradient(90deg, var(--sk-base) 25%, var(--sk-shine) 50%, var(--sk-base) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'skeletonShimmer 1.5s ease-in-out infinite',
+      ...style,
+    }} />
+  )
+}
+
+function SkeletonBlock({ w = '100%', h = 120, r = 14, style = {} }) {
+  return (
+    <div style={{
+      width: w, height: h, borderRadius: r,
+      background: 'linear-gradient(90deg, var(--sk-base) 25%, var(--sk-shine) 50%, var(--sk-base) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'skeletonShimmer 1.5s ease-in-out infinite',
+      ...style,
+    }} />
+  )
+}
+
+function SkeletonCard({ children, delay = 0 }) {
+  const { T } = useTheme()
+  return (
+    <div style={{
+      border: `1px solid ${T.border}`, borderRadius: 14, background: T.card,
+      padding: 16, display: 'flex', flexDirection: 'column', gap: 10,
+      '--sk-base': T.cardSoft, '--sk-shine': T.border,
+      animationDelay: `${delay}s`,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+function CampSkeleton() {
+  const { T } = useTheme()
+  return (
+    <div style={{ minHeight: '100vh', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+      <SideNav />
+      <style>{`
+        @keyframes skeletonShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+      `}</style>
+      <div style={{ minHeight: '100vh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink }}>
+        <main style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+          {/* Header skeleton */}
+          <div style={{ padding: '16px 24px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SkeletonLine w={260} h={10} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <SkeletonLine w={300} h={24} style={{ borderRadius: 6 }} />
+                <SkeletonLine w={180} h={12} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <SkeletonBlock w={90} h={30} r={8} />
+                <SkeletonBlock w={90} h={30} r={8} />
+              </div>
+            </div>
+          </div>
+
+          {/* Map skeleton */}
+          <div style={{ padding: '12px 24px' }}>
+            <SkeletonBlock h={480} r={16} />
+          </div>
+
+          {/* Stats skeleton */}
+          <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[0, 1, 2, 3].map(i => (
+                <SkeletonCard key={i} delay={i * 0.1}>
+                  <SkeletonLine w={80} h={10} />
+                  <SkeletonLine w={60} h={22} style={{ borderRadius: 6 }} />
+                  <SkeletonLine w={100} h={8} />
+                </SkeletonCard>
+              ))}
+            </div>
+
+            {/* Two-col skeleton */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <SkeletonCard delay={0.4}>
+                <SkeletonLine w={100} h={10} />
+                <SkeletonBlock h={140} r={10} />
+              </SkeletonCard>
+              <SkeletonCard delay={0.5}>
+                <SkeletonLine w={100} h={10} />
+                <SkeletonBlock h={140} r={10} />
+              </SkeletonCard>
+            </div>
+
+            {/* Environment + operational skeleton */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <SkeletonCard delay={0.6}>
+                <SkeletonLine w={100} h={10} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {[0, 1, 2, 3].map(i => <SkeletonBlock key={i} h={60} r={10} />)}
+                </div>
+              </SkeletonCard>
+              <SkeletonCard delay={0.7}>
+                <SkeletonLine w={100} h={10} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {[0, 1, 2, 3].map(i => <SkeletonBlock key={i} h={60} r={10} />)}
+                </div>
+              </SkeletonCard>
+            </div>
+
+            {/* Alerts + hydrology skeleton */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <SkeletonCard delay={0.8}>
+                <SkeletonLine w={100} h={10} />
+                <SkeletonBlock h={80} r={10} />
+              </SkeletonCard>
+              <SkeletonCard delay={0.9}>
+                <SkeletonLine w={100} h={10} />
+                <SkeletonBlock h={100} r={10} />
+              </SkeletonCard>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
 }
 
 /* ── Map sub-components ──────────────────────────────────────────────── */
@@ -226,6 +339,23 @@ function RiskBar({ label, level, color, T }) {
   )
 }
 
+function SectionHeading({ label, T }) {
+  return (
+    <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>
+      {label}
+    </div>
+  )
+}
+
+function InfoCard({ label, value, color, T }) {
+  return (
+    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color, marginTop: 2 }}>{value}</div>
+    </div>
+  )
+}
+
 /* ── Main page ────────────────────────────────────────────────────────── */
 
 export default function DisasterCampDetailPage() {
@@ -255,14 +385,15 @@ export default function DisasterCampDetailPage() {
         const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}`)
         const payload = res.ok ? await res.json() : null
         if (!active) return
-        setCamp(payload || buildFallbackCamp(campId))
-        if (!payload && !buildFallbackCamp(campId)) setError('Camp not found')
+        if (payload) {
+          setCamp(payload)
+        } else {
+          setCamp(null)
+          setError('Camp not found')
+        }
       } catch (err) {
         if (!active) return
-        const fb = buildFallbackCamp(campId)
-        setCamp(fb)
-        if (fb) setError('')
-        else setError(err instanceof Error ? err.message : 'Failed to load camp detail')
+        setError(err instanceof Error ? err.message : 'Failed to load camp detail')
       } finally {
         if (active) setLoading(false)
       }
@@ -278,7 +409,6 @@ export default function DisasterCampDetailPage() {
 
   const [predResult, setPredResult] = useState(null)
   const [predLoading, setPredLoading] = useState(false)
-  const [predError, setPredError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -311,12 +441,13 @@ export default function DisasterCampDetailPage() {
     try {
       const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}`)
       const payload = res.ok ? await res.json() : null
-      setCamp(payload || buildFallbackCamp(campId))
-      if (!payload && !buildFallbackCamp(campId)) setError('Camp not found')
+      if (payload) {
+        setCamp(payload)
+      } else {
+        setError('Camp not found')
+      }
     } catch (err) {
-      const fb = buildFallbackCamp(campId)
-      setCamp(fb)
-      if (!fb) setError(err instanceof Error ? err.message : 'Failed to reload')
+      setError(err instanceof Error ? err.message : 'Failed to reload')
     } finally {
       setRefreshing(false)
     }
@@ -325,21 +456,7 @@ export default function DisasterCampDetailPage() {
   const waterTone = detail ? (detail.wl > detail.alertL ? T.red : detail.wl > 0 ? T.amber : T.teal) : T.teal
 
   /* ── Loading ── */
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
-        <SideNav />
-        <div style={{ minHeight: '100vh', background: T.outer, display: 'grid', placeItems: 'center', color: T.ink, fontFamily: "'Inter',sans-serif" }}>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ width: 48, height: 48, border: `4px solid ${T.border}`, borderTop: `4px solid ${T.teal}`, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Loading camp details…</div>
-            <div style={{ color: T.muted, fontSize: 13 }}>Fetching data for {campId}</div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <CampSkeleton />
 
   /* ── Not found ── */
   if (!camp) {
@@ -377,7 +494,7 @@ export default function DisasterCampDetailPage() {
         @media (max-width: 700px) { .cd-grid { grid-template-columns: 1fr; } .cd-three { grid-template-columns: 1fr; } }
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink }}>
+      <div style={{ minHeight: '100vh', background: T.panel, fontFamily: "'Inter',sans-serif", color: T.ink }}>
         <main style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
           {/* ── Breadcrumb + Header ─────────────────────────────── */}
@@ -500,23 +617,11 @@ export default function DisasterCampDetailPage() {
               <StatCard label="Workers" value={String(camp.workers)} icon={Shield} color={T.purple} T={T} sub="Deployed" />
             </div>
 
-            {/* ── Two-column: Location + Risk ── */}
+            {/* ── Two-column: Prediction + Location ── */}
             <div className="cd-two">
-              {/* Location info */}
+              {/* Prediction + Risk */}
               <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Location</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                  <DataRow label="Latitude" value={`${camp.lat.toFixed(4)}°`} tone={T.teal} />
-                  <DataRow label="Longitude" value={`${camp.lng.toFixed(4)}°`} tone={T.teal} />
-                  {detail?.elev != null && <DataRow label="Elevation" value={`${detail.elev} m AMSL`} tone={T.ink} />}
-                  {detail?.river && <DataRow label="Water body" value={detail.river} tone={T.ink} />}
-                  {detail?.upDist != null && <DataRow label="Upstream dist." value={`${detail.upDist} m`} tone={T.ink} />}
-                </div>
-              </div>
-
-              {/* Risk overview */}
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Risk Overview</div>
+                <SectionHeading label="Flood Prediction" T={T} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <RiskBar label="Flood Risk" level={prediction?.flood_possibility?.toLowerCase() || camp.status} color={STATUS_COLOR[prediction?.flood_possibility?.toLowerCase() || camp.status] || T.amber} T={T} />
                   <RiskBar label="Camp Status" level={camp.status} color={STATUS_COLOR[camp.status]} T={T} />
@@ -536,71 +641,67 @@ export default function DisasterCampDetailPage() {
                     <div style={{ marginTop: 6, fontSize: 10, color: T.muted }}>Source: {predResult.source}</div>
                   </div>
                 )}
+                {predLoading && (
+                  <div style={{ marginTop: 10, fontSize: 11, color: T.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <RefreshCw size={11} className="animate-spin" /> Running flood model…
+                  </div>
+                )}
+              </div>
+
+              {/* Location info */}
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+                <SectionHeading label="Location" T={T} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  <DataRow label="Latitude" value={`${camp.lat.toFixed(4)}°`} tone={T.teal} />
+                  <DataRow label="Longitude" value={`${camp.lng.toFixed(4)}°`} tone={T.teal} />
+                  {detail?.elev != null && <DataRow label="Elevation" value={`${detail.elev} m AMSL`} tone={T.ink} />}
+                  {detail?.river && <DataRow label="Water body" value={detail.river} tone={T.ink} />}
+                  {detail?.upDist != null && <DataRow label="Upstream dist." value={`${detail.upDist} m`} tone={T.ink} />}
+                </div>
               </div>
             </div>
 
-            {/* ── Environmental + Operational ── */}
-            <div className="cd-two">
-              {/* Environment */}
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Environment</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                  {detail?.wl != null && (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Water Level</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: waterTone, marginTop: 2 }}>{detail.wl} m</div>
-                    </div>
-                  )}
-                  {detail?.rain != null && (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rainfall</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: detail.rain > 20 ? T.red : detail.rain > 5 ? T.amber : T.teal, marginTop: 2 }}>{detail.rain} mm</div>
-                    </div>
-                  )}
-                  {detail?.hum != null && (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Humidity</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: T.teal, marginTop: 2 }}>{detail.hum}%</div>
-                    </div>
-                  )}
-                  {detail?.pres != null && (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Pressure</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, marginTop: 2 }}>{detail.pres} hPa</div>
-                    </div>
-                  )}
-                </div>
+            {/* ── Environmental ── */}
+            <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+              <SectionHeading label="Environment" T={T} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+                {detail?.wl != null && (
+                  <InfoCard label="Water Level" value={`${detail.wl} m`} color={waterTone} T={T} />
+                )}
+                {detail?.rain != null && (
+                  <InfoCard label="Rainfall" value={`${detail.rain} mm`} color={detail.rain > 20 ? T.red : detail.rain > 5 ? T.amber : T.teal} T={T} />
+                )}
+                {detail?.hum != null && (
+                  <InfoCard label="Humidity" value={`${detail.hum}%`} color={T.teal} T={T} />
+                )}
+                {detail?.pres != null && (
+                  <InfoCard label="Pressure" value={`${detail.pres} hPa`} color={T.ink} T={T} />
+                )}
+                {detail?.minT != null && detail?.maxT != null && (
+                  <InfoCard label="Temperature" value={`${detail.minT}–${detail.maxT}°C`} color={T.coral} T={T} />
+                )}
+                {detail?.soil != null && (
+                  <InfoCard label="Soil Moisture" value={`${Math.round(detail.soil * 100)}%`} color={T.teal} T={T} />
+                )}
               </div>
+            </div>
 
-              {/* Operational */}
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Operational</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                  {detail?.precip != null && (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Precip (24h)</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: detail.precip > 15 ? T.red : T.amber, marginTop: 2 }}>{detail.precip.toFixed(1)} mm</div>
-                    </div>
-                  )}
-                  {detail?.maxWind != null && (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Max Wind</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, marginTop: 2 }}>{detail.maxWind} km/h</div>
-                    </div>
-                  )}
-                  {detail?.cloud != null && (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Cloud Cover</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: T.inkSoft, marginTop: 2 }}>{detail.cloud}%</div>
-                    </div>
-                  )}
-                  {detail?.soil != null && (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Soil Moisture</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: T.teal, marginTop: 2 }}>{Math.round(detail.soil * 100)}%</div>
-                    </div>
-                  )}
-                </div>
+            {/* ── Operational ── */}
+            <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+              <SectionHeading label="Operational" T={T} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+                {detail?.precip != null && (
+                  <InfoCard label="Precip (24h)" value={`${detail.precip.toFixed(1)} mm`} color={detail.precip > 15 ? T.red : T.amber} T={T} />
+                )}
+                {detail?.maxWind != null && (
+                  <InfoCard label="Max Wind" value={`${detail.maxWind} km/h`} color={T.ink} T={T} />
+                )}
+                {detail?.cloud != null && (
+                  <InfoCard label="Cloud Cover" value={`${detail.cloud}%`} color={T.inkSoft} T={T} />
+                )}
+                {detail?.maxHrPrec != null && (
+                  <InfoCard label="Peak Hourly" value={`${detail.maxHrPrec} mm/hr`} color={T.amber} T={T} />
+                )}
               </div>
             </div>
 
@@ -608,7 +709,7 @@ export default function DisasterCampDetailPage() {
             <div className="cd-two">
               {/* Active alerts */}
               <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Active Alerts</div>
+                <SectionHeading label="Active Alerts" T={T} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {detail?.wl > detail?.alertL && (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, background: `${T.red}10`, border: `1px solid ${T.red}33` }}>
@@ -647,7 +748,7 @@ export default function DisasterCampDetailPage() {
 
               {/* Hydrology details */}
               <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
-                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Hydrology</div>
+                <SectionHeading label="Hydrology" T={T} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {detail?.station && <DataRow label="Station" value={detail.station} />}
                   {detail?.river && <DataRow label="River" value={detail.river} />}
