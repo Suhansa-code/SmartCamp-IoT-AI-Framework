@@ -75,11 +75,10 @@ function TerrainSetup({ viewMode, onTerrainReady }) {
           type: 'hillshade',
           source: TERRAIN_SOURCE,
           paint: {
-            'hillshade-exaggeration': isSlope ? 2.0 : 1.2,
+            'hillshade-exaggeration': isSlope ? 1.0 : 0.8,
             'hillshade-shadow-color': isSlope ? '#1e293b' : '#334155',
             'hillshade-highlight-color': isSlope ? '#fef3c7' : '#e2e8f0',
             'hillshade-accent-color': isSlope ? '#f59e0b' : '#94a3b8',
-            'hillshade-z-offset': 0,
           },
         }, 'waterway')
       } else if (!enableHillshade && map.getLayer(HILLSHADE_LAYER)) {

@@ -30,7 +30,7 @@ export default function AlertsPage() {
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/alerts?camp=${selectedCamp === "all" ? "" : selectedCamp}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/alerts?camp=${selectedCamp === "all" ? "" : selectedCamp}`);
       if (res.ok) {
         const data = await res.json();
         const transformed = data.alerts.map((a) => ({

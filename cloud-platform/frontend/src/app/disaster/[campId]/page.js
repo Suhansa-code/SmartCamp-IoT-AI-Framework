@@ -128,11 +128,10 @@ function CampDetailTerrain({ viewMode }) {
           type: 'hillshade',
           source: TERRAIN_SOURCE,
           paint: {
-            'hillshade-exaggeration': viewMode === 'slope' ? 2.0 : 1.2,
+            'hillshade-exaggeration': viewMode === 'slope' ? 1.0 : 0.8,
             'hillshade-shadow-color': viewMode === 'slope' ? '#1e293b' : '#334155',
             'hillshade-highlight-color': viewMode === 'slope' ? '#fef3c7' : '#e2e8f0',
             'hillshade-accent-color': viewMode === 'slope' ? '#f59e0b' : '#94a3b8',
-            'hillshade-z-offset': 0,
           },
         }, 'waterway')
       } else if (!enableHillshade && map.getLayer(HILLSHADE_LAYER)) {
