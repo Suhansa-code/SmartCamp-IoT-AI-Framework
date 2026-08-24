@@ -429,24 +429,6 @@ if (C.AWS_RDS_HOST) {
   logger.info('[PG] No AWS_RDS_HOST configured — PostgreSQL disabled');
 }
 
-export async function pgIsReachable() {
-  if (!pgPool) return false;
-  try {
-    const client = await pgPool.connect();
-    await client.query('SELECT 1');
-    client.release();
-    return true;
-  } catch { return false; }
-}
-
-export async function pgQuery(text, params = []) {
-  if (!pgPool) throw new Error('PostgreSQL not configured');
-  const client = await pgPool.connect();
-  try {
-    return await client.query(text, params);
-  } finally { client.release(); }
-}
-
 // ═════════════════════════════════════════════════════════════════════════════
 // SQLite Helper Functions
 // ═════════════════════════════════════════════════════════════════════════════

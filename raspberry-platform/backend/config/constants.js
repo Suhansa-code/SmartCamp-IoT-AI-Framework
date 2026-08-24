@@ -1,12 +1,5 @@
 import 'dotenv/config';
 
-const firstDefined = (...values) => {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return undefined;
-};
-
 const parseOrigins = (value) => {
   if (typeof value !== 'string' || !value.trim()) return [];
   return value.split(',').map(s => s.trim()).filter(Boolean);
@@ -39,9 +32,6 @@ export default {
 
   JWT_SECRET: process.env.JWT_SECRET || 'CHANGE_THIS_SECRET',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
-
-  TURSO_URL: firstDefined(process.env.TURSO_URL, process.env.TURSO_DATABASE_URL, process.env.LIBSQL_URL, process.env.DATABASE_URL),
-  TURSO_AUTH_TOKEN: firstDefined(process.env.TURSO_AUTH_TOKEN, process.env.TURSO_TOKEN, process.env.LIBSQL_AUTH_TOKEN, process.env.DATABASE_AUTH_TOKEN),
 
   CORS_ORIGINS: [
     ...parseOrigins(process.env.CORS_ORIGINS),
