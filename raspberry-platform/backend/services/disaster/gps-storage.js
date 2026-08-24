@@ -118,11 +118,13 @@ export async function storeCurrentLocation() {
   }
 
   try {
-    insertStmt.run(DEVICE_ID, lat, lng, altitude ?? null, accuracy ?? null, source || 'GPS_SENSOR', now);
-    lastStoredLat = lat;
-    lastStoredLng = lng;
+    const roundedLat = Math.round(lat * 10000) / 10000;
+    const roundedLng = Math.round(lng * 10000) / 10000;
+    insertStmt.run(DEVICE_ID, roundedLat, roundedLng, altitude ?? null, accuracy ?? null, source || 'GPS_SENSOR', now);
+    lastStoredLat = roundedLat;
+    lastStoredLng = roundedLng;
     lastSaveTime = Date.now();
-    logger.info(`[GPS-STORAGE] Stored reading: ${lat.toFixed(6)}, ${lng.toFixed(6)} @ ${now}`);
+    logger.info(`[GPS-STORAGE] Stored reading: ${roundedLat.toFixed(4)}, ${roundedLng.toFixed(4)} @ ${now}`);
     return true;
   } catch (err) {
     logger.error(`[GPS-STORAGE] Insert failed: ${err.message}`);
