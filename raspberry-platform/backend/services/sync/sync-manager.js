@@ -30,6 +30,7 @@ import { campDb, pagesDb, disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import { fetchAllPending, countPending } from './sync-queue.js';
 import { PRIORITY } from './sync-priority.js';
+import { nowISO } from '../../utils/helpers.js';
 
 const SYNC_INTERVAL_MS = 30_000;
 const SYNC_INTERVAL_STABLE_MS = 5_000;
@@ -256,7 +257,7 @@ function buildSyncMessage(entity, row) {
     priority: row._priority || PRIORITY.MEDIUM,
     camp_id: C.CAMP_ID,
     device_id: C.DEVICE_ID,
-    timestamp: new Date().toISOString(),
+    timestamp: nowISO(),
     payload: row,
   };
 }
@@ -270,7 +271,7 @@ function stripMeta(row) {
 // ── Retry pending unacked records ────────────────────────────────────────
 
 function retryPendingAcks() {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const rows = campDb.prepare(
     `SELECT * FROM sync_pending
      WHERE published = 0 AND retry_count < ? AND next_retry_at <= ?
@@ -380,7 +381,7 @@ export async function runSyncCycle() {
       }
     }
 
-    lastSyncAt = new Date().toISOString();
+    lastSyncAt = nowISO();
     syncCount++;
 
     const elapsed = Date.now() - startTime;

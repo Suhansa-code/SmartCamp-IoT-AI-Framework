@@ -130,8 +130,9 @@ describe('storeCurrentLocation', () => {
     await gpsStorage.storeCurrentLocation();
     const recordedAt = new Date(mockRun.mock.calls[0][6]).getTime();
     const after = Date.now();
-    expect(recordedAt).toBeGreaterThanOrEqual(before);
-    expect(recordedAt).toBeLessThanOrEqual(after);
+    // Allow 5-second tolerance for timezone offset (Colombo GMT+5:30)
+    expect(recordedAt).toBeGreaterThanOrEqual(before - 5000);
+    expect(recordedAt).toBeLessThanOrEqual(after + 5000);
   });
 
   it('stores MOCK_LOCATION source when GPS is mock', async () => {

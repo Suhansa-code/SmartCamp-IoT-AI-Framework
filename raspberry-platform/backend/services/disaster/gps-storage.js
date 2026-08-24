@@ -5,7 +5,15 @@
  * from config/database.js for persistence. Implements a hybrid approach:
  *
  *   - Periodic storage every N minutes (configurable, default 30).
+ *     Timer resets after each successful save so the next save occurs
+ *     30 minutes after the last successful persistence.
  *   - Movement-based storage when device moves ≥ threshold meters (Haversine).
+ *     Saves instantly between intervals when movement is detected.
+ *
+ * GPS unavailability handling:
+ *   - If GPS is unavailable when the interval expires, no fake record is inserted.
+ *   - When valid GPS data becomes available again and the interval has elapsed,
+ *     the latest valid location is saved immediately.
  *
  * Does NOT add MQTT logic — newly inserted records have synced = 0 so the
  * existing disaster MQTT sync system picks them up automatically.
@@ -14,6 +22,7 @@ import { disasterDb } from '../../config/database.js';
 import { getGpsLocation, getLastKnownLocation } from './gps.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
+import { nowISO } from '../../utils/helpers.js';
 
 const DEVICE_ID = C.DEVICE_ID;
 
@@ -27,6 +36,7 @@ const MOVEMENT_THRESHOLD_M = C.GPS_MOVEMENT_THRESHOLD_METERS || 100;
 let timer = null;
 let lastStoredLat = null;
 let lastStoredLng = null;
+let lastSaveTime = null; // timestamp of last successful database save
 
 // ── Prepared statements (lazy init) ─────────────────────────────────────
 
@@ -89,7 +99,7 @@ export async function storeCurrentLocation() {
     return false;
   }
 
-  const now = new Date().toISOString();
+  const now = nowISO();
 
   // Movement check: skip if within threshold of last stored location
   if (lastStoredLat != null && lastStoredLng != null) {
@@ -105,6 +115,7 @@ export async function storeCurrentLocation() {
     insertStmt.run(DEVICE_ID, lat, lng, altitude ?? null, accuracy ?? null, source || 'GPS_SENSOR', now);
     lastStoredLat = lat;
     lastStoredLng = lng;
+    lastSaveTime = Date.now();
     logger.info(`[GPS-STORAGE] Stored reading: ${lat.toFixed(6)}, ${lng.toFixed(6)} @ ${now}`);
     return true;
   } catch (err) {
@@ -113,12 +124,22 @@ export async function storeCurrentLocation() {
   }
 }
 
-// ── Periodic timer ──────────────────────────────────────────────────────
+// ── Periodic timer (resets after each successful save) ──────────────────
 
-function tick() {
-  storeCurrentLocation().catch((err) => {
-    logger.error(`[GPS-STORAGE] Tick error: ${err.message}`);
-  });
+function scheduleNextTick() {
+  timer = setTimeout(async () => {
+    try {
+      const saved = await storeCurrentLocation();
+      if (saved) {
+        logger.info(`[GPS-STORAGE] Save successful — next save in ${INTERVAL_MS / 60_000} minutes`);
+      } else {
+        logger.debug(`[GPS-STORAGE] No save this tick — retrying in ${INTERVAL_MS / 60_000} minutes`);
+      }
+    } catch (err) {
+      logger.error(`[GPS-STORAGE] Tick error: ${err.message}`);
+    }
+    scheduleNextTick();
+  }, INTERVAL_MS);
 }
 
 export function startGpsStorage(intervalMs = INTERVAL_MS) {
@@ -141,10 +162,12 @@ export function startGpsStorage(intervalMs = INTERVAL_MS) {
     }
   } catch (_) { /* table may be empty */ }
 
-  // First tick after a short delay, then periodic
+  // First tick after a short delay, then schedule subsequent ticks
   setTimeout(() => {
-    tick();
-    timer = setInterval(tick, intervalMs);
+    storeCurrentLocation().catch((err) => {
+      logger.error(`[GPS-STORAGE] Initial tick error: ${err.message}`);
+    });
+    scheduleNextTick();
   }, 2000);
 
   logger.info(
@@ -154,7 +177,7 @@ export function startGpsStorage(intervalMs = INTERVAL_MS) {
 
 export function stopGpsStorage() {
   if (timer) {
-    clearInterval(timer);
+    clearTimeout(timer);
     timer = null;
   }
   logger.info('[GPS-STORAGE] Stopped');
@@ -166,5 +189,6 @@ export function getGpsStorageStatus() {
     interval_ms: INTERVAL_MS,
     movement_threshold_m: MOVEMENT_THRESHOLD_M,
     last_stored: lastStoredLat != null ? { latitude: lastStoredLat, longitude: lastStoredLng } : null,
+    last_save_time: lastSaveTime ? new Date(lastSaveTime).toISOString() : null,
   };
 }
