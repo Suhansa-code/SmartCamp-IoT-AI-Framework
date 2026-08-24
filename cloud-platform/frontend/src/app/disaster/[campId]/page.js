@@ -1,67 +1,29 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Users, MapPin, HeartHandshake, Gauge, ArrowLeft,
-  Droplets, CloudRain, Wind, Cloud, Activity, ChevronRight,
+  Droplets, CloudRain, Wind, Cloud, Activity, AlertTriangle,
+  Mountain, Layers, Box, Triangle, ChevronRight, RefreshCw,
+  Thermometer, Eye, Radio, Shield, Waves, TreePine,
 } from 'lucide-react'
+import * as MapLibreGL from 'maplibre-gl'
 import { STATUS_META, statusColor, getCampById, CAMP_DETAIL, STATUS_COLOR } from '@/data/disaster.data'
 import SideNav from '@/components/common/SideNav'
-import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import Button from '@/components/common/Button'
-import KpiCard from '@/components/dashboard/KpiCard'
-import MiniStat from '@/components/dashboard/MiniStat'
-import DashboardCard from '@/components/dashboard/DashboardCard'
 import { useTheme } from '@/components/common/ThemeProvider'
-
-// Applies the global navigation rail + offsets content to the right of it.
-function WithRail({ children }) {
-  return (
-    <div style={{ minHeight: '100vh', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
-      <SideNav />
-      {children}
-    </div>
-  )
-}
-
-function InfoCard({ label, value, tone, theme, style, compact }) {
-  const labelSize = compact ? 8 : 9
-  const valueSize = compact ? 16 : 20
-  const minH = compact ? 72 : 84
-  return (
-    <div style={{ border: `1px solid ${theme.border}`, borderRadius: 14, background: theme.surface, padding: 12, minHeight: minH, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', ...style }}>
-      <div style={{ fontSize: labelSize, color: theme.t2, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontSize: valueSize, fontWeight: 800, color: tone || theme.t0, lineHeight: 1.08 }}>{value}</div>
-    </div>
-  )
-}
-
-function Section({ title, children, theme, compact }) {
-  const padding = compact ? 12 : 14
-  const titleSize = compact ? 8 : 9
-  return (
-    <section style={{ border: `1px solid ${theme.border}`, borderRadius: 16, background: theme.surface, padding, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ fontSize: titleSize, color: theme.t2, letterSpacing: '0.16em', marginBottom: compact ? 8 : 10, textTransform: 'uppercase', fontWeight: 800 }}>{title}</div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
-    </section>
-  )
-}
-
-function Row({ label, value, tone, theme }) {
-  return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '7px 0', borderBottom: `1px solid ${theme.border}18`, fontSize: 12 }}><span style={{ color: theme.t2, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</span><span style={{ color: tone || theme.t0, fontWeight: 700, textAlign: 'right' }}>{value}</span></div>
-}
+import { Map, MapControls, useMap } from '@/components/ui/map'
 
 const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3001'
 
-function getPredictionTone(probability, theme) {
-  if (probability >= 0.7) return theme.red
-  if (probability >= 0.4) return theme.orange
-  return theme.green
-}
+const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+const TERRAIN_SOURCE = 'camp-detail-dem'
+const TERRAIN_EXAGGERATION = 1.5
+const HILLSHADE_LAYER = 'camp-detail-hillshade'
 
-// Offline mock — mirrors the dashboard's fallback so the detail page renders
-// when the cloud backend is unreachable.
+const VIEW_MODES = ['2d', '3d', 'terrain', 'slope']
+
 function buildFallbackCamp(campId) {
   const camp = getCampById(campId)
   if (!camp) return null
@@ -78,17 +40,194 @@ function buildFallbackCamp(campId) {
   }
 }
 
-function Chip({ children, color = '#64748B', style }) {
+/* ── Map sub-components ──────────────────────────────────────────────── */
+
+function CampMapView({ camp, dark, viewMode }) {
+  const { map, isLoaded } = useMap()
+  const markerRef = useRef(null)
+  const popupRef = useRef(null)
+
+  useEffect(() => {
+    if (!map || !isLoaded || !camp) return
+
+    map.easeTo({
+      center: [camp.lng, camp.lat],
+      zoom: 12,
+      pitch: viewMode !== '2d' ? 55 : 0,
+      bearing: viewMode !== '2d' ? 25 : 0,
+      duration: 1200,
+      easing: (t) => t * (2 - t),
+    })
+  }, [map, isLoaded, camp, viewMode])
+
+  useEffect(() => {
+    if (!map || !isLoaded || !camp) return
+
+    if (markerRef.current) markerRef.current.remove()
+
+    const el = document.createElement('div')
+    el.style.cssText = `
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+      background: ${STATUS_COLOR[camp.status]}; border: 3px solid #fff;
+      box-shadow: 0 0 16px ${STATUS_COLOR[camp.status]}aa, 0 2px 8px rgba(0,0,0,0.3);
+      transition: transform 0.2s ease;
+    `
+    el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)' })
+    el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
+
+    const popup = new MapLibreGL.Popup({ offset: 18, closeButton: false, className: 'camp-detail-popup' })
+      .setHTML(`
+        <div style="padding: 8px 12px; font-family: Inter, sans-serif;">
+          <div style="font-size: 13px; font-weight: 800; color: ${dark ? '#FAFAFA' : '#0F2540'}; margin-bottom: 2px;">${camp.name}</div>
+          <div style="font-size: 11px; color: ${dark ? '#A1A1AA' : '#5B7184'};">${camp.code} · ${camp.type}</div>
+        </div>
+      `)
+
+    const marker = new MapLibreGL.Marker({ element: el })
+      .setLngLat([camp.lng, camp.lat])
+      .setPopup(popup)
+      .addTo(map)
+
+    markerRef.current = marker
+    popupRef.current = popup
+
+    el.addEventListener('click', () => popup.addTo(map))
+
+    return () => {
+      marker.remove()
+      popup.remove()
+    }
+  }, [map, isLoaded, camp, dark])
+
+  return null
+}
+
+function CampDetailTerrain({ viewMode }) {
+  const { map, isLoaded } = useMap()
+  const enableTerrain = viewMode !== '2d'
+  const enableHillshade = viewMode === 'terrain' || viewMode === 'slope'
+
+  useEffect(() => {
+    if (!map || !isLoaded) return
+
+    if (enableTerrain) {
+      if (!map.getSource(TERRAIN_SOURCE)) {
+        map.addSource(TERRAIN_SOURCE, {
+          type: 'raster-dem',
+          url: TERRAIN_TILES,
+          tileSize: 256,
+          encoding: 'terrarium',
+          maxzoom: 12,
+        })
+      }
+      map.setTerrain({ source: TERRAIN_SOURCE, exaggeration: TERRAIN_EXAGGERATION })
+
+      if (enableHillshade && !map.getLayer(HILLSHADE_LAYER)) {
+        map.addLayer({
+          id: HILLSHADE_LAYER,
+          type: 'hillshade',
+          source: TERRAIN_SOURCE,
+          paint: {
+            'hillshade-exaggeration': viewMode === 'slope' ? 2.0 : 1.2,
+            'hillshade-shadow-color': viewMode === 'slope' ? '#1e293b' : '#334155',
+            'hillshade-highlight-color': viewMode === 'slope' ? '#fef3c7' : '#e2e8f0',
+            'hillshade-accent-color': viewMode === 'slope' ? '#f59e0b' : '#94a3b8',
+            'hillshade-z-offset': 0,
+          },
+        }, 'waterway')
+      } else if (!enableHillshade && map.getLayer(HILLSHADE_LAYER)) {
+        map.removeLayer(HILLSHADE_LAYER)
+      }
+    } else {
+      map.setTerrain(null)
+      if (map.getLayer(HILLSHADE_LAYER)) map.removeLayer(HILLSHADE_LAYER)
+    }
+  }, [map, isLoaded, enableTerrain, enableHillshade, viewMode])
+
+  return null
+}
+
+function MapViewController({ viewMode }) {
+  const { map, isLoaded } = useMap()
+  const is3D = viewMode !== '2d'
+
+  useEffect(() => {
+    if (!map || !isLoaded) return
+    map.easeTo({
+      pitch: is3D ? 55 : 0,
+      bearing: is3D ? 25 : 0,
+      duration: 800,
+      easing: (t) => t * (2 - t),
+    })
+  }, [map, isLoaded, is3D])
+
+  return null
+}
+
+/* ── UI primitives ────────────────────────────────────────────────────── */
+
+function StatusBadge({ status, T }) {
+  const meta = STATUS_META[status]
+  const color = STATUS_COLOR[status]
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '2px 9px', borderRadius: 999, fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.06em',
-      background: `${color}1a`, border: `1px solid ${color}44`, color, whiteSpace: 'nowrap', ...style,
+      padding: '3px 10px', borderRadius: 999, fontSize: '0.6rem', fontWeight: 800,
+      letterSpacing: '0.08em', textTransform: 'uppercase',
+      background: `${color}18`, border: `1px solid ${color}44`, color,
     }}>
-      {children}
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}88` }} />
+      {meta?.label || status}
     </span>
   )
 }
+
+function StatCard({ label, value, icon: Icon, color, T, sub }) {
+  return (
+    <div style={{
+      border: `1px solid ${T.border}`, borderRadius: 14, background: T.card,
+      padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: `${color}14`, border: `1px solid ${color}33`,
+        }}>
+          <Icon size={13} style={{ color }} />
+        </div>
+        <span style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{label}</span>
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: T.ink, lineHeight: 1.1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 10, color: T.muted, marginTop: -2 }}>{sub}</div>}
+    </div>
+  )
+}
+
+function DataRow({ label, value, tone }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${tone ? 'transparent' : 'currentColor'}12` }}>
+      <span style={{ fontSize: 11, color: 'inherit', opacity: 0.55, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: tone || 'inherit' }}>{value}</span>
+    </div>
+  )
+}
+
+function RiskBar({ label, level, color, T }) {
+  const pct = { critical: 95, high: 80, medium: 55, stable: 30, recovery: 15 }[level] || 50
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+        <span style={{ color: T.ink, fontWeight: 600 }}>{label}</span>
+        <span style={{ color, fontWeight: 800, textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.06em' }}>{level}</span>
+      </div>
+      <div style={{ height: 6, borderRadius: 999, background: `${T.border}`, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.6s ease' }} />
+      </div>
+    </div>
+  )
+}
+
+/* ── Main page ────────────────────────────────────────────────────────── */
 
 export default function DisasterCampDetailPage() {
   const router = useRouter()
@@ -97,24 +236,18 @@ export default function DisasterCampDetailPage() {
   const [camp, setCamp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  const [viewMode, setViewMode] = useState('terrain')
 
   const campId = Array.isArray(params?.campId) ? params.campId[0] : params?.campId
+  const dark = T.mode === 'dark'
 
   useEffect(() => {
     let active = true
 
     async function loadCamp() {
-      if (campId === 'overview') {
-        router.replace('/disaster')
-        return
-      }
-
-      if (!campId) {
-        setLoading(false)
-        return
-      }
+      if (campId === 'overview') { router.replace('/disaster'); return }
+      if (!campId) { setLoading(false); return }
 
       setLoading(true)
       setError('')
@@ -137,181 +270,45 @@ export default function DisasterCampDetailPage() {
     }
 
     loadCamp()
-
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [campId, router])
 
   const detail = camp?.detail || null
   const prediction = camp?.prediction || null
-  const predictionError = camp?.prediction_error || ''
   const occupancy = camp ? Math.round((camp.displaced / camp.capacity) * 100) : 0
-  const campElevation = Number.isFinite(Number(detail?.elev)) ? `${Math.round(Number(detail.elev))} m` : 'N/A'
+
+  const [predResult, setPredResult] = useState(null)
   const [predLoading, setPredLoading] = useState(false)
-  const [predResult, setPredResult] = useState(prediction)
-  const [predError, setPredError] = useState(predictionError)
-  const [waterLevelHistory, setWaterLevelHistory] = useState([])
-  const [waterLevelLoading, setWaterLevelLoading] = useState(false)
-  const [hoveredBarIndex, setHoveredBarIndex] = useState(null)
-
-  const W = useMemo(() => ({
-    mode: T.mode,
-    bg: T.card,
-    surface: T.card,
-    panel: T.card,
-    border: T.border,
-    borderHi: T.border,
-    t0: T.ink,
-    t1: T.inkSoft,
-    t2: T.muted,
-    t3: T.slate,
-    red: T.red,
-    orange: T.orange,
-    yellow: T.amber,
-    cyan: T.teal,
-    green: T.green,
-  }), [T])
-
-  const predictionTone = prediction ? getPredictionTone(prediction.probability, W) : T.muted
+  const [predError, setPredError] = useState('')
 
   useEffect(() => {
     let active = true
     async function loadPrediction() {
       if (!camp || camp.prediction) {
         setPredResult(camp?.prediction || null)
-        setPredError(camp?.prediction_error || '')
         return
       }
-
       setPredLoading(true)
-      setPredError('')
       try {
         const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}/predict`)
         if (!active) return
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Prediction failed' }))
-          setPredError(err.error || 'Prediction failed')
-          setPredResult(null)
-        } else {
-          const body = await res.json()
-          setPredResult(body.prediction || null)
-        }
-      } catch (err) {
+        if (!res.ok) { setPredResult(null); return }
+        const body = await res.json()
+        setPredResult(body.prediction || null)
+      } catch {
         if (!active) return
-        setPredError(err instanceof Error ? err.message : 'Prediction failed')
         setPredResult(null)
       } finally {
         if (active) setPredLoading(false)
       }
     }
-
     loadPrediction()
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [camp, campId])
-
-  useEffect(() => {
-    let active = true
-
-    async function loadWaterLevelHistory() {
-      if (!campId) return
-
-      setWaterLevelLoading(true)
-      try {
-        const response = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}/water-level-history?hours=8`)
-        const payload = response.ok ? await response.json() : null
-        if (!active) return
-
-        const points = Array.isArray(payload?.points) ? payload.points : []
-        const history = points
-          .map((point) => {
-            const value = Number(point?.water_level)
-            if (!Number.isFinite(value)) return null
-            return {
-              value,
-              timestamp: point?.timestamp || null,
-            }
-          })
-          .filter(Boolean)
-
-        setWaterLevelHistory(history.slice(-8))
-      } catch {
-        if (!active) return
-        setWaterLevelHistory([])
-      } finally {
-        if (active) setWaterLevelLoading(false)
-      }
-    }
-
-    loadWaterLevelHistory()
-
-    return () => {
-      active = false
-    }
-  }, [campId])
-
-  const chartSeries = waterLevelHistory.length
-    ? waterLevelHistory
-    : Array.from({ length: 8 }, (_, idx) => ({ value: Number(detail?.wl || 0) + idx * 0.03, timestamp: null }))
-
-  const chartValues = chartSeries.map((point) => point.value)
-  const minChart = Math.min(...chartValues)
-  const maxChart = Math.max(...chartValues)
-  const chartRange = Math.max(maxChart - minChart, 0.01)
-  const chartBars = chartSeries.map((point) => {
-    const value = point.value
-    const normalized = (value - minChart) / chartRange
-    return {
-      value,
-      timestamp: point.timestamp,
-      height: Math.round(20 + normalized * 72),
-      normalized,
-    }
-  })
-  const chartWidth = 196
-  const chartHeight = 100
-  const chartPaddingX = 10
-  const chartPaddingY = 11
-  const chartPoints = chartBars.map((bar, index) => {
-    const x = chartBars.length > 1
-      ? chartPaddingX + (index / (chartBars.length - 1)) * (chartWidth - chartPaddingX * 2)
-      : chartWidth / 2
-    const y = chartHeight - chartPaddingY - bar.normalized * (chartHeight - chartPaddingY * 2)
-    const baseY = chartHeight - chartPaddingY
-    const barHeight = Math.max(2.5, baseY - y)
-    return { x, y, baseY, barHeight, ...bar }
-  })
-  const chartLinePath = chartPoints.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
-  const alertThreshold = Number(detail?.alertL)
-  const thresholdY = Number.isFinite(alertThreshold)
-    ? chartHeight - chartPaddingY - ((alertThreshold - minChart) / chartRange) * (chartHeight - chartPaddingY * 2)
-    : null
-
-  function formatChartTimestamp(timestamp) {
-    if (!timestamp) return ''
-    try {
-      return new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Asia/Colombo',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).format(new Date(timestamp))
-    } catch {
-      return ''
-    }
-  }
-
-  const chartLabels = chartPoints.map((point, index) => {
-    const label = point.timestamp ? formatChartTimestamp(point.timestamp) : `${chartPoints.length - index - 1}h`
-    return index === chartPoints.length - 1 ? 'NOW' : label || `${chartPoints.length - index - 1}h`
-  })
 
   const refreshCamp = useCallback(async () => {
     if (!campId) return
     setRefreshing(true)
-    setError('')
     try {
       const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}`)
       const payload = res.ok ? await res.json() : null
@@ -320,369 +317,356 @@ export default function DisasterCampDetailPage() {
     } catch (err) {
       const fb = buildFallbackCamp(campId)
       setCamp(fb)
-      if (fb) setError('')
-      else setError(err instanceof Error ? err.message : 'Failed to reload camp detail')
+      if (!fb) setError(err instanceof Error ? err.message : 'Failed to reload')
     } finally {
       setRefreshing(false)
     }
   }, [campId])
 
-  const detailMatch = (label, value) => {
-    const q = search.trim().toLowerCase()
-    if (!q) return true
-    return String(label).toLowerCase().includes(q) || String(value ?? '').toLowerCase().includes(q)
-  }
-
   const waterTone = detail ? (detail.wl > detail.alertL ? T.red : detail.wl > 0 ? T.amber : T.teal) : T.teal
 
-  const kpis = camp ? [
-    { label: 'Displaced', value: camp.displaced.toLocaleString(), color: '#F97316', icon: <Users size={16} />, pct: Math.min(100, Math.round((camp.displaced / camp.capacity) * 100)) },
-    { label: 'Capacity', value: camp.capacity.toLocaleString(), color: T.ink, icon: <MapPin size={16} />, pct: 100 },
-    { label: 'Occupancy', value: `${occupancy}%`, color: T.amber, icon: <Gauge size={16} />, pct: occupancy },
-    { label: 'Aid Coverage', value: `${camp.aid}%`, color: T.green, icon: <HeartHandshake size={16} />, pct: camp.aid },
-  ] : []
-
+  /* ── Loading ── */
   if (loading) {
     return (
-      <WithRail>
-        <div style={{ minHeight: '100vh', background: T.panel, display: 'grid', placeItems: 'center', color: T.ink, fontFamily: "'Inter',sans-serif", padding: 24 }}>
+      <div style={{ minHeight: '100vh', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+        <SideNav />
+        <div style={{ minHeight: '100vh', background: T.outer, display: 'grid', placeItems: 'center', color: T.ink, fontFamily: "'Inter',sans-serif" }}>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          <div style={{  width: '100%', padding: 28, textAlign: 'center',}}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 48, height: 48, border: `4px solid ${T.border}`, borderTop: `4px solid ${T.teal}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Loading camp details…</div>
-              <div style={{ color: T.muted, lineHeight: 1.6, marginBottom: 8, fontSize: 13 }}>Fetching latest camp data for {campId}</div>
-            </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, border: `4px solid ${T.border}`, borderTop: `4px solid ${T.teal}`, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Loading camp details…</div>
+            <div style={{ color: T.muted, fontSize: 13 }}>Fetching data for {campId}</div>
           </div>
         </div>
-      </WithRail>
+      </div>
     )
   }
 
+  /* ── Not found ── */
   if (!camp) {
     return (
-      <WithRail>
+      <div style={{ minHeight: '100vh', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+        <SideNav />
         <div style={{ minHeight: '100vh', background: T.outer, display: 'grid', placeItems: 'center', color: T.ink, fontFamily: "'Inter',sans-serif", padding: 24 }}>
-          <div style={{ maxWidth: 560, width: '100%', border: `1px solid ${T.border}`, borderRadius: 20, padding: 28, background: T.panel, textAlign: 'center', boxShadow: '0 24px 60px rgba(20,30,40,0.12)' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Camp not found</div>
-            <div style={{ color: T.muted, lineHeight: 1.7, marginBottom: 18, fontSize: 14 }}>
-              {error || `The selected camp id is not available in the disaster dashboard data set.`}
+          <div style={{ maxWidth: 480, width: '100%', border: `1px solid ${T.border}`, borderRadius: 20, padding: 32, background: T.card, textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Camp Not Found</div>
+            <div style={{ color: T.muted, fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
+              The requested disaster camp could not be found.
             </div>
-            <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>
-              Back to disaster dashboard
-            </Button>
+            <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>Back to Camps</Button>
           </div>
         </div>
-      </WithRail>
+      </div>
     )
   }
 
+  /* ── Main content ── */
   return (
-    <WithRail>
+    <div style={{ minHeight: '100vh', paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
+      <SideNav />
+      <style>{`
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
+        .camp-detail-popup .maplibregl-popup-content { border-radius: 12px !important; padding: 0 !important; box-shadow: 0 12px 32px rgba(0,0,0,0.2) !important; border: 1px solid ${T.border} !important; background: ${T.card} !important; }
+        .camp-detail-popup .maplibregl-popup-tip { border-top-color: ${T.card} !important; }
+        .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .cd-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .cd-three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        @media (max-width: 1100px) { .cd-grid { grid-template-columns: repeat(2, 1fr); } .cd-two { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) { .cd-grid { grid-template-columns: 1fr; } .cd-three { grid-template-columns: 1fr; } }
+      `}</style>
+
       <div style={{ minHeight: '100vh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink }}>
-        <style>{`
-          * { box-sizing: border-box; }
-          ::-webkit-scrollbar { width: 6px; }
-          ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
-          button:hover { opacity: 0.92; }
-          @keyframes disPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-          .det-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-          .det-hero { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.25rem; }
-          .det-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-          .det-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.9rem; }
-          @media (max-width: 1150px) { .det-hero, .det-two { grid-template-columns: 1fr; } }
-          @media (max-width: 900px) { .det-kpi { grid-template-columns: repeat(2, 1fr); } }
-          @media (max-width: 560px) {
-            .det-kpi { grid-template-columns: 1fr; }
-            .det-strip { grid-template-columns: repeat(2, 1fr); }
-          }
-        `}</style>
+        <main style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-        <div className='header-wrapper'>
-          <main style={{ background: T.panel, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* ── Breadcrumb + Header ─────────────────────────────── */}
+          <div style={{ padding: '16px 24px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* breadcrumb */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: T.muted }}>
+              <button onClick={() => router.push('/disaster')} style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+                <ArrowLeft size={12} /> Disaster Operations
+              </button>
+              <span style={{ opacity: 0.4 }}>/</span>
+              <button onClick={() => router.push('/disaster')} style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', padding: 0, fontSize: 11 }}>Camps</button>
+              <span style={{ opacity: 0.4 }}>/</span>
+              <span style={{ color: T.ink, fontWeight: 600 }}>{camp.name}</span>
+            </div>
 
-            <HeaderShell>
-              <PageHeader
-                title={camp.name}
-                subtitle={`${camp.code} · ${camp.type} · Past hourly gauging-station water levels · ${detail?.station || 'gauging station'}`}
-                pendingCount={camp.status === 'high' ? 1 : 0}
-                escalatedCount={camp.status === 'critical' ? 1 : 0}
-                search={{
-                  value: search,
-                  onChange: setSearch,
-                  placeholder: 'Search camp detail…',
-                  onRefresh: refreshCamp,
-                  refreshing: refreshing || loading,
-                }}
-              />
-            </HeaderShell>
-
-            <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-              {/* ── KPI row ────────────────────────────────────────────── */}
-              <div className="det-kpi">
-                {kpis.map((k) => <KpiCard key={k.label} {...k} />)}
+            {/* header row */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{camp.name}</h1>
+                  <StatusBadge status={camp.status} T={T} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.muted }}>
+                  <span style={{ fontWeight: 700, color: T.teal }}>{camp.code}</span>
+                  <span style={{ opacity: 0.3 }}>·</span>
+                  <span>{camp.type}</span>
+                  {detail?.station && (<><span style={{ opacity: 0.3 }}>·</span><span>{detail.station} station</span></>)}
+                </div>
               </div>
-
-              {/* ── Hero — water level + terrain image ─────────────────── */}
-              <div className="det-hero">
-                {/* water level chart */}
-                <DashboardCard
-                  title="Water Level Trend"
-                  subtitle="Relative scaling for trend clarity · hover a bar for the reading"
-                  right={
-                    <Chip color={waterTone}>
-                      <Droplets size={11} /> {Number(detail?.wl).toFixed(2)} m
-                    </Chip>
-                  }
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={refreshCamp}
+                  disabled={refreshing}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
+                    border: `1px solid ${T.border}`, background: T.card, color: T.ink,
+                    fontSize: 11, fontWeight: 700, cursor: 'pointer', opacity: refreshing ? 0.5 : 1,
+                  }}
                 >
-                  <div style={{ position: 'relative' }}>
-                    {hoveredBarIndex !== null && chartPoints[hoveredBarIndex] ? (
-                      <div style={{ position: 'absolute', top: 4, right: 8, padding: '6px 10px', borderRadius: 10, background: `${T.panelSoft}f2`, border: `1px solid ${T.border}`, fontSize: 9, color: T.ink, letterSpacing: '0.04em', zIndex: 2, boxShadow: '0 10px 24px rgba(20,30,40,0.14)' }}>
-                        <div style={{ fontSize: 8, color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Water level</div>
-                        <div style={{ fontSize: 12, fontWeight: 800 }}>{chartPoints[hoveredBarIndex].value.toFixed(2)} m</div>
-                        {chartPoints[hoveredBarIndex].timestamp ? (
-                          <div style={{ marginTop: 2, fontSize: 8, color: T.muted }}>{formatChartTimestamp(chartPoints[hoveredBarIndex].timestamp)}</div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    <div style={{ position: 'relative', height: 190 }}>
-                      <svg viewBox="0 0 170 100" preserveAspectRatio="xMidYMid meet" style={{ width: 'calc(100% + 40px)', height: '100%', display: 'block', marginLeft: '-40px' }}>
-                        <defs>
-                          <linearGradient id="waterLevelArea" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={T.teal} stopOpacity="0.3" />
-                            <stop offset="100%" stopColor={T.teal} stopOpacity="0.02" />
-                          </linearGradient>
-                          <linearGradient id="waterLevelBar" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={T.teal} stopOpacity="0.9" />
-                            <stop offset="100%" stopColor="#F97316" stopOpacity="0.6" />
-                          </linearGradient>
-                        </defs>
+                  <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> Refresh
+                </button>
+                <button
+                  onClick={() => router.push('/disaster')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
+                    border: `1px solid ${T.border}`, background: T.card, color: T.ink,
+                    fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  <ArrowLeft size={12} /> Overview
+                </button>
+              </div>
+            </div>
+          </div>
 
-                        {[0, 25, 50, 75, 100].map((lineY) => (
-                          <line key={lineY} x1="10" y1={lineY} x2="150" y2={lineY} stroke={T.border} strokeWidth="0.45" strokeDasharray="1.6 2.8" opacity="0.8" />
-                        ))}
+          {/* ── Large Interactive Map ────────────────────────────── */}
+          <div style={{ padding: '12px 24px' }}>
+            <div style={{
+              position: 'relative', borderRadius: 16, overflow: 'hidden',
+              border: `1px solid ${T.border}`,
+              height: 'clamp(400px, 50vh, 600px)',
+              background: dark ? '#030c18' : '#ddeaf5',
+            }}>
+              <Map
+                center={[camp.lng, camp.lat]}
+                zoom={12}
+                className="absolute inset-0"
+                theme={dark ? 'dark' : 'light'}
+              >
+                <MapControls showZoom showLocate showCompass />
+                <MapViewController viewMode={viewMode} />
+                <CampDetailTerrain viewMode={viewMode} />
+                <CampMapView camp={camp} dark={dark} viewMode={viewMode} />
+              </Map>
 
-                        {thresholdY !== null ? (
-                          <line x1="10" y1={thresholdY} x2="150" y2={thresholdY} stroke={T.red} strokeWidth="0.7" strokeDasharray="3 2" opacity="0.8" />
-                        ) : null}
+              {/* View mode toggle */}
+              <div className="absolute z-[13] top-3 right-3 flex items-center rounded-full overflow-hidden" style={{ background: dark ? 'rgba(13,13,16,0.85)' : 'rgba(255,255,255,0.85)', border: `1px solid ${T.border}`, backdropFilter: 'blur(10px)' }}>
+                {VIEW_MODES.map((m) => {
+                  const active = viewMode === m
+                  const icon = m === '2d' ? <Layers size={10} /> : m === '3d' ? <Box size={10} /> : m === 'terrain' ? <Mountain size={10} /> : <Triangle size={10} />
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => setViewMode(m)}
+                      title={m.toUpperCase()}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 3,
+                        padding: '5px 10px', fontSize: '0.55rem', fontWeight: 800,
+                        letterSpacing: '0.06em', cursor: 'pointer', border: 'none',
+                        background: active ? (dark ? 'rgba(34,211,238,0.2)' : 'rgba(8,145,178,0.18)') : 'transparent',
+                        color: active ? (dark ? '#22d3ee' : '#0891b2') : T.muted,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {icon} {m.toUpperCase()}
+                    </button>
+                  )
+                })}
+              </div>
 
-                        {chartPoints.length > 1 ? (
-                          <path d={`M ${chartPoints[0].x} ${chartPoints[0].baseY} L ${chartPoints[0].x} ${chartPoints[0].y} ${chartPoints.slice(1).map((point) => `L ${point.x} ${point.y}`).join(' ')} L ${chartPoints[chartPoints.length - 1].x} ${chartPoints[chartPoints.length - 1].baseY} Z`} fill="url(#waterLevelArea)" />
-                        ) : null}
+              {/* Camp label overlay */}
+              <div className="absolute z-[13] bottom-3 left-3 flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: dark ? 'rgba(13,13,16,0.85)' : 'rgba(255,255,255,0.85)', border: `1px solid ${T.border}`, backdropFilter: 'blur(10px)' }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: STATUS_COLOR[camp.status], boxShadow: `0 0 10px ${STATUS_COLOR[camp.status]}88` }} />
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: T.ink, lineHeight: 1.2 }}>{camp.code}</div>
+                  <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{STATUS_META[camp.status]?.label}</div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                        {chartPoints.map((point, index) => (
-                          <rect
-                            key={`bar-${index}`}
-                            x={point.x - 2.0}
-                            y={point.baseY - point.barHeight}
-                            width="4"
-                            height={point.barHeight}
-                            rx="2"
-                            fill="url(#waterLevelBar)"
-                            opacity="0.6"
-                          />
-                        ))}
+          {/* ── Content grid ─────────────────────────────────────── */}
+          <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                        {chartPoints.length > 1 ? (
-                          <path d={chartLinePath} fill="none" stroke={T.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 2px ${T.teal}80)` }} />
-                        ) : null}
+            {/* ── Key Stats ── */}
+            <div className="cd-grid">
+              <StatCard label="Displaced" value={camp.displaced.toLocaleString()} icon={Users} color="#F97316" T={T} sub={`${occupancy}% occupancy`} />
+              <StatCard label="Capacity" value={camp.capacity.toLocaleString()} icon={MapPin} color={T.ink} T={T} sub="Maximum" />
+              <StatCard label="Aid Coverage" value={`${camp.aid}%`} icon={HeartHandshake} color={T.green} T={T} sub="Active aid" />
+              <StatCard label="Workers" value={String(camp.workers)} icon={Shield} color={T.purple} T={T} sub="Deployed" />
+            </div>
 
-                        {chartPoints.map((point, index) => (
-                          <g key={index}>
-                            <rect
-                              x={point.x - 5}
-                              y="0"
-                              width="10"
-                              height="100"
-                              fill="transparent"
-                              style={{ cursor: 'pointer' }}
-                              onMouseEnter={() => setHoveredBarIndex(index)}
-                              onMouseLeave={() => setHoveredBarIndex(null)}
-                            />
-                            <circle
-                              cx={point.x}
-                              cy={point.y}
-                              r={hoveredBarIndex === index ? 2.6 : 2.15}
-                              fill={T.panel}
-                              stroke={index % 2 === 0 ? T.teal : '#F97316'}
-                              strokeWidth="1.4"
-                              style={{ cursor: 'pointer', filter: `drop-shadow(0 0 5px ${(index % 2 === 0 ? T.teal : '#F97316')}78)` }}
-                              onMouseEnter={() => setHoveredBarIndex(index)}
-                              onMouseLeave={() => setHoveredBarIndex(null)}
-                            />
-                            <circle
-                              cx={point.x}
-                              cy={point.y}
-                              r={hoveredBarIndex === index ? 0.9 : 0.75}
-                              fill={index % 2 === 0 ? T.teal : '#F97316'}
-                              pointerEvents="none"
-                            />
-                            {index === chartPoints.length - 1 ? (
-                              <text
-                                x={point.x}
-                                y={point.y - 4}
-                                textAnchor="middle"
-                                fill={T.teal}
-                                fontSize="4.8"
-                                fontWeight="800"
-                                letterSpacing="0.12em"
-                              >
-                                NOW
-                              </text>
-                            ) : null}
-                          </g>
-                        ))}
-                      </svg>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${chartLabels.length}, minmax(0, 1fr))`, gap: 4, marginTop: 6, paddingLeft: 2, paddingRight: 2 }}>
-                      {chartLabels.map((label, index) => (
-                        <div key={`${label}-${index}`} style={{ textAlign: 'center', fontSize: 8, color: index === chartLabels.length - 1 ? T.teal : T.muted, letterSpacing: '0.08em', fontWeight: index === chartLabels.length - 1 ? 800 : 600 }}>
-                          {label}
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', color: T.muted, fontSize: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      <span>{waterLevelLoading ? 'loading levels' : 'relative water trend'}</span>
-                      <span>{detail?.station || 'gauging station'}</span>
-                    </div>
-                  </div>
-                </DashboardCard>
-
-                {/* terrain reference image card */}
-                <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '1.25rem', border: `1px solid ${T.border}`, minHeight: 320, boxShadow: T.mode === 'dark' ? '0 18px 42px rgba(0,0,0,0.4)' : '0 18px 42px rgba(19,47,74,0.1)', display: 'flex', flexDirection: 'column' }}>
-                  <img src={T.mode === 'dark' ? '/disaster/terrain-topography-dark.png' : '/disaster/terrain-topography-light.png'} alt="Terrain reference" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  <div style={{ position: 'absolute', inset: 0, background: T.mode === 'dark' ? 'linear-gradient(180deg, rgba(3,8,15,0.78) 0%, rgba(3,8,15,0.35) 45%, rgba(3,8,15,0.12) 100%)' : 'linear-gradient(180deg, rgba(15,23,42,0.72) 0%, rgba(15,23,42,0.25) 45%, rgba(15,23,42,0.08) 100%)' }} />
-                  <div style={{ position: 'relative', zIndex: 2, padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1 }}>
-                    <div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 4 }}>
-                        Terrain reference
-                      </div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', lineHeight: 1.1 }}>Relief Operations Grid</div>
-                      <div style={{ marginTop: 4, fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '0.05em', maxWidth: 300 }}>Terrain-topography alignment for the selected camp and live operational data.</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <Chip color={T.lime} style={{ background: `${T.lime}22`, border: `1px solid ${T.lime}66` }}>{camp.code}</Chip>
-                      <Chip color={STATUS_COLOR[camp.status]}>{STATUS_META[camp.status]?.label}</Chip>
-                    </div>
-
-                    {/* alert profile */}
-                    <div style={{ marginTop: 'auto', padding: '0.7rem 0.85rem', borderRadius: 14, background: T.mode === 'dark' ? 'rgba(19,19,22,0.92)' : 'rgba(255,255,255,0.92)', border: `1px solid ${T.border}`, boxShadow: '0 12px 28px rgba(20,30,40,0.16)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-                        <div style={{ fontSize: 8, color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>Alert profile</div>
-                        <div style={{ fontSize: 8, color: STATUS_COLOR[camp.status], letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{STATUS_META[camp.status]?.label}</div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, fontSize: 10, color: T.ink }}>
-                        <div style={{ padding: '7px 8px', borderRadius: 12, background: T.cardSoft, border: `1px solid ${T.border}` }}><div style={{ color: T.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Level</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.wl} m</div></div>
-                        <div style={{ padding: '7px 8px', borderRadius: 12, background: T.cardSoft, border: `1px solid ${T.border}` }}><div style={{ color: T.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Rainfall</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.rain} mm</div></div>
-                        <div style={{ padding: '7px 8px', borderRadius: 12, background: T.cardSoft, border: `1px solid ${T.border}` }}><div style={{ color: T.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Alert lvl</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.alertL} m</div></div>
-                        <div style={{ padding: '7px 8px', borderRadius: 12, background: T.cardSoft, border: `1px solid ${T.border}` }}><div style={{ color: T.muted, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Major flood</div><div style={{ marginTop: 2, fontWeight: 800 }}>{detail.majorL} m</div></div>
-                      </div>
-                    </div>
-                  </div>
+            {/* ── Two-column: Location + Risk ── */}
+            <div className="cd-two">
+              {/* Location info */}
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Location</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  <DataRow label="Latitude" value={`${camp.lat.toFixed(4)}°`} tone={T.teal} />
+                  <DataRow label="Longitude" value={`${camp.lng.toFixed(4)}°`} tone={T.teal} />
+                  {detail?.elev != null && <DataRow label="Elevation" value={`${detail.elev} m AMSL`} tone={T.ink} />}
+                  {detail?.river && <DataRow label="Water body" value={detail.river} tone={T.ink} />}
+                  {detail?.upDist != null && <DataRow label="Upstream dist." value={`${detail.upDist} m`} tone={T.ink} />}
                 </div>
               </div>
 
-              {/* ── Snapshot / details + hydrology / operations / model ── */}
-              <div className="det-two">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <Section title="Camp snapshot" theme={W}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, height: '100%' }}>
-                      {detailMatch('Displaced', camp.displaced.toLocaleString()) && <InfoCard label="Displaced" value={camp.displaced.toLocaleString()} tone="#F97316" theme={W} style={{ height: '100%' }} />}
-                      {detailMatch('Capacity', camp.capacity.toLocaleString()) && <InfoCard label="Capacity" value={camp.capacity.toLocaleString()} tone={T.ink} theme={W} style={{ height: '100%' }} />}
-                      {detailMatch('Occupancy', `${occupancy}%`) && <InfoCard label="Occupancy" value={`${occupancy}%`} tone={T.amber} theme={W} style={{ height: '100%' }} />}
-                      {detailMatch('Aid coverage', `${camp.aid}%`) && <InfoCard label="Aid coverage" value={`${camp.aid}%`} tone={T.green} theme={W} style={{ height: '100%' }} />}
-                    </div>
-                  </Section>
-
-                  <Section title="Camp details" theme={W}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {detailMatch('Camp code', camp.code) && <Row label="Camp code" value={camp.code} tone={T.ink} theme={W} />}
-                      {detailMatch('Disaster type', camp.type) && <Row label="Disaster type" value={camp.type} tone={T.ink} theme={W} />}
-                      {detailMatch('Camp elevation', campElevation) && <Row label="Camp elevation" value={campElevation} tone={T.teal} theme={W} />}
-                      {detailMatch('Workers', camp.workers) && <Row label="Workers" value={camp.workers} tone={T.teal} theme={W} />}
-                      {detailMatch('Location', `${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`) && <Row label="Location" value={`${camp.lat.toFixed(2)}°N, ${camp.lng.toFixed(2)}°E`} tone={T.ink} theme={W} />}
-                    </div>
-                  </Section>
+              {/* Risk overview */}
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Risk Overview</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <RiskBar label="Flood Risk" level={prediction?.flood_possibility?.toLowerCase() || camp.status} color={STATUS_COLOR[prediction?.flood_possibility?.toLowerCase() || camp.status] || T.amber} T={T} />
+                  <RiskBar label="Camp Status" level={camp.status} color={STATUS_COLOR[camp.status]} T={T} />
+                  {detail?.rain > 20 && <RiskBar label="Rainfall Alert" level="high" color={T.red} T={T} />}
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <Section title="Hydrology details" theme={W} compact>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, height: '100%' }}>
-                      <InfoCard label="Gauge lat" value={`${detail.gauLat.toFixed(4)}°`} tone={T.teal} theme={W} style={{ height: '100%' }} />
-                      <InfoCard label="Gauge lng" value={`${detail.gauLng.toFixed(4)}°`} tone={T.teal} theme={W} style={{ height: '100%' }} />
-                      <InfoCard label="Upstream" value={`${detail.upDist.toFixed(0)} m`} tone={T.ink} theme={W} style={{ height: '100%' }} />
-                      <InfoCard label="Minor flood" value={`${detail.minorL} m`} tone="#F97316" theme={W} style={{ height: '100%' }} />
+                {predResult && (
+                  <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Flood Probability</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: predResult.probability >= 0.7 ? T.red : predResult.probability >= 0.4 ? T.amber : T.green }}>
+                        {Math.round(predResult.probability * 100)}%
+                      </span>
                     </div>
-                  </Section>
-
-                  <Section title="Operational summary" theme={W} compact>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, height: '100%' }}>
-                      <InfoCard label="Precip (24h)" value={`${detail.precip.toFixed(1)} mm`} tone="#F97316" theme={W} compact style={{ height: '100%', padding: 16 }} />
-                      <InfoCard label="Peak hour" value={`${detail.maxHrPrec} mm`} tone={T.amber} theme={W} compact style={{ height: '100%', padding: 16 }} />
-                      <InfoCard label="Max wind" value={`${detail.maxWind} km/h`} tone={T.ink} theme={W} compact style={{ height: '100%', padding: 16 }} />
-                      <InfoCard label="Cloud cover" value={`${detail.cloud}%`} tone={T.inkSoft} theme={W} compact style={{ height: '100%', padding: 16 }} />
+                    <div style={{ height: 6, borderRadius: 999, background: T.border, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.round(predResult.probability * 100)}%`, height: '100%', background: predResult.probability >= 0.7 ? T.red : predResult.probability >= 0.4 ? T.amber : T.green, borderRadius: 999 }} />
                     </div>
-                  </Section>
+                    <div style={{ marginTop: 6, fontSize: 10, color: T.muted }}>Source: {predResult.source}</div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                  <Section title="Model output" theme={W} compact>
-                  {predResult ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                        <InfoCard label="Flood risk" value={predResult.flood_possibility} tone={predictionTone} theme={W} style={{ height: '100%' }} />
-                        <InfoCard label="Category" value={predResult.category} tone={predictionTone} theme={W} style={{ height: '100%' }} />
-                        <InfoCard label="Probability" value={`${Math.round(predResult.probability * 100)}%`} tone={predictionTone} theme={W} style={{ height: '100%' }} />
-                      </div>
-                      <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, padding: 12, background: T.cardSoft, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-                            <div style={{ fontSize: 9, color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Future forecast</div>
-                            <div style={{ fontSize: 9, color: predictionTone, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800 }}>{predResult.future_forecast?.category || 'UNKNOWN'}</div>
-                          </div>
-                          <div style={{ height: 10, borderRadius: 999, background: `${T.border}`, overflow: 'hidden' }}>
-                            <div style={{ width: `${Math.round((predResult.future_forecast?.probability || 0) * 100)}%`, height: '100%', background: predictionTone }} />
-                          </div>
-                        </div>
-                        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: T.inkSoft }}>
-                          <span>Forecast chance</span>
-                          <strong style={{ color: predictionTone }}>{Math.round((predResult.future_forecast?.probability || 0) * 100)}%</strong>
-                        </div>
-                        <div style={{ marginTop: 8, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>Source: {predResult.source}</div>
-                      </div>
+            {/* ── Environmental + Operational ── */}
+            <div className="cd-two">
+              {/* Environment */}
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Environment</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                  {detail?.wl != null && (
+                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Water Level</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: waterTone, marginTop: 2 }}>{detail.wl} m</div>
                     </div>
-                  ) : (
-                    <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, padding: 12, background: T.cardSoft, color: T.muted, fontSize: 11, lineHeight: 1.6, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  )}
+                  {detail?.rain != null && (
+                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rainfall</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: detail.rain > 20 ? T.red : detail.rain > 5 ? T.amber : T.teal, marginTop: 2 }}>{detail.rain} mm</div>
+                    </div>
+                  )}
+                  {detail?.hum != null && (
+                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Humidity</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.teal, marginTop: 2 }}>{detail.hum}%</div>
+                    </div>
+                  )}
+                  {detail?.pres != null && (
+                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Pressure</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, marginTop: 2 }}>{detail.pres} hPa</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Operational */}
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Operational</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                  {detail?.precip != null && (
+                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Precip (24h)</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: detail.precip > 15 ? T.red : T.amber, marginTop: 2 }}>{detail.precip.toFixed(1)} mm</div>
+                    </div>
+                  )}
+                  {detail?.maxWind != null && (
+                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Max Wind</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, marginTop: 2 }}>{detail.maxWind} km/h</div>
+                    </div>
+                  )}
+                  {detail?.cloud != null && (
+                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Cloud Cover</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.inkSoft, marginTop: 2 }}>{detail.cloud}%</div>
+                    </div>
+                  )}
+                  {detail?.soil != null && (
+                    <div style={{ padding: '10px 12px', borderRadius: 10, background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Soil Moisture</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.teal, marginTop: 2 }}>{Math.round(detail.soil * 100)}%</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Alerts + Hydrology ── */}
+            <div className="cd-two">
+              {/* Active alerts */}
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Active Alerts</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {detail?.wl > detail?.alertL && (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, background: `${T.red}10`, border: `1px solid ${T.red}33` }}>
+                      <AlertTriangle size={14} style={{ color: T.red, marginTop: 1, flexShrink: 0 }} />
                       <div>
-                        <div>Model output is unavailable for this camp.</div>
-                        {predError ? <div style={{ marginTop: 6, color: '#F97316' }}>{predError}</div> : null}
+                        <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>Water level above alert threshold</div>
+                        <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>Current: {detail.wl} m · Alert: {detail.alertL} m</div>
                       </div>
                     </div>
                   )}
-                  </Section>
+                  {detail?.rain > 20 && (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, background: `${T.amber}10`, border: `1px solid ${T.amber}33` }}>
+                      <CloudRain size={14} style={{ color: T.amber, marginTop: 1, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: T.amber }}>Heavy rainfall detected</div>
+                        <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{detail.rain} mm accumulated</div>
+                      </div>
+                    </div>
+                  )}
+                  {camp.status === 'critical' && (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, background: `${T.red}10`, border: `1px solid ${T.red}33` }}>
+                      <Shield size={14} style={{ color: T.red, marginTop: 1, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>Critical status active</div>
+                        <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>Camp requires immediate attention</div>
+                      </div>
+                    </div>
+                  )}
+                  {!(detail?.wl > detail?.alertL) && !(detail?.rain > 20) && camp.status !== 'critical' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px', borderRadius: 10, background: `${T.green}10`, border: `1px solid ${T.green}33`, color: T.green, fontSize: 12, fontWeight: 600 }}>
+                      <Activity size={14} /> No active alerts
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* ── bottom metric strip ────────────────────────────────── */}
-              <div className="det-strip">
-                <MiniStat label="Water Level" value={`${Number(detail?.wl).toFixed(2)} m`} icon={<Droplets size={12} />} color={waterTone} sub="Gauging station" />
-                <MiniStat label="Rainfall" value={`${detail.rain} mm`} icon={<CloudRain size={12} />} color={detail.rain > 20 ? T.red : detail.rain > 5 ? T.amber : T.teal} sub="Last 24h" />
-                <MiniStat label="Humidity" value={`${detail.hum}%`} icon={<Cloud size={12} />} color={T.teal} sub="Ambient" />
-                <MiniStat label="Pressure" value={`${detail.pres} hPa`} icon={<Activity size={12} />} color={T.ink} sub="Station" />
-                <MiniStat label="Precip (24h)" value={`${detail.precip.toFixed(1)} mm`} icon={<CloudRain size={12} />} color="#F97316" sub="Accumulated" />
-                <MiniStat label="Responders" value={String(camp.workers)} icon={<Users size={12} />} color={T.purple} sub="Deployed" />
-              </div>
-
-              {/* ── footer ──────────────────────────────────────────────── */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', paddingBottom: '0.5rem' }}>
-                <Button onClick={() => router.push('/disaster')} icon={<ChevronRight size={15} />}>
-                  Back to Overview
-                </Button>
+              {/* Hydrology details */}
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 14, background: T.card, padding: 16 }}>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12 }}>Hydrology</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {detail?.station && <DataRow label="Station" value={detail.station} />}
+                  {detail?.river && <DataRow label="River" value={detail.river} />}
+                  {detail?.alertL != null && <DataRow label="Alert level" value={`${detail.alertL} m`} tone={T.amber} />}
+                  {detail?.minorL != null && <DataRow label="Minor flood" value={`${detail.minorL} m`} />}
+                  {detail?.majorL != null && <DataRow label="Major flood" value={`${detail.majorL} m`} tone={T.red} />}
+                  {detail?.gauLat != null && <DataRow label="Gauge coords" value={`${detail.gauLat.toFixed(4)}°, ${detail.gauLng.toFixed(4)}°`} />}
+                </div>
               </div>
             </div>
-          </main>
-        </div>
+
+            {/* ── Footer ── */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', paddingTop: 8, paddingBottom: 24 }}>
+              <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>Back to Overview</Button>
+            </div>
+          </div>
+        </main>
       </div>
-    </WithRail>
+    </div>
   )
 }
