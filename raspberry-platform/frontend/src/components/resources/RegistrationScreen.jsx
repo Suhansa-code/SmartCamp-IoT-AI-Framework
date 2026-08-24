@@ -24,6 +24,9 @@ import {
   QrCode,
   Camera,
   GraduationCap,
+  Usb,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import DataTable from "../ui/display/DataTable";
 import ConfirmDialog from "../ui/feedback/ConfirmDialog";
@@ -34,6 +37,7 @@ import QRScanner from "./QRScanner";
 import { useToast } from "../ui/feedback/Toast";
 import { API, inputClass as inputClassBase } from "../ui/config";
 import { COLORS, SHADOW_CARD } from "../../lib/tokens";
+import useFingerprintDevice, { ENROLL_STEP_LABEL } from "../../lib/useFingerprintDevice";
 
 /* ------------------------------------------------------------------ */
 /*  SEMANTIC COLOUR MAP                                                 */
@@ -51,13 +55,15 @@ const TONE = {
 const STEPS = [
   { key: "scan", label: "Scan", icon: Fingerprint },
   { key: "identity", label: "Identity", icon: ShieldCheck },
+  { key: "enroll", label: "Fingerprint", icon: Link2 },
   { key: "complete", label: "Wristband", icon: CheckCircle },
 ];
 
 function stateStep(scanState) {
   if (scanState === "idle" || scanState === "scanning") return 0;
   if (scanState === "found" || scanState === "not_found") return 1;
-  if (scanState === "success") return 2;
+  if (scanState === "enrolling") return 2;
+  if (scanState === "success") return 3;
   return 0;
 }
 
@@ -270,6 +276,7 @@ function ScanningVisual({ scanState }) {
           {scanState === "scanning" && "Analyzing Biometrics"}
           {scanState === "found" && "Match Confirmed"}
           {scanState === "not_found" && "No Record Found"}
+          {scanState === "enrolling" && "Enrolling Fingerprint"}
           {scanState === "success" && "Process Complete"}
         </h3>
 
@@ -278,8 +285,55 @@ function ScanningVisual({ scanState }) {
           {scanState === "scanning" && "Reading fingerprint pattern…"}
           {scanState === "found" && "Identity verified against records"}
           {scanState === "not_found" && "Create a new profile to enroll"}
+          {scanState === "enrolling" && "Capturing this person's fingerprint"}
           {scanState === "success" && "Wristband issued successfully"}
         </p>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  SENSOR STATUS CHIP                                                  */
+/* ------------------------------------------------------------------ */
+
+function SensorStatus({ status, streamOnline }) {
+  if (!status) {
+    return <Chip tone="neutral"><WifiOff className="w-3.5 h-3.5" /> Scanner status unknown</Chip>;
+  }
+  if (status.device?.connected) {
+    return (
+      <Chip tone="brand">
+        <Usb className="w-3.5 h-3.5" />
+        Sensor on {status.device.port?.split("/").pop() || "serial"}
+        {status.device.template_count != null && ` · ${status.device.template_count} templates`}
+      </Chip>
+    );
+  }
+  return (
+    <Chip tone="warning">
+      {streamOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+      Simulation mode — no scanner attached
+    </Chip>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ENROLLMENT PROGRESS                                                 */
+/* ------------------------------------------------------------------ */
+
+function EnrollProgress({ step, slot }) {
+  return (
+    <div
+      className="w-full rounded-lg px-4 py-3 border flex items-center gap-3"
+      style={{ color: TONE.info.color, backgroundColor: TONE.info.bg, borderColor: TONE.info.border }}
+    >
+      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold">{ENROLL_STEP_LABEL[step] || "Capturing fingerprint…"}</p>
+        {slot != null && (
+          <p className="text-[11px] font-mono mt-0.5" style={{ color: COLORS.muted }}>Sensor slot #{slot}</p>
+        )}
       </div>
     </div>
   );
@@ -587,7 +641,7 @@ function Barcode({ value }) {
 /*  NO MATCH DECISION                                                   */
 /* ------------------------------------------------------------------ */
 
-function NoMatchDecision({ onNew, onReturning }) {
+function NoMatchDecision({ onNew, onReturning, detail }) {
   return (
     <div className="flex flex-col items-center justify-center text-center h-full space-y-6">
       <div className="w-16 h-16 rounded-full flex items-center justify-center border" style={{ backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border }}>
@@ -595,7 +649,9 @@ function NoMatchDecision({ onNew, onReturning }) {
       </div>
       <div>
         <h3 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>No Fingerprint Match</h3>
-        <p className="text-[13px] mt-1 max-w-xs" style={{ color: COLORS.muted }}>This fingerprint was not found in the camp database.</p>
+        <p className="text-[13px] mt-1 max-w-xs" style={{ color: COLORS.muted }}>
+          {detail || "This fingerprint was not found in the camp database."}
+        </p>
       </div>
 
       <div className="w-full grid gap-3">
@@ -739,6 +795,19 @@ function RegistrationScreen() {
   const [qrCode, setQrCode] = useState("");
   const abortRef = useRef(null);
 
+  // ── Live fingerprint hardware ──
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollStep, setEnrollStep] = useState(null);
+  const [enrollSlot, setEnrollSlot] = useState(null);
+  const [enrollNotice, setEnrollNotice] = useState(null);
+  const [deviceLog, setDeviceLog] = useState([]);
+  const [showFeed, setShowFeed] = useState(false);
+  const scanStateRef = useRef(scanState);
+  const enrollContextRef = useRef(null);
+  const wristbandRef = useRef("");
+  scanStateRef.current = scanState;
+  wristbandRef.current = wristband;
+
   const fetchPersons = useCallback(() => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
@@ -748,34 +817,187 @@ function RegistrationScreen() {
     setPersonsError("");
     fetch(`${API}/api/register`, { signal: controller.signal })
       .then((r) => { if (!r.ok) throw new Error("Failed to load"); return r.json(); })
-      .then((data) => { setPersons(data.persons || []); setPersonsLoading(false); })
+      .then((data) => {
+        setPersons((data.persons || []).map((p) => ({
+          ...p,
+          enrollment_status: p.fingerprint_slot != null ? "enrolled" : "not_enrolled",
+        })));
+        setPersonsLoading(false);
+      })
       .catch((err) => { if (err.name !== "AbortError") { setPersonsError(err.message || "Failed to load registrations"); setPersonsLoading(false); } });
   }, []);
 
   useEffect(() => { fetchPersons(); }, [fetchPersons]);
 
+  const applyScanResult = useCallback((data) => {
+    if (data.matched && data.person) {
+      setProfile(data.person);
+      setQrBound(false);
+      setScanState("found");
+      setStatusMessage(`Identity verified: ${data.person.full_name}`);
+    } else {
+      setProfile(null);
+      setNotFoundView("decision");
+      setScanState("not_found");
+      setStatusMessage(data.message || "No profile found. How would you like to continue?");
+    }
+  }, []);
+
+  const finishEnroll = useCallback((data) => {
+    setEnrolling(false);
+    setEnrollStep(null);
+    setEnrollSlot(null);
+    const context = enrollContextRef.current;
+    enrollContextRef.current = null;
+
+    if (!data.success) {
+      const text = `Enrollment failed: ${data.error || "sensor error"}`;
+      setStatusMessage(text);
+      setEnrollNotice({ tone: "danger", text });
+      addToast(data.error || "Enrollment failed", "error");
+      // On the registration path the person and wristband already exist, so the
+      // desk stays on the fingerprint step to retry or skip — never loses them.
+      return;
+    }
+
+    if (data.person) setProfile(data.person);
+    setStatusMessage(`Fingerprint enrolled on slot #${data.slot}`);
+    setEnrollNotice({ tone: "brand", text: `Fingerprint enrolled on slot #${data.slot}`, icon: CheckCircle });
+    addToast(`Fingerprint enrolled on slot #${data.slot}`, "success");
+    fetchPersons();
+
+    if (context === "register") {
+      setStatusMessage(`Wristband assigned: ${wristbandRef.current}`);
+      setScanState("success");
+    } else if (context === "reenroll") {
+      setReturningPerson(null);
+      setNotFoundView("decision");
+      setScanState("found");
+    }
+  }, [addToast, fetchPersons]);
+
+  const { status: deviceStatus, streamOnline, deviceConnected } = useFingerprintDevice({
+    onScanResult: (data) => {
+      // The pad can be touched at any moment — only act when the desk is waiting.
+      if (scanStateRef.current !== "scanning" && scanStateRef.current !== "idle") return;
+      applyScanResult(data);
+    },
+    onEnrollProgress: (data) => {
+      setEnrolling(true);
+      setEnrollStep(data.step);
+      if (data.slot != null) setEnrollSlot(data.slot);
+    },
+    onEnrollResult: finishEnroll,
+    onDeviceError: (data) => addToast(data.message || "Sensor error", "error"),
+    onDeviceEvent: (data) => {
+      // Keep the raw frames: with unverified firmware this is the only way to see
+      // what the sensor actually says.
+      setDeviceLog((log) => [
+        { at: new Date().toLocaleTimeString(), raw: JSON.stringify(data) },
+        ...log,
+      ].slice(0, 60));
+    },
+  });
+
+  /** Capture a template on the sensor and bind it to a person. Progress arrives over SSE. */
+  const startEnroll = async (personId, context) => {
+    enrollContextRef.current = context;
+    setEnrolling(true);
+    setEnrollStep("STARTED");
+    setEnrollSlot(null);
+    setEnrollNotice(null);
+    try {
+      const res = await fetch(`${API}/api/fingerprint/enroll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person_id: personId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Enrollment could not be started");
+      setEnrollSlot(data.slot);
+      setStatusMessage(`Enrolling on sensor slot #${data.slot} — follow the prompts`);
+    } catch (err) {
+      setEnrolling(false);
+      setEnrollStep(null);
+      enrollContextRef.current = null;
+      setStatusMessage(`Enrollment failed: ${err.message}`);
+      setEnrollNotice({ tone: "danger", text: `Enrollment failed: ${err.message}` });
+      addToast(err.message, "error");
+    }
+  };
+
+  /**
+   * Bind the captured slot by hand. Some firmware captures a print but never
+   * announces it; without this the desk would wait out the timeout for nothing.
+   */
+  const confirmEnrollManually = async () => {
+    try {
+      const res = await fetch(`${API}/api/fingerprint/enroll/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(enrollSlot != null ? { slot: enrollSlot } : {}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not link the fingerprint");
+    } catch (err) {
+      addToast(err.message, "error");
+    }
+  };
+
+  const cancelEnroll = async () => {
+    try {
+      await fetch(`${API}/api/fingerprint/enroll/cancel`, { method: "POST" });
+    } catch {
+      // The SSE enroll-result still clears local state.
+    }
+  };
+
+  /**
+   * Finish a registration without a template. Some arrivals genuinely cannot be
+   * enrolled — infants, bandaged or amputated hands — and the desk must not be
+   * blocked. The roster flags them so staff can come back to it.
+   */
+  const skipEnrollment = async () => {
+    if (enrolling) await cancelEnroll();
+    setEnrolling(false);
+    setEnrollStep(null);
+    enrollContextRef.current = null;
+    setEnrollNotice({
+      tone: "warning",
+      text: "Registered without a fingerprint — enrol later from the person's profile",
+    });
+    setStatusMessage(wristband ? `Wristband assigned: ${wristband}` : "Registration complete");
+    setScanState("success");
+  };
+
+  const retryEnrollment = () => {
+    if (!profile) return;
+    startEnroll(profile.id, "register");
+  };
+
   const handleScanFingerprint = async () => {
     setScanState("scanning");
     setStatusMessage("Initializing biometric scan...");
     try {
-      const res = await fetch(`${API}/api/fingerprint/scan`, { method: "POST" });
-      if (!res.ok) throw new Error("Scanner service unavailable");
+      const res = await fetch(`${API}/api/fingerprint/scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
       const data = await res.json();
-      setTimeout(() => {
-        if (data.matched) {
-          setProfile(data.person);
-          setScanState("found");
-          setStatusMessage(`Identity verified: ${data.person.full_name}`);
-        } else {
-          setProfile(null);
-          setNotFoundView("decision");
-          setScanState("not_found");
-          setStatusMessage("No profile found. How would you like to continue?");
-        }
-      }, 1500);
+      if (!res.ok) throw new Error(data.error || "Scanner service unavailable");
+
+      // Hardware answers asynchronously — the match lands on the SSE stream.
+      if (data.status === "SCANNING") {
+        setStatusMessage(data.message || "Place finger on the sensor");
+        return;
+      }
+
+      // Simulator resolves inline; hold the scan animation briefly so it reads.
+      setTimeout(() => applyScanResult(data), 1200);
     } catch (err) {
       setScanState("idle");
-      setStatusMessage("Scanner offline or error");
+      setStatusMessage(err.message || "Scanner offline or error");
     }
   };
 
@@ -856,27 +1078,8 @@ function RegistrationScreen() {
 
   const handleReenroll = async () => {
     if (!returningPerson) return;
-    setSubmitting(true);
     setStatusMessage("Re-enrolling fingerprint…");
-    try {
-      const linkRes = await fetch(`${API}/api/fingerprint/link`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ person_id: returningPerson.id }),
-      });
-      const linkData = await linkRes.json();
-      if (linkData.error) throw new Error(linkData.error);
-      setProfile(linkData.person);
-      setReturningPerson(null);
-      setNotFoundView("decision");
-      setStatusMessage(`Fingerprint re-enrolled: ${linkData.person.full_name}`);
-      setScanState("found");
-    } catch (err) {
-      setStatusMessage("Re-enroll failed: " + err.message);
-      addToast("Re-enroll failed: " + err.message, "error");
-    } finally {
-      setSubmitting(false);
-    }
+    await startEnroll(returningPerson.id, "reenroll");
   };
 
   const handleCheckin = async () => {
@@ -930,8 +1133,6 @@ function RegistrationScreen() {
       setProfile(data.person);
       setQosInfo(data.mqtt);
       setWristband(data.wristband_barcode || "");
-      setStatusMessage(`Wristband assigned: ${data.wristband_barcode}`);
-      setScanState("success");
       addToast(`${data.person.full_name} registered successfully`, "success");
       fetchPersons();
 
@@ -940,6 +1141,12 @@ function RegistrationScreen() {
         const qrPayload = await qrRes.json();
         if (qrRes.ok && qrPayload.data_url) setQrData(qrPayload);
       } catch {}
+
+      // A person with no template can never be found by scanning, so capture one
+      // now — while they are still standing at the desk.
+      setScanState("enrolling");
+      setStatusMessage(`Capturing fingerprint for ${data.person.full_name}`);
+      await startEnroll(data.person.id, "register");
     } catch (err) {
       const msg = "Registration failed: " + err.message;
       setRegError(msg);
@@ -966,6 +1173,11 @@ function RegistrationScreen() {
     setQrBound(false);
     setQrCode("");
     setQrData(null);
+    setEnrolling(false);
+    setEnrollStep(null);
+    setEnrollSlot(null);
+    setEnrollNotice(null);
+    enrollContextRef.current = null;
   };
 
   const currentStep = stateStep(scanState);
@@ -996,9 +1208,30 @@ function RegistrationScreen() {
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4 sm:gap-5 lg:gap-6">
           <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}>
             <Card className="p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-64 sm:min-h-80 lg:min-h-105">
+              <div className="mb-5">
+                <SensorStatus status={deviceStatus} streamOnline={streamOnline} />
+              </div>
+
               <ScanningVisual scanState={scanState} />
 
-              {scanState === "idle" && (
+              {enrolling && scanState !== "enrolling" && (
+                <div className="mt-6 w-full space-y-2">
+                  <EnrollProgress step={enrollStep} slot={enrollSlot} />
+                  <Button variant="secondary" size="sm" onClick={cancelEnroll} className="w-full">
+                    <X className="w-3.5 h-3.5" /> Cancel enrollment
+                  </Button>
+                </div>
+              )}
+
+              {!enrolling && scanState !== "enrolling" && enrollNotice && (
+                <div className="mt-6 w-full">
+                  <InlineBanner tone={enrollNotice.tone} icon={enrollNotice.icon || AlertTriangle}>
+                    {enrollNotice.text}
+                  </InlineBanner>
+                </div>
+              )}
+
+              {!enrolling && scanState === "idle" && (
                 <div className="mt-7 w-full grid gap-3">
                   <Button onClick={handleScanFingerprint} size="lg" className="w-full">
                     <Fingerprint className="w-4 h-4" /> Initiate Scan
@@ -1008,7 +1241,7 @@ function RegistrationScreen() {
                   </Button>
                 </div>
               )}
-              {scanState === "idle" && import.meta.env.DEV && (
+              {!enrolling && scanState === "idle" && import.meta.env.DEV && (
                 <Button
                   variant="secondary" size="lg"
                   onClick={() => { setScanState("not_found"); setNotFoundView("new"); setStatusMessage(""); }}
@@ -1017,7 +1250,7 @@ function RegistrationScreen() {
                   <UserPlus className="w-4 h-4" /> Test Registration
                 </Button>
               )}
-              {scanState !== "idle" && (
+              {!enrolling && scanState !== "idle" && (
                 <Button variant="secondary" size="lg" onClick={reset} className="mt-7 w-full">Reset</Button>
               )}
             </Card>
@@ -1041,7 +1274,8 @@ function RegistrationScreen() {
                         </div>
                         {scanState === "scanning" && (
                           <div className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: COLORS.brand }}>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Contacting biometric scanner…
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            {deviceConnected ? "Place finger on the sensor…" : "Contacting biometric scanner…"}
                           </div>
                         )}
                         {scanState === "idle" && statusMessage && (
@@ -1074,7 +1308,19 @@ function RegistrationScreen() {
                       {profile.person_type && (
                         <ProfileTile className="col-span-2" icon={BadgeCheck} label="Person Type" value={profile.person_type.replace(/_/g, " ")} />
                       )}
+                      <ProfileTile
+                        className="col-span-2"
+                        icon={Fingerprint}
+                        label="Fingerprint"
+                        value={profile.fingerprint_slot != null ? `Sensor slot #${profile.fingerprint_slot}` : "Not enrolled"}
+                      />
                     </div>
+
+                    {profile.fingerprint_slot == null && !enrolling && (
+                      <Button variant="secondary" onClick={() => startEnroll(profile.id, "profile")} className="w-full">
+                        <Fingerprint className="w-4 h-4" /> Enroll Fingerprint for this Person
+                      </Button>
+                    )}
 
                     {(profile.is_pregnant || profile.has_chronic_illness) && (
                       <div className="flex flex-wrap gap-2">
@@ -1107,7 +1353,11 @@ function RegistrationScreen() {
                 {scanState === "not_found" && (
                   <motion.div key="not_found" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="h-full">
                     {notFoundView === "decision" && (
-                      <NoMatchDecision onNew={() => setNotFoundView("new")} onReturning={() => setNotFoundView("returning")} />
+                      <NoMatchDecision
+                        onNew={() => setNotFoundView("new")}
+                        onReturning={() => setNotFoundView("returning")}
+                        detail={statusMessage}
+                      />
                     )}
 
                     {notFoundView === "new" && (
@@ -1143,7 +1393,7 @@ function RegistrationScreen() {
                           <ProfileTile icon={Users} label="Family" value={`${profile.family_size} Members`} />
                         </div>
 
-                        <Button onClick={() => setShowReenrollConfirm(true)} loading={submitting} loadingText="Re-enrolling fingerprint…" className="w-full">
+                        <Button onClick={() => setShowReenrollConfirm(true)} disabled={enrolling} loading={enrolling} loadingText="Capturing fingerprint…" className="w-full">
                           <Link2 className="w-4 h-4" /> Re-enroll Fingerprint
                         </Button>
                         <Button variant="secondary" onClick={() => openPersonQr(profile.id)} loading={qrLoading} loadingText="Loading QR…" className="w-full">
@@ -1154,6 +1404,56 @@ function RegistrationScreen() {
                         </Button>
                       </div>
                     )}
+                  </motion.div>
+                )}
+
+                {scanState === "enrolling" && (
+                  <motion.div key="enrolling" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+                    <div className="flex items-center gap-3 pb-4 border-b" style={{ borderColor: COLORS.hairline }}>
+                      <IconTile icon={Fingerprint} />
+                      <div className="min-w-0">
+                        <h2 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>Enrol Fingerprint</h2>
+                        <p className="text-[12px] truncate" style={{ color: COLORS.muted }}>
+                          {profile ? `${profile.full_name} is registered — capture their fingerprint to finish` : "Capturing fingerprint"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {wristband && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border text-[12.5px] font-medium" style={{ color: TONE.brand.color, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>
+                        <CheckCircle className="w-4 h-4 shrink-0" />
+                        Wristband <span className="font-mono font-semibold">{wristband}</span> is reserved and will be issued next.
+                      </div>
+                    )}
+
+                    {enrolling ? (
+                      <EnrollProgress step={enrollStep} slot={enrollSlot} />
+                    ) : (
+                      <InlineBanner tone={enrollNotice?.tone || "info"} icon={enrollNotice?.icon || AlertTriangle}>
+                        {enrollNotice?.text || "Ready to capture — press Retry to start the sensor."}
+                      </InlineBanner>
+                    )}
+
+                    <div className="grid gap-2">
+                      {!enrolling && (
+                        <Button onClick={retryEnrollment} className="w-full">
+                          <RefreshCw className="w-4 h-4" /> {enrollNotice?.tone === "danger" ? "Try Again" : "Start Capture"}
+                        </Button>
+                      )}
+                      {enrolling && (
+                        <Button variant="secondary" onClick={confirmEnrollManually} className="w-full">
+                          <Link2 className="w-4 h-4" /> Sensor captured — link slot{enrollSlot != null ? ` #${enrollSlot}` : ""} now
+                        </Button>
+                      )}
+                      <Button variant="secondary" onClick={skipEnrollment} className="w-full">
+                        Skip for now — issue wristband
+                      </Button>
+                    </div>
+
+                    <p className="text-[11.5px]" style={{ color: COLORS.muted }}>
+                      Skipping is fine for infants or injured hands. The person stays registered and
+                      appears as <span className="font-semibold">Not enrolled</span> in the roster.
+                    </p>
                   </motion.div>
                 )}
 
@@ -1185,6 +1485,12 @@ function RegistrationScreen() {
                       <p className="text-[11px] sm:text-[12px]" style={{ color: COLORS.muted }}>Registered: <span className="font-semibold" style={{ color: COLORS.ink }}>{profile.full_name}</span></p>
                     )}
 
+                    {profile && profile.fingerprint_slot != null ? (
+                      <Chip tone="brand"><Fingerprint className="w-3.5 h-3.5" /> Fingerprint on slot #{profile.fingerprint_slot}</Chip>
+                    ) : (
+                      <Chip tone="warning"><AlertTriangle className="w-3.5 h-3.5" /> No fingerprint on file</Chip>
+                    )}
+
                     {qosInfo && (
                       <div className="text-[10px] sm:text-[11px] font-mono font-medium flex items-center gap-1.5" style={{ color: COLORS.muted }}>
                         <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Syncing to cloud (QoS {qosInfo.final_qos})
@@ -1198,6 +1504,59 @@ function RegistrationScreen() {
             </Card>
           </motion.div>
         </div>
+
+        {/* ================= LIVE SENSOR FEED ================= */}
+        <Card className="p-4 sm:p-5">
+          <button
+            onClick={() => setShowFeed((v) => !v)}
+            className="w-full flex items-center justify-between gap-3 text-left"
+          >
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <IconTile icon={Activity} />
+              <div>
+                <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>Live Sensor Feed</h2>
+                <p className="text-[10.5px] sm:text-[11px]" style={{ color: COLORS.muted }}>
+                  {deviceLog.length === 0
+                    ? "Nothing received from the scanner yet"
+                    : `${deviceLog.length} raw event${deviceLog.length === 1 ? "" : "s"} from the hardware`}
+                </p>
+              </div>
+            </div>
+            <span className="text-[11.5px] font-semibold" style={{ color: COLORS.brand }}>
+              {showFeed ? "Hide" : "Show"}
+            </span>
+          </button>
+
+          {showFeed && (
+            <div className="mt-4 space-y-2">
+              <div
+                className="rounded-lg p-3 font-mono text-[11.5px] leading-relaxed max-h-56 overflow-y-auto"
+                style={{ backgroundColor: "#0F1720", color: "#7EE2B8" }}
+              >
+                {deviceLog.length === 0 ? (
+                  <div style={{ color: "#64748B" }}>
+                    &gt; waiting for the scanner… touch the pad or press Initiate Scan
+                  </div>
+                ) : (
+                  deviceLog.map((entry, i) => (
+                    <div key={`${entry.at}-${i}`}>
+                      <span style={{ color: "#64748B" }}>{entry.at} </span>
+                      {entry.raw}
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px]" style={{ color: COLORS.muted }}>
+                  Exactly what the firmware sent, before interpretation — use it to confirm the sensor is talking.
+                </p>
+                {deviceLog.length > 0 && (
+                  <Button variant="secondary" size="sm" onClick={() => setDeviceLog([])}>Clear</Button>
+                )}
+              </div>
+            </div>
+          )}
+        </Card>
 
         {/* ================= REGISTERED USERS TABLE ================= */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
@@ -1247,6 +1606,12 @@ function RegistrationScreen() {
                     { key: "family_size", label: "Family" },
                     { key: "wristband_barcode", label: "Wristband", render: (val) => <span className="font-mono text-[12px]">{val || "—"}</span> },
                     {
+                      key: "fingerprint_slot", label: "Fingerprint",
+                      render: (val) => (val != null
+                        ? <Chip tone="brand"><Fingerprint className="w-3 h-3" /> #{val}</Chip>
+                        : <Chip tone="warning"><AlertTriangle className="w-3 h-3" /> Not enrolled</Chip>),
+                    },
+                    {
                       key: "pre_registered", label: "Status",
                       render: (val) => <Chip tone={val ? "brand" : "info"}>{val ? "Pre-registered" : "New"}</Chip>,
                     },
@@ -1260,6 +1625,13 @@ function RegistrationScreen() {
                   searchPlaceholder="Search by name or fingerprint ID..."
                   searchKeys={["full_name", "fingerprint_id"]}
                   filters={[
+                    {
+                      key: "enrollment_status", label: "All Fingerprints",
+                      options: [
+                        { value: "not_enrolled", label: "Not enrolled" },
+                        { value: "enrolled", label: "Enrolled" },
+                      ],
+                    },
                     {
                       key: "person_type", label: "All Types",
                       options: [
@@ -1291,7 +1663,12 @@ function RegistrationScreen() {
                           <span style={{ color: COLORS.line }}>·</span>
                           <span>Fam: {row.family_size}</span>
                         </div>
-                        {row.wristband_barcode && <div className="text-[10px] font-mono mt-0.5" style={{ color: COLORS.muted }}>{row.wristband_barcode}</div>}
+                        <div className="flex items-center gap-2 mt-1">
+                          {row.wristband_barcode && <span className="text-[10px] font-mono" style={{ color: COLORS.muted }}>{row.wristband_barcode}</span>}
+                          {row.fingerprint_slot == null && (
+                            <span className="text-[10px] font-semibold" style={{ color: TONE.warning.color }}>No fingerprint</span>
+                          )}
+                        </div>
                       </div>
                       <ArrowRight className="w-4 h-4 shrink-0" style={{ color: COLORS.muted }} />
                     </div>
@@ -1303,12 +1680,12 @@ function RegistrationScreen() {
         </motion.div>
 
         <ConfirmDialog
-          isOpen={showReenrollConfirm}
-          onClose={() => setShowReenrollConfirm(false)}
+          open={showReenrollConfirm}
+          onCancel={() => setShowReenrollConfirm(false)}
           onConfirm={() => { setShowReenrollConfirm(false); handleReenroll(); }}
           title="Re-enroll Fingerprint?"
-          message="This will overwrite the existing fingerprint link for this person."
-          confirmText="Re-enroll"
+          message="The sensor will capture a new template and bind it to this person, replacing any existing fingerprint link."
+          confirmLabel="Re-enroll"
           variant="warning"
         />
 

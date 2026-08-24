@@ -58,4 +58,17 @@ export const env = {
       process.env.DISASTER_EDGE_WATER_LEVEL_HISTORY_PATH ||
       '/gauging-station-water-level-history',
   },
+
+  // Resources domain — Sri Lanka ration rate table.
+  // Built by cloud-platform/prediction-models/scripts/build_lka_rate_table.py
+  resources: {
+    rationRatesPath:
+      process.env.RATION_RATES_PATH ||
+      path.join(__dirname, '../../../prediction-models/models/lka_v2/ration_rates.json'),
+  },
+
+  // Alert database (Education domain)
+  alerts: {
+    dbPath: process.env.ALERTS_DB_PATH || path.join(__dirname, '../../data/alerts.db'),
+  },
 };

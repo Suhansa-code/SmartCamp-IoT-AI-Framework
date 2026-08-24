@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Fingerprint, Satellite, CloudRain, Droplets, ScanBarcode, Radio, RefreshCw, Activity, MapPin, ArrowLeft } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
+import { API } from '../ui/config';
 
 /* ------------------------------------------------------------------ */
 /*  SEMANTIC COLOUR MAP                                                 */
@@ -206,6 +207,36 @@ function DeviceCard({ device }) {
 /*  MAIN SCREEN                                                         */
 /* ------------------------------------------------------------------ */
 
+/** The fingerprint scanner is the one device reporting real state today. */
+function applyFingerprintStatus(devices, status) {
+  return devices.map((device) => {
+    if (device.id !== 'fingerprint') return device;
+    if (!status) {
+      return { ...device, status: 'unknown', lastSeen: '—', live: true,
+        reading: { label: 'Enrolled', value: '—' } };
+    }
+
+    const device_ = status.device || {};
+    return {
+      ...device,
+      live: true,
+      status: device_.connected ? 'connected' : (status.enabled ? 'offline' : 'degraded'),
+      interface: device_.port || 'not configured',
+      baud: device_.baud_rate || null,
+      lastSeen: device_.last_event_at
+        ? new Date(device_.last_event_at).toLocaleTimeString()
+        : (device_.connected ? 'idle' : '—'),
+      signal: device_.connected ? 100 : 0,
+      reading: { label: 'Enrolled', value: String(status.linked_count ?? 0) },
+      description: device_.connected
+        ? `R503 on ${device_.port} · ${device_.template_count ?? 0} templates on sensor`
+        : (status.enabled
+          ? `Scanner unreachable${device_.last_error ? ` — ${device_.last_error}` : ''}`
+          : 'Scanner disabled — registration runs in simulation mode'),
+    };
+  });
+}
+
 export default function DeviceHealthScreen() {
   const [devices, setDevices] = useState(INITIAL_DEVICES);
   const [lastAt, setLastAt] = useState(new Date());
@@ -283,11 +314,22 @@ export default function DeviceHealthScreen() {
     };
   });
 
-  const refresh = () => {
-    setDevices([...INITIAL_DEVICES]);
-    setLastAt(new Date());
+  const refresh = useCallback(() => {
+    fetch(`${API}/api/fingerprint/status`)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)
+      .then((status) => {
+        setDevices(applyFingerprintStatus(INITIAL_DEVICES, status));
+        setLastAt(new Date());
+      });
     fetchLocation();
-  };
+  }, [fetchLocation]);
+
+  useEffect(() => {
+    refresh();
+    const timer = setInterval(refresh, 15000);
+    return () => clearInterval(timer);
+  }, [refresh]);
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
@@ -299,7 +341,7 @@ export default function DeviceHealthScreen() {
             <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{mappedCampId || 'Camp'}</p>
             <div className="flex items-center gap-3 mt-1.5">
               <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">Device Health</h1>
-              <Chip tone="neutral">Demo data</Chip>
+              <Chip tone="neutral">Partly live</Chip>
             </div>
             <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Peripheral sensor &amp; peripheral connectivity status</p>
           </div>
@@ -353,7 +395,7 @@ export default function DeviceHealthScreen() {
         </div>
 
         <p className="text-[11.5px] font-mono" style={{ color: COLORS.muted }}>
-          Last refreshed {lastAt.toLocaleTimeString()} · static data pending live wiring
+          Last refreshed {lastAt.toLocaleTimeString()} · fingerprint scanner is live; other sensors pending wiring
         </p>
 
       </div>

@@ -39,13 +39,13 @@ async function startServer() {
     networkMonitor.start();
     console.log('[Monitor] Network monitoring started');
 
-    startCampDataService();
+    await startCampDataService();
     console.log('[Camp Data] Camp data service started');
 
     if (env.db.enabled) {
       startSyncReceiver();
       console.log('[Sync Receiver] Started — listening to smartcamp/sync/#');
-    }~
+    }
 
     app.listen(env.port, () => {
       console.log(`[Server] Running on port ${env.port}`);

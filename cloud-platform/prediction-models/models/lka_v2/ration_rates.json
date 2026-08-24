@@ -1,0 +1,139 @@
+{
+  "schema_version": 3,
+  "generated_at": "2026-08-23T07:36:59+00:00",
+  "generated_by": "scripts/build_lka_rate_table.py",
+  "scope": "Sri Lanka disaster-displacement camps. Food and water only.",
+  "out_of_scope": [
+    "shelter_units",
+    "medical_staff_needed"
+  ],
+  "food_child": {
+    "value": 1.76,
+    "unit": "kg/person/day",
+    "source": "subject_user.csv + consumption_user.csv \u2014 Sri Lanka 24h dietary recall, survey median",
+    "evidence": "measured",
+    "n_subjects": 653,
+    "age_min": 6,
+    "age_max": 14,
+    "mean": 1.914,
+    "median": 1.758,
+    "std": 0.804,
+    "iqr": [
+      1.338,
+      2.432
+    ],
+    "caveat": "Survey covers ages 6-14 only. Ages 0-5 and 15-17 fall in the same children_ratio bucket but were never surveyed."
+  },
+  "food_adult": {
+    "value": 1.6,
+    "unit": "kg/person/day",
+    "source": "raspberry-platform/backend/data/resource/distribution.json (breakfast 0.5 + lunch 0.6 + dinner 0.5)",
+    "evidence": "production configuration \u2014 the quantity actually issued",
+    "meals_per_day": 3,
+    "meals": {
+      "breakfast": 0.5,
+      "lunch": 0.6,
+      "dinner": 0.5
+    }
+  },
+  "food_elderly": {
+    "value": 1.71,
+    "unit": "kg/person/day",
+    "age_range": [
+      60,
+      74
+    ],
+    "source": "measured ratio to adult (1.066) from the BRIGHT Sri Lanka household survey, n=4,229 people aged 60-74, anchored to the production adult rate",
+    "evidence": "measured ratio \u2014 Sri Lankan household survey, February 2025",
+    "ratio_to_adult": 1.0657,
+    "measured_kg_day_raw_basis": 0.9729,
+    "ratio_ci95_basis": [
+      0.9046,
+      1.0447
+    ],
+    "supersedes": "adult x 0.85 assumption",
+    "caveat": "The ratio is measured; the absolute value is that ratio applied to the production adult rate, because the survey measures raw at-home food and the camp issues cooked weight."
+  },
+  "food_elderly_75plus": {
+    "value": 1.37,
+    "unit": "kg/person/day",
+    "age_range": [
+      75,
+      130
+    ],
+    "source": "measured ratio to adult (0.855) from the BRIGHT Sri Lanka household survey, n=1,214 people aged 75+, anchored to the production adult rate",
+    "evidence": "measured ratio \u2014 Sri Lankan household survey, February 2025",
+    "ratio_to_adult": 0.855,
+    "measured_kg_day_raw_basis": 0.7806,
+    "ratio_ci95_basis": [
+      0.6654,
+      0.9134
+    ],
+    "supersedes": "adult x 0.85 assumption",
+    "caveat": "The ratio is measured; the absolute value is that ratio applied to the production adult rate, because the survey measures raw at-home food and the camp issues cooked weight."
+  },
+  "food_elderly_blended": {
+    "value": 1.63,
+    "unit": "kg/person/day",
+    "source": "population-weighted blend of the two measured bands (77.7% aged 60-74, 22.3% aged 75+, from n=5,443 people in the survey)",
+    "evidence": "measured ratio \u2014 used only when a roster does not distinguish 60-74 from 75+",
+    "share_60_74": 0.777
+  },
+  "food_pregnant_topup": {
+    "value": 0.6,
+    "unit": "kg/person/day",
+    "source": "distribution.json pregnant_extra (exact)",
+    "evidence": "production configuration"
+  },
+  "water_drinking": {
+    "value": 3.0,
+    "range": [
+      2.5,
+      3.0
+    ],
+    "unit": "L/person/day",
+    "source": "Sphere Handbook basic survival water needs: 2.5-3.0 L per person per day for drinking and food preparation. Planning value is the upper bound.",
+    "evidence": "humanitarian standard \u2014 no Sri Lankan measurement available",
+    "caveat": "consumption_user.csv WATER_g is 100% empty and cleaned_global_water_consumption.csv contains no Sri Lanka rows (see resource-model/rejected/), so no local water consumption data exists to calibrate against.",
+    "divergence_from_production": "distribution.json issues 15 L/person/day, which is the Sphere BASIC DOMESTIC figure (drinking + cooking + hygiene). This model deliberately reports the narrower survival DRINKING requirement. The two are not interchangeable."
+  },
+  "water_pregnant_topup": {
+    "value": 0.0,
+    "unit": "L/person/day",
+    "source": null,
+    "evidence": "NOT APPLIED \u2014 distribution.json specifies +2 L, but that value was defined against the 15 L domestic basis and does not transfer to a 3 L drinking basis without a source."
+  },
+  "population_scale": {
+    "value": [
+      3,
+      116969
+    ],
+    "unit": "persons per displacement event",
+    "source": "lka_idmc_idu_events.csv \u2014 IDMC/DMC reported events",
+    "evidence": "measured",
+    "n_events": 78,
+    "median": 55.5,
+    "mean": 7173.8,
+    "pct_under_50": 47.4,
+    "pct_under_100": 56.4,
+    "date_min": "2025-01-13",
+    "date_max": "2026-01-15",
+    "displacement_types": {
+      "Disaster": 78
+    },
+    "caveat": "All events are disaster-driven, not conflict-driven. This is the reference class the model serves."
+  },
+  "corroboration": {
+    "kcal_per_capita_day": {
+      "min": 2448.8,
+      "max": 3008.2,
+      "latest": 2675.1,
+      "latest_year": 2023,
+      "unit": "kcal/capita/day",
+      "source": "lka_faostat_food_balances.csv \u2014 Grand Total, Food supply (kcal/capita/day)",
+      "evidence": "corroboration only \u2014 national annual supply, not a camp ration",
+      "comparison": "Humanitarian planning minimum is 2100 kcal/person/day; Sri Lankan national supply sits above it across all years 2010-2023."
+    }
+  },
+  "_provenance_note": "Every value above carries an 'evidence' field: 'measured' (derived from a Sri Lankan dataset), 'production configuration' (read from the live ration config), 'humanitarian standard' (named external standard), or 'ASSUMPTION'. As of schema 3 no rate is an assumption: the elderly rates were replaced with measured ratios from the BRIGHT Sri Lanka household survey and split at age 75."
+}
