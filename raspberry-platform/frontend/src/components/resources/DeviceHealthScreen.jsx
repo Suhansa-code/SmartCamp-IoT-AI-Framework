@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Fingerprint, Satellite, CloudRain, Droplets, ScanBarcode, Radio, RefreshCw, Activity, MapPin, ArrowLeft } from 'lucide-react';
+import { Satellite, Thermometer, Droplets, Radio, RefreshCw, Activity, MapPin, ArrowLeft, Wifi, WifiOff } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 
 /* ------------------------------------------------------------------ */
@@ -15,71 +15,17 @@ const TONE = {
   neutral: { color: COLORS.body,  bg: '#F5F6F5',            border: COLORS.line },
 };
 
-const STATUS_TONE = {
-  connected: 'brand',
-  degraded:  'warning',
-  offline:   'danger',
-  unknown:   'neutral',
-};
-
-const STATUS_LABEL = {
-  connected: 'Connected',
-  degraded:  'Degraded',
-  offline:   'Offline',
-  unknown:   'Unknown',
-};
+const CONNECTED_TONE = 'brand';
+const DISCONNECTED_TONE = 'danger';
 
 /* ------------------------------------------------------------------ */
-/*  STATIC DEMO DATA — wire real sensor reads here later                */
+/*  POLLING CONFIG                                                      */
 /* ------------------------------------------------------------------ */
 
-const INITIAL_DEVICES = [
-  {
-    id: 'fingerprint', name: 'Fingerprint Sensor', icon: Fingerprint,
-    status: 'connected', interface: '/dev/ttyUSB0', baud: 57600,
-    lastSeen: '12s ago', signal: 96,
-    reading: { label: 'Scans today', value: '128' },
-    description: 'Enrolment & check-in identity capture',
-  },
-  {
-    id: 'gps', name: 'GPS Sensor', icon: Satellite,
-    status: 'connected', interface: 'COM5', baud: 115200,
-    lastSeen: '2m ago', signal: 84,
-    reading: { label: 'Satellites', value: '8' },
-    description: 'Camp location & disaster-response tracking',
-  },
-  {
-    id: 'rain', name: 'Rain Sensor', icon: CloudRain,
-    status: 'connected', interface: 'GPIO 27', baud: null,
-    lastSeen: '8s ago', signal: 91,
-    reading: { label: 'Rainfall', value: '0 mm/h' },
-    description: 'Precipitation monitoring for flood alerts',
-  },
-  {
-    id: 'humidity', name: 'Humidity Sensor', icon: Droplets,
-    status: 'degraded', interface: 'GPIO 4', baud: null,
-    lastSeen: '41s ago', signal: 62,
-    reading: { label: 'Humidity', value: '61 %RH' },
-    description: 'DHT22 ambient humidity & temperature',
-  },
-  {
-    id: 'wristband', name: 'Wristband Scanner', icon: ScanBarcode,
-    status: 'connected', interface: '/dev/ttyACM0', baud: 9600,
-    lastSeen: '1m ago', signal: 98,
-    reading: { label: 'Reads today', value: '86' },
-    description: 'Distribution & check-in wristband reads',
-  },
-  {
-    id: 'broker', name: 'MQTT Broker Link', icon: Radio,
-    status: 'connected', interface: 'EMQX TLS 8883', baud: null,
-    lastSeen: '5s ago', signal: 100,
-    reading: { label: 'Uptime', value: '99.98%' },
-    description: 'Cloud broker bridge for event delivery',
-  },
-];
+const POLL_INTERVAL_MS = 3000;
 
 /* ------------------------------------------------------------------ */
-/*  LOCAL PRIMITIVES — mirror the FloodWatch / ReliefOps design system  */
+/*  LOCAL PRIMITIVES                                                    */
 /* ------------------------------------------------------------------ */
 
 function Card({ children, className = "" }) {
@@ -112,89 +58,48 @@ function Chip({ children, tone = 'neutral' }) {
   );
 }
 
-function SignalBar({ signal }) {
-  const tone = signal >= 80 ? 'brand' : signal >= 60 ? 'warning' : 'danger';
-  const t = TONE[tone];
-  const bars = [1, 2, 3, 4];
+function DataRow({ label, value, mono = false }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex items-end gap-0.5">
-        {bars.map((b) => (
-          <div
-            key={b}
-            className="w-1 rounded-sm"
-            style={{
-              height: `${b * 4 + 3}px`,
-              backgroundColor: signal >= b * 25 ? t.color : COLORS.hairline,
-            }}
-          />
-        ))}
-      </div>
-      <span className="text-[11px] font-mono font-semibold" style={{ color: t.color }}>{signal}%</span>
+    <div>
+      <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>{label}</p>
+      <p className={`${mono ? 'text-[12.5px] font-mono' : 'text-[12.5px]'} font-medium mt-0.5`} style={{ color: COLORS.ink }}>{value ?? '—'}</p>
     </div>
   );
 }
 
-function DeviceCard({ device }) {
-  const Icon = device.icon;
-  const tone = STATUS_TONE[device.status] || 'neutral';
-  const t = TONE[tone];
-  const online = device.status === 'connected';
+/* ------------------------------------------------------------------ */
+/*  SENSOR CARD — accepts `connected` as explicit prop                  */
+/* ------------------------------------------------------------------ */
+
+function SensorCard({ icon: Icon, name, description, connected, lastUpdated, children }) {
+  const tone = connected ? CONNECTED_TONE : DISCONNECTED_TONE;
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-      <Card className={`h-full transition-all ${online ? '' : 'opacity-95'}`}>
+      <Card className="h-full">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <IconTile icon={Icon} tone={device.status === 'offline' ? 'danger' : device.status === 'degraded' ? 'warning' : 'brand'} />
+            <IconTile icon={Icon} tone={connected ? 'brand' : 'danger'} />
             <div>
-              <h3 className="text-[13.5px] sm:text-[14px] font-semibold leading-tight" style={{ color: COLORS.ink }}>{device.name}</h3>
-              <p className="text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>{device.description}</p>
+              <h3 className="text-[13.5px] sm:text-[14px] font-semibold leading-tight" style={{ color: COLORS.ink }}>{name}</h3>
+              <p className="text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>{description}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${online ? 'animate-pulse' : ''}`} style={{ backgroundColor: t.color }} />
-            <Chip tone={tone}>{STATUS_LABEL[device.status]}</Chip>
-            {device.gpsStatusLabel && (
-              <Chip tone={device.isMock ? 'warning' : 'brand'}>{device.gpsStatusLabel}</Chip>
-            )}
+            <span className={`w-2 h-2 rounded-full ${connected ? 'animate-pulse' : ''}`} style={{ backgroundColor: TONE[tone].color }} />
+            <Chip tone={tone}>{connected ? 'Connected' : 'Disconnected'}</Chip>
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-x-6 gap-y-3" style={{ borderColor: COLORS.hairline }}>
-          <div>
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Interface</p>
-            <p className="text-[12.5px] font-mono font-medium mt-0.5" style={{ color: COLORS.ink }}>
-              {device.interface}{device.baud ? ` · ${device.baud}` : ''}
+        <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
+          {children}
+        </div>
+
+        {lastUpdated && (
+          <div className="mt-3 pt-3 border-t" style={{ borderColor: COLORS.hairline }}>
+            <p className="text-[10px] font-mono" style={{ color: COLORS.muted }}>
+              Last updated: {new Date(lastUpdated).toLocaleTimeString()}
             </p>
-          </div>
-          <div>
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Last seen</p>
-            <p className="text-[12.5px] font-mono font-medium mt-0.5" style={{ color: online ? COLORS.ink : TONE.danger.color }}>{device.lastSeen}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>{device.reading.label}</p>
-            <p className="text-[15px] font-semibold font-mono mt-0.5" style={{ color: COLORS.ink }}>{device.reading.value}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Signal</p>
-            <div className="mt-1.5"><SignalBar signal={device.signal} /></div>
-          </div>
-        </div>
-
-        {device.location && (
-          <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
-            <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
-            <div className="flex-1">
-              <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Current Location</p>
-              <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>{device.location}</p>
-            </div>
-            {device.campId && (
-              <div className="text-right shrink-0">
-                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Camp ID</p>
-                <p className="text-[12.5px] font-mono font-semibold mt-0.5" style={{ color: COLORS.brand }}>{device.campId}</p>
-              </div>
-            )}
           </div>
         )}
       </Card>
@@ -203,80 +108,177 @@ function DeviceCard({ device }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  DEVICE STATUS CARD (gateway connectivity)                           */
+/* ------------------------------------------------------------------ */
+
+function DeviceStatusCard({ device }) {
+  const status = device?.status || 'unknown';
+  const connected = status === 'connected';
+  const tone = connected ? CONNECTED_TONE : DISCONNECTED_TONE;
+  const Icon = connected ? Wifi : WifiOff;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+      <Card className="h-full">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <IconTile icon={Icon} tone={connected ? 'brand' : 'danger'} />
+            <div>
+              <h3 className="text-[13.5px] sm:text-[14px] font-semibold leading-tight" style={{ color: COLORS.ink }}>Edge Gateway</h3>
+              <p className="text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>Raspberry Pi device connectivity</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${connected ? 'animate-pulse' : ''}`} style={{ backgroundColor: TONE[tone].color }} />
+            <Chip tone={tone}>{connected ? 'Connected' : 'Disconnected'}</Chip>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-x-6 gap-y-3" style={{ borderColor: COLORS.hairline }}>
+          <DataRow label="Device ID" value={device?.id || 'edge-gateway'} mono />
+          <DataRow label="Status" value={connected ? 'Connected' : 'Disconnected'} />
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  GPS CARD                                                            */
+/* ------------------------------------------------------------------ */
+
+function GpsCard({ sensor }) {
+  const connected = !!sensor?.connected;
+
+  return (
+    <SensorCard icon={Satellite} name="GPS Sensor" description="Camp location & disaster-response tracking" connected={connected} lastUpdated={sensor?.timestamp}>
+      {connected ? (
+        <>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            <DataRow label="Latitude" value={sensor?.latitude != null ? `${Number(sensor.latitude).toFixed(4)}°` : '—'} mono />
+            <DataRow label="Longitude" value={sensor?.longitude != null ? `${Number(sensor.longitude).toFixed(4)}°` : '—'} mono />
+            <DataRow label="Altitude" value={sensor?.altitude != null ? `${sensor.altitude} m` : '—'} mono />
+            <DataRow label="Satellites" value={sensor?.satellites ?? '—'} mono />
+          </div>
+          {sensor?.location_name && (
+            <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
+              <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
+              <div className="flex-1">
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Location</p>
+                <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
+                  {sensor.location_name}
+                  {sensor.is_mock && <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>}
+                </p>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-[12.5px]" style={{ color: COLORS.muted }}>No current GPS data</p>
+      )}
+    </SensorCard>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  TEMPERATURE CARD                                                    */
+/* ------------------------------------------------------------------ */
+
+function TemperatureCard({ sensor }) {
+  const connected = !!sensor?.connected;
+
+  return (
+    <SensorCard icon={Thermometer} name="Temperature Sensor" description="DHT11 via ESP32 USB serial" connected={connected} lastUpdated={sensor?.timestamp}>
+      {connected ? (
+        <div className="flex items-baseline gap-2">
+          <span className="font-serif font-medium text-[32px] leading-none" style={{ color: COLORS.ink }}>
+            {sensor?.value != null ? Number(sensor.value).toFixed(1) : '—'}
+          </span>
+          <span className="text-[14px] font-mono" style={{ color: COLORS.muted }}>°C</span>
+        </div>
+      ) : (
+        <p className="text-[12.5px]" style={{ color: COLORS.muted }}>No current temperature data</p>
+      )}
+      {sensor?.error && !connected && (
+        <p className="text-[11px] mt-2" style={{ color: TONE.danger.color }}>{sensor.error}</p>
+      )}
+    </SensorCard>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  HUMIDITY CARD                                                       */
+/* ------------------------------------------------------------------ */
+
+function HumidityCard({ sensor }) {
+  const connected = !!sensor?.connected;
+
+  return (
+    <SensorCard icon={Droplets} name="Humidity Sensor" description="DHT11 relative humidity via ESP32" connected={connected} lastUpdated={sensor?.timestamp}>
+      {connected ? (
+        <div className="flex items-baseline gap-2">
+          <span className="font-serif font-medium text-[32px] leading-none" style={{ color: COLORS.ink }}>
+            {sensor?.value != null ? Number(sensor.value).toFixed(1) : '—'}
+          </span>
+          <span className="text-[14px] font-mono" style={{ color: COLORS.muted }}>%</span>
+        </div>
+      ) : (
+        <p className="text-[12.5px]" style={{ color: COLORS.muted }}>No current humidity data</p>
+      )}
+      {sensor?.error && !connected && (
+        <p className="text-[11px] mt-2" style={{ color: TONE.danger.color }}>{sensor.error}</p>
+      )}
+    </SensorCard>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  MAIN SCREEN                                                         */
 /* ------------------------------------------------------------------ */
 
 export default function DeviceHealthScreen() {
-  const [devices, setDevices] = useState(INITIAL_DEVICES);
-  const [lastAt, setLastAt] = useState(new Date());
-  const [locationName, setLocationName] = useState(null);
-  const [campPrefix, setCampPrefix] = useState('');
-  const [campSymbol, setCampSymbol] = useState('');
-  const [mappedCampId, setMappedCampId] = useState('');
-  const [gpsStatus, setGpsStatus] = useState('UNKNOWN');
-  const [isMock, setIsMock] = useState(false);
+  const [deviceStatus, setDeviceStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastAt, setLastAt] = useState(null);
+  const [pollError, setPollError] = useState(null);
+  const intervalRef = useRef(null);
 
-  const fetchLocation = useCallback(async () => {
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  const fetchDeviceStatus = useCallback(async () => {
     try {
-      const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const [gpsRes, campRes] = await Promise.all([
-        fetch(`${API}/api/disaster/gps`),
-        fetch(`${API}/api/disaster/camp-identity`),
-      ]);
-      const gps = await gpsRes.json();
-      const camp = await campRes.json();
-
-      setGpsStatus(gps.gps_status || 'UNKNOWN');
-      setIsMock(!!gps.is_mock);
-
-      let locName = null;
-      if (gps.location_name) {
-        locName = gps.location_name;
-      } else if (gps.latitude && gps.longitude) {
-        locName = `${gps.latitude.toFixed(4)}, ${gps.longitude.toFixed(4)}`;
-      } else if (camp.location) {
-        locName = camp.location.charAt(0).toUpperCase() + camp.location.slice(1).toLowerCase();
-      }
-
-      if (locName) setLocationName(locName);
-      if (camp.prefix) setCampPrefix(camp.prefix);
-      if (camp.symbol) setCampSymbol(camp.symbol);
-
-      const firstWord = locName ? locName.split(',')[0].trim().toUpperCase() : '';
-      if (firstWord && camp.prefix) {
-        setMappedCampId(`${camp.prefix}-${firstWord}`);
-      }
-    } catch {
-      setLocationName(null);
-      setGpsStatus('UNAVAILABLE');
+      const res = await fetch(`${API}/api/disaster/device-status`, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+      const data = await res.json();
+      setDeviceStatus(data);
+      setLastAt(new Date());
+      setPollError(null);
+    } catch (err) {
+      setPollError(err.message);
+      setDeviceStatus(prev => prev ? {
+        ...prev,
+        device: { ...prev.device, status: 'disconnected', uptime_note: err.message },
+      } : null);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [API]);
 
-  useEffect(() => { fetchLocation(); }, [fetchLocation]);
+  useEffect(() => {
+    fetchDeviceStatus();
+    intervalRef.current = setInterval(fetchDeviceStatus, POLL_INTERVAL_MS);
+    return () => clearInterval(intervalRef.current);
+  }, [fetchDeviceStatus]);
 
-  const connected = devices.filter((d) => d.status === 'connected').length;
-  const degraded = devices.filter((d) => d.status === 'degraded').length;
-  const offline = devices.filter((d) => d.status === 'offline').length;
+  const device = deviceStatus?.device || { id: 'edge-gateway', status: 'unknown' };
+  const sensors = deviceStatus?.sensors || {};
 
-  const devicesWithLocation = devices.map((d) => {
-    if (d.id !== 'gps') return d;
-    const gpsTone = gpsStatus === 'ACTIVE' ? 'connected' : 'degraded';
-    return {
-      ...d,
-      status: gpsStatus === 'ACTIVE' ? 'connected' : gpsStatus === 'UNAVAILABLE' ? 'offline' : 'degraded',
-      gpsStatusLabel: gpsStatus === 'ACTIVE' ? 'ACTIVE' : gpsStatus === 'MOCK' ? 'MOCK / UNAVAILABLE' : 'UNKNOWN',
-      isMock,
-      location: locationName ? (isMock ? `${locationName} (Mock)` : locationName) : null,
-      campId: mappedCampId,
-      campSymbol,
-    };
-  });
-
-  const refresh = () => {
-    setDevices([...INITIAL_DEVICES]);
-    setLastAt(new Date());
-    fetchLocation();
-  };
+  const gatewayConnected = device.status === 'connected';
+  const gpsConnected = !!sensors.gps?.connected;
+  const tempConnected = !!sensors.temperature?.connected;
+  const humConnected = !!sensors.humidity?.connected;
+  const connectedSensors = [gpsConnected, tempConnected, humConnected].filter(Boolean).length;
+  const disconnectedSensors = [gpsConnected, tempConnected, humConnected].filter(c => !c).length;
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
@@ -285,12 +287,15 @@ export default function DeviceHealthScreen() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{mappedCampId || 'Camp'}</p>
+            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>
+              {device.id || 'Edge Gateway'}
+            </p>
             <div className="flex items-center gap-3 mt-1.5">
               <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">Device Health</h1>
-              <Chip tone="neutral">Demo data</Chip>
+              {loading && <Chip tone="neutral">Loading…</Chip>}
+              {pollError && <Chip tone="danger">Retry</Chip>}
             </div>
-            <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Peripheral sensor &amp; peripheral connectivity status</p>
+            <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Real-time Edge Gateway sensor &amp; connectivity status</p>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
@@ -302,7 +307,7 @@ export default function DeviceHealthScreen() {
               Back
             </button>
             <button
-              onClick={refresh}
+              onClick={fetchDeviceStatus}
               className="inline-flex items-center gap-2 px-3 py-1.5 text-[12.5px] font-semibold rounded-lg border outline-none transition-colors duration-200"
               style={{ color: COLORS.brand, backgroundColor: `${COLORS.brand}0F`, borderColor: `${COLORS.brand}33` }}
             >
@@ -315,9 +320,9 @@ export default function DeviceHealthScreen() {
         {/* ================= SUMMARY STRIP ================= */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
-            { label: 'Connected', value: connected, tone: 'brand', icon: Activity },
-            { label: 'Degraded', value: degraded, tone: 'warning', icon: Activity },
-            { label: 'Offline', value: offline, tone: 'danger', icon: Activity },
+            { label: 'Gateway', value: gatewayConnected ? 'Online' : 'Offline', tone: gatewayConnected ? 'brand' : 'danger', icon: gatewayConnected ? Wifi : WifiOff },
+            { label: 'Connected Sensors', value: connectedSensors, tone: 'brand', icon: Activity },
+            { label: 'Disconnected', value: disconnectedSensors, tone: disconnectedSensors > 0 ? 'danger' : 'brand', icon: Activity },
           ].map(({ label, value, tone, icon: Icon }) => {
             const t = TONE[tone];
             return (
@@ -325,7 +330,7 @@ export default function DeviceHealthScreen() {
                 <Card className="flex items-center justify-between gap-3 py-3 sm:py-4">
                   <div>
                     <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>{label}</p>
-                    <p className="font-serif font-medium text-[26px] sm:text-[32px] leading-none mt-1.5" style={{ color: t.color }}>{value}</p>
+                    <p className="font-serif font-medium text-[22px] sm:text-[28px] leading-none mt-1.5" style={{ color: t.color }}>{value}</p>
                   </div>
                   <IconTile icon={Icon} tone={tone} size="md" />
                 </Card>
@@ -334,15 +339,20 @@ export default function DeviceHealthScreen() {
           })}
         </div>
 
-        {/* ================= DEVICE GRID ================= */}
+        {/* ================= DEVICE STATUS ================= */}
+        <DeviceStatusCard device={device} />
+
+        {/* ================= SENSOR GRID ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {devicesWithLocation.map((device) => (
-            <DeviceCard key={device.id} device={device} />
-          ))}
+          <GpsCard sensor={sensors.gps} />
+          <TemperatureCard sensor={sensors.temperature} />
+          <HumidityCard sensor={sensors.humidity} />
         </div>
 
         <p className="text-[11.5px] font-mono" style={{ color: COLORS.muted }}>
-          Last refreshed {lastAt.toLocaleTimeString()} · static data pending live wiring
+          {lastAt ? `Last updated ${lastAt.toLocaleTimeString()}` : 'Connecting to Edge Gateway…'}
+          {pollError && ` · ${pollError}`}
+          {' · '}Polling every {POLL_INTERVAL_MS / 1000}s
         </p>
 
       </div>

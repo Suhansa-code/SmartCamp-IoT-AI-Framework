@@ -37,4 +37,24 @@ router.get('/predict', async (req, res) => {
   }
 });
 
+router.get('/device-status', async (_req, res) => {
+  try {
+    const response = await fetch(`${EDGE_API}/api/device-status`, { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error(`Edge gateway returned ${response.status}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    const ts = new Date().toISOString();
+    res.json({
+      device: { id: 'edge-gateway', status: 'disconnected', uptime_note: err.message },
+      sensors: {
+        gps:        { connected: false, status: 'disconnected', latitude: null, longitude: null, altitude: null, satellites: 0, location_name: null, is_mock: false, source: 'UNAVAILABLE', timestamp: ts },
+        temperature:{ connected: false, status: 'disconnected', value: null, unit: 'C', error: 'Edge gateway unreachable', timestamp: ts },
+        humidity:   { connected: false, status: 'disconnected', value: null, unit: '%', error: 'Edge gateway unreachable', timestamp: ts },
+      },
+      timestamp: ts,
+    });
+  }
+});
+
 export default router;
