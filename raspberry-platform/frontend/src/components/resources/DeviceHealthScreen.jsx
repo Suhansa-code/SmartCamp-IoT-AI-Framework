@@ -233,18 +233,7 @@ export default function DeviceHealthScreen() {
       if (gps.location_name) {
         locName = gps.location_name;
       } else if (gps.latitude && gps.longitude) {
-        const geo = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${gps.latitude}&lon=${gps.longitude}&zoom=18&addressdetails=1`,
-          { headers: { 'Accept-Language': 'en' } }
-        );
-        const geoData = await geo.json();
-        if (geoData.address) {
-          const a = geoData.address;
-          const parts = [a.village || a.town || a.city || a.hamlet, a.district || a.county || a.state_district].filter(Boolean);
-          locName = parts.join(', ') || geoData.display_name || `${gps.latitude}, ${gps.longitude}`;
-        } else {
-          locName = `${gps.latitude}, ${gps.longitude}`;
-        }
+        locName = `${gps.latitude.toFixed(4)}, ${gps.longitude.toFixed(4)}`;
       } else if (camp.location) {
         locName = camp.location.charAt(0).toUpperCase() + camp.location.slice(1).toLowerCase();
       }
