@@ -99,6 +99,12 @@ export async function storeCurrentLocation() {
     return false;
   }
 
+  // Only save actual GPS_SENSOR data, skip mock locations
+  if (source !== 'GPS_SENSOR') {
+    logger.debug(`[GPS-STORAGE] Source is ${source} — skipping mock location`);
+    return false;
+  }
+
   const now = nowISO();
 
   // Movement check: skip if within threshold of last stored location
