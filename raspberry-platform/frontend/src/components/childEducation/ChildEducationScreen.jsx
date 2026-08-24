@@ -10,9 +10,11 @@ import {
   BookOpen,
   List,
   ChevronRight,
+  ChevronDown,
   User,
   Search,
   SlidersHorizontal,
+  ArrowLeft,
 } from "lucide-react";
 import DataTable from "../ui/display/DataTable";
 import ErrorState from "../ui/feedback/ErrorState";
@@ -259,17 +261,26 @@ function ChildEducationScreen() {
       <div className="sm:px-5 lg:px-6 py-2 sm:py-5 space-y-4 sm:space-y-6">
         {/* ================= HEADER + SEARCH ================= */}
         <div>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-3 mt-1.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div>
                 <h1 className="font-serif font-medium text-[24px] sm:text-[28px] leading-[1.1] tracking-tight">Child Education</h1>
+                <p className="text-[12.5px] mt-1" style={{ color: COLORS.muted }}>
+                  {child ? child.child_id : "Session history, alerts & profile details"}
+                </p>
               </div>
-              <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>
-                Session history, alerts &amp; profile details
-              </p>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 ">
-              <div className="flex-1" />
+
+            {child ? (
+              <button
+                onClick={() => { setPayload(null); setChildId(""); }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[12.5px] font-semibold transition-colors hover:opacity-80 self-start"
+                style={{ borderColor: COLORS.line, color: COLORS.body, backgroundColor: "transparent" }}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
+                Back
+              </button>
+            ) : (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <div className="relative flex-1 sm:flex-initial">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -291,7 +302,7 @@ function ChildEducationScreen() {
                   <select
                     value={alertFilter}
                     onChange={(e) => setAlertFilter(e.target.value)}
-                    className="w-full sm:w-auto pl-9 pr-8 py-2 rounded-lg border text-[13px] focus:outline-none transition-colors appearance-none cursor-pointer"
+                    className="w-full sm:w-auto pl-9 pr-8 py-2 rounded-lg border text-[13px] font-medium focus:outline-none transition-colors appearance-none cursor-pointer"
                     style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line, color: COLORS.body }}
                   >
                     <option value="">All Alerts</option>
@@ -299,9 +310,12 @@ function ChildEducationScreen() {
                     <option value="resolved">Resolved</option>
                     <option value="none">None</option>
                   </select>
+                  <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none">
+                    <ChevronDown className="w-3.5 h-3.5" style={{ color: COLORS.muted }} />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           <AnimatePresence>
@@ -321,22 +335,6 @@ function ChildEducationScreen() {
         {/* ================= CHILD PROFILE ================= */}
         {child ? (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-4 sm:space-y-6">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setPayload(null);
-                  setChildId("");
-                }}
-              >
-                ← Back
-              </Button>
-              <div className="flex-1" />
-              <span className="text-[11px] font-mono" style={{ color: COLORS.muted }}>
-                {child.child_id}
-              </span>
-            </div>
 
             {/* Stats Row */}
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
