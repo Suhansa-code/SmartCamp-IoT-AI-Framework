@@ -360,6 +360,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [campId, setCampId] = useState("");
+  const [latestGps, setLatestGps] = useState(null);
 
   const fetchStats = () => {
     fetch(`${API}/api/stats/overview`)
@@ -384,6 +385,10 @@ export default function DashboardPage() {
       .then((data) => {
         if (data.camp_id) setCampId(data.camp_id);
       })
+      .catch(() => {});
+    fetch(`${API}/api/disaster/latest-gps`)
+      .then((r) => r.json())
+      .then((data) => setLatestGps(data))
       .catch(() => {});
     const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
@@ -634,8 +639,8 @@ export default function DashboardPage() {
                   icon={Mountain}
                   tone="neutral"
                   label="Altitude"
-                  value={`${MOCK_DISASTER_INSIGHT.location.altitude_m} m`}
-                  sub={`${MOCK_DISASTER_INSIGHT.location.district} · ${MOCK_DISASTER_INSIGHT.location.lat}°N, ${MOCK_DISASTER_INSIGHT.location.lon}°E`}
+                  value={latestGps?.altitude != null ? `${latestGps.altitude} m` : "—"}
+                  sub={`${latestGps?.latitude?.toFixed(4) ?? "—"}°N, ${latestGps?.longitude?.toFixed(4) ?? "—"}°E`}
                 />
                 <InsightRow
                   icon={Waves}

@@ -79,9 +79,10 @@ function isValidCoord(lat, lng) {
 
 /**
  * Attempt to store the current GPS location.
- * Returns true if a record was inserted, false otherwise.
+ * @param {boolean} isTimerTick - true when called from periodic timer (saves regardless of movement)
+ * @returns {boolean} true if a record was inserted, false otherwise.
  */
-export async function storeCurrentLocation() {
+export async function storeCurrentLocation(isTimerTick = false) {
   ensureStatements();
 
   let gps;
@@ -105,10 +106,8 @@ export async function storeCurrentLocation() {
     return false;
   }
 
-  const now = nowISO();
-
-  // Movement check: skip if within threshold of last stored location
-  if (lastStoredLat != null && lastStoredLng != null) {
+  // Movement check: only apply for movement-triggered saves (not timer ticks)
+  if (!isTimerTick && lastStoredLat != null && lastStoredLng != null) {
     const dist = haversineDistance(lastStoredLat, lastStoredLng, lat, lng);
     if (dist < MOVEMENT_THRESHOLD_M) {
       logger.debug(`[GPS-STORAGE] Moved ${Math.round(dist)}m — below ${MOVEMENT_THRESHOLD_M}m threshold`);
@@ -116,6 +115,8 @@ export async function storeCurrentLocation() {
     }
     logger.info(`[GPS-STORAGE] Movement detected: ${Math.round(dist)}m — storing new reading`);
   }
+
+  const now = nowISO();
 
   try {
     const roundedLat = Math.round(lat * 10000) / 10000;
@@ -137,7 +138,7 @@ export async function storeCurrentLocation() {
 function scheduleNextTick() {
   timer = setTimeout(async () => {
     try {
-      const saved = await storeCurrentLocation();
+      const saved = await storeCurrentLocation(true);
       if (saved) {
         logger.info(`[GPS-STORAGE] Save successful — next save in ${INTERVAL_MS / 60_000} minutes`);
       } else {

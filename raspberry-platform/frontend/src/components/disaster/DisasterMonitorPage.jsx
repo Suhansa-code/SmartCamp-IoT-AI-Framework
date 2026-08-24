@@ -188,13 +188,23 @@ function FieldBox({ label, value, icon: Icon }) {
 /*  PAGE                                                                */
 /* ------------------------------------------------------------------ */
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function DisasterMonitorPage() {
   const [now, setNow] = useState(new Date())
   const [refreshing, setRefreshing] = useState(false)
+  const [latestGps, setLatestGps] = useState(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    fetch(`${API}/api/disaster/latest-gps`)
+      .then((r) => r.json())
+      .then((data) => setLatestGps(data))
+      .catch(() => {})
   }, [])
 
   const handleRefresh = () => {
@@ -215,7 +225,7 @@ export default function DisasterMonitorPage() {
             <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">{CAMP.name}</h1>
             <p className="flex items-center gap-1.5 text-[12.5px] mt-2" style={{ color: COLORS.muted }}>
               <MapPin className="w-3.5 h-3.5" />
-              {CAMP_LOCATION.latitude.toFixed(4)}, {CAMP_LOCATION.longitude.toFixed(4)}
+              {latestGps?.latitude?.toFixed(4) ?? "—"}, {latestGps?.longitude?.toFixed(4) ?? "—"}
             </p>
           </div>
           <div className="flex items-center gap-2 text-[13px]">
@@ -334,10 +344,10 @@ export default function DisasterMonitorPage() {
               <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Location</h2>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-              <FieldBox label="Latitude" value={CAMP_LOCATION.latitude.toFixed(6)} />
-              <FieldBox label="Longitude" value={CAMP_LOCATION.longitude.toFixed(6)} />
-              <FieldBox label="Altitude" value={`${CAMP_LOCATION.altitude} m`} />
-              <FieldBox label="Satellites" value={CAMP_LOCATION.satellites} icon={Satellite} />
+              <FieldBox label="Latitude" value={latestGps?.latitude?.toFixed(6) ?? "—"} />
+              <FieldBox label="Longitude" value={latestGps?.longitude?.toFixed(6) ?? "—"} />
+              <FieldBox label="Altitude" value={latestGps?.altitude != null ? `${latestGps.altitude} m` : "—"} />
+              <FieldBox label="Source" value={latestGps?.source ?? "—"} />
             </div>
           </div>
 

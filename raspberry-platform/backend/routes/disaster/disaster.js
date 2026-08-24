@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation } from '../../controllers/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 
 const router = express.Router();
@@ -10,6 +10,7 @@ router.get('/camps/:id', getCampById);
 router.get('/prediction-models', getPredictionModels);
 router.get('/overview', getOverview);
 router.get('/gps', getGpsLocation);
+router.get('/latest-gps', getLatestGpsLocation);
 router.get('/camp-identity', getCampIdentity);
 
 router.get('/live-payload', async (req, res) => {
