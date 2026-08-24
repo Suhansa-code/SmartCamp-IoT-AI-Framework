@@ -63,7 +63,7 @@ def _read_gps_with_timeout() -> dict | None:
     def _target():
         try:
             reader = GPSReader(GPS_PORT, GPS_BAUD)
-            data = reader.get_gps_data()
+            data = reader.get_gps_data(max_lines=50)
             if data and data.get("latitude") is not None and data.get("longitude") is not None:
                 result[0] = data
         except Exception as e:

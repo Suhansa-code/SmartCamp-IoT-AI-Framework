@@ -2,6 +2,7 @@ import serial
 import glob
 import json
 import re
+import platform
 
 
 class DHT11Reader:
@@ -11,14 +12,34 @@ class DHT11Reader:
             port = self._detect_esp32_port()
         self.serial_port = serial.Serial(port, baudrate, timeout=2)
 
+    def close(self):
+        if self.serial_port and self.serial_port.is_open:
+            self.serial_port.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
     @staticmethod
     def _detect_esp32_port():
+        import serial.tools.list_ports
+        # Try pyserial's cross-platform port listing first
+        for p in serial.tools.list_ports.comports():
+            desc = (p.description or '').lower()
+            mfg = (p.manufacturer or '').lower()
+            if any(k in desc for k in ('cp210', 'ch340', 'ftdi', 'silicon', 'esp32', 'uart', 'usb-serial')):
+                return p.device
+            if any(k in mfg for k in ('silicon', 'wch', 'ftdi', 'espressif')):
+                return p.device
+        # Fallback: Linux glob
         candidates = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*')
         if candidates:
             return candidates[0]
         raise serial.SerialException(
             "No ESP32 serial device found. "
-            "Checked /dev/ttyUSB* and /dev/ttyACM*."
+            "Checked all COM ports and /dev/ttyUSB* /dev/ttyACM*."
         )
 
     def get_dht11_data(self):
@@ -54,15 +75,13 @@ class DHT11Reader:
         except (json.JSONDecodeError, ValueError):
             pass
 
-        match = re.search(
-            r'temp(?:erature)?[:\s]*([0-9.]+).*?hum(?:idity)?[:\s]*([0-9.]+)',
-            line,
-            re.IGNORECASE
-        )
-        if match:
+        # Try to extract temperature and humidity in any order
+        temp_match = re.search(r'temp(?:erature)?[:\s]*([0-9.]+)', line, re.IGNORECASE)
+        hum_match = re.search(r'hum(?:idity)?[:\s]*([0-9.]+)', line, re.IGNORECASE)
+        if temp_match and hum_match:
             return {
-                "temperature": float(match.group(1)),
-                "relative_humidity": float(match.group(2))
+                "temperature": float(temp_match.group(1)),
+                "relative_humidity": float(hum_match.group(1))
             }
 
         parts = line.split(',')

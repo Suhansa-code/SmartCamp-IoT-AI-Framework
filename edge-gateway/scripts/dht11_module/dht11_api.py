@@ -20,13 +20,16 @@ DHT11_TIMEOUT = 10
 
 
 def _read_dht11_with_timeout():
-    """Try to read from the ESP32 serial DHT11 sensor. Returns None on failure."""
+    """Try to read from the ESP32 serial DHT11 sensor. Returns None on failure.
+    On timeout, closes the serial port to release it for the next attempt."""
     result = [None]
     error = [None]
+    reader_ref = [None]
 
     def _target():
         try:
             reader = DHT11Reader(DHT11_PORT, DHT11_BAUD)
+            reader_ref[0] = reader
             data = reader.get_dht11_data()
             if data is not None:
                 result[0] = data
@@ -38,6 +41,8 @@ def _read_dht11_with_timeout():
     thread.join(timeout=DHT11_TIMEOUT)
 
     if thread.is_alive():
+        if reader_ref[0]:
+            reader_ref[0].close()
         return None, "DHT11 read timed out"
     if error[0] is not None:
         return None, error[0]
