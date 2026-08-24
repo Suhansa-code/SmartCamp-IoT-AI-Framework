@@ -126,6 +126,13 @@ function initializeCampDb() {
       ON persons(mqtt_client_id) WHERE mqtt_client_id IS NOT NULL
   `);
 
+  // ── Fingerprint hardware: physical template slot on the R503 sensor (1..N) ──
+  try { campDb.exec('ALTER TABLE persons ADD COLUMN fingerprint_slot INTEGER'); } catch (_) {}
+  campDb.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_persons_fingerprint_slot
+      ON persons(fingerprint_slot) WHERE fingerprint_slot IS NOT NULL
+  `);
+
   // ── Wristband upgrades: QR identifier, lifecycle status, assignment tracking ──
   try { campDb.exec('ALTER TABLE wristbands ADD COLUMN qr_identifier TEXT'); } catch (_) {}
   try { campDb.exec("ALTER TABLE wristbands ADD COLUMN status TEXT DEFAULT 'AVAILABLE'"); } catch (_) {}

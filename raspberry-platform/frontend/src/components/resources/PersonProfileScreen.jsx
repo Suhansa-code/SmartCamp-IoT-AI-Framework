@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Users, CalendarDays, BadgeCheck, Waves, AlertTriangle,
   ClipboardCheck, Utensils, Loader2, Edit2, Trash2, X, Save, QrCode,
+  Fingerprint, RefreshCw, CheckCircle,
 } from "lucide-react";
 import ConfirmDialog from "../ui/feedback/ConfirmDialog";
 import LoadingState from "../ui/feedback/LoadingState";
@@ -11,6 +12,7 @@ import { useToast } from "../ui/feedback/Toast";
 import { API, inputClass as inputClassBase } from "../ui/config";
 import { COLORS, SHADOW_CARD } from "../../lib/tokens";
 import QrCardModal from "./QrCardModal";
+import useFingerprintDevice, { ENROLL_STEP_LABEL } from "../../lib/useFingerprintDevice";
 
 const TYPE_LABELS = {
   refugee: "Refugee", asylum_seeker: "Asylum Seeker", idp: "IDP",
@@ -134,6 +136,12 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrData, setQrData] = useState(null);
 
+  // ── Fingerprint enrolment ──
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollStep, setEnrollStep] = useState(null);
+  const [enrollNotice, setEnrollNotice] = useState(null);
+  const [showUnlink, setShowUnlink] = useState(false);
+
   const fetchProfile = () => {
     setLoading(true);
     setFetchError("");
@@ -162,6 +170,66 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
   };
 
   useEffect(() => { fetchProfile(); }, [personId]);
+
+  const { deviceConnected } = useFingerprintDevice({
+    onEnrollProgress: (data) => { setEnrolling(true); setEnrollStep(data.step); },
+    onEnrollResult: (data) => {
+      setEnrolling(false);
+      setEnrollStep(null);
+      if (data.success) {
+        setEnrollNotice({ tone: "brand", text: `Fingerprint enrolled on sensor slot #${data.slot}` });
+        addToast("Fingerprint enrolled", "success");
+        fetchProfile();
+        onUpdated?.();
+      } else {
+        setEnrollNotice({ tone: "danger", text: `Enrolment failed: ${data.error || "sensor error"}` });
+        addToast(data.error || "Enrolment failed", "error");
+      }
+    },
+  });
+
+  const enrollFingerprint = async () => {
+    setEnrolling(true);
+    setEnrollStep("STARTED");
+    setEnrollNotice(null);
+    try {
+      const res = await fetch(`${API}/api/fingerprint/enroll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person_id: personId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Enrolment could not be started");
+    } catch (err) {
+      setEnrolling(false);
+      setEnrollStep(null);
+      setEnrollNotice({ tone: "danger", text: `Enrolment failed: ${err.message}` });
+      addToast(err.message, "error");
+    }
+  };
+
+  const cancelEnrollment = async () => {
+    try { await fetch(`${API}/api/fingerprint/enroll/cancel`, { method: "POST" }); } catch { /* SSE clears state */ }
+  };
+
+  const unlinkFingerprint = async () => {
+    setShowUnlink(false);
+    try {
+      const res = await fetch(`${API}/api/fingerprint/unlink`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person_id: personId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not remove the fingerprint");
+      setEnrollNotice({ tone: "warning", text: "Fingerprint removed — the sensor slot is free again" });
+      addToast("Fingerprint removed", "success");
+      fetchProfile();
+      onUpdated?.();
+    } catch (err) {
+      addToast(err.message, "error");
+    }
+  };
 
   const startEdit = () => {
     setEditForm({
@@ -475,6 +543,59 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
             </div>
           ) : null}
 
+          {!editing && (
+            <div className="rounded-lg border p-3.5 space-y-3" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2" style={{ color: COLORS.muted }}>
+                  <Fingerprint className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">Biometrics</span>
+                </div>
+                {person.fingerprint_slot != null ? (
+                  <Chip tone="brand"><CheckCircle className="w-3.5 h-3.5" /> Sensor slot #{person.fingerprint_slot}</Chip>
+                ) : (
+                  <Chip tone="warning"><AlertTriangle className="w-3.5 h-3.5" /> Not enrolled</Chip>
+                )}
+              </div>
+
+              {enrolling ? (
+                <div className="flex items-center gap-2.5 text-[12.5px] font-medium" style={{ color: TONE.info.color }}>
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span className="flex-1">{ENROLL_STEP_LABEL[enrollStep] || "Capturing fingerprint…"}</span>
+                  <button onClick={cancelEnrollment} className="text-[11.5px] font-semibold underline" style={{ color: COLORS.muted }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {enrollNotice && (
+                    <p className="text-[12px] font-medium" style={{ color: (TONE[enrollNotice.tone] || TONE.neutral).color }}>
+                      {enrollNotice.text}
+                    </p>
+                  )}
+                  <p className="text-[11.5px]" style={{ color: COLORS.muted }}>
+                    {person.fingerprint_slot != null
+                      ? "This person can be identified by fingerprint at the gate and at distribution."
+                      : deviceConnected
+                        ? "Capture a fingerprint so this person can be identified without their wristband."
+                        : "No scanner attached — a simulated template will be captured instead."}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" onClick={enrollFingerprint}>
+                      {person.fingerprint_slot != null
+                        ? <><RefreshCw className="w-3.5 h-3.5" /> Re-enrol</>
+                        : <><Fingerprint className="w-3.5 h-3.5" /> Enrol Fingerprint</>}
+                    </Button>
+                    {person.fingerprint_slot != null && (
+                      <Button variant="secondary" onClick={() => setShowUnlink(true)}>
+                        <X className="w-3.5 h-3.5" /> Remove
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="text-[11px] flex flex-wrap items-center gap-1 font-mono" style={{ color: COLORS.muted }}>
             <CalendarDays className="w-3 h-3" />
             <span>Registered: {person.created_at ? new Date(person.created_at).toLocaleDateString() : "—"}</span>
@@ -537,6 +658,16 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
         variant="danger"
         onConfirm={handleDelete}
         onCancel={() => setShowDelete(false)}
+      />
+
+      <ConfirmDialog
+        open={showUnlink}
+        title="Remove Fingerprint"
+        message={`Delete ${person.full_name}'s fingerprint template from the sensor? They will no longer be identifiable by fingerprint until re-enrolled.`}
+        confirmLabel="Remove"
+        variant="danger"
+        onConfirm={unlinkFingerprint}
+        onCancel={() => setShowUnlink(false)}
       />
 
       <QrCardModal data={qrData} onClose={() => setQrData(null)} />

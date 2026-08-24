@@ -1,0 +1,17 @@
+# Network state prediction + adaptive QoS — Raspberry Pi runtime.
+#
+# Deliberately slimmer than the cloud resource-model requirements: no
+# psycopg2 (this model never touches the database), no lightgbm, and
+# jupyter/xgboost are optional extras needed only to retrain from the
+# notebook. Inference needs the first four packages only.
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+joblib>=1.3.0
+
+# Retraining only (notebooks/03_network_prediction_model.ipynb)
+# xgboost>=2.0.0
+# matplotlib>=3.7.0
+# seaborn>=0.12.0
+# jupyter>=1.0.0
+# ipykernel>=6.25.0

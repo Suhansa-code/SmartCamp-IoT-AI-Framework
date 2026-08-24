@@ -62,7 +62,7 @@ export function getAllPersons({ q, person_type, sort = 'created_at', order = 'de
   const sortOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
   const rows = db.prepare(`
-    SELECT p.id, p.fingerprint_id, p.full_name, p.age, p.gender, p.person_type,
+    SELECT p.id, p.fingerprint_id, p.fingerprint_slot, p.full_name, p.age, p.gender, p.person_type,
            p.family_unit_id, p.family_size, p.is_pregnant, p.has_chronic_illness,
            p.medical_notes, p.pre_registered, p.created_at,
            w.barcode as wristband_barcode

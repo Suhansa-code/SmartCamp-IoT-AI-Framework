@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "model_id": "lka_camp_demand_quantile_gbr",
+  "generated_at": "2026-08-22T20:54:09+00:00",
+  "generated_by": "scripts/train_demand_quantile_model.py",
+  "trained_on": {
+    "dataset": "data/simulated/camp_day_demand.csv",
+    "synthetic": true,
+    "n_train": 3000,
+    "n_test": 1000,
+    "note": "Per-person intake bootstrapped from 653 real measured subject-days; camp sizes from 78 real IDMC events."
+  },
+  "features": [
+    "population",
+    "children",
+    "adults",
+    "elderly",
+    "pregnant",
+    "children_ratio",
+    "elderly_ratio"
+  ],
+  "quantiles": {
+    "p50": 0.5,
+    "p90": 0.9
+  },
+  "evaluation": {
+    "p90_coverage_pct": 91.6,
+    "rate_table_coverage_pct": 32.1,
+    "analytic_coverage_pct": 88.2,
+    "rate_table_undersupply_rate_pct": 67.9,
+    "rate_table_mean_shortfall_kg": 8.64,
+    "pinball_p50": 2.6675,
+    "pinball_p90": 1.4814,
+    "r2_total_food_MEANINGLESS": 0.999358,
+    "by_size_band": [
+      {
+        "band": "5-25",
+        "n": 370,
+        "buffer_pct": 31.63,
+        "coverage_pct": 91.35
+      },
+      {
+        "band": "25-60",
+        "n": 203,
+        "buffer_pct": 11.46,
+        "coverage_pct": 91.63
+      },
+      {
+        "band": "60-150",
+        "n": 220,
+        "buffer_pct": 6.76,
+        "coverage_pct": 93.18
+      },
+      {
+        "band": "150-400",
+        "n": 109,
+        "buffer_pct": 3.56,
+        "coverage_pct": 91.74
+      },
+      {
+        "band": "400-2000",
+        "n": 98,
+        "buffer_pct": 1.89,
+        "coverage_pct": 88.78
+      }
+    ]
+  },
+  "honest_reading": "R2 on total food is ~0.999 and means nothing: the total is population times a constant by construction. The result that stands is 90 % interval coverage on held-out camps, and the finding that the shipped rate table under-supplies on a large share of camp-days because it carries no buffer at all."
+}
