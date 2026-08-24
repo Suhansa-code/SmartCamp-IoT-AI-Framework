@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users, UserPlus, ClipboardCheck, Heart, Baby, Activity, TrendingUp, Wifi,
-  CalendarDays, ArrowUpRight,
+  CalendarDays, ArrowUpRight, CloudRain, Thermometer, MapPin, Mountain,
+  Waves, BrainCircuit, Wind,
 } from 'lucide-react'
 import LoadingState from './ui/feedback/LoadingState'
 import ErrorState from './ui/feedback/ErrorState'
@@ -24,6 +25,43 @@ const TONE = {
 }
 
 const NETWORK_TONE = { STABLE: 'brand', DEGRADED: 'warning', CRITICAL: 'danger' }
+
+/* ------------------------------------------------------------------ */
+/*  MOCK DATA — Disaster Insight Card (replace with API endpoints)      */
+/* ------------------------------------------------------------------ */
+
+const MOCK_DISASTER_INSIGHT = {
+  prediction: {
+    risk_level: 'moderate',
+    risk_score: 62,
+    model: 'XGBoost v2.1',
+    confidence: 0.84,
+    updated_at: '2026-08-24T10:30:00+05:30',
+  },
+  weather: {
+    condition: 'Partly Cloudy',
+    temp_c: 28,
+    humidity_pct: 76,
+    wind_kph: 18,
+    forecast: 'Light showers expected after 14:00',
+  },
+  rainfall: {
+    current_mm: 2.4,
+    hourly_avg_mm: 1.8,
+    daily_total_mm: 14.2,
+    trend: 'increasing',
+  },
+  location: {
+    altitude_m: 48,
+    lat: 6.9271,
+    lon: 79.8612,
+    district: 'Central Province',
+    nearest_river: 'Mahaweli River',
+    river_distance_km: 3.2,
+    river_level_m: 2.8,
+    river_trend: 'rising',
+  },
+}
 
 /* ------------------------------------------------------------------ */
 /*  LOCAL PRIMITIVES — mirror the FloodWatch / ReliefOps design system  */
@@ -132,6 +170,20 @@ function VulnerableRow({ icon: Icon, tone, label, value }) {
   )
 }
 
+function InsightRow({ icon: Icon, tone, label, value, sub }) {
+  const t = TONE[tone] || TONE.neutral
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b last:border-0" style={{ borderColor: COLORS.hairline }}>
+      <IconTile icon={Icon} tone={tone} size="sm" />
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>{label}</p>
+        <p className="text-[13.5px] font-semibold mt-0.5" style={{ color: COLORS.ink }}>{value}</p>
+        {sub && <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 /*  MAIN                                                                */
 /* ------------------------------------------------------------------ */
@@ -215,7 +267,7 @@ export default function DashboardPage() {
 
         {/* ================= DISTRIBUTION + SIDE CARDS ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-          <Card delay={0.1} className="lg:col-span-2">
+          <Card delay={0.1} className="lg:col-span-2 h-fit">
             <SectionLabel>Today's Distribution</SectionLabel>
             <DistributionRow label="Breakfast" data={dist.breakfast} />
             <DistributionRow label="Lunch" data={dist.lunch} />
@@ -260,6 +312,83 @@ export default function DashboardPage() {
             </Card>
           </div>
         </div>
+
+        {/* ================= DISASTER INSIGHT ================= */}
+        <Card delay={0.3}>
+          <SectionLabel>Disaster Insight</SectionLabel>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* Model Prediction */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <BrainCircuit className="w-4 h-4" style={{ color: COLORS.brand }} />
+                <span className="text-[12px] font-semibold" style={{ color: COLORS.ink }}>Model Prediction</span>
+              </div>
+              <div className="space-y-0">
+                <InsightRow
+                  icon={Activity}
+                  tone={MOCK_DISASTER_INSIGHT.prediction.risk_level === 'high' ? 'danger' : MOCK_DISASTER_INSIGHT.prediction.risk_level === 'moderate' ? 'warning' : 'brand'}
+                  label="Risk Level"
+                  value={`${MOCK_DISASTER_INSIGHT.prediction.risk_level.charAt(0).toUpperCase() + MOCK_DISASTER_INSIGHT.prediction.risk_level.slice(1)} (${MOCK_DISASTER_INSIGHT.prediction.risk_score}/100)`}
+                  sub={`Model: ${MOCK_DISASTER_INSIGHT.prediction.model} · ${MOCK_DISASTER_INSIGHT.prediction.confidence * 100}% confidence`}
+                />
+              </div>
+            </div>
+
+            {/* Weather Forecast */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <CloudRain className="w-4 h-4" style={{ color: COLORS.brand }} />
+                <span className="text-[12px] font-semibold" style={{ color: COLORS.ink }}>Weather Forecast</span>
+              </div>
+              <div className="space-y-0">
+                <InsightRow
+                  icon={Thermometer}
+                  tone="info"
+                  label="Condition"
+                  value={`${MOCK_DISASTER_INSIGHT.weather.condition} · ${MOCK_DISASTER_INSIGHT.weather.temp_c}°C`}
+                  sub={`Humidity: ${MOCK_DISASTER_INSIGHT.weather.humidity_pct}% · Wind: ${MOCK_DISASTER_INSIGHT.weather.wind_kph} km/h`}
+                />
+                <InsightRow
+                  icon={Wind}
+                  tone="warning"
+                  label="Forecast"
+                  value={MOCK_DISASTER_INSIGHT.weather.forecast}
+                />
+              </div>
+            </div>
+
+            {/* Rainfall & Location */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin className="w-4 h-4" style={{ color: COLORS.brand }} />
+                <span className="text-[12px] font-semibold" style={{ color: COLORS.ink }}>Rainfall & Location</span>
+              </div>
+              <div className="space-y-0">
+                <InsightRow
+                  icon={CloudRain}
+                  tone="info"
+                  label="Rainfall"
+                  value={`${MOCK_DISASTER_INSIGHT.rainfall.current_mm} mm/hr`}
+                  sub={`Daily total: ${MOCK_DISASTER_INSIGHT.rainfall.daily_total_mm} mm · Trend: ${MOCK_DISASTER_INSIGHT.rainfall.trend}`}
+                />
+                <InsightRow
+                  icon={Mountain}
+                  tone="neutral"
+                  label="Altitude"
+                  value={`${MOCK_DISASTER_INSIGHT.location.altitude_m} m`}
+                  sub={`${MOCK_DISASTER_INSIGHT.location.district} · ${MOCK_DISASTER_INSIGHT.location.lat}°N, ${MOCK_DISASTER_INSIGHT.location.lon}°E`}
+                />
+                <InsightRow
+                  icon={Waves}
+                  tone="info"
+                  label={MOCK_DISASTER_INSIGHT.location.nearest_river}
+                  value={`${MOCK_DISASTER_INSIGHT.location.river_level_m} m`}
+                  sub={`${MOCK_DISASTER_INSIGHT.location.river_distance_km} km away · Trend: ${MOCK_DISASTER_INSIGHT.location.river_trend}`}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* ================= RECENT REGISTRATIONS ================= */}
         {recent.length > 0 && (
