@@ -4,6 +4,23 @@ import { Satellite, Thermometer, Droplets, Radio, RefreshCw, Activity, MapPin, A
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 
 /* ------------------------------------------------------------------ */
+/*  REVERSE GEOCODING (Nominatim — free, no key)                        */
+/* ------------------------------------------------------------------ */
+
+async function reverseGeocode(lat, lon) {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=14`,
+    { signal: AbortSignal.timeout(8000), headers: { 'Accept-Language': 'en' } }
+  );
+  if (!res.ok) throw new Error(`Nominatim ${res.status}`);
+  const data = await res.json();
+  const addr = data.address || {};
+  const name = addr.village || addr.town || addr.city || addr.hamlet || addr.suburb || addr.county || '';
+  const district = addr.district || addr.state_district || addr.state || '';
+  return { name, district };
+}
+
+/* ------------------------------------------------------------------ */
 /*  SEMANTIC COLOUR MAP                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -149,6 +166,25 @@ function DeviceStatusCard({ device }) {
 
 function GpsCard({ sensor }) {
   const connected = !!sensor?.connected;
+  const [geo, setGeo] = useState({ name: '', district: '', loading: false, done: false });
+
+  useEffect(() => {
+    if (!connected || sensor?.latitude == null || sensor?.longitude == null) return;
+
+    const backendName = sensor?.location_name || '';
+    const looksLikeCoords = /^-?\d+\.?\d*\s*[,]\s*-?\d+\.?\d*$/.test(backendName);
+    if (backendName && !looksLikeCoords) {
+      setGeo({ name: backendName, district: '', loading: false, done: true });
+      return;
+    }
+
+    let cancelled = false;
+    setGeo(g => ({ ...g, loading: true }));
+    reverseGeocode(sensor.latitude, sensor.longitude)
+      .then(loc => { if (!cancelled) setGeo({ name: loc.name, district: loc.district, loading: false, done: true }); })
+      .catch(() => { if (!cancelled) setGeo({ name: '', district: '', loading: false, done: true }); });
+    return () => { cancelled = true; };
+  }, [connected, sensor?.latitude, sensor?.longitude, sensor?.location_name]);
 
   return (
     <SensorCard icon={Satellite} name="GPS Sensor" description="Camp location & disaster-response tracking" connected={connected} lastUpdated={sensor?.timestamp}>
@@ -160,18 +196,26 @@ function GpsCard({ sensor }) {
             <DataRow label="Altitude" value={sensor?.altitude != null ? `${sensor.altitude} m` : '—'} mono />
             <DataRow label="Satellites" value={sensor?.satellites ?? '—'} mono />
           </div>
-          {sensor?.location_name && (
-            <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
-              <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
-              <div className="flex-1">
-                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Location</p>
-                <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
-                  {sensor.location_name}
-                  {sensor.is_mock && <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>}
-                </p>
-              </div>
+
+          <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
+            <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
+            <div className="flex-1">
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Location</p>
+              {geo.loading ? (
+                <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.muted }}>Fetching location…</p>
+              ) : geo.name ? (
+                <>
+                  <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
+                    {geo.name}
+                    {sensor?.is_mock && <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>}
+                  </p>
+                  {geo.district && <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>{geo.district}</p>}
+                </>
+              ) : (
+                <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.muted }}>Location unavailable</p>
+              )}
             </div>
-          )}
+          </div>
         </>
       ) : (
         <p className="text-[12.5px]" style={{ color: COLORS.muted }}>No current GPS data</p>
