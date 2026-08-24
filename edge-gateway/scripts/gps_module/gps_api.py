@@ -15,7 +15,7 @@ import requests
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from gps_reader import GPSReader
+from .gps_reader import GPSReader
 
 router = APIRouter()
 

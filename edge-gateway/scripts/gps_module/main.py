@@ -1,4 +1,4 @@
-from gps_reader import GPSReader
+from .gps_reader import GPSReader
 
 
 gps = GPSReader('COM5', 115200)
