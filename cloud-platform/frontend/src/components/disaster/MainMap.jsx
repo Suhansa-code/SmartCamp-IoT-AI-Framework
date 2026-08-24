@@ -376,6 +376,7 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
         center={[80.5, 7.5]}
         zoom={6.5}
         className="absolute inset-0"
+        theme={dark ? 'dark' : 'light'}
       >
         <MapControls showZoom showLocate showCompass />
         <MapViewController viewMode={viewMode} />
