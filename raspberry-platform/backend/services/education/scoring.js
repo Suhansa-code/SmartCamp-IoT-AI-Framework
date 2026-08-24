@@ -123,10 +123,12 @@ export function computePassiveScore(passiveSignals) {
   const idleTimeRatio = passiveSignals.idleTimeRatio ?? 0;
   const rapidClickCount = passiveSignals.rapidClickCount ?? 0;
   const completionRatio = passiveSignals.completionRatio ?? 1;
+  const timeToFirstMs = passiveSignals.timeToFirstMs ?? 0;
 
   return (
-    (1 - idleTimeRatio) * 100 * 0.35 +
-    Math.max(0, 1 - rapidClickCount / 10) * 100 * 0.25 +
-    completionRatio * 100 * 0.40
+    (1 - idleTimeRatio) * 100 * 0.30 +
+    Math.max(0, 1 - rapidClickCount / 10) * 100 * 0.20 +
+    completionRatio * 100 * 0.30 +
+    Math.max(0, 1 - timeToFirstMs / 5000) * 100 * 0.20
   );
 }
