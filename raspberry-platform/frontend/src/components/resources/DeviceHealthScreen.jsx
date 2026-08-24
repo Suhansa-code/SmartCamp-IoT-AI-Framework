@@ -3,22 +3,7 @@ import { motion } from 'framer-motion';
 import { Satellite, Thermometer, Droplets, Radio, RefreshCw, Activity, MapPin, ArrowLeft, Wifi, WifiOff } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 
-/* ------------------------------------------------------------------ */
-/*  REVERSE GEOCODING (Nominatim — free, no key)                        */
-/* ------------------------------------------------------------------ */
-
-async function reverseGeocode(lat, lon) {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=14`,
-    { signal: AbortSignal.timeout(8000), headers: { 'Accept-Language': 'en' } }
-  );
-  if (!res.ok) throw new Error(`Nominatim ${res.status}`);
-  const data = await res.json();
-  const addr = data.address || {};
-  const name = addr.village || addr.town || addr.city || addr.hamlet || addr.suburb || addr.county || '';
-  const district = addr.district || addr.state_district || addr.state || '';
-  return { name, district };
-}
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 /* ------------------------------------------------------------------ */
 /*  SEMANTIC COLOUR MAP                                                 */
@@ -172,19 +157,30 @@ function GpsCard({ sensor }) {
     if (!connected || sensor?.latitude == null || sensor?.longitude == null) return;
 
     const backendName = sensor?.location_name || '';
+    const backendDistrict = sensor?.district || '';
     const looksLikeCoords = /^-?\d+\.?\d*\s*[,]\s*-?\d+\.?\d*$/.test(backendName);
     if (backendName && !looksLikeCoords) {
-      setGeo({ name: backendName, district: '', loading: false, done: true });
+      setGeo({ name: backendName, district: backendDistrict, loading: false, done: true });
       return;
     }
 
     let cancelled = false;
     setGeo(g => ({ ...g, loading: true }));
-    reverseGeocode(sensor.latitude, sensor.longitude)
-      .then(loc => { if (!cancelled) setGeo({ name: loc.name, district: loc.district, loading: false, done: true }); })
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${sensor.latitude}&lon=${sensor.longitude}&zoom=14`, {
+      signal: AbortSignal.timeout(8000),
+      headers: { 'Accept-Language': 'en' },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        const addr = data.address || {};
+        const name = addr.village || addr.town || addr.city || addr.hamlet || addr.suburb || addr.county || '';
+        const district = addr.district || addr.state_district || addr.state || '';
+        setGeo({ name, district, loading: false, done: true });
+      })
       .catch(() => { if (!cancelled) setGeo({ name: '', district: '', loading: false, done: true }); });
     return () => { cancelled = true; };
-  }, [connected, sensor?.latitude, sensor?.longitude, sensor?.location_name]);
+  }, [connected, sensor?.latitude, sensor?.longitude, sensor?.location_name, sensor?.district]);
 
   return (
     <SensorCard icon={Satellite} name="GPS Sensor" description="Camp location & disaster-response tracking" connected={connected} lastUpdated={sensor?.timestamp}>
@@ -286,8 +282,6 @@ export default function DeviceHealthScreen() {
   const [lastAt, setLastAt] = useState(null);
   const [pollError, setPollError] = useState(null);
   const intervalRef = useRef(null);
-
-  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const fetchDeviceStatus = useCallback(async () => {
     try {
