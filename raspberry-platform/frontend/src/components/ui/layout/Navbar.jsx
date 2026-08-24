@@ -191,15 +191,25 @@ export default function Navbar() {
               </Link>
             </div>
 
-            <button
-              onClick={() => setMobileOpen((o) => !o)}
-              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
-              style={{ borderColor: COLORS.line, color: COLORS.body }}
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileOpen}
-            >
-              {mobileOpen ? <X className="w-4 h-4" strokeWidth={1.8} /> : <Menu className="w-4 h-4" strokeWidth={1.8} />}
-            </button>
+            <div className="lg:hidden flex items-center gap-2">
+              <Link
+                to="/devices"
+                aria-label="View connected devices"
+                className="flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
+                style={{ borderColor: COLORS.line, color: COLORS.body }}
+              >
+                <Cpu className="w-4 h-4" strokeWidth={1.8} />
+              </Link>
+              <button
+                onClick={() => setMobileOpen((o) => !o)}
+                className="flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
+                style={{ borderColor: COLORS.line, color: COLORS.body }}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileOpen}
+              >
+                {mobileOpen ? <X className="w-4 h-4" strokeWidth={1.8} /> : <Menu className="w-4 h-4" strokeWidth={1.8} />}
+              </button>
+            </div>
           </div>
         </div>
       </nav>
