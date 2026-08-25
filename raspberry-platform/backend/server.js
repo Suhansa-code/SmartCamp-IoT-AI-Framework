@@ -10,6 +10,7 @@ import { startConnectivityWatcher } from './services/network/connectivity.js';
 import { checkFlaskHealth } from './services/education/scoring.js';
 import { startSync } from './services/sync/sync-manager.js';
 import { startGpsStorage } from './services/disaster/gps-storage.js';
+import { startWeatherStorage } from './services/disaster/weather-storage.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -88,6 +89,9 @@ startSync();
 
 // Start periodic GPS storage to disaster.db
 startGpsStorage();
+
+// Start periodic weather forecast storage via EDGE Gateway
+startWeatherStorage();
 
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {

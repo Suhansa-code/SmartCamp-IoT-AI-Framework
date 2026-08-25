@@ -48,14 +48,6 @@ const HISTORY = [
   return { ...d, trend: Number(trend.toFixed(2)) }
 })
 
-const WEATHER = {
-  condition: 'Partly cloudy, light showers', temp: 27, wind: 14, humidity: 82, rainChance: 62,
-  hourly: [
-    { t: '9AM', pct: 20 }, { t: '12PM', pct: 35 }, { t: '3PM', pct: 58 },
-    { t: '6PM', pct: 72 }, { t: '9PM', pct: 44 },
-  ],
-}
-
 const BEST_MODEL = { name: 'XGBoost', roc_auc: 0.927 }
 
 const READINGS = [
@@ -194,6 +186,7 @@ export default function DisasterMonitorPage() {
   const [now, setNow] = useState(new Date())
   const [refreshing, setRefreshing] = useState(false)
   const [latestGps, setLatestGps] = useState(null)
+  const [weather, setWeather] = useState(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
@@ -204,6 +197,12 @@ export default function DisasterMonitorPage() {
     fetch(`${API}/api/disaster/latest-gps`)
       .then((r) => r.json())
       .then((data) => setLatestGps(data))
+      .catch(() => {})
+    fetch(`${API}/api/disaster/weather/latest`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.available) setWeather(data)
+      })
       .catch(() => {})
   }, [])
 
@@ -261,35 +260,34 @@ export default function DisasterMonitorPage() {
                 <IconTile icon={CloudRain} />
                 <div>
                   <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Weather prediction</p>
-                  <p className="text-[13.5px] sm:text-[14px] font-semibold mt-0.5">{WEATHER.condition}</p>
+                  <p className="text-[13.5px] sm:text-[14px] font-semibold mt-0.5">{weather?.condition || 'Weather data unavailable'}</p>
                 </div>
               </div>
-              <p className="font-serif font-medium text-[28px] sm:text-[30px] leading-none tracking-tight">{WEATHER.temp}°</p>
+              <p className="font-serif font-medium text-[28px] sm:text-[30px] leading-none tracking-tight">
+                {weather?.temperature != null ? `${Math.round(weather.temperature)}°` : '—'}
+              </p>
             </div>
 
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-5">
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.rainChance}%</p>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.rainfall != null ? `${Math.round(weather.rainfall)}%` : '—'}</p>
                 <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Rain chance</p>
               </div>
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.wind} km/h</p>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : '—'}</p>
                 <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Wind</p>
               </div>
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.humidity}%</p>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.humidity != null ? `${Math.round(weather.humidity)}%` : '—'}</p>
                 <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Humidity</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-5 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
-              {WEATHER.hourly.map((h) => (
-                <div key={h.t} className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] sm:text-[10.5px] font-mono" style={{ color: COLORS.muted }}>{h.t}</span>
-                  <span className="text-[11px] sm:text-[11.5px] font-semibold">{h.pct}%</span>
-                </div>
-              ))}
-            </div>
+            {weather?.fetched_at && (
+              <p className="text-[10px] font-mono mt-4 pt-3 border-t" style={{ borderColor: COLORS.hairline, color: COLORS.muted }}>
+                Last updated: {new Date(weather.fetched_at).toLocaleString()}
+              </p>
+            )}
           </div>
         </div>
 

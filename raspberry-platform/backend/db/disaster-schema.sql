@@ -95,15 +95,21 @@ CREATE TABLE IF NOT EXISTS gps_readings (
 
 CREATE TABLE IF NOT EXISTS weather_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT,
     latitude REAL,
     longitude REAL,
     temperature REAL,
+    humidity REAL,
     precipitation REAL,
     rainfall REAL,
     wind_speed REAL,
+    wind_direction REAL,
     weather_code INTEGER,
+    condition TEXT,
+    forecast_data TEXT,
     forecast_time TEXT,
     source TEXT,
+    fetched_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced INTEGER NOT NULL DEFAULT 0
 );

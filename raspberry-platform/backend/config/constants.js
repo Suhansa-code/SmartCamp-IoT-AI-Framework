@@ -66,6 +66,9 @@ export default {
   GPS_STORAGE_INTERVAL_MINUTES: parseInt(process.env.GPS_STORAGE_INTERVAL_MINUTES, 10) || 30,
   GPS_MOVEMENT_THRESHOLD_METERS: parseFloat(process.env.GPS_MOVEMENT_THRESHOLD_METERS) || 100,
 
+  WEATHER_FETCH_INTERVAL_MINUTES: parseInt(process.env.WEATHER_FETCH_INTERVAL_MINUTES, 10) || 30,
+  WEATHER_LOCATION_THRESHOLD_METERS: parseFloat(process.env.WEATHER_LOCATION_THRESHOLD_METERS) || 500,
+
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,
   EMQX_USERNAME: process.env.EMQX_USERNAME || 'admin',

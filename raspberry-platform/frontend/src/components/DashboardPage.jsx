@@ -361,6 +361,7 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [campId, setCampId] = useState("");
   const [latestGps, setLatestGps] = useState(null);
+  const [weather, setWeather] = useState(null);
 
   const fetchStats = () => {
     fetch(`${API}/api/stats/overview`)
@@ -389,6 +390,12 @@ export default function DashboardPage() {
     fetch(`${API}/api/disaster/latest-gps`)
       .then((r) => r.json())
       .then((data) => setLatestGps(data))
+      .catch(() => {});
+    fetch(`${API}/api/disaster/weather/latest`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.available) setWeather(data);
+      })
       .catch(() => {});
     const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
@@ -608,14 +615,30 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="space-y-0">
-                <InsightRow
-                  icon={Thermometer}
-                  tone="info"
-                  label="Condition"
-                  value={`${MOCK_DISASTER_INSIGHT.weather.condition} · ${MOCK_DISASTER_INSIGHT.weather.temp_c}°C`}
-                  sub={`Humidity: ${MOCK_DISASTER_INSIGHT.weather.humidity_pct}% · Wind: ${MOCK_DISASTER_INSIGHT.weather.wind_kph} km/h`}
-                />
-                <InsightRow icon={Wind} tone="warning" label="Forecast" value={MOCK_DISASTER_INSIGHT.weather.forecast} />
+                {weather ? (
+                  <>
+                    <InsightRow
+                      icon={Thermometer}
+                      tone="info"
+                      label="Condition"
+                      value={`${weather.condition || 'Unknown'} · ${weather.temperature != null ? `${Math.round(weather.temperature)}°C` : '—'}`}
+                      sub={`Humidity: ${weather.humidity != null ? `${Math.round(weather.humidity)}%` : '—'} · Wind: ${weather.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : '—'}`}
+                    />
+                    {weather.fetched_at && (
+                      <p className="text-[10px] font-mono mt-2" style={{ color: COLORS.muted }}>
+                        Last updated: {new Date(weather.fetched_at).toLocaleString()}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <InsightRow
+                    icon={Thermometer}
+                    tone="neutral"
+                    label="Condition"
+                    value="Weather data unavailable"
+                    sub="Waiting for first forecast"
+                  />
+                )}
               </div>
             </div>
 
