@@ -27,10 +27,10 @@ function ensureStatements() {
   if (insertStmt) return;
   insertStmt = disasterDb.prepare(`
     INSERT INTO hydrospatial_data
-      (latitude, longitude, elevation, river_distance, nearest_station_id,
+      (latitude, longitude, elevation, river_distance,
        river_name, gauge_elevation, elevation_difference, gauge_distance,
        gauge_latitude, gauge_longitude, station_name, source, created_at, synced)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
   `);
 }
 
@@ -89,7 +89,6 @@ export async function fetchAndSaveHydrospatial() {
   const now = nowISO();
   const elevation = data.camp_elevation ?? null;
   const riverDistance = data.river_distance_km ?? null;
-  const stationId = data.station_id ?? data.gauging_station?.ref ?? null;
   const riverName = data.river_name ?? data.nearest_river?.name ?? null;
   const gaugeElevation = data.gauge_elevation ?? null;
   const elevationDifference = data.elevation_difference ?? null;
@@ -106,7 +105,6 @@ export async function fetchAndSaveHydrospatial() {
       gps.longitude,
       elevation,
       riverDistance,
-      stationId,
       riverName,
       gaugeElevation,
       elevationDifference,
@@ -199,7 +197,6 @@ export function getLatestHydrospatial() {
       longitude: row.longitude,
       elevation: row.elevation,
       river_distance: row.river_distance,
-      nearest_station_id: row.nearest_station_id,
       river_name: row.river_name,
       gauge_elevation: row.gauge_elevation,
       elevation_difference: row.elevation_difference,

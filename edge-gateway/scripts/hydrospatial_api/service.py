@@ -240,7 +240,6 @@ def build_hydrospatial_analysis(latitude: float, longitude: float, altitude: flo
         "river_name": None,
         "river_distance_km": None,
         "station_name": None,
-        "station_id": None,
         "gauge_distance_km": None,
         "gauge_latitude": None,
         "gauge_longitude": None,
@@ -287,7 +286,6 @@ def build_hydrospatial_analysis(latitude: float, longitude: float, altitude: flo
         else:
             payload["gauging_station"] = detailed_result
             payload["station_name"] = detailed_result.get("station_name")
-            payload["station_id"] = detailed_result.get("ref")
             gauge_lat = detailed_result.get("gauge_latitude")
             gauge_lon = detailed_result.get("gauge_longitude")
             payload["gauge_latitude"] = gauge_lat
