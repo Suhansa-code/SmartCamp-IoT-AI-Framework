@@ -218,9 +218,9 @@ export default function DisasterMonitorPage() {
         {/* ================= TITLE ROW ================= */}
         <div className="py-2 sm:py-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{CAMP.type} monitoring</p>
+            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Flood monitoring</p>
             <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">
-              Smart Camp — {latestGps?.location_name ?? CAMP.name.split(' — ')[1] ?? 'Unknown Location'}
+              Smart Camp — {latestGps?.location_name ?? 'Unknown Location'}
             </h1>
             <p className="flex items-center gap-1.5 text-[12.5px] mt-2" style={{ color: COLORS.muted }}>
               <MapPin className="w-3.5 h-3.5" />
