@@ -371,3 +371,30 @@ CREATE TABLE IF NOT EXISTS prediction_requests (
   requested_at    TIMESTAMPTZ,
   completed_at    TIMESTAMPTZ
 );
+
+-- ── Resources domain: camp roster and daily population history ───────────────
+-- The roster arrives over MQTT and used to live only in memory, which meant a
+-- backend restart wiped the registration history the seven-day forecast fits
+-- on. Persisting it lets that history accumulate.
+CREATE TABLE IF NOT EXISTS camp_persons (
+  id                  INTEGER PRIMARY KEY,
+  full_name           TEXT,
+  age                 INTEGER,
+  gender              TEXT,
+  family_unit_id      TEXT,
+  is_pregnant         INTEGER DEFAULT 0,
+  has_chronic_illness INTEGER DEFAULT 0,
+  wristband_barcode   TEXT,
+  created_at          TIMESTAMPTZ,
+  updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS camp_daily_snapshots (
+  date              DATE PRIMARY KEY,
+  total_persons     INTEGER NOT NULL,
+  new_registrations INTEGER DEFAULT 0,
+  checkins          INTEGER DEFAULT 0,
+  updated_at        TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_camp_snapshots_date ON camp_daily_snapshots (date DESC);

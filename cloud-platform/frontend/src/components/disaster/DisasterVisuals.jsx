@@ -128,7 +128,7 @@ export function TrendChart({ data, color, theme }) {
       <polyline points={points.map((point) => point.join(',')).join(' ')} fill="none" stroke={color} strokeWidth="1.1" style={{ filter: `drop-shadow(0 0 2px ${color}60)` }} />
       <line x1={lastPoint[0]} y1="0" x2={lastPoint[0]} y2={height} stroke={color} strokeWidth="0.6" strokeDasharray="2,3" strokeOpacity="0.5" />
       <rect x={lastPoint[0] - 14} y={lastPoint[1] - 8} width="28" height="12" rx="1" fill={color} />
-      <text x={lastPoint[0]} y={lastPoint[1] + 0.5} textAnchor="middle" fill={theme.mode === 'dark' ? '#03080f' : '#ffffff'} fontSize="7" fontFamily="Inter, sans-serif" fontWeight="700">{data[data.length - 1]}</text>
+      <text x={lastPoint[0]} y={lastPoint[1] + 0.5} textAnchor="middle" fill={theme.mode === 'dark' ? '#0F172A' : '#ffffff'} fontSize="7" fontFamily="Inter, sans-serif" fontWeight="700">{data[data.length - 1]}</text>
     </svg>
   )
 }

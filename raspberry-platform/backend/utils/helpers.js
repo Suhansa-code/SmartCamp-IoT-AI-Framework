@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { pagesDb } from '../config/database.js';
 
 const APP_TIME_ZONE = 'Asia/Colombo';
 
@@ -44,10 +45,15 @@ export function campPrefix(campId) {
 
 export function nextChildId(campId) {
   const prefix = campPrefix(campId);
-  const row = pagesDb.prepare(
-    'SELECT COUNT(*) AS cnt FROM pages_children WHERE camp_id = ?'
-  ).get(campId);
-  const next = (row.cnt || 0) + 1;
+  const startPos = prefix.length + 2;
+  const row = pagesDb.prepare(`
+    SELECT CAST(SUBSTR(child_id, ?) AS INTEGER) AS num
+    FROM pages_children
+    WHERE camp_id = ? AND child_id LIKE ?
+    ORDER BY num DESC
+    LIMIT 1
+  `).get(startPos, campId, `${prefix}-%`);
+  const next = (row?.num || 0) + 1;
   return `${prefix}-${String(next).padStart(6, '0')}`;
 }
 

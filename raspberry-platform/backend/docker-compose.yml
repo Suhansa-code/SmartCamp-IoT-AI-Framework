@@ -1,0 +1,39 @@
+version: "3.8"
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: dockerfile
+    env_file: .env
+    ports:
+      - "5000:5000"
+    # Hand the ESP32 + R503 fingerprint scanner through to the container.
+    # Override the host path with FINGERPRINT_SERIAL_PORT if it enumerates
+    # differently (ttyACM1, ttyUSB0, ...). Comment this block out when no
+    # scanner is attached — the backend then falls back to simulation.
+    devices:
+      - "${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}:${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}"
+    # /dev/tty* is root:dialout 0660 and the image runs as the unprivileged
+    # `node` user, so the container process must join gid 20 (dialout).
+    group_add:
+      - "20"
+    depends_on:
+      - python-service
+
+  python-service:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+    env_file: .env
+
+  frontend-service:
+    build:
+      context: ../frontend
+      dockerfile: dockerfile
+      args:
+        VITE_API_URL: http://localhost:5000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+ 
