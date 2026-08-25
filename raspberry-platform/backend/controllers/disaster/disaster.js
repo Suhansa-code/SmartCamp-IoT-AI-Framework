@@ -4,6 +4,7 @@ import { getLatestWeather, getWeatherStorageStatus } from '../../services/disast
 import { getLatestRainfall, getRainfallStorageStatus, fetchAndSaveRainfall } from '../../services/disaster/rainfall-storage.js';
 import { getLatestDht11, getDht11StorageStatus, fetchAndSaveDht11 } from '../../services/disaster/dht11-storage.js';
 import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, fetchAndSaveWaterLevel } from '../../services/disaster/water-level-storage.js';
+import { getLatestSensorStatus, getSensorStatusStorageStatus, fetchAndSaveSensorStatus } from '../../services/disaster/sensor-status-storage.js';
 import { disasterDb } from '../../config/database.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
@@ -188,6 +189,36 @@ export async function triggerWaterLevelSave(req, res) {
   try {
     const saved = await fetchAndSaveWaterLevel();
     res.json({ saved, message: saved ? 'Water level data saved to DB' : 'No data saved (GPS unavailable or fetch failed)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export function getLatestSensorStatusData(req, res) {
+  try {
+    const status = getLatestSensorStatus();
+    if (!status) {
+      return res.json({ available: false, message: 'No sensor status data available yet' });
+    }
+    res.json({ available: true, ...status });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch sensor status data' });
+  }
+}
+
+export function getSensorStatus(req, res) {
+  try {
+    const status = getSensorStatusStorageStatus();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch sensor status' });
+  }
+}
+
+export async function triggerSensorStatusSave(req, res) {
+  try {
+    const saved = await fetchAndSaveSensorStatus();
+    res.json({ saved, message: saved ? 'Sensor status saved to DB' : 'No data saved (gateway unreachable)' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

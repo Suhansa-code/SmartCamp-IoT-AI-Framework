@@ -25,22 +25,6 @@ CREATE TABLE IF NOT EXISTS disaster_events (
 );
 
 -- ============================================================
--- 2. SENSOR READINGS
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS sensor_readings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sensor_id TEXT NOT NULL,
-    sensor_type TEXT NOT NULL,
-    value REAL NOT NULL,
-    unit TEXT,
-    latitude REAL,
-    longitude REAL,
-    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    synced INTEGER NOT NULL DEFAULT 0
-);
-
--- ============================================================
 -- 4. WATER LEVEL READINGS
 -- ============================================================
 
@@ -106,7 +90,20 @@ CREATE TABLE IF NOT EXISTS HumidityTemp_readings (
 );
 
 -- ============================================================
--- 6. WEATHER DATA
+-- 5d. SENSOR STATUS READINGS
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS sensor_status_readings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT,
+    gps_connected INTEGER,
+    temperature_connected INTEGER,
+    humidity_connected INTEGER,
+    rainfall_connected INTEGER,
+    gateway_status TEXT,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced INTEGER NOT NULL DEFAULT 0
+);
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS weather_data (
@@ -236,12 +233,6 @@ CREATE TABLE IF NOT EXISTS disaster_sync_log (
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX IF NOT EXISTS idx_sensor_readings_recorded_at
-ON sensor_readings(recorded_at);
-
-CREATE INDEX IF NOT EXISTS idx_sensor_readings_sensor_id
-ON sensor_readings(sensor_id);
-
 CREATE INDEX IF NOT EXISTS idx_water_level_recorded_at
 ON water_level_readings(recorded_at);
 
@@ -256,6 +247,9 @@ ON rainfall_readings(recorded_at);
 
 CREATE INDEX IF NOT EXISTS idx_HumidityTemp_readings_recorded_at
 ON HumidityTemp_readings(recorded_at);
+
+CREATE INDEX IF NOT EXISTS idx_sensor_status_recorded_at
+ON sensor_status_readings(recorded_at);
 
 CREATE INDEX IF NOT EXISTS idx_weather_data_forecast_time
 ON weather_data(forecast_time);
