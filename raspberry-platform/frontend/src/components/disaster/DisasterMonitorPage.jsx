@@ -434,7 +434,7 @@ export default function DisasterMonitorPage() {
                   { label: 'Elevation Δ', value: hydrospatial.elevation_difference != null ? `${hydrospatial.elevation_difference} m` : '—', sub: hydrospatial.elevation_difference > 0 ? 'Camp above gauge' : hydrospatial.elevation_difference < 0 ? 'Camp below gauge' : 'Same level', icon: hydrospatial.elevation_difference > 0 ? TrendingUp : hydrospatial.elevation_difference < 0 ? TrendingDown : Minus },
                   { label: 'Gauge Distance', value: hydrospatial.gauge_distance != null ? `${hydrospatial.gauge_distance} km` : '—', sub: hydrospatial.gauge_distance != null ? `${(hydrospatial.gauge_distance * 0.621371).toFixed(1)} mi` : '—' },
                 ].map((d) => (
-                  <div key={d.label} className="rounded-lg border p-3 sm:p-3.5" style={{ borderColor: COLORS.line }}>
+                  <div key={d.label} className="rounded-lg border p-3 sm:p-3.5 min-h-34" style={{ borderColor: COLORS.line }}>
                     <span className="inline-block w-1.5 h-1.5 rounded-full mb-2" style={{ backgroundColor: COLORS.brand }} />
                     <p className="text-[12px] sm:text-[12.5px] font-semibold leading-tight">{d.label}</p>
                     <p className="text-[14px] sm:text-[15px] font-bold font-mono mt-1">{d.value}</p>
