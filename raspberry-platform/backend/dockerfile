@@ -1,0 +1,45 @@
+
+# Multi-purpose Dockerfile for Raspberry Platform backend
+# - Node 20 runtime for the Express server
+# - Python3 + pip for model scripts under `python/`
+## Builder stage: install build deps and compile native modules
+FROM node:20-bullseye AS builder
+
+ENV NODE_ENV=production
+WORKDIR /usr/src/app
+
+# Install build dependencies required by native modules (node-gyp)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	python3 \
+	make \
+	g++ \
+	build-essential \
+	libsqlite3-dev \
+	&& rm -rf /var/lib/apt/lists/*
+
+# Install node dependencies (cacheable)
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
+
+# Copy application source
+COPY . .
+
+## Runtime stage: slim image with only runtime files
+FROM node:20-slim AS runner
+
+ENV NODE_ENV=production
+ENV PORT=3000
+WORKDIR /usr/src/app
+
+# Copy built node_modules and app from builder
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app .
+
+# Ensure app files are readable by non-root `node` user
+RUN chown -R node:node /usr/src/app
+USER node
+
+EXPOSE ${PORT}
+
+CMD ["node", "server.js"]
+

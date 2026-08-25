@@ -1,5 +1,5 @@
 // Navigation rail constants + main nav items for the sidebar.
-import { LayoutDashboard, Bell, GraduationCap, Droplets, Activity, Package } from 'lucide-react'
+import { LayoutDashboard, Bell, GraduationCap, Droplets, Activity, Package, Utensils } from 'lucide-react'
 
 export const RAIL_EXPANDED = 236
 export const RAIL_COLLAPSED = 68
@@ -15,4 +15,5 @@ export const NAV_ITEMS = [
   { label: 'Disaster',  path: '/disaster',  icon: Droplets },
   { label: 'Network',   path: '/network',   icon: Activity },
   { label: 'Resources', path: '/resources', icon: Package },
+  { label: 'Distribution', path: '/distribution', icon: Utensils },
 ]

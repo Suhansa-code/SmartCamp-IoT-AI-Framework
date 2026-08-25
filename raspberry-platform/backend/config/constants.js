@@ -75,6 +75,12 @@ export default {
 
   GPS_STORAGE_INTERVAL_MINUTES: parseInt(process.env.GPS_STORAGE_INTERVAL_MINUTES, 10) || 30,
   GPS_MOVEMENT_THRESHOLD_METERS: parseFloat(process.env.GPS_MOVEMENT_THRESHOLD_METERS) || 100,
+  // ── Fingerprint scanner (ESP32 + R503 over USB serial) ──
+  FINGERPRINT_ENABLED: parseBoolean(process.env.FINGERPRINT_ENABLED, false),
+  FINGERPRINT_SERIAL_PORT: process.env.FINGERPRINT_SERIAL_PORT || '',
+  FINGERPRINT_BAUD_RATE: parseInt(process.env.FINGERPRINT_BAUD_RATE, 10) || 115200,
+  FINGERPRINT_MAX_SLOTS: parseInt(process.env.FINGERPRINT_MAX_SLOTS, 10) || 200,
+  FINGERPRINT_SIMULATE: parseBoolean(process.env.FINGERPRINT_SIMULATE, true),
 
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,

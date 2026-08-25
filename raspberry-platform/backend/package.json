@@ -31,6 +31,7 @@
     "node-cron": "^3.0.3",
     "pg": "^8.22.0",
     "qrcode": "^1.5.3",
+    "socket.io": "^4.8.3",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
@@ -40,5 +41,9 @@
   },
   "allowScripts": {
     "better-sqlite3@12.11.1": true
+  },
+  "optionalDependencies": {
+    "@serialport/parser-readline": "^12.0.0",
+    "serialport": "^12.0.0"
   }
 }

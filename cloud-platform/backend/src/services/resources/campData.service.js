@@ -13,6 +13,9 @@ import fs from 'fs';
 import { env } from '../../config/env.js';
 import { computePrediction } from './prediction.service.js';
 import { MEAL_TYPES } from '../../data/resources/campData.data.js';
+import {
+  savePerson, saveSnapshot, loadPersons, loadSnapshots, loadPopulationHistory,
+} from './campStore.repository.js';
 
 const { host, port, username, password, caCertPath } = env.emqx;
 
@@ -57,6 +60,7 @@ function rolloverDay() {
     distributions: { ...distributions },
   });
   if (store.dailySnapshots.length > 30) store.dailySnapshots.shift();
+  saveSnapshot({ date, total_persons: total, new_registrations, checkins });
   store.day = freshDayCounters();
   console.log(`[Camp Data] Day rollover: snapshot saved for ${date}`);
 }
@@ -66,6 +70,19 @@ function checkDayRollover() {
   if (store.day.date && store.day.date !== today) {
     rolloverDay();
   }
+}
+
+/**
+ * Write today's running totals to disk. Called after every event so the daily
+ * population history survives a restart, not just a clean midnight rollover.
+ */
+function persistToday() {
+  saveSnapshot({
+    date: store.day.date,
+    total_persons: store.persons.size,
+    new_registrations: store.day.new_registrations,
+    checkins: store.day.checkin_ids.size,
+  });
 }
 
 function pushEvent(type, summary, timestamp) {
@@ -90,6 +107,9 @@ function onRegistration(payload) {
   const qosInfo = payload.mqtt
     ? ` | QoS ${payload.mqtt.final_qos ?? payload.mqtt.base_qos} | ${payload.mqtt.network_state}`
     : '';
+  savePerson({ ...person, wristband_barcode });
+  persistToday();
+
   pushEvent('registration', `${person.full_name} registered · ${wristband_barcode ?? 'no wristband'}${qosInfo}`, payload.timestamp);
   console.log(`[Camp Data] Register: ${person.full_name} (id=${person.id}, wb=${wristband_barcode ?? '-'})`);
 }
@@ -105,6 +125,9 @@ function onCheckin(payload) {
   if (merged.wristband_barcode) store.wristbandPerson.set(merged.wristband_barcode, merged);
 
   store.day.checkin_ids.add(person.id);
+
+  savePerson(merged);
+  persistToday();
 
   pushEvent('checkin', `${person.full_name} checked in · ${wristband_barcode ?? merged.wristband_barcode ?? '-'}`, payload.timestamp);
   console.log(`[Camp Data] Checkin: ${person.full_name} (id=${person.id})`);
@@ -157,8 +180,8 @@ export function getOverview() {
   const prediction_tomorrow = computePrediction({
     snapshots: store.dailySnapshots,
     totalPersons: total,
+    persons,
     pregnant,
-    chronic,
   });
 
   const recent_registrations = persons
@@ -198,7 +221,46 @@ export function getOverview() {
 
 // ── MQTT connection ────────────────────────────────────────────────────────
 
-export function startCampDataService() {
+/**
+ * Rebuild the in-memory picture from disk before MQTT starts delivering.
+ * Without this the forecaster restarts at zero observations every boot.
+ */
+async function hydrateFromDb() {
+  const persons = await loadPersons();
+  for (const person of persons) {
+    store.persons.set(person.id, {
+      ...person,
+      is_pregnant: !!person.is_pregnant,
+      has_chronic_illness: !!person.has_chronic_illness,
+    });
+    if (person.wristband_barcode) store.wristbandPerson.set(person.wristband_barcode, person);
+  }
+
+  const today = todayDate();
+  for (const snapshot of await loadSnapshots(30)) {
+    if (snapshot.date === today) {
+      store.day.new_registrations = snapshot.new_registrations;
+      continue;
+    }
+    store.dailySnapshots.push({
+      date: snapshot.date,
+      total_persons: snapshot.total_persons,
+      new_registrations: snapshot.new_registrations,
+      checkins: snapshot.checkins,
+      attendance_rate: snapshot.total_persons > 0 ? snapshot.checkins / snapshot.total_persons : 0,
+      distributions: {},
+    });
+  }
+
+  console.log(
+    `[Camp Data] Restored ${persons.length} person(s) and ` +
+      `${store.dailySnapshots.length} day(s) of population history from disk`,
+  );
+}
+
+export async function startCampDataService() {
+  await hydrateFromDb();
+
   let ca;
   try {
     ca = fs.readFileSync(caCertPath);
@@ -252,3 +314,40 @@ export function startCampDataService() {
 }
 
 export const _store = store;
+// ── Accessors for the Distribution domain ──────────────────────────────────
+
+/** Live person records, for cohort derivation. */
+export function getPersons() {
+  return Array.from(store.persons.values());
+}
+
+/**
+ * Cumulative population history, oldest first, as
+ * [{ date: 'YYYY-MM-DD', population }] — the shape forecastPopulation() wants.
+ */
+export async function getPopulationHistory() {
+  // Primary: cumulative registrations by date, derived from the roster. This
+  // is exact and survives restarts, backfills and out-of-order delivery.
+  const fromRoster = await loadPopulationHistory();
+  if (fromRoster.length) {
+    const today = todayDate();
+    const last = fromRoster[fromRoster.length - 1];
+    if (last.date !== today) {
+      fromRoster.push({ date: today, population: store.persons.size || last.population });
+    } else {
+      last.population = Math.max(last.population, store.persons.size);
+    }
+    return fromRoster;
+  }
+
+  // Fallback: rollover snapshots, for rosters with no usable created_at.
+  const history = store.dailySnapshots.map((snapshot) => ({
+    date: snapshot.date,
+    population: snapshot.total_persons,
+  }));
+  const today = todayDate();
+  if (!history.some((row) => row.date === today)) {
+    history.push({ date: today, population: store.persons.size });
+  }
+  return history;
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "artifact_id": "lka_cooked_basis_rates",
+  "generated_at": "2026-08-23T07:35:36+00:00",
+  "generated_by": "scripts/derive_cooked_basis_rates.py",
+  "basis": "cooked solid food, beverages excluded",
+  "gift_reference": {
+    "n": 653,
+    "solid_kg_day": 1.014,
+    "solid_kg_ci95": [
+      0.984,
+      1.038
+    ],
+    "solid_kcal_day": 1593.0,
+    "all_including_drinks_kg": 1.758,
+    "beverage_share_of_mass": 0.45220491439226307,
+    "solid_kcal_per_kg": 1571.0059171597634
+  },
+  "bridge_factor": 2.0757,
+  "bridge_method": "Ratio of GIFT cooked solid intake to BRIGHT raw acquisition for the cohort both surveys cover, Sri Lankan children aged 6-14. Estimated, not assumed.",
+  "solid_kcal_per_kg": 1571.0,
+  "rates": {
+    "infant_0_5": {
+      "label": "children 0-5",
+      "raw_kg_day": 0.4783,
+      "cooked_kg_day": 0.993,
+      "implied_kcal_day": 1560.0,
+      "n_people": 1669,
+      "ratio_to_adult": 0.5239
+    },
+    "child_6_14": {
+      "label": "children 6-14",
+      "raw_kg_day": 0.4885,
+      "cooked_kg_day": 1.014,
+      "implied_kcal_day": 1593.0,
+      "n_people": 3287,
+      "ratio_to_adult": 0.5351
+    },
+    "teen_15_17": {
+      "label": "teens 15-17",
+      "raw_kg_day": 0.5913,
+      "cooked_kg_day": 1.227,
+      "implied_kcal_day": 1928.0,
+      "n_people": 1268,
+      "ratio_to_adult": 0.6477
+    },
+    "adult_18_59": {
+      "label": "adults 18-59",
+      "raw_kg_day": 0.9129,
+      "cooked_kg_day": 1.895,
+      "implied_kcal_day": 2977.0,
+      "n_people": 16022,
+      "ratio_to_adult": 1.0
+    },
+    "eld_60_74": {
+      "label": "elderly 60-74",
+      "raw_kg_day": 0.9729,
+      "cooked_kg_day": 2.019,
+      "implied_kcal_day": 3173.0,
+      "n_people": 4229,
+      "ratio_to_adult": 1.0657
+    },
+    "eld_75plus": {
+      "label": "elderly 75+",
+      "raw_kg_day": 0.7806,
+      "cooked_kg_day": 1.62,
+      "implied_kcal_day": 2546.0,
+      "n_people": 1214,
+      "ratio_to_adult": 0.855
+    }
+  },
+  "energy_check": {
+    "humanitarian_minimum_kcal": 2100,
+    "adult_implied_kcal": 2977.0,
+    "typical_adult_requirement_kcal": 2400,
+    "scale_to_meet_2400": 0.8062,
+    "interpretation": "Children land at a plausible energy level, adults above it. BRIGHT records acquisition rather than consumption, so adult and elderly figures include household waste and food given away."
+  },
+  "caveats": [
+    "Children match GIFT by construction; only adult and elderly figures are new.",
+    "BRIGHT measures acquisition, so adult/elderly rates are upper bounds.",
+    "A single national bridge factor; less rice-heavy diets expand less.",
+    "The current rate table's 1.76 kg child figure includes ~0.71 kg of drinks, which the separate 3 L water allowance counts again."
+  ]
+}
