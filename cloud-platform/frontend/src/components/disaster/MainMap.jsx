@@ -295,7 +295,7 @@ function ColomboHubMarker() {
     const el = document.createElement('div')
     el.style.cssText = `
       width:24px; height:24px; border-radius:50%;
-      background: radial-gradient(circle, #2563EB 30%, rgba(37,99,235,0.3) 70%, transparent 100%);
+      background: radial-gradient(circle, #16A34A 30%, rgba(22,163,74,0.3) 70%, transparent 100%);
       border:3px solid #fff; box-shadow: 0 0 20px rgba(37,99,235,0.6), 0 0 40px rgba(37,99,235,0.3);
       cursor:default; position:relative;
     `
@@ -315,7 +315,7 @@ function ColomboHubMarker() {
       .setLngLat([COLOMBO_HUB.lng, COLOMBO_HUB.lat])
       .setHTML(`
         <div style="font-family:'Inter',sans-serif;padding:2px 0;text-align:center">
-          <div style="font-size:0.78rem;font-weight:800;color:#2563EB">Colombo Hub</div>
+          <div style="font-size:0.78rem;font-weight:800;color:#16A34A">Colombo Hub</div>
           <div style="font-size:0.62rem;color:#64748b;font-weight:600">Central Operations Center</div>
         </div>
       `)
@@ -402,7 +402,7 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
 
       {/* HUD title */}
       <div className="absolute z-[13] pointer-events-none top-[15px] left-[20px] max-w-[420px]">
-        <div className="flex items-center gap-[6px] text-[12px] font-extrabold uppercase tracking-[0.16em] mb-1" style={{ color: dark ? '#60A5FA' : '#2563EB' }}>
+        <div className="flex items-center gap-[6px] text-[12px] font-extrabold uppercase tracking-[0.16em] mb-1" style={{ color: dark ? '#4ADE80' : '#16A34A' }}>
           <Crosshair size={14} /> Relief Operations Grid
         </div>
       </div>
@@ -427,7 +427,7 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
                   padding: '4px 8px', fontSize: '0.55rem', fontWeight: 800,
                   letterSpacing: '0.06em', cursor: 'pointer', border: 'none',
                   background: active ? (dark ? 'rgba(96,165,250,0.2)' : 'rgba(37,99,235,0.18)') : 'transparent',
-                  color: active ? (dark ? '#60A5FA' : '#2563EB') : T.muted,
+                  color: active ? (dark ? '#4ADE80' : '#16A34A') : T.muted,
                   transition: 'all 0.2s ease',
                   borderRadius: 999,
                   margin: active ? 1 : 0,
@@ -441,8 +441,8 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
           })}
         </div>
 
-        <Chip color={dark ? '#60A5FA' : '#2563EB'} style={{ background: dark ? 'rgba(96,165,250,0.12)' : 'rgba(37,99,235,0.12)', border: `1px solid ${dark ? 'rgba(96,165,250,0.4)' : 'rgba(37,99,235,0.4)'}` }}>
-          <span className="w-[6px] h-[6px] rounded-full" style={{ background: dark ? '#60A5FA' : '#2563EB', boxShadow: `0 0 8px ${dark ? '#60A5FA' : '#2563EB'}` }} />
+        <Chip color={dark ? '#4ADE80' : '#16A34A'} style={{ background: dark ? 'rgba(74,222,128,0.12)' : 'rgba(22,163,74,0.12)', border: `1px solid ${dark ? 'rgba(74,222,128,0.4)' : 'rgba(22,163,74,0.4)'}` }}>
+          <span className="w-[6px] h-[6px] rounded-full" style={{ background: dark ? '#4ADE80' : '#16A34A', boxShadow: `0 0 8px ${dark ? '#4ADE80' : '#16A34A'}` }} />
           LIVE MAP
         </Chip>
         <Chip color={error ? T.red : dark ? '#4ade80' : '#16a34a'} style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}` }}>
@@ -460,12 +460,12 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
           </span>
         ))}
         <span className="flex items-center gap-[5px] text-[9px]">
-          <span className="w-[8px] h-[8px] rounded-full shrink-0" style={{ background: '#2563EB', boxShadow: '0 0 8px #2563EB', border: '1.5px solid #fff' }} />
+          <span className="w-[8px] h-[8px] rounded-full shrink-0" style={{ background: '#16A34A', boxShadow: '0 0 8px #16A34A', border: '1.5px solid #fff' }} />
           <span className="tracking-[0.06em]" style={{ color: hudInk }}>Hub</span>
         </span>
         {viewMode !== '2d' && (
           <span className="flex items-center gap-[5px] text-[9px]">
-            <Mountain size={10} style={{ color: '#2563EB' }} />
+                    <Mountain size={10} style={{ color: '#16A34A' }} />
             <span className="tracking-[0.06em]" style={{ color: hudInk }}>
               {terrainReady
                 ? (viewMode === 'slope' ? 'Slope 2x' : 'Terrain 1.5x')

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useTheme } from './ThemeProvider'
 
 const INK = '#0F172A'
-const LIME = '#2563EB'
+const LIME = '#16A34A'
 
 // Shared action-button component (alert-page "nitec" design language).
 //

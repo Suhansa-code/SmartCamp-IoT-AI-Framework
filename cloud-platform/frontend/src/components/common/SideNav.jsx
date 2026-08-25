@@ -9,7 +9,7 @@ import {
 import { useTheme } from './ThemeProvider'
 import { RAIL_EXPANDED, RAIL_COLLAPSED, STORAGE_KEY, MOBILE_BREAKPOINT, DEFAULT_RAIL_WIDTH, NAV_ITEMS } from '@/data/navigation.data'
 
-const LIME = '#2563EB'
+const LIME = '#16A34A'
 
 const SideNavContext = createContext({ collapsed: false, toggle: () => {}, isMobile: false, mobileOpen: false, openMobile: () => {} })
 
@@ -277,7 +277,7 @@ export default function SideNav() {
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                background: 'linear-gradient(135deg, #22C55E, #16A34A)',
                 color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(37,99,235,0.35)',
               }}>

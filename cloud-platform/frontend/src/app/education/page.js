@@ -581,7 +581,7 @@ function OverviewView({
           label="Total Camps"
           value={list.length}
           icon={<GraduationCap size={17} />}
-          color="#2563EB"
+          color="#16A34A"
           delta="active sites"
           pct={100}
           spark={sparkFor("children").map((_, i) => i + 1)}
@@ -741,7 +741,7 @@ function OverviewView({
               width: 7,
               height: 7,
               borderRadius: "50%",
-              background: "#2563EB",
+              background: "#16A34A",
               opacity: 0.8,
               animation: "eduFloat 5s ease-in-out infinite",
             }}
@@ -1056,7 +1056,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             label="Children"
             value={detail.children_count.toLocaleString()}
             icon={<Users size={17} />}
-            color="#2563EB"
+            color="#16A34A"
             delta="tracked"
             pct={100}
           />

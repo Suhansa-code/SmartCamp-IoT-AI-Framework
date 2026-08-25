@@ -13,10 +13,10 @@ import DistributionPanel from '@/components/resources/DistributionPanel'
 
 const ModelBadge = (
   <div style={{ display: 'flex', alignItems: 'center', gap: 6,
-    background: '#0A1A2E', border: '1px solid #1E3A5F',
+    background: '#0A1A2E', border: '1px solid #166534',
     borderRadius: 99, padding: '4px 12px', fontSize: 11 }}>
-    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#0D9488',
-      boxShadow: '0 0 6px #0D9488' }} />
+    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#16A34A',
+      boxShadow: '0 0 6px #16A34A' }} />
     <span style={{ color: '#94A3B8', fontWeight: 700 }}>LKA RATE TABLE v2</span>
   </div>
 )
@@ -42,7 +42,7 @@ export default function DistributionPage() {
         {/* ── Section label ──────────────────────────────── */}
         <div style={{ padding: '0.9rem 1.5rem', display: 'flex', alignItems: 'center',
           gap: 10, background: '#FFFFFF', borderBottom: '1px solid #E3E7EC', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12.5, fontWeight: 800, color: '#0D9488',
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: '#16A34A',
             letterSpacing: 0.8, textTransform: 'uppercase' }}>
             Daily Rations &amp; 7-Day Forecast
           </span>

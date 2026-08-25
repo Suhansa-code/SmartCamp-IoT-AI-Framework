@@ -17,7 +17,7 @@ export function HeaderShell({ children, style }) {
   return <div style={{ width: "100%", padding: HEADER_PADDING, ...style }}>{children}</div>;
 }
 
-const LIME = "#2563EB";
+const LIME = "#16A34A";
 
 function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
   const ref = useRef(null);
@@ -260,7 +260,7 @@ function ProfileDropdown({ open, onClose, T }) {
             width: 36,
             height: 36,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #3B82F6, #2563EB)",
+            background: "linear-gradient(135deg, #22C55E, #16A34A)",
             color: "#fff",
             display: "flex",
             alignItems: "center",
@@ -527,7 +527,7 @@ export default function PageHeader({
                     width: 36,
                     height: 36,
                     borderRadius: "50%",
-                    background: "linear-gradient(135deg, #3B82F6, #2563EB)",
+                    background: "linear-gradient(135deg, #22C55E, #16A34A)",
                     color: "#fff",
                     display: "flex",
                     alignItems: "center",

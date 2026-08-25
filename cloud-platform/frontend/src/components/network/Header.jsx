@@ -26,7 +26,7 @@ export default function Header({ networkState, connected, metrics }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{
           width: 48, height: 48, borderRadius: 14,
-          background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+          background: 'linear-gradient(135deg, #22C55E, #16A34A)',
           color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 8px 22px rgba(37,99,235,0.4)', flexShrink: 0,
         }}>

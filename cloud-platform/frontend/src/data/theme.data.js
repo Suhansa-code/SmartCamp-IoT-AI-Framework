@@ -11,14 +11,14 @@ export const P = {
   inkSoft:   '#475569',
   muted:     '#64748B',
   border:    '#E2E8F0',
-  lime:      '#2563EB',
-  limeDark:  '#1D4ED8',
+  lime:      '#16A34A',
+  limeDark:  '#15803D',
   dark:      '#0F172A',
   red:       '#DC2626',
   amber:     '#D97706',
   green:     '#16A34A',
-  purple:    '#2563EB',
-  teal:      '#2563EB',
+  purple:    '#16A34A',
+  teal:      '#16A34A',
 }
 
 export const SEVERITY_COLOR = { high: P.red, medium: P.amber, low: P.green }
