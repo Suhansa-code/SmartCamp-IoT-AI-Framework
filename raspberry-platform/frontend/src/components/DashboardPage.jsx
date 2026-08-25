@@ -622,7 +622,7 @@ export default function DashboardPage() {
                       tone="info"
                       label="Condition"
                       value={`${weather.condition || 'Unknown'} · ${weather.temperature != null ? `${Math.round(weather.temperature)}°C` : '—'}`}
-                      sub={`Humidity: ${weather.humidity != null ? `${Math.round(weather.humidity)}%` : '—'} · Wind: ${weather.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : '—'}`}
+                      sub={`Rainfall: ${weather.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : '—'} · Wind: ${weather.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : '—'}`}
                     />
                     {weather.fetched_at && (
                       <p className="text-[10px] font-mono mt-2" style={{ color: COLORS.muted }}>

@@ -270,16 +270,16 @@ export default function DisasterMonitorPage() {
 
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-5">
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.rainfall != null ? `${Math.round(weather.rainfall)}%` : '—'}</p>
-                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Rain chance</p>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : '—'}</p>
+                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Rainfall</p>
               </div>
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
                 <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : '—'}</p>
                 <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Wind</p>
               </div>
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.humidity != null ? `${Math.round(weather.humidity)}%` : '—'}</p>
-                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Humidity</p>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.precipitation != null ? `${weather.precipitation.toFixed(1)} mm` : '—'}</p>
+                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Precipitation</p>
               </div>
             </div>
 
