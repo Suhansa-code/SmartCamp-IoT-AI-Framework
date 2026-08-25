@@ -1,13 +1,11 @@
 #include <HardwareSerial.h>
 #include <DHT.h>
-#include <TinyGPSPlus.h>
 
 // =====================================================
-// GPS
+// GPS — raw NMEA forwarded to Serial
 // =====================================================
 
 HardwareSerial GPSSerial(2);
-TinyGPSPlus gps;
 
 #define GPS_RX 16
 #define GPS_TX 17
@@ -55,12 +53,6 @@ void setup() {
 
   delay(1000);
 
-  Serial.println();
-  Serial.println("==========================================");
-  Serial.println("      ESP32 FLOOD MONITORING SYSTEM");
-  Serial.println("==========================================");
-  Serial.println();
-
 }
 
 // =====================================================
@@ -70,12 +62,14 @@ void setup() {
 void loop() {
 
   // ===================================================
-  // Read GPS data
+  // Forward raw NMEA sentences from GPS to Serial
+  // The Python parser (sensor_state.py) reads lines
+  // starting with $GPGGA or $GNGGA via pynmea2.
   // ===================================================
 
   while (GPSSerial.available() > 0) {
 
-    gps.encode(GPSSerial.read());
+    Serial.write(GPSSerial.read());
 
   }
 
@@ -91,15 +85,24 @@ void loop() {
     lastSensorRead = currentMillis;
 
     // -------------------------------------------------
-    // DHT11
+    // DHT11 — output format: TEMP:28.10|HUM:88.00
     // -------------------------------------------------
 
     float temperature = dht.readTemperature();
     float humidity = dht.readHumidity();
 
+    if (!isnan(temperature) && !isnan(humidity)) {
+
+      Serial.print("TEMP:");
+      Serial.print(temperature, 2);
+      Serial.print("|HUM:");
+      Serial.println(humidity, 2);
+
+    }
+
 
     // -------------------------------------------------
-    // Rain sensor
+    // Rain sensor — output format: RAIN:4095|0|NO_RAIN|DRY
     // -------------------------------------------------
 
     int rainAnalog = analogRead(RAIN_AO);
@@ -143,116 +146,14 @@ void loop() {
     }
 
 
-    // =================================================
-    // Display
-    // =================================================
-
-    Serial.println();
-    Serial.println("==========================================");
-    Serial.println("           SENSOR DATA");
-    Serial.println("==========================================");
-
-
-    // -------------------------------------------------
-    // GPS
-    // -------------------------------------------------
-
-    Serial.println("[GPS]");
-
-    if (gps.location.isValid()) {
-
-      Serial.print("Latitude    : ");
-      Serial.println(gps.location.lat(), 6);
-
-      Serial.print("Longitude   : ");
-      Serial.println(gps.location.lng(), 6);
-
-    }
-    else {
-
-      Serial.println("Location    : NO FIX");
-
-    }
-
-
-    if (gps.altitude.isValid()) {
-
-      Serial.print("Altitude    : ");
-      Serial.print(gps.altitude.meters());
-      Serial.println(" m");
-
-    }
-
-
-    if (gps.satellites.isValid()) {
-
-      Serial.print("Satellites  : ");
-      Serial.println(gps.satellites.value());
-
-    }
-
-
-    // -------------------------------------------------
-    // DHT11
-    // -------------------------------------------------
-
-    Serial.println();
-    Serial.println("[DHT11]");
-
-    if (!isnan(temperature) && !isnan(humidity)) {
-
-      Serial.print("Temperature : ");
-      Serial.print(temperature, 2);
-      Serial.println(" °C");
-
-      Serial.print("Humidity    : ");
-      Serial.print(humidity, 2);
-      Serial.println(" %");
-
-    }
-    else {
-
-      Serial.println("DHT11       : SENSOR ERROR");
-
-    }
-
-
-    // -------------------------------------------------
-    // Rain Sensor
-    // -------------------------------------------------
-
-    Serial.println();
-    Serial.println("[RAIN SENSOR]");
-
-    Serial.print("Analog Value: ");
-    Serial.println(rainAnalog);
-
-    Serial.print("Digital     : ");
-
-    if (rainDigital == LOW) {
-
-      Serial.println("DETECTED");
-
-    }
-    else {
-
-      Serial.println("NOT DETECTED");
-
-    }
-
-
-    Serial.print("Rain Status : ");
-    Serial.println(rainStatus);
-
-    Serial.print("Wetness     : ");
+    Serial.print("RAIN:");
+    Serial.print(rainAnalog);
+    Serial.print("|");
+    Serial.print(rainDigital);
+    Serial.print("|");
+    Serial.print(rainStatus);
+    Serial.print("|");
     Serial.println(wetnessLevel);
-
-
-    // -------------------------------------------------
-    // End
-    // -------------------------------------------------
-
-    Serial.println("==========================================");
 
   }
 

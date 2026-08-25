@@ -126,6 +126,7 @@ class SensorState:
 
 gps_state = SensorState("gps")
 dht11_state = SensorState("dht11")
+rain_state = SensorState("rainfall")
 
 # ── DHT11 parsing ──────────────────────────────────────────────────────────
 
@@ -139,6 +140,27 @@ def _parse_dht11_line(line: str) -> dict | None:
         return {
             "temperature": float(m.group(1)),
             "relative_humidity": float(m.group(2)),
+        }
+    return None
+
+
+# ── Rainfall parsing ────────────────────────────────────────────────────────
+
+_RAIN_RE = re.compile(r'RAIN:(\d+)\|(\d+)\|(RAIN_DETECTED|NO_RAIN)\|(DRY|LIGHT|MODERATE|HEAVY)')
+
+WETNESS_LEVELS = {"DRY": 0, "LIGHT": 1, "MODERATE": 2, "HEAVY": 3}
+
+
+def _parse_rain_line(line: str) -> dict | None:
+    """Parse a rainfall line like RAIN:512|0|NO_RAIN|DRY."""
+    m = _RAIN_RE.search(line)
+    if m:
+        return {
+            "rain_analog": int(m.group(1)),
+            "rain_digital": int(m.group(2)),
+            "rain_status": m.group(3),
+            "wetness_level": m.group(4),
+            "wetness_value": WETNESS_LEVELS.get(m.group(4), 0),
         }
     return None
 
@@ -160,7 +182,7 @@ def _open_serial() -> serial.Serial | None:
 
 
 def _background_loop():
-    """Single background thread: holds serial connection, reads GPS + DHT11 continuously."""
+    """Single background thread: holds serial connection, reads GPS + DHT11 + Rainfall continuously."""
     ser: serial.Serial | None = None
     backoff = RECONNECT_MIN_DELAY
 
@@ -179,6 +201,7 @@ def _background_loop():
                 # Backoff before retrying
                 gps_state.record_failure()
                 dht11_state.record_failure()
+                rain_state.record_failure()
                 _stop.wait(min(backoff, RECONNECT_MAX_DELAY))
                 backoff = min(backoff * 2, RECONNECT_MAX_DELAY)
                 continue
@@ -190,6 +213,7 @@ def _background_loop():
         # ── Read a batch of lines from the persistent connection ──────
         gps_data = None
         dht11_data = None
+        rain_data = None
         _debug_lines = []
 
         try:
@@ -226,6 +250,9 @@ def _background_loop():
                 # DHT11: TEMP:29.40|HUM:68.00
                 dht11_data = _parse_dht11_line(line) or dht11_data
 
+                # Rainfall: RAIN:512|0|NO_RAIN|DRY
+                rain_data = _parse_rain_line(line) or rain_data
+
             if _debug_lines:
                 print("[ESP32] Raw lines: %s" % _debug_lines)
 
@@ -238,12 +265,14 @@ def _background_loop():
             ser = None
             gps_state.record_failure()
             dht11_state.record_failure()
+            rain_state.record_failure()
             _stop.wait(POLL_INTERVAL)
             continue
         except Exception as e:
             print("[ESP32] Unexpected error: %s" % e)
             gps_state.record_failure()
             dht11_state.record_failure()
+            rain_state.record_failure()
             _stop.wait(POLL_INTERVAL)
             continue
 
@@ -257,6 +286,11 @@ def _background_loop():
             dht11_state.record_success(dht11_data)
         else:
             dht11_state.record_failure()
+
+        if rain_data:
+            rain_state.record_success(rain_data)
+        else:
+            rain_state.record_failure()
 
         _stop.wait(POLL_INTERVAL)
 
@@ -299,6 +333,14 @@ def get_gps_data() -> dict | None:
 def get_dht11_data() -> dict | None:
     """Return the latest cached DHT11 data, or None if unavailable."""
     status = dht11_state.get_status()
+    if status["connected"] and status["last_value"]:
+        return status["last_value"]
+    return None
+
+
+def get_rain_data() -> dict | None:
+    """Return the latest cached rainfall data, or None if unavailable."""
+    status = rain_state.get_status()
     if status["connected"] and status["last_value"]:
         return status["last_value"]
     return None

@@ -276,35 +276,36 @@ function HumidityCard({ sensor }) {
 /*  RAINFALL CARD                                                       */
 /* ------------------------------------------------------------------ */
 
-function RainfallCard() {
-  const connected = true;
-
-  const mockData = {
-    rainfall_mm: 12.5,
-    intensity: 'Moderate',
-    duration_min: 45,
-    last_rain: '2h ago',
-  };
+function RainfallCard({ sensor }) {
+  const connected = !!sensor?.connected;
 
   return (
-    <SensorCard icon={CloudRain} name="Rainfall Sensor" description="Rain gauge for weather monitoring" connected={connected} lastUpdated={new Date().toISOString()}>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-        <DataRow label="Rainfall" value={`${mockData.rainfall_mm} mm`} mono />
-        <DataRow label="Intensity" value={mockData.intensity} />
-        <DataRow label="Duration" value={`${mockData.duration_min} min`} mono />
-        <DataRow label="Last Rain" value={mockData.last_rain} />
-      </div>
+    <SensorCard icon={CloudRain} name="Rainfall Sensor" description="YL-83 rain gauge via ESP32" connected={connected} lastUpdated={sensor?.timestamp}>
+      {connected ? (
+        <>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            <DataRow label="Analog Value" value={sensor?.rain_analog ?? '—'} mono />
+            <DataRow label="Digital" value={sensor?.rain_digital === 1 ? 'Wet' : 'Dry'} />
+            <DataRow label="Status" value={sensor?.rain_status ?? '—'} />
+            <DataRow label="Wetness" value={sensor?.wetness_level ?? '—'} />
+          </div>
 
-      <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
-        <CloudRain className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
-        <div className="flex-1">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Current Conditions</p>
-          <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
-            {mockData.rainfall_mm > 10 ? 'Heavy rain expected' : 'Light to moderate rainfall'}
-            <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>
-          </p>
-        </div>
-      </div>
+          <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
+            <CloudRain className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
+            <div className="flex-1">
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Current Conditions</p>
+              <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
+                {sensor?.rain_status === 'RAIN_DETECTED' ? 'Rain detected' : 'No rain'}
+              </p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <p className="text-[12.5px]" style={{ color: COLORS.muted }}>No current rainfall data</p>
+      )}
+      {sensor?.error && !connected && (
+        <p className="text-[11px] mt-2" style={{ color: TONE.danger.color }}>{sensor.error}</p>
+      )}
     </SensorCard>
   );
 }
@@ -389,7 +390,7 @@ export default function DeviceHealthScreen() {
   const gpsConnected = !!sensors.gps?.connected;
   const tempConnected = !!sensors.temperature?.connected;
   const humConnected = !!sensors.humidity?.connected;
-  const rainConnected = true;
+  const rainConnected = !!sensors.rainfall?.connected;
   const fpConnected = true;
   const connectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(Boolean).length;
   const disconnectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(c => !c).length;
@@ -461,7 +462,7 @@ export default function DeviceHealthScreen() {
           <GpsCard sensor={sensors.gps} />
           <TemperatureCard sensor={sensors.temperature} />
           <HumidityCard sensor={sensors.humidity} />
-          <RainfallCard />
+          <RainfallCard sensor={sensors.rainfall} />
           <FingerprintCard />
         </div>
 

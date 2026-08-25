@@ -1,6 +1,7 @@
 import * as disasterService from '../../services/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 import { getLatestWeather, getWeatherStorageStatus } from '../../services/disaster/weather-storage.js';
+import { getLatestRainfall, getRainfallStorageStatus } from '../../services/disaster/rainfall-storage.js';
 import { disasterDb } from '../../config/database.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
@@ -87,5 +88,26 @@ export function getWeatherStatus(req, res) {
     res.json(status);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch weather status' });
+  }
+}
+
+export function getLatestRainfallData(req, res) {
+  try {
+    const rainfall = getLatestRainfall();
+    if (!rainfall) {
+      return res.json({ available: false, message: 'No rainfall data available yet' });
+    }
+    res.json({ available: true, ...rainfall });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch rainfall data' });
+  }
+}
+
+export function getRainfallStatus(req, res) {
+  try {
+    const status = getRainfallStorageStatus();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch rainfall status' });
   }
 }

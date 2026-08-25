@@ -11,7 +11,8 @@ from fastapi import FastAPI
 from hydrospatial_api.api import router as hydro_router
 from gps_module.gps_api import router as gps_router
 from dht11_module.dht11_api import router as dht11_router
-from sensor_state import gps_state, dht11_state, start_background_readers, stop_background_readers
+from rainfall_module.rainfall_api import router as rainfall_router
+from sensor_state import gps_state, dht11_state, rain_state, start_background_readers, stop_background_readers
 
 
 @asynccontextmanager
@@ -27,6 +28,7 @@ app = FastAPI(title="Edge Gateway API", lifespan=lifespan)
 app.include_router(hydro_router, prefix="/hydrospatial")
 app.include_router(gps_router, prefix="/api")
 app.include_router(dht11_router, prefix="/api")
+app.include_router(rainfall_router, prefix="/api")
 
 
 @app.get("/")
@@ -113,6 +115,34 @@ def get_device_status():
             "timestamp": now,
         }
 
+    # ── Rainfall (from background cache) ────────────────────────
+    rain_snapshot = rain_state.get_status()
+    rain_last = rain_snapshot["last_value"]
+
+    if rain_snapshot["connected"] and rain_last:
+        rain_sensor = {
+            "connected": True,
+            "status": "active",
+            "rain_analog": rain_last["rain_analog"],
+            "rain_digital": rain_last["rain_digital"],
+            "rain_status": rain_last["rain_status"],
+            "wetness_level": rain_last["wetness_level"],
+            "source": "RAIN_SENSOR",
+            "timestamp": now,
+        }
+    else:
+        rain_sensor = {
+            "connected": False,
+            "status": "disconnected",
+            "rain_analog": None,
+            "rain_digital": None,
+            "rain_status": None,
+            "wetness_level": None,
+            "error": "No data from rainfall sensor",
+            "source": "UNAVAILABLE",
+            "timestamp": now,
+        }
+
     return {
         "device": {
             "id": "edge-gateway",
@@ -123,6 +153,7 @@ def get_device_status():
             "gps": gps_sensor,
             "temperature": temp_sensor,
             "humidity": hum_sensor,
+            "rainfall": rain_sensor,
         },
         "timestamp": now,
     }

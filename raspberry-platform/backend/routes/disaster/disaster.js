@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus } from '../../controllers/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 
 const router = express.Router();
@@ -60,6 +60,7 @@ router.get('/device-status', async (_req, res) => {
         gps:        { connected: false, status: 'disconnected', latitude: null, longitude: null, altitude: null, satellites: 0, location_name: null, district: null, is_mock: false, source: 'UNAVAILABLE', timestamp: ts },
         temperature:{ connected: false, status: 'disconnected', value: null, unit: 'C', error: 'Edge gateway unreachable', timestamp: ts },
         humidity:   { connected: false, status: 'disconnected', value: null, unit: '%', error: 'Edge gateway unreachable', timestamp: ts },
+        rainfall:   { connected: false, status: 'disconnected', rain_analog: null, rain_digital: null, rain_status: null, wetness_level: null, error: 'Edge gateway unreachable', source: 'UNAVAILABLE', timestamp: ts },
       },
       timestamp: ts,
     });
@@ -68,5 +69,7 @@ router.get('/device-status', async (_req, res) => {
 
 router.get('/weather/latest', getLatestWeatherData);
 router.get('/weather/status', getWeatherStatus);
+router.get('/rainfall/latest', getLatestRainfallData);
+router.get('/rainfall/status', getRainfallStatus);
 
 export default router;

@@ -11,6 +11,7 @@ import { checkFlaskHealth } from './services/education/scoring.js';
 import { startSync } from './services/sync/sync-manager.js';
 import { startGpsStorage } from './services/disaster/gps-storage.js';
 import { startWeatherStorage } from './services/disaster/weather-storage.js';
+import { startRainfallStorage } from './services/disaster/rainfall-storage.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -92,6 +93,9 @@ startGpsStorage();
 
 // Start periodic weather forecast storage via EDGE Gateway
 startWeatherStorage();
+
+// Start periodic rainfall sensor storage from Edge Gateway
+startRainfallStorage();
 
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {
