@@ -143,11 +143,9 @@ function ForecastRow({ row, isToday, index }) {
         <>
           <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: '#B45309' }}>{r.food_kg_day?.toLocaleString()}</td>
           <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: '#0284C7' }}>{r.water_liters_day?.toLocaleString()}</td>
-          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: COLORS.brand }}>{r.shelter_units?.toLocaleString()}</td>
-          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: '#7C3AED' }}>{r.medical_staff_needed?.toLocaleString()}</td>
         </>
       ) : (
-        <td colSpan={4} className="px-4 sm:px-5 py-3.5">
+        <td colSpan={2} className="px-4 sm:px-5 py-3.5">
           <div className="flex items-center gap-2 text-[12.5px] italic" style={{ color: COLORS.muted }}>
             <Activity className="w-3.5 h-3.5 animate-pulse" /> Computing...
           </div>
@@ -320,8 +318,6 @@ function PredictionScreen() {
                       <th className="px-4 sm:px-5 py-3">Est. Pop.</th>
                       <th className="px-4 sm:px-5 py-3" style={{ color: '#B45309' }}>Food kg/d</th>
                       <th className="px-4 sm:px-5 py-3" style={{ color: '#0284C7' }}>Water L/d</th>
-                      <th className="px-4 sm:px-5 py-3" style={{ color: COLORS.brand }}>Shelters</th>
-                      <th className="px-4 sm:px-5 py-3" style={{ color: '#7C3AED' }}>Med Staff</th>
                     </tr>
                   </thead>
                   <tbody>

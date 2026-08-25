@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-08-22T20:53:09+00:00",
+  "generated_by": "scripts/simulate_camp_demand.py",
+  "synthetic": true,
+  "n_rows": 4000,
+  "grounded_in_real_data": {
+    "per_child_intake": "bootstrap resampled from 653 measured subject-days, Sri Lanka dietary recall survey",
+    "camp_size": "bootstrap resampled from 78 real IDMC Sri Lankan event figures, capped at 2000",
+    "age_structure": "Census of Population and Housing 2012 (DCS), 28 % under 18, 12 % aged 60+, with Dirichlet camp-to-camp variation",
+    "pregnancy": "4.4 % of women 15-49, from the crude birth rate"
+  },
+  "assumed": {
+    "adult_and_elderly_intake": "The survey covers ages 6-14 only. Adult and elderly means come from the rate table; their spread is a gamma with the children's MEASURED coefficient of variation (0.420). This is the one invented element of the label."
+  },
+  "valid_uses": [
+    "Learning demand VARIANCE: prediction intervals, buffer stock sizing",
+    "Testing the pipeline end to end at realistic scale"
+  ],
+  "invalid_uses": [
+    "Any claim about accuracy of the mean \u2014 the mean is put in by construction",
+    "Any claim about real Sri Lankan camp consumption"
+  ]
+}

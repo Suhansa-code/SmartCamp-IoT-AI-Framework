@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "model_id": "lka_household_food_cohort_rates",
+  "generated_at": "2026-08-23T07:35:35+00:00",
+  "generated_by": "scripts/train_household_food_model.py",
+  "estimator": "LinearRegression(fit_intercept=False) on six age-band counts",
+  "training_data": {
+    "source": "BRIGHT Sri Lanka household survey, February 2025",
+    "derived_file": "resource-model/lka_household_food.csv",
+    "n_households": 6802,
+    "n_people": 27689,
+    "provinces": 9,
+    "districts": 25
+  },
+  "measurement_basis": "Raw at-home food quantities over a 7-day recall. NOT cooked weight and NOT an issued ration. Absolute levels are not comparable with the rate table; the ratios between cohorts are the transferable result.",
+  "rates": {
+    "infant_0_5": {
+      "kg_per_day": 0.4783,
+      "ci95": [
+        0.346,
+        0.6122
+      ],
+      "weighted_kg_per_day": 0.5232,
+      "ratio_to_adult": 0.5239,
+      "n_people": 1669
+    },
+    "child_6_14": {
+      "kg_per_day": 0.4885,
+      "ci95": [
+        0.4094,
+        0.5684
+      ],
+      "weighted_kg_per_day": 0.5345,
+      "ratio_to_adult": 0.5351,
+      "n_people": 3287
+    },
+    "teen_15_17": {
+      "kg_per_day": 0.5913,
+      "ci95": [
+        0.4493,
+        0.7325
+      ],
+      "weighted_kg_per_day": 0.6484,
+      "ratio_to_adult": 0.6477,
+      "n_people": 1268
+    },
+    "adult_18_59": {
+      "kg_per_day": 0.9129,
+      "ci95": [
+        0.8792,
+        0.9466
+      ],
+      "weighted_kg_per_day": 0.8879,
+      "ratio_to_adult": 1.0,
+      "n_people": 16022
+    },
+    "eld_60_74": {
+      "kg_per_day": 0.9729,
+      "ci95": [
+        0.9046,
+        1.0447
+      ],
+      "weighted_kg_per_day": 0.9611,
+      "ratio_to_adult": 1.0657,
+      "n_people": 4229
+    },
+    "eld_75plus": {
+      "kg_per_day": 0.7806,
+      "ci95": [
+        0.6654,
+        0.9134
+      ],
+      "weighted_kg_per_day": 0.7937,
+      "ratio_to_adult": 0.855,
+      "n_people": 1214
+    }
+  },
+  "household_intercept_kg_day": 1.3035,
+  "metrics": {
+    "cv_folds": 5,
+    "cv_mae_kg_household_day": 1.4154,
+    "cv_r2": 0.0641,
+    "note": "Low R2 reflects lumpy household purchasing, not imprecise coefficients: the adult rate's 95 % interval is about +/- 4 %."
+  }
+}

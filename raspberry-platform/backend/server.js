@@ -1,12 +1,16 @@
 import 'dotenv/config';
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { Server as SocketServer } from 'socket.io';
 import C from './config/constants.js';
 import logger from './utils/logger.js';
 import { initializeCampDb } from './config/database.js';
 import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
 import { startConnectivityWatcher } from './services/network/connectivity.js';
+import { initFingerprintHardware } from './services/resource/fingerprint.js';
+import { setSocketServer } from './services/resource/fingerprint-events.js';
 import { checkFlaskHealth } from './services/education/scoring.js';
 import { startSync } from './services/sync/sync-manager.js';
 import { startGpsStorage } from './services/disaster/gps-storage.js';
@@ -37,6 +41,15 @@ import dashboardRoute from './routes/education/dashboard.js';
 
 const app = express();
 const PORT = C.PORT;
+const server = http.createServer(app);
+const io = new SocketServer(server, {
+  cors: {
+    origin: C.CORS_ORIGINS,
+    credentials: true,
+  },
+});
+setSocketServer(io);
+app.set('io', io);
 
 // Security headers
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -89,6 +102,7 @@ startConnectivityWatcher();
 // Start cloud sync (after MQTT connects)
 startSync();
 
+
 // Start periodic GPS storage to disaster.db
 startGpsStorage();
 
@@ -100,6 +114,8 @@ startRainfallStorage();
 
 // Start periodic DHT11 sensor storage from Edge Gateway
 startDht11Storage();
+// Bring up the fingerprint scanner (no-op when disabled or unplugged)
+initFingerprintHardware().catch(err => logger.error(`[FP] Init failed: ${err.message}`));
 
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {
@@ -131,7 +147,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ── Start Server ────────────────────────────────────────────
-app.listen(PORT,'0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   logger.info('════════════════════════════════════════════');
   logger.info('  SmartCamp Unified Backend');
   logger.info(`  Device:  ${C.DEVICE_ID}`);

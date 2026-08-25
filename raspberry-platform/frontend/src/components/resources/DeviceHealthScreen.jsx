@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Satellite, Thermometer, Droplets, Radio, RefreshCw, Activity, MapPin, ArrowLeft, Wifi, WifiOff, CloudRain, Fingerprint } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
+import { API } from '../ui/config';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -351,6 +352,36 @@ function FingerprintCard() {
 /*  MAIN SCREEN                                                         */
 /* ------------------------------------------------------------------ */
 
+/** The fingerprint scanner is the one device reporting real state today. */
+function applyFingerprintStatus(devices, status) {
+  return devices.map((device) => {
+    if (device.id !== 'fingerprint') return device;
+    if (!status) {
+      return { ...device, status: 'unknown', lastSeen: '—', live: true,
+        reading: { label: 'Enrolled', value: '—' } };
+    }
+
+    const device_ = status.device || {};
+    return {
+      ...device,
+      live: true,
+      status: device_.connected ? 'connected' : (status.enabled ? 'offline' : 'degraded'),
+      interface: device_.port || 'not configured',
+      baud: device_.baud_rate || null,
+      lastSeen: device_.last_event_at
+        ? new Date(device_.last_event_at).toLocaleTimeString()
+        : (device_.connected ? 'idle' : '—'),
+      signal: device_.connected ? 100 : 0,
+      reading: { label: 'Enrolled', value: String(status.linked_count ?? 0) },
+      description: device_.connected
+        ? `R503 on ${device_.port} · ${device_.template_count ?? 0} templates on sensor`
+        : (status.enabled
+          ? `Scanner unreachable${device_.last_error ? ` — ${device_.last_error}` : ''}`
+          : 'Scanner disabled — registration runs in simulation mode'),
+    };
+  });
+}
+
 export default function DeviceHealthScreen() {
   const [deviceStatus, setDeviceStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -394,6 +425,23 @@ export default function DeviceHealthScreen() {
   const fpConnected = true;
   const connectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(Boolean).length;
   const disconnectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(c => !c).length;
+
+  const refresh = useCallback(() => {
+    fetch(`${API}/api/fingerprint/status`)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)
+      .then((status) => {
+        setDevices(applyFingerprintStatus(INITIAL_DEVICES, status));
+        setLastAt(new Date());
+      });
+    fetchLocation();
+  }, [fetchLocation]);
+
+  useEffect(() => {
+    refresh();
+    const timer = setInterval(refresh, 15000);
+    return () => clearInterval(timer);
+  }, [refresh]);
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
@@ -470,6 +518,7 @@ export default function DeviceHealthScreen() {
           {lastAt ? `Last updated ${lastAt.toLocaleTimeString()}` : 'Connecting to Edge Gateway…'}
           {pollError && ` · ${pollError}`}
           {' · '}Polling every {POLL_INTERVAL_MS / 1000}s
+          Last refreshed {lastAt.toLocaleTimeString()} · fingerprint scanner is live; other sensors pending wiring
         </p>
 
       </div>

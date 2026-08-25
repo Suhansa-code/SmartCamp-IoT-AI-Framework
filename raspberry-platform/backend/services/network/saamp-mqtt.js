@@ -67,6 +67,7 @@ export function classifyMessage(source, action) {
   const rules = {
     'fingerprint_scanner|new_registration': { priority: 'CRITICAL', qos: 2 },
     'fingerprint_scanner|checkin': { priority: 'CRITICAL', qos: 2 },
+    'fingerprint_scanner|verification': { priority: 'CRITICAL', qos: 2 },
     'wristband_scanner|distribution': { priority: 'CRITICAL', qos: 2 },
     'prediction_model|daily_forecast': { priority: 'HIGH', qos: 1 },
     'sync|education': { priority: 'HIGH', qos: 1 },
