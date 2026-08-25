@@ -6,7 +6,7 @@ import {
   Users, HeartHandshake, TriangleAlert, MapPin, ChevronRight, X,
   Droplets, Radio, ShieldAlert, Crosshair, ChevronDown,
 } from 'lucide-react'
-import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS, ALERTS } from '@/data/disaster.data'
+import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS } from '@/data/disaster.data'
 import MainMap from './MainMap'
 import { Ring, Sparkline, TrendChart } from './DisasterVisuals'
 import SideNav from '@/components/common/SideNav'
@@ -39,6 +39,7 @@ export default function DisasterDashboard() {
   const { mode, T } = useTheme()
   const [selected, setSelected] = useState(null)
   const [overview, setOverview] = useState(null)
+  const [disasterAlerts, setDisasterAlerts] = useState([])
   const [selectedDetail, setSelectedDetail] = useState(null)
   const [selectedDetailLoading, setSelectedDetailLoading] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -65,6 +66,13 @@ export default function DisasterDashboard() {
       const res = await fetch(`${DISASTER_API_BASE}/api/disaster/overview`)
       const payload = res.ok ? await res.json() : null
       setOverview(payload)
+      try {
+        const alertRes = await fetch(`${DISASTER_API_BASE}/api/disaster/alerts?status=ACTIVE`)
+        const alertPayload = alertRes.ok ? await alertRes.json() : null
+        setDisasterAlerts(Array.isArray(alertPayload?.alerts) ? alertPayload.alerts : [])
+      } catch {
+        setDisasterAlerts([])
+      }
     } catch (err) {
       setOverview(null)
       setError(err instanceof Error ? err.message : 'Failed to load disaster overview')
@@ -133,6 +141,7 @@ export default function DisasterDashboard() {
     )
   }, [camps, search])
   const criticalCamps = useMemo(() => camps.filter((camp) => camp.status === 'critical'), [camps])
+  const activeAlerts = useMemo(() => disasterAlerts.filter((alert) => ['ACTIVE', 'ACKNOWLEDGED'].includes(alert.status)), [disasterAlerts])
   const modalCamps = useMemo(() => {
     const q = campQuery.trim().toLowerCase()
     return camps.filter((camp) => {
@@ -448,13 +457,14 @@ export default function DisasterDashboard() {
                       LIVE
                     </span>
                   </div>
-                  {ALERTS.map((a) => (
-                    <div key={a.message} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0.42rem 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.color, boxShadow: `0 0 5px ${a.color}`, marginTop: 5, flexShrink: 0, animation: a.live ? 'disPulse 1.1s infinite' : 'none' }} />
-                      <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.45 }}>{a.message}</span>
-                      <span style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{a.time}</span>
+                  {activeAlerts.length === 0 ? <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', padding: '0.8rem 0' }}>No active disaster alerts</div> : activeAlerts.slice(0, 4).map((alert) => {
+                    const alertColor = alert.severity === 'CRITICAL' ? T.red : '#D97706'
+                    return <div key={alert.event_id || alert.alert_id || alert.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0.42rem 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: alertColor, boxShadow: `0 0 5px ${alertColor}`, marginTop: 5, flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.45 }}><strong>{alert.severity}</strong> · {alert.camp_name || alert.camp_id} · {alert.flood_probability_percent == null ? '—' : `${Math.round(alert.flood_probability_percent)}%`}</span>
+                      <span style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                     </div>
-                  ))}
+                  })}
                 </div>
               </div>
 

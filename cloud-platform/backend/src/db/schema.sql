@@ -346,20 +346,82 @@ CREATE INDEX IF NOT EXISTS idx_flood_predictions_predicted ON flood_predictions 
 
 CREATE TABLE IF NOT EXISTS disaster_alerts (
   id              INTEGER PRIMARY KEY,
+  alert_id        TEXT UNIQUE,
+  event_id        TEXT UNIQUE,
+  camp_id         TEXT,
+  camp_name       TEXT,
   alert_type      TEXT NOT NULL,
   severity        TEXT NOT NULL,
+  priority        TEXT NOT NULL DEFAULT 'NORMAL',
   title           TEXT,
   message         TEXT,
   latitude        REAL,
   longitude       REAL,
   prediction_id   TEXT,
+  flood_probability REAL,
+  flood_probability_percent REAL,
+  risk_category   TEXT,
+  forecast_hours  INTEGER,
+  rainfall       REAL,
+  camp_elevation REAL,
+  river_distance_km REAL,
+  water_level    REAL,
+  station_id     TEXT,
+  station_name   TEXT,
+  gauge_elevation REAL,
+  elevation_difference REAL,
+  gauge_distance_km REAL,
+  gauge_latitude REAL,
+  gauge_longitude REAL,
+  river_name     TEXT,
+  camp_latitude  REAL,
+  camp_longitude REAL,
+  source         TEXT,
+  prediction_timestamp TIMESTAMPTZ,
+  expires_at     TIMESTAMPTZ,
+  schema_version TEXT DEFAULT '1.0',
   status          TEXT DEFAULT 'ACTIVE',
   created_at      TIMESTAMPTZ,
-  acknowledged_at TIMESTAMPTZ
+  acknowledged_at TIMESTAMPTZ,
+  mqtt_status     TEXT DEFAULT 'DELIVERED',
+  cloud_sync_status TEXT DEFAULT 'SYNCED'
 );
 
 CREATE INDEX IF NOT EXISTS idx_disaster_alerts_status ON disaster_alerts (status);
 CREATE INDEX IF NOT EXISTS idx_disaster_alerts_severity ON disaster_alerts (severity);
+
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS alert_id TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS event_id TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS camp_id TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS camp_name TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'NORMAL';
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS flood_probability REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS flood_probability_percent REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS risk_category TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS forecast_hours INTEGER;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS rainfall REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS camp_elevation REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS river_distance_km REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS water_level REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS station_id TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS station_name TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS gauge_elevation REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS elevation_difference REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS gauge_distance_km REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS gauge_latitude REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS gauge_longitude REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS river_name TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS camp_latitude REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS camp_longitude REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS source TEXT;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS prediction_timestamp TIMESTAMPTZ;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS schema_version TEXT DEFAULT '1.0';
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS mqtt_status TEXT DEFAULT 'DELIVERED';
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS cloud_sync_status TEXT DEFAULT 'SYNCED';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_disaster_alerts_event_id ON disaster_alerts (event_id) WHERE event_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_disaster_alerts_alert_id ON disaster_alerts (alert_id) WHERE alert_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_camp ON disaster_alerts (camp_id, status);
 
 CREATE TABLE IF NOT EXISTS prediction_requests (
   id              INTEGER PRIMARY KEY,

@@ -339,16 +339,26 @@ export async function upsertFloodPrediction(r) {
 export async function upsertDisasterAlert(r) {
   const pool = getPool();
   await pool.query(
-    `INSERT INTO disaster_alerts (id,alert_type,severity,title,message,latitude,longitude,
-       prediction_id,status,created_at,acknowledged_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-     ON CONFLICT (id) DO UPDATE SET alert_type=EXCLUDED.alert_type,severity=EXCLUDED.severity,
-       title=EXCLUDED.title,message=EXCLUDED.message,latitude=EXCLUDED.latitude,
-       longitude=EXCLUDED.longitude,prediction_id=EXCLUDED.prediction_id,status=EXCLUDED.status,
-       created_at=EXCLUDED.created_at,acknowledged_at=EXCLUDED.acknowledged_at`,
-    [r.id,r.alert_type,r.severity,r.title||null,r.message||null,
-     r.latitude||null,r.longitude||null,r.prediction_id||null,
-     r.status||'ACTIVE',r.created_at||null,r.acknowledged_at||null]
+    `INSERT INTO disaster_alerts (id,alert_id,event_id,camp_id,camp_name,alert_type,severity,priority,title,message,latitude,longitude,
+       prediction_id,flood_probability,flood_probability_percent,risk_category,forecast_hours,rainfall,camp_elevation,river_distance_km,water_level,
+       station_id,station_name,gauge_elevation,elevation_difference,gauge_distance_km,gauge_latitude,gauge_longitude,river_name,camp_latitude,camp_longitude,
+       source,prediction_timestamp,expires_at,schema_version,status,created_at,acknowledged_at,mqtt_status,cloud_sync_status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)
+    ON CONFLICT (event_id) DO UPDATE SET id=EXCLUDED.id,alert_id=EXCLUDED.alert_id,camp_id=EXCLUDED.camp_id,camp_name=EXCLUDED.camp_name,
+       alert_type=EXCLUDED.alert_type,severity=EXCLUDED.severity,priority=EXCLUDED.priority,title=EXCLUDED.title,message=EXCLUDED.message,
+       latitude=EXCLUDED.latitude,longitude=EXCLUDED.longitude,prediction_id=EXCLUDED.prediction_id,flood_probability=EXCLUDED.flood_probability,
+       flood_probability_percent=EXCLUDED.flood_probability_percent,risk_category=EXCLUDED.risk_category,forecast_hours=EXCLUDED.forecast_hours,
+       rainfall=EXCLUDED.rainfall,camp_elevation=EXCLUDED.camp_elevation,river_distance_km=EXCLUDED.river_distance_km,water_level=EXCLUDED.water_level,
+       station_id=EXCLUDED.station_id,station_name=EXCLUDED.station_name,gauge_elevation=EXCLUDED.gauge_elevation,elevation_difference=EXCLUDED.elevation_difference,
+       gauge_distance_km=EXCLUDED.gauge_distance_km,gauge_latitude=EXCLUDED.gauge_latitude,gauge_longitude=EXCLUDED.gauge_longitude,river_name=EXCLUDED.river_name,
+       camp_latitude=EXCLUDED.camp_latitude,camp_longitude=EXCLUDED.camp_longitude,source=EXCLUDED.source,prediction_timestamp=EXCLUDED.prediction_timestamp,
+       expires_at=EXCLUDED.expires_at,schema_version=EXCLUDED.schema_version,status=EXCLUDED.status,created_at=EXCLUDED.created_at,acknowledged_at=EXCLUDED.acknowledged_at,
+       mqtt_status=EXCLUDED.mqtt_status,cloud_sync_status='SYNCED'`,
+    [r.id,r.alert_id||null,r.event_id||null,r.camp_id||null,r.camp_name||null,r.alert_type,r.severity,r.priority||'NORMAL',r.title||null,r.message||null,
+     r.latitude??null,r.longitude??null,r.prediction_id||null,r.flood_probability??null,r.flood_probability_percent??null,r.risk_category||null,r.forecast_hours??null,
+     r.rainfall??null,r.camp_elevation??null,r.river_distance_km??null,r.water_level??null,r.station_id||null,r.station_name||null,r.gauge_elevation??null,
+     r.elevation_difference??null,r.gauge_distance_km??null,r.gauge_latitude??null,r.gauge_longitude??null,r.river_name||null,r.camp_latitude??null,r.camp_longitude??null,
+     r.source||null,r.prediction_timestamp||null,r.expires_at||null,r.schema_version||'1.0',r.status||'ACTIVE',r.created_at||null,r.acknowledged_at||null,r.mqtt_status||'DELIVERED',r.cloud_sync_status||'SYNCED']
   );
 }
 

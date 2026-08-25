@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [education, setEducation] = useState([])
   const [resources, setResources] = useState(null)
   const [disaster, setDisaster] = useState(null)
+  const [disasterAlerts, setDisasterAlerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [searchText, setSearchText] = useState('')
@@ -50,22 +51,25 @@ export default function DashboardPage() {
 
     const tryJson = async (p) => (p.status === 'fulfilled' && p.value?.ok ? (await p.value.json()) : null)
 
-    const [campsP, eduP, resP, disP] = await Promise.allSettled([
+    const [campsP, eduP, resP, disP, alertP] = await Promise.allSettled([
       fetch(`${API_BASE}/api/admin/camps`),
       fetch(`${API_BASE}/api/alerts/education/camps`),
       fetch(`${API_BASE}/api/resources/overview`),
       fetch(`${API_BASE}/api/disaster/overview`),
+      fetch(`${API_BASE}/api/disaster/alerts?status=ACTIVE`),
     ])
 
     const campsPayload = await tryJson(campsP)
     const eduPayload = await tryJson(eduP)
     const resPayload = await tryJson(resP)
     const disPayload = await tryJson(disP)
+    const alertPayload = await tryJson(alertP)
 
     setCamps(Array.isArray(campsPayload) && campsPayload.length ? campsPayload : MOCK_CAMPS)
     setEducation(Array.isArray(eduPayload?.camps) && eduPayload.camps.length ? eduPayload.camps : Array.isArray(eduPayload) && eduPayload.length ? eduPayload : MOCK_EDUCATION)
     setResources(resPayload?.population ? resPayload : MOCK_RESOURCES)
     setDisaster(Array.isArray(disPayload?.camps) && disPayload.camps.length ? disPayload : MOCK_DISASTER)
+    setDisasterAlerts(Array.isArray(alertPayload?.alerts) ? alertPayload.alerts : [])
 
     if (isRefresh) setRefreshing(false)
     else setLoading(false)
@@ -91,6 +95,9 @@ export default function DashboardPage() {
 
   const res = resources || MOCK_RESOURCES
   const disCamps = (disaster || MOCK_DISASTER).camps || []
+  const activeDisasterAlerts = disasterAlerts.filter((alert) => ['ACTIVE', 'ACKNOWLEDGED'].includes(alert.status))
+  const criticalDisasterAlerts = activeDisasterAlerts.filter((alert) => alert.severity === 'CRITICAL').length
+  const highDisasterAlerts = activeDisasterAlerts.filter((alert) => alert.severity === 'HIGH').length
 
   const campRows = useMemo(() => normalizedCamps.map((camp) => ({
     ...camp,
@@ -387,6 +394,10 @@ export default function DashboardPage() {
                 <MiniStat label="Displaced" value={disTotals.displaced.toLocaleString()} icon={<Users size={12} />} />
                 <MiniStat label="Aid Workers" value={disTotals.workers.toLocaleString()} icon={<HeartHandshake size={12} />} />
                 <MiniStat label="Active Camps" value={disTotals.camps} icon={<Droplets size={12} />} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                {chip('critical alerts', criticalDisasterAlerts, T.red)}
+                {chip('high alerts', highDisasterAlerts, '#D97706')}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
                 <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status distribution</div>

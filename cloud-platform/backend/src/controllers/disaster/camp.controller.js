@@ -9,6 +9,7 @@ import {
 } from '../../data/disaster/camp.repository.js';
 import { predictFloodForCamp } from '../../services/disaster/floodPrediction.service.js';
 import { getWaterLevelHistoryForCamp } from '../../services/disaster/waterLevelHistory.service.js';
+import { listDisasterAlerts, updateDisasterAlertStatus } from '../../data/disaster/alert.repository.js';
 
 export async function getOverview(_req, res, next) {
   try {
@@ -111,5 +112,25 @@ export async function getCampWaterLevelHistory(req, res, next) {
       error: error instanceof Error ? error.message : 'Failed to load water-level history',
       campId: req.params.campId,
     });
+  }
+}
+
+export async function getDisasterAlerts(req, res, next) {
+  try {
+    res.json({ alerts: await listDisasterAlerts({ campId: req.query.camp, status: req.query.status }) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateAlertStatus(req, res, next) {
+  const status = String(req.body?.status || '').toUpperCase();
+  if (!['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED'].includes(status)) return res.status(400).json({ error: 'Invalid alert status' });
+  try {
+    const alert = await updateDisasterAlertStatus(req.params.alertId, status);
+    if (!alert) return res.status(404).json({ error: 'Disaster alert not found' });
+    res.json({ alert });
+  } catch (err) {
+    next(err);
   }
 }

@@ -12,6 +12,7 @@ import { disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import crypto from 'crypto';
+import { evaluateFloodPrediction } from './alert-evaluator.js';
 
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
 
@@ -311,9 +312,10 @@ export async function getFloodPrediction() {
   const completedAt = new Date().toISOString();
 
   // Step 6: Write prediction result to flood_predictions table
+  let predictionId = null;
   if (prediction) {
     try {
-      const predictionId = crypto.randomUUID();
+      predictionId = crypto.randomUUID();
       insertFloodPredictionStmt.run(
         predictionId,
         inputs.latitude,
@@ -332,6 +334,17 @@ export async function getFloodPrediction() {
       logger.warn(`[PREDICTION] Failed to insert flood_prediction: ${err.message}`);
     }
   }
+
+  const alertEvaluation = prediction && predictionId
+    ? evaluateFloodPrediction({ prediction, inputs: {
+      rainfall_mm: inputs.rainfall_mm,
+      latitude: inputs.latitude,
+      longitude: inputs.longitude,
+      elevation_m: inputs.dem_elevation_m,
+      river_distance_km: inputs.nearest_river_m / 1000,
+      water_level_m: inputs.gauging_station_current_water_level_m,
+    }, hydrospatial: data.hydrospatial, predictionId, predictionTimestamp: completedAt })
+    : null;
 
   // Step 7: Update prediction request record
   try {
@@ -372,6 +385,7 @@ export async function getFloodPrediction() {
     },
     prediction_timestamp: completedAt,
     prediction_duration_ms: durationMs,
+    alert_evaluation: alertEvaluation,
     error: predictionError,
   };
 }

@@ -176,18 +176,52 @@ CREATE TABLE IF NOT EXISTS flood_predictions (
 
 CREATE TABLE IF NOT EXISTS disaster_alerts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_id TEXT UNIQUE,
+    event_id TEXT UNIQUE,
+    camp_id TEXT,
+    camp_name TEXT,
     alert_type TEXT NOT NULL,
     severity TEXT NOT NULL,
+    priority TEXT NOT NULL DEFAULT 'NORMAL',
     title TEXT,
     message TEXT,
     latitude REAL,
     longitude REAL,
     prediction_id TEXT,
+    flood_probability REAL,
+    flood_probability_percent REAL,
+    risk_category TEXT,
+    forecast_hours INTEGER,
+    rainfall REAL,
+    camp_elevation REAL,
+    river_distance_km REAL,
+    water_level REAL,
+    station_id TEXT,
+    station_name TEXT,
+    gauge_elevation REAL,
+    elevation_difference REAL,
+    gauge_distance_km REAL,
+    gauge_latitude REAL,
+    gauge_longitude REAL,
+    river_name TEXT,
+    camp_latitude REAL,
+    camp_longitude REAL,
+    source TEXT,
+    prediction_timestamp TEXT,
+    expires_at TEXT,
+    schema_version TEXT NOT NULL DEFAULT '1.0',
     status TEXT NOT NULL DEFAULT 'ACTIVE',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     acknowledged_at TEXT,
+    mqtt_status TEXT NOT NULL DEFAULT 'PENDING',
+    cloud_sync_status TEXT NOT NULL DEFAULT 'PENDING',
     synced INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_active
+    ON disaster_alerts(camp_id, alert_type, risk_category, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_disaster_alerts_event_id
+    ON disaster_alerts(event_id) WHERE event_id IS NOT NULL;
 
 -- ============================================================
 -- 10. PREDICTION REQUESTS

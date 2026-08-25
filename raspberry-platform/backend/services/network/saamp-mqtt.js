@@ -70,6 +70,7 @@ export function classifyMessage(source, action) {
     'fingerprint_scanner|verification': { priority: 'CRITICAL', qos: 2 },
     'wristband_scanner|distribution': { priority: 'CRITICAL', qos: 2 },
     'prediction_model|daily_forecast': { priority: 'HIGH', qos: 1 },
+    'alert|disaster-alert': { priority: 'CRITICAL', qos: 2 },
     'sync|education': { priority: 'HIGH', qos: 1 },
     'sync|resources': { priority: 'HIGH', qos: 1 },
     'system|heartbeat': { priority: 'LOW', qos: 0 },

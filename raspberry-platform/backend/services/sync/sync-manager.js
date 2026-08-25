@@ -124,6 +124,7 @@ const DISASTER_TABLES = new Set([
 
 function getDomainForTable(table) {
   if (table.startsWith('pages_')) return 'education';
+  if (table === 'disaster_alerts') return 'disaster-alert';
   if (DISASTER_TABLES.has(table)) return 'disaster';
   return 'resources';
 }
@@ -184,6 +185,9 @@ function ackSuccess(syncId) {
   const db = TABLE_DB_MAP[row.table_name];
   if (db) {
     db.prepare(`UPDATE ${row.table_name} SET synced = 1 WHERE ${pk} = ?`).run(row.local_id);
+    if (row.table_name === 'disaster_alerts') {
+      db.prepare(`UPDATE disaster_alerts SET cloud_sync_status = 'SYNCED' WHERE ${pk} = ?`).run(row.local_id);
+    }
   }
   campDb.prepare(
     'DELETE FROM sync_pending WHERE table_name = ? AND local_id = ?'
@@ -208,6 +212,9 @@ function ackFailed(syncId, errorMsg) {
   campDb.prepare(
     `UPDATE sync_pending SET retry_count = ?, next_retry_at = ?, published = 0 WHERE sync_id = ?`
   ).run(newRetry, nextRetry, syncId);
+  if (row.table_name === 'disaster_alerts') {
+    disasterDb.prepare('UPDATE disaster_alerts SET mqtt_status = ? WHERE id = ?').run('PENDING', row.local_id);
+  }
   syncLog('retrying', row.entity, row.local_id, {
     sync_id: syncId, retry: newRetry, max_retries: MAX_RETRIES,
     next_retry_at: nextRetry, error: errorMsg,
@@ -401,23 +408,12 @@ export async function runSyncCycle() {
 
 // ── Start / stop ─────────────────────────────────────────────────────────
 
-function cleanupStalePending() {
-  try {
-    const count = campDb.prepare('SELECT COUNT(*) as c FROM sync_pending').get().c;
-    if (count > 0) {
-      campDb.prepare('DELETE FROM sync_pending').run();
-      logger.info(`[SYNC] Cleared ${count} stale sync_pending entries (ACKs were not being processed)`);
-    }
-  } catch { /* best-effort */ }
-}
-
 export function startSync(intervalMs = SYNC_INTERVAL_MS) {
   if (syncTimer) {
     logger.warn('[SYNC] Already started');
     return;
   }
 
-  cleanupStalePending();
   saamp.onMessage('smartcamp/sync/ack', handleAck);
   saamp.onFlush(handleFlush);
 

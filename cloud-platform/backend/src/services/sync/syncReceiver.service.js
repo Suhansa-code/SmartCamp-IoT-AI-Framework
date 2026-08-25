@@ -153,6 +153,28 @@ async function handleSyncMessage(topic, buffer) {
   }
 }
 
+async function handleAlertMessage(topic, buffer) {
+  let alert;
+  try { alert = JSON.parse(buffer.toString()); } catch { return; }
+  const allowedTypes = new Set(['FLOOD_RISK_HIGH', 'FLOOD_RISK_CRITICAL', 'WATER_LEVEL_CRITICAL', 'RAINFALL_EXTREME', 'RAPID_WATER_LEVEL_RISE', 'SENSOR_FAILURE', 'HYDROSPATIAL_DATA_STALE', 'SYSTEM_OFFLINE']);
+  const allowedLevels = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
+  const probability = Number(alert.flood_probability);
+  if (!alert.id || !alert.event_id || !alert.camp_id || !allowedTypes.has(alert.alert_type)
+      || !allowedLevels.has(alert.severity) || !allowedLevels.has(alert.priority)
+      || (alert.flood_probability != null && (!Number.isFinite(probability) || probability < 0 || probability > 1))) {
+    console.warn('[Alert Receiver] Rejected malformed alert event');
+    return;
+  }
+  try {
+    if (await isSyncProcessed(`alert:${alert.event_id}`)) return;
+    await upsertDisasterAlert(alert);
+    await logSync(`alert:${alert.event_id}`, 'disaster-alerts', alert.id, alert.camp_id, 'CREATE');
+    console.log(`[Alert Receiver] Persisted ${alert.alert_type} event=${alert.event_id}`);
+  } catch (err) {
+    console.error(`[Alert Receiver] Failed to persist event: ${err.message}`);
+  }
+}
+
 /**
  * Start the sync receiver — connects to EMQX and subscribes to smartcamp/sync/*.
  */
@@ -174,14 +196,16 @@ export function startSyncReceiver() {
   client.on('connect', () => {
     isConnected = true;
     console.log('[Sync Receiver] Connected to EMQX broker');
-    client.subscribe('smartcamp/sync/#', { qos: 1 }, (err) => {
+    client.subscribe(['smartcamp/sync/#', 'smartcamp/alerts/#'], { qos: 2 }, (err) => {
       if (err) console.error('[Sync Receiver] Subscribe failed:', err.message);
       else console.log('[Sync Receiver] Subscribed to smartcamp/sync/# (QoS 1)');
     });
   });
 
   client.on('message', (topic, message) => {
-    if (topic.startsWith('smartcamp/sync/') && !topic.startsWith('smartcamp/sync/ack/')) {
+    if (topic.startsWith('smartcamp/alerts/')) {
+      handleAlertMessage(topic, message).catch((err) => console.error(`[Alert Receiver] Handler error: ${err.message}`));
+    } else if (topic.startsWith('smartcamp/sync/') && !topic.startsWith('smartcamp/sync/ack/')) {
       handleSyncMessage(topic, message).catch((err) => {
         console.error(`[Sync Receiver] Handler error: ${err.message}`);
       });

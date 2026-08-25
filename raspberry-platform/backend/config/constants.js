@@ -15,6 +15,8 @@ export default {
   NODE_ENV: process.env.NODE_ENV || 'development',
   DEVICE_ID: process.env.DEVICE_ID || 'SCB-UNIT-01',
   CAMP_ID: process.env.CAMP_ID || 'CAMP-B',
+  FLOOD_ALERT_HIGH_THRESHOLD: process.env.FLOOD_ALERT_HIGH_THRESHOLD ? parseFloat(process.env.FLOOD_ALERT_HIGH_THRESHOLD) : null,
+  FLOOD_ALERT_CRITICAL_THRESHOLD: process.env.FLOOD_ALERT_CRITICAL_THRESHOLD ? parseFloat(process.env.FLOOD_ALERT_CRITICAL_THRESHOLD) : null,
 
   GATE_THRESHOLD: parseFloat(process.env.GATE_THRESHOLD) || 55,
   BASELINE_INIT: 60.0,
