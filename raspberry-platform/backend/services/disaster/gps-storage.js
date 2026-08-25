@@ -6,14 +6,15 @@
  *
  *   - Periodic storage every N minutes (configurable, default 30).
  *     Timer resets after each successful save so the next save occurs
- *     30 minutes after the last successful persistence.
+ *     N minutes after the last successful persistence.
  *   - Movement-based storage when device moves ≥ threshold meters (Haversine).
  *     Saves instantly between intervals when movement is detected.
+ *   - GPS recovery: If GPS was unavailable when the interval expired,
+ *     immediately saves when valid GPS becomes available again.
  *
- * GPS unavailability handling:
- *   - If GPS is unavailable when the interval expires, no fake record is inserted.
- *   - When valid GPS data becomes available again and the interval has elapsed,
- *     the latest valid location is saved immediately.
+ * GPS data rules:
+ *   - Only saves data with source=GPS_SENSOR (real GPS data).
+ *   - Never saves mock/unavailable data.
  *
  * Does NOT add MQTT logic — newly inserted records have synced = 0 so the
  * existing disaster MQTT sync system picks them up automatically.
@@ -36,7 +37,8 @@ const MOVEMENT_THRESHOLD_M = C.GPS_MOVEMENT_THRESHOLD_METERS || 100;
 let timer = null;
 let lastStoredLat = null;
 let lastStoredLng = null;
-let lastSaveTime = null; // timestamp of last successful database save
+let lastSaveTime = null;
+let missedInterval = false; // true when timer fired but GPS was unavailable
 
 // ── Prepared statements (lazy init) ─────────────────────────────────────
 
@@ -78,8 +80,24 @@ function isValidCoord(lat, lng) {
 }
 
 /**
+ * Insert a GPS reading into the database.
+ * Returns true if inserted, false otherwise.
+ */
+function insertGpsRecord(lat, lng, altitude, accuracy, source) {
+  const roundedLat = Math.round(lat * 10000) / 10000;
+  const roundedLng = Math.round(lng * 10000) / 10000;
+  const now = nowISO();
+  insertStmt.run(DEVICE_ID, roundedLat, roundedLng, altitude ?? null, accuracy ?? null, source, now);
+  lastStoredLat = roundedLat;
+  lastStoredLng = roundedLng;
+  lastSaveTime = Date.now();
+  logger.info(`[GPS-STORAGE] Stored reading: ${roundedLat.toFixed(4)}, ${roundedLng.toFixed(4)} @ ${now}`);
+  return true;
+}
+
+/**
  * Attempt to store the current GPS location.
- * @param {boolean} isTimerTick - true when called from periodic timer (saves regardless of movement)
+ * @param {boolean} isTimerTick - true when called from periodic timer
  * @returns {boolean} true if a record was inserted, false otherwise.
  */
 export async function storeCurrentLocation(isTimerTick = false) {
@@ -90,20 +108,37 @@ export async function storeCurrentLocation(isTimerTick = false) {
     gps = await getGpsLocation();
   } catch (err) {
     logger.warn(`[GPS-STORAGE] Fetch failed: ${err.message}`);
+    if (isTimerTick) missedInterval = true;
     return false;
   }
 
   const { latitude: lat, longitude: lng, altitude, accuracy, source } = gps ?? {};
 
+  logger.debug(`[GPS-STORAGE] GPS data: lat=${lat}, lng=${lng}, source=${source}, isTimerTick=${isTimerTick}`);
+
   if (!isValidCoord(lat, lng)) {
-    logger.debug('[GPS-STORAGE] No valid fix — skipping');
+    logger.info('[GPS-STORAGE] No valid GPS fix — skipping');
+    if (isTimerTick) missedInterval = true;
     return false;
   }
 
-  // Only save actual GPS_SENSOR data, skip mock locations
+  // Only save actual GPS_SENSOR data
   if (source !== 'GPS_SENSOR') {
-    logger.debug(`[GPS-STORAGE] Source is ${source} — skipping mock location`);
+    logger.info(`[GPS-STORAGE] Source is "${source}" — skipping (only GPS_SENSOR is saved)`);
+    if (isTimerTick) missedInterval = true;
     return false;
+  }
+
+  // GPS is available — check if we missed an interval
+  if (missedInterval) {
+    logger.info('[GPS-STORAGE] GPS recovered after missed interval — saving immediately');
+    missedInterval = false;
+    try {
+      return insertGpsRecord(lat, lng, altitude, accuracy, source);
+    } catch (err) {
+      logger.error(`[GPS-STORAGE] Insert failed: ${err.message}`);
+      return false;
+    }
   }
 
   // Movement check: only apply for movement-triggered saves (not timer ticks)
@@ -116,17 +151,8 @@ export async function storeCurrentLocation(isTimerTick = false) {
     logger.info(`[GPS-STORAGE] Movement detected: ${Math.round(dist)}m — storing new reading`);
   }
 
-  const now = nowISO();
-
   try {
-    const roundedLat = Math.round(lat * 10000) / 10000;
-    const roundedLng = Math.round(lng * 10000) / 10000;
-    insertStmt.run(DEVICE_ID, roundedLat, roundedLng, altitude ?? null, accuracy ?? null, source || 'GPS_SENSOR', now);
-    lastStoredLat = roundedLat;
-    lastStoredLng = roundedLng;
-    lastSaveTime = Date.now();
-    logger.info(`[GPS-STORAGE] Stored reading: ${roundedLat.toFixed(4)}, ${roundedLng.toFixed(4)} @ ${now}`);
-    return true;
+    return insertGpsRecord(lat, lng, altitude, accuracy, source);
   } catch (err) {
     logger.error(`[GPS-STORAGE] Insert failed: ${err.message}`);
     return false;
@@ -137,6 +163,7 @@ export async function storeCurrentLocation(isTimerTick = false) {
 
 function scheduleNextTick() {
   timer = setTimeout(async () => {
+    logger.info(`[GPS-STORAGE] Timer tick fired — interval: ${INTERVAL_MS}ms (${INTERVAL_MS / 60_000} min)`);
     try {
       const saved = await storeCurrentLocation(true);
       if (saved) {
@@ -172,15 +199,18 @@ export function startGpsStorage(intervalMs = INTERVAL_MS) {
   } catch (_) { /* table may be empty */ }
 
   // First tick after a short delay, then schedule subsequent ticks
-  setTimeout(() => {
-    storeCurrentLocation().catch((err) => {
+  setTimeout(async () => {
+    logger.info(`[GPS-STORAGE] Initial tick — calling storeCurrentLocation(true)`);
+    const saved = await storeCurrentLocation(true).catch((err) => {
       logger.error(`[GPS-STORAGE] Initial tick error: ${err.message}`);
+      return false;
     });
+    logger.info(`[GPS-STORAGE] Initial tick result: ${saved ? 'saved' : 'no save'}`);
     scheduleNextTick();
   }, 2000);
 
   logger.info(
-    `[GPS-STORAGE] Started (interval: ${intervalMs}ms, threshold: ${MOVEMENT_THRESHOLD_M}m)`
+    `[GPS-STORAGE] Started (interval: ${intervalMs}ms = ${intervalMs / 60_000} min, threshold: ${MOVEMENT_THRESHOLD_M}m)`
   );
 }
 
@@ -196,8 +226,10 @@ export function getGpsStorageStatus() {
   return {
     running: !!timer,
     interval_ms: INTERVAL_MS,
+    interval_minutes: INTERVAL_MS / 60_000,
     movement_threshold_m: MOVEMENT_THRESHOLD_M,
     last_stored: lastStoredLat != null ? { latitude: lastStoredLat, longitude: lastStoredLng } : null,
     last_save_time: lastSaveTime ? new Date(lastSaveTime).toISOString() : null,
+    missed_interval: missedInterval,
   };
 }

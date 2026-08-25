@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from hydrospatial_api.api import router as hydro_router
-from gps_module.gps_api import router as gps_router, MOCK_LAT, MOCK_LNG, MOCK_NAME
+from gps_module.gps_api import router as gps_router
 from dht11_module.dht11_api import router as dht11_router
 from sensor_state import gps_state, dht11_state, start_background_readers
 
@@ -47,18 +47,16 @@ def get_device_status():
             "timestamp": now,
         }
     else:
-        from gps_module.gps_api import _reverse_geocode
-        loc = _reverse_geocode(MOCK_LAT, MOCK_LNG) or MOCK_NAME
         gps_sensor = {
             "connected": False,
             "status": "disconnected",
-            "latitude": MOCK_LAT,
-            "longitude": MOCK_LNG,
-            "altitude": 0,
+            "latitude": None,
+            "longitude": None,
+            "altitude": None,
             "satellites": 0,
-            "location_name": loc,
-            "is_mock": True,
-            "source": "MOCK_LOCATION",
+            "location_name": None,
+            "is_mock": False,
+            "source": "UNAVAILABLE",
             "timestamp": now,
         }
 

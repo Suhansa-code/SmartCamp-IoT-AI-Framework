@@ -3,7 +3,7 @@ gps_api.py — FastAPI router exposing GET /api/gps.
 
 Single source of GPS truth for the Raspberry Pi platform.
 - Tries the physical GPS sensor (GPSReader serial read, 10s timeout).
-- On any failure, falls back to configured mock location (default: Colombo).
+- On failure, returns gps_status=UNAVAILABLE (no mock fallback).
 - Reverse geocodes real GPS coordinates via Nominatim for a human-readable location name.
 """
 import os
@@ -18,12 +18,6 @@ from fastapi.responses import JSONResponse
 from .gps_reader import GPSReader
 
 router = APIRouter()
-
-# ── Mock / fallback configuration (env vars, default: Colombo) ──────────
-
-MOCK_LAT = float(os.environ.get("GPS_MOCK_LATITUDE", "6.9271"))
-MOCK_LNG = float(os.environ.get("GPS_MOCK_LONGITUDE", "79.8612"))
-MOCK_NAME = os.environ.get("GPS_MOCK_LOCATION_NAME", "Colombo")
 
 GPS_PORT = os.environ.get("GPS_PORT", "COM5")
 GPS_BAUD = int(os.environ.get("GPS_BAUDRATE", "115200"))
@@ -88,7 +82,7 @@ def get_gps():
     Return current GPS location.
 
     Real GPS  → gps_status=ACTIVE,  is_mock=false, source=GPS_SENSOR
-    Fallback  → gps_status=MOCK,    is_mock=true,  source=MOCK_LOCATION
+    No GPS    → gps_status=UNAVAILABLE, is_mock=false, source=UNAVAILABLE
     """
     gps_data = _read_gps_with_timeout()
 
@@ -109,6 +103,19 @@ def get_gps():
             "source": "GPS_SENSOR",
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
+    # GPS unavailable — no mock fallback
+    return {
+        "latitude": None,
+        "longitude": None,
+        "altitude": None,
+        "satellites": 0,
+        "location_name": None,
+        "gps_status": "UNAVAILABLE",
+        "is_mock": False,
+        "source": "UNAVAILABLE",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
     # GPS failed → return mock location
     loc_name = _reverse_geocode(MOCK_LAT, MOCK_LNG) or MOCK_NAME

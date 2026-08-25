@@ -2,8 +2,11 @@
  * gps.js — GPS location service for the Raspberry Pi backend.
  *
  * Fetches GPS data from the Edge Gateway GPS API (single source of truth).
- * The Edge Gateway handles the serial GPS read, fallback to mock location.
+ * The Edge Gateway handles the serial GPS read.
  * This service caches the result for 5 seconds.
+ *
+ * When GPS is unavailable, returns null coordinates with source=UNAVAILABLE.
+ * No mock data is ever returned.
  *
  * When Edge Gateway does not provide a usable location_name, this service
  * performs reverse geocoding via the geocode service (with its own cache)
@@ -49,7 +52,7 @@ async function fetchFromEdge() {
   return res.json();
 }
 
-function buildFallback() {
+function buildUnavailable() {
   return {
     latitude: null,
     longitude: null,
@@ -72,11 +75,18 @@ export async function getGpsLocation() {
     const data = await fetchFromEdge();
     const live = data.latitude != null && data.longitude != null && data.gps_status === 'ACTIVE';
 
+    // If GPS unavailable, return without caching stale data
+    if (!live) {
+      const unavailable = buildUnavailable();
+      unavailable.camp_id = getDynamicCampId();
+      return unavailable;
+    }
+
     let locationName = data.location_name || '';
     let district = data.district || '';
     const looksLikeCoords = /^-?\d+\.?\d*\s*[,]\s*-?\d+\.?\d*$/.test(locationName);
 
-    if (live && data.latitude != null && data.longitude != null && (!locationName || looksLikeCoords)) {
+    if (data.latitude != null && data.longitude != null && (!locationName || looksLikeCoords)) {
       const geo = await reverseGeocode(data.latitude, data.longitude);
       if (geo) {
         if (geo.name) locationName = geo.name;
@@ -101,14 +111,14 @@ export async function getGpsLocation() {
     return lastFix;
   } catch (err) {
     logger.warn(`[GPS] Edge Gateway fetch failed: ${err.message}`);
-    const fallback = buildFallback();
-    fallback.camp_id = getDynamicCampId();
-    lastFix = fallback;
+    const unavailable = buildUnavailable();
+    unavailable.camp_id = getDynamicCampId();
+    lastFix = unavailable;
     lastFetch = Date.now();
-    return fallback;
+    return unavailable;
   }
 }
 
 export function getLastKnownLocation() {
-  return lastFix || buildFallback();
+  return lastFix || buildUnavailable();
 }
