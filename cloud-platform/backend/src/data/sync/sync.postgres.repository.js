@@ -344,7 +344,7 @@ export async function upsertDisasterAlert(r) {
        station_id,station_name,gauge_elevation,elevation_difference,gauge_distance_km,gauge_latitude,gauge_longitude,river_name,camp_latitude,camp_longitude,
        source,prediction_timestamp,expires_at,schema_version,status,created_at,acknowledged_at,mqtt_status,cloud_sync_status)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)
-    ON CONFLICT (event_id) DO UPDATE SET id=EXCLUDED.id,alert_id=EXCLUDED.alert_id,camp_id=EXCLUDED.camp_id,camp_name=EXCLUDED.camp_name,
+    ON CONFLICT (id) DO UPDATE SET alert_id=EXCLUDED.alert_id,event_id=EXCLUDED.event_id,camp_id=EXCLUDED.camp_id,camp_name=EXCLUDED.camp_name,
        alert_type=EXCLUDED.alert_type,severity=EXCLUDED.severity,priority=EXCLUDED.priority,title=EXCLUDED.title,message=EXCLUDED.message,
        latitude=EXCLUDED.latitude,longitude=EXCLUDED.longitude,prediction_id=EXCLUDED.prediction_id,flood_probability=EXCLUDED.flood_probability,
        flood_probability_percent=EXCLUDED.flood_probability_percent,risk_category=EXCLUDED.risk_category,forecast_hours=EXCLUDED.forecast_hours,
