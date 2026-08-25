@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { COLORS } from '../../lib/tokens'
+import { COLORS } from '../../../lib/tokens'
 
 /* ------------------------------------------------------------------ */
 /*  SEMANTIC COLOUR MAP — same tones used across the app               */
@@ -24,32 +24,21 @@ const LEGACY_ALIAS = {
   gray: 'neutral', slate: 'neutral',
 }
 
-export default function StatCard({ label, value, icon: Icon, unit, color = 'brand', delay = 0 }) {
-  const key = TONE[color] ? color : LEGACY_ALIAS[color] || 'brand'
-  const t = TONE[key]
-
+export default function StatCard({ label, value, icon: Icon, hint, accent }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.35 }}
-      className="rounded-xl border bg-white p-4 sm:p-5 relative overflow-hidden group hover:shadow-[0_4px_12px_rgba(15,23,20,0.06)] transition-shadow duration-300"
-      style={{ borderColor: COLORS.line }}
-    >
-      <div
-        className="absolute -right-6 -top-6 w-24 h-24 rounded-full group-hover:scale-150 transition-transform duration-500"
-        style={{ backgroundColor: t.bg }}
-      />
-      <div className="relative">
-        <div className="flex items-center gap-2 mb-2">
-          {Icon && <Icon className="w-3.5 h-3.5" style={{ color: t.color }} strokeWidth={1.8} />}
-          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>{label}</span>
-        </div>
-        <div className="flex items-baseline gap-1">
-          <span className="text-[22px] sm:text-[24px] font-semibold font-mono tracking-tight" style={{ color: COLORS.ink }}>{value ?? '—'}</span>
-          {unit && <span className="text-[12.5px]" style={{ color: COLORS.muted }}>{unit}</span>}
+    <div className="rounded-xl border p-4 sm:p-5" style={{ borderColor: COLORS.line }}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10.5px] uppercase tracking-[0.08em] font-mono" style={{ color: COLORS.muted }}>
+          {label}
+        </span>
+        <div className="w-7 h-7 rounded-md border flex items-center justify-center" style={{ borderColor: COLORS.line }}>
+          <Icon className="w-3.5 h-3.5" style={{ color: accent || COLORS.brand }} strokeWidth={1.7} />
         </div>
       </div>
-    </motion.div>
-  )
+      <p className="font-serif font-medium text-[24px] sm:text-[28px] leading-none tracking-tight" style={{ color: COLORS.ink }}>
+        {value}
+      </p>
+      {hint && <p className="text-[11px] font-mono mt-2" style={{ color: COLORS.muted }}>{hint}</p>}
+    </div>
+  );
 }

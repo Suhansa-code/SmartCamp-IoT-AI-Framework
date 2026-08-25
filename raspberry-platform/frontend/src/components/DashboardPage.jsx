@@ -22,6 +22,7 @@ import {
 import LoadingState from "./ui/feedback/LoadingState";
 import ErrorState from "./ui/feedback/ErrorState";
 import { COLORS, SHADOW_CARD } from "../lib/tokens";
+import StatCard from "./ui/base/StatCard";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -121,28 +122,28 @@ function SectionLabel({ children }) {
   );
 }
 
-function StatCard({ label, value, icon: Icon, tone = "brand", delay = 0 }) {
-  const t = TONE[tone] || TONE.brand;
-  return (
-    <Card delay={delay} className="relative overflow-hidden group">
-      <div
-        className="absolute -right-6 -top-6 w-24 h-24 rounded-full group-hover:scale-150 transition-transform duration-500"
-        style={{ backgroundColor: t.bg }}
-      />
-      <div className="relative">
-        <div className="flex items-center gap-2 mb-2">
-          {Icon && <Icon className="w-3.5 h-3.5" style={{ color: t.color }} />}
-          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
-            {label}
-          </span>
-        </div>
-        <span className="text-[22px] sm:text-[24px] font-semibold font-mono tracking-tight" style={{ color: COLORS.ink }}>
-          {value ?? "—"}
-        </span>
-      </div>
-    </Card>
-  );
-}
+// function StatCard({ label, value, icon: Icon, tone = "brand", delay = 0 }) {
+//   const t = TONE[tone] || TONE.brand;
+//   return (
+//     <Card delay={delay} className="relative overflow-hidden group">
+//       <div
+//         className="absolute -right-6 -top-6 w-24 h-24 rounded-full group-hover:scale-150 transition-transform duration-500"
+//         style={{ backgroundColor: t.bg }}
+//       />
+//       <div className="relative">
+//         <div className="flex items-center gap-2 mb-2">
+//           {Icon && <Icon className="w-3.5 h-3.5" style={{ color: t.color }} />}
+//           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
+//             {label}
+//           </span>
+//         </div>
+//         <span className="text-[22px] sm:text-[24px] font-semibold font-mono tracking-tight" style={{ color: COLORS.ink }}>
+//           {value ?? "—"}
+//         </span>
+//       </div>
+//     </Card>
+//   );
+// }
 
 function DistributionRow({ label, data }) {
   if (!data) return null;
