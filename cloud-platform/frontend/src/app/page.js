@@ -15,7 +15,7 @@ import ArrowChip from '@/components/alert/ArrowChip'
 import { MOCK_CAMPS, MOCK_EDUCATION, MOCK_RESOURCES, MOCK_DISASTER, DISASTER_MATCH, CAMP_STATUS, DIS_STATUS } from '@/data/dashboard.data'
 import { Droplets, Users, BookOpen, Bell, Radio, Tent, CalendarCheck, HeartHandshake } from 'lucide-react'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
 
 function eduCode(id) {
   const known = {
@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
       <div style={{
         minHeight: '100svh',
-        background: dark ? 'linear-gradient(180deg, #0A0A0B 0%, #0E0E10 100%)' : T.outer,
+        background: dark ? 'linear-gradient(180deg, #0F172A 0%, #1A2332 100%)' : T.outer,
         fontFamily: "'Inter', sans-serif",
         paddingLeft: 'var(--rail-width, 236px)',
         transition: 'padding-left 0.2s ease',
@@ -217,7 +217,6 @@ export default function DashboardPage() {
               onRefresh: () => loadAll(true),
               refreshing,
             }}
-            pendingCount={overallAlerts}
           />
         </HeaderShell>
 

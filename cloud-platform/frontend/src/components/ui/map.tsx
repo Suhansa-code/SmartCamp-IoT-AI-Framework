@@ -1318,8 +1318,8 @@ type MapGeoJSONProps<
 // theme tokens), tuned for a typical light/dark surface. Override via
 // `fillPaint` / `linePaint`.
 const GEOJSON_DEFAULT_COLORS = {
-  light: { fill: "#d4d4d4", line: "#ffffff" },
-  dark: { fill: "#404040", line: "#171717" },
+  light: { fill: "#CBD5E1", line: "#ffffff" },
+  dark: { fill: "#475569", line: "#1E293B" },
 } satisfies Record<Theme, { fill: string; line: string }>;
 
 /**

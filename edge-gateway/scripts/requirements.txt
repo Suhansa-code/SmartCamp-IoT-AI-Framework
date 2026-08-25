@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 pyserial
+pynmea2
 requests
 geopy
 shapely

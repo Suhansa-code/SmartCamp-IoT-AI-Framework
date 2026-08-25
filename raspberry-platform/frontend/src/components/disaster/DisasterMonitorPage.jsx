@@ -20,8 +20,6 @@ const RISK = {
 /*  MOCK DATA — swap for real API responses                            */
 /* ------------------------------------------------------------------ */
 
-const CAMP = { name: 'Smart Camp — Kalutara North', type: 'Flood' }
-const CAMP_LOCATION = { latitude: 8.394877, longitude: 80.383354, altitude: 10.0, satellites: 5 }
 
 const GAUGING = {
   water_level: 2.35, alert_level: 2.0, minor_flood_level: 3.0, major_flood_level: 4.2,
@@ -47,14 +45,6 @@ const HISTORY = [
   const trend = win.reduce((s, x) => s + x.level, 0) / win.length
   return { ...d, trend: Number(trend.toFixed(2)) }
 })
-
-const WEATHER = {
-  condition: 'Partly cloudy, light showers', temp: 27, wind: 14, humidity: 82, rainChance: 62,
-  hourly: [
-    { t: '9AM', pct: 20 }, { t: '12PM', pct: 35 }, { t: '3PM', pct: 58 },
-    { t: '6PM', pct: 72 }, { t: '9PM', pct: 44 },
-  ],
-}
 
 const BEST_MODEL = { name: 'XGBoost', roc_auc: 0.927 }
 
@@ -188,13 +178,30 @@ function FieldBox({ label, value, icon: Icon }) {
 /*  PAGE                                                                */
 /* ------------------------------------------------------------------ */
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function DisasterMonitorPage() {
   const [now, setNow] = useState(new Date())
   const [refreshing, setRefreshing] = useState(false)
+  const [latestGps, setLatestGps] = useState(null)
+  const [weather, setWeather] = useState(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    fetch(`${API}/api/disaster/latest-gps`)
+      .then((r) => r.json())
+      .then((data) => setLatestGps(data))
+      .catch(() => {})
+    fetch(`${API}/api/disaster/weather/latest`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.available) setWeather(data)
+      })
+      .catch(() => {})
   }, [])
 
   const handleRefresh = () => {
@@ -211,11 +218,14 @@ export default function DisasterMonitorPage() {
         {/* ================= TITLE ROW ================= */}
         <div className="py-2 sm:py-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{CAMP.type} monitoring</p>
-            <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">{CAMP.name}</h1>
+            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Flood monitoring</p>
+            <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">
+              Smart Camp — {latestGps?.location_name ?? 'Unknown Location'}
+            </h1>
             <p className="flex items-center gap-1.5 text-[12.5px] mt-2" style={{ color: COLORS.muted }}>
               <MapPin className="w-3.5 h-3.5" />
-              {CAMP_LOCATION.latitude.toFixed(4)}, {CAMP_LOCATION.longitude.toFixed(4)}
+              {latestGps?.latitude?.toFixed(4) ?? "—"}, {latestGps?.longitude?.toFixed(4) ?? "—"}
+              {latestGps?.location_district && <span className="ml-1.5">· {latestGps.location_district}</span>}
             </p>
           </div>
           <div className="flex items-center gap-2 text-[13px]">
@@ -251,35 +261,34 @@ export default function DisasterMonitorPage() {
                 <IconTile icon={CloudRain} />
                 <div>
                   <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Weather prediction</p>
-                  <p className="text-[13.5px] sm:text-[14px] font-semibold mt-0.5">{WEATHER.condition}</p>
+                  <p className="text-[13.5px] sm:text-[14px] font-semibold mt-0.5">{weather?.condition || 'Weather data unavailable'}</p>
                 </div>
               </div>
-              <p className="font-serif font-medium text-[28px] sm:text-[30px] leading-none tracking-tight">{WEATHER.temp}°</p>
+              <p className="font-serif font-medium text-[28px] sm:text-[30px] leading-none tracking-tight">
+                {weather?.temperature != null ? `${Math.round(weather.temperature)}°` : '—'}
+              </p>
             </div>
 
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-5">
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.rainChance}%</p>
-                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Rain chance</p>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : '—'}</p>
+                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Rainfall</p>
               </div>
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.wind} km/h</p>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : '—'}</p>
                 <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Wind</p>
               </div>
               <div className="rounded-lg border py-2.5 text-center" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{WEATHER.humidity}%</p>
-                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Humidity</p>
+                <p className="text-[14px] sm:text-[15px] font-bold font-mono">{weather?.precipitation != null ? `${weather.precipitation.toFixed(1)} mm` : '—'}</p>
+                <p className="text-[10px] sm:text-[10.5px] mt-0.5" style={{ color: COLORS.muted }}>Precipitation</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-5 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
-              {WEATHER.hourly.map((h) => (
-                <div key={h.t} className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] sm:text-[10.5px] font-mono" style={{ color: COLORS.muted }}>{h.t}</span>
-                  <span className="text-[11px] sm:text-[11.5px] font-semibold">{h.pct}%</span>
-                </div>
-              ))}
-            </div>
+            {weather?.fetched_at && (
+              <p className="text-[10px] font-mono mt-4 pt-3 border-t" style={{ borderColor: COLORS.hairline, color: COLORS.muted }}>
+                Last updated: {new Date(weather.fetched_at).toLocaleString()}
+              </p>
+            )}
           </div>
         </div>
 
@@ -334,10 +343,10 @@ export default function DisasterMonitorPage() {
               <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Location</h2>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-              <FieldBox label="Latitude" value={CAMP_LOCATION.latitude.toFixed(6)} />
-              <FieldBox label="Longitude" value={CAMP_LOCATION.longitude.toFixed(6)} />
-              <FieldBox label="Altitude" value={`${CAMP_LOCATION.altitude} m`} />
-              <FieldBox label="Satellites" value={CAMP_LOCATION.satellites} icon={Satellite} />
+              <FieldBox label="Latitude" value={latestGps?.latitude?.toFixed(6) ?? "—"} />
+              <FieldBox label="Longitude" value={latestGps?.longitude?.toFixed(6) ?? "—"} />
+              <FieldBox label="Altitude" value={latestGps?.altitude != null ? `${latestGps.altitude} m` : "—"} />
+              <FieldBox label="Source" value={latestGps?.source ?? "—"} />
             </div>
           </div>
 

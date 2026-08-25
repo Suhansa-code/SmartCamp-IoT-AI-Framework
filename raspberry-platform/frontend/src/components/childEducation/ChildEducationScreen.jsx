@@ -1,9 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  GraduationCap, AlertTriangle, CheckCircle,
-  Clock, RefreshCw, ShieldCheck, CalendarDays,
-  BookOpen, List, ChevronRight, User,
+  GraduationCap,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  ShieldCheck,
+  CalendarDays,
+  BookOpen,
+  List,
+  ChevronRight,
+  ChevronDown,
+  User,
+  Search,
+  SlidersHorizontal,
+  ArrowLeft,
 } from "lucide-react";
 import DataTable from "../ui/display/DataTable";
 import ErrorState from "../ui/feedback/ErrorState";
@@ -16,11 +27,11 @@ import { COLORS, SHADOW_CARD } from "../../lib/tokens";
 /* ------------------------------------------------------------------ */
 
 const TONE = {
-  brand:   { color: COLORS.brand, bg: `${COLORS.brand}14`, border: `${COLORS.brand}33` },
-  warning: { color: '#D97706',    bg: '#FFFBEB',           border: '#FDE68A' },
-  danger:  { color: '#DC2626',    bg: '#FEF2F2',           border: '#FECACA' },
-  info:    { color: '#0284C7',    bg: '#F0F9FF',           border: '#BAE6FD' },
-  neutral: { color: COLORS.body,  bg: '#F5F6F5',            border: COLORS.line },
+  brand: { color: COLORS.brand, bg: `${COLORS.brand}14`, border: `${COLORS.brand}33` },
+  warning: { color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+  danger: { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+  info: { color: "#0284C7", bg: "#F0F9FF", border: "#BAE6FD" },
+  neutral: { color: COLORS.body, bg: "#F5F6F5", border: COLORS.line },
 };
 
 function formatDate(value) {
@@ -57,8 +68,14 @@ function SectionHeader({ icon, title, subtitle }) {
     <div className="flex items-center gap-3 mb-3 sm:mb-4">
       <IconTile icon={icon} />
       <div>
-        <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>{title}</h2>
-        {subtitle && <p className="text-[11px] sm:text-[11.5px]" style={{ color: COLORS.muted }}>{subtitle}</p>}
+        <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="text-[11px] sm:text-[11.5px]" style={{ color: COLORS.muted }}>
+            {subtitle}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -78,7 +95,12 @@ function Chip({ children, tone = "neutral" }) {
 
 function Avatar({ name, size = "md" }) {
   const dims = size === "sm" ? "w-8 h-8 text-[11px]" : "w-11 h-11 text-[14px]";
-  const initials = (name || "").split(/[\s-]/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const initials = (name || "")
+    .split(/[\s-]/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
   return (
     <div
       className={`${dims} rounded-lg flex items-center justify-center shrink-0 font-serif font-medium`}
@@ -91,9 +113,10 @@ function Avatar({ name, size = "md" }) {
 
 function Button({ variant = "primary", size = "md", loading, loadingText, children, className = "", ...props }) {
   const sizeCls = size === "sm" ? "text-[11.5px] py-1.5 px-3" : "text-[12.5px] py-2.5 px-4";
-  const style = variant === "primary"
-    ? { backgroundColor: COLORS.brand, color: "#fff" }
-    : { backgroundColor: "transparent", color: COLORS.body, border: `1px solid ${COLORS.line}` };
+  const style =
+    variant === "primary"
+      ? { backgroundColor: COLORS.brand, color: "#fff" }
+      : { backgroundColor: "transparent", color: COLORS.body, border: `1px solid ${COLORS.line}` };
   return (
     <button
       {...props}
@@ -101,7 +124,13 @@ function Button({ variant = "primary", size = "md", loading, loadingText, childr
       className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-opacity disabled:opacity-40 hover:opacity-90 ${sizeCls} ${className}`}
       style={style}
     >
-      {loading ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> {loadingText || "Working…"}</> : children}
+      {loading ? (
+        <>
+          <RefreshCw className="w-3.5 h-3.5 animate-spin" /> {loadingText || "Working…"}
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }
@@ -130,9 +159,13 @@ function StatCard({ label, value, icon: Icon, tone }) {
       <div className="relative">
         <div className="flex items-center gap-1.5 mb-1.5">
           <Icon className="w-3.5 h-3.5" style={{ color: t.color }} />
-          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>{label}</span>
+          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
+            {label}
+          </span>
         </div>
-        <span className="text-[19px] font-semibold font-mono tracking-tight" style={{ color: COLORS.ink }}>{value}</span>
+        <span className="text-[19px] font-semibold font-mono tracking-tight" style={{ color: COLORS.ink }}>
+          {value}
+        </span>
       </div>
     </Card>
   );
@@ -141,8 +174,12 @@ function StatCard({ label, value, icon: Icon, tone }) {
 function FieldRow({ label, value }) {
   return (
     <div className="flex items-center justify-between rounded-lg border px-3 py-2" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
-      <span className="text-[10px] font-mono font-semibold uppercase tracking-wide" style={{ color: COLORS.muted }}>{label}</span>
-      <span className="text-[12.5px] font-semibold" style={{ color: COLORS.ink }}>{value ?? "—"}</span>
+      <span className="text-[10px] font-mono font-semibold uppercase tracking-wide" style={{ color: COLORS.muted }}>
+        {label}
+      </span>
+      <span className="text-[12.5px] font-semibold" style={{ color: COLORS.ink }}>
+        {value ?? "—"}
+      </span>
     </div>
   );
 }
@@ -160,6 +197,8 @@ function ChildEducationScreen() {
   const [children, setChildren] = useState([]);
   const [childrenLoading, setChildrenLoading] = useState(true);
   const [childrenError, setChildrenError] = useState("");
+  const [dirSearch, setDirSearch] = useState("");
+  const [alertFilter, setAlertFilter] = useState("");
   const abortRef = useRef(null);
 
   const fetchChildren = useCallback(() => {
@@ -220,30 +259,74 @@ function ChildEducationScreen() {
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
       <div className="sm:px-5 lg:px-6 py-2 sm:py-5 space-y-4 sm:space-y-6">
-
         {/* ================= HEADER + SEARCH ================= */}
         <div>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
-              <div className="flex items-center gap-3 mt-1.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div>
                 <h1 className="font-serif font-medium text-[24px] sm:text-[28px] leading-[1.1] tracking-tight">Child Education</h1>
+                <p className="text-[12.5px] mt-1" style={{ color: COLORS.muted }}>
+                  {child ? child.child_id : "Session history, alerts & profile details"}
+                </p>
               </div>
-              <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Session history, alerts &amp; profile details</p>
             </div>
-            <form
-              className="flex w-full max-w-lg flex-col gap-2 sm:flex-row"
-              onSubmit={(e) => { e.preventDefault(); loadChild(childId); }}
-            >
-              <SearchInput value={childId} onChange={setChildId} placeholder="Enter child ID, e.g. CAMP-B-000001" />
-              <Button type="submit" loading={loading}>Search</Button>
-            </form>
+
+            {child ? (
+              <button
+                onClick={() => { setPayload(null); setChildId(""); }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[12.5px] font-semibold transition-colors hover:opacity-80 self-start"
+                style={{ borderColor: COLORS.line, color: COLORS.body, backgroundColor: "transparent" }}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
+                Back
+              </button>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-initial">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <Search className="w-4 h-4" style={{ color: COLORS.muted }} />
+                  </div>
+                  <input
+                    type="text"
+                    value={dirSearch}
+                    onChange={(e) => setDirSearch(e.target.value)}
+                    placeholder="Search by child ID or res ID..."
+                    className="w-full sm:w-72 pl-9 pr-3 py-2 rounded-lg border text-[13px] focus:outline-none transition-colors"
+                    style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line, color: COLORS.ink }}
+                  />
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <SlidersHorizontal className="w-4 h-4" style={{ color: COLORS.muted }} />
+                  </div>
+                  <select
+                    value={alertFilter}
+                    onChange={(e) => setAlertFilter(e.target.value)}
+                    className="w-full sm:w-auto pl-9 pr-8 py-2 rounded-lg border text-[13px] font-medium focus:outline-none transition-colors appearance-none cursor-pointer"
+                    style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line, color: COLORS.body }}
+                  >
+                    <option value="">All Alerts</option>
+                    <option value="active">Active</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="none">None</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none">
+                    <ChevronDown className="w-3.5 h-3.5" style={{ color: COLORS.muted }} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <AnimatePresence>
             {error && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                <ErrorState title="Could not load child" message={error} className="mt-3 border-0 p-3" style={{ backgroundColor: TONE.danger.bg, color: TONE.danger.color }} />
+                <ErrorState
+                  title="Could not load child"
+                  message={error}
+                  className="mt-3 border-0 p-3"
+                  style={{ backgroundColor: TONE.danger.bg, color: TONE.danger.color }}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -252,11 +335,6 @@ function ChildEducationScreen() {
         {/* ================= CHILD PROFILE ================= */}
         {child ? (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-4 sm:space-y-6">
-            <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={() => { setPayload(null); setChildId(""); }}>← Back</Button>
-              <div className="flex-1" />
-              <span className="text-[11px] font-mono" style={{ color: COLORS.muted }}>{child.child_id}</span>
-            </div>
 
             {/* Stats Row */}
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
@@ -295,17 +373,25 @@ function ChildEducationScreen() {
                   {alerts.length === 0 ? (
                     <div className="rounded-xl border border-dashed p-6 text-center" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
                       <CheckCircle className="w-5 h-5 mx-auto mb-2" style={{ color: COLORS.brand }} />
-                      <p className="text-[12.5px]" style={{ color: COLORS.muted }}>No alerts for this child</p>
+                      <p className="text-[12.5px]" style={{ color: COLORS.muted }}>
+                        No alerts for this child
+                      </p>
                     </div>
                   ) : (
                     alerts.map((alert) => (
                       <div key={alert.alert_id} className="rounded-lg border p-3" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono" style={{ color: COLORS.muted }}>{alert.alert_id?.slice(0, 12)}...</span>
-                          <Chip tone={alert.status === "pending" ? "warning" : alert.status === "resolved" ? "brand" : "neutral"}>{alert.status}</Chip>
+                          <span className="text-[10px] font-mono" style={{ color: COLORS.muted }}>
+                            {alert.alert_id?.slice(0, 12)}...
+                          </span>
+                          <Chip tone={alert.status === "pending" ? "warning" : alert.status === "resolved" ? "brand" : "neutral"}>
+                            {alert.status}
+                          </Chip>
                         </div>
                         <div className="mt-2 flex items-center gap-3 text-[10.5px]" style={{ color: COLORS.muted }}>
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(alert.triggered_at)}</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> {formatDate(alert.triggered_at)}
+                          </span>
                           {alert.resolved_at && <span>Resolved: {formatDate(alert.resolved_at)}</span>}
                         </div>
                       </div>
@@ -323,36 +409,50 @@ function ChildEducationScreen() {
                   <thead style={{ backgroundColor: "#FAFAF9" }}>
                     <tr className="border-b" style={{ borderColor: COLORS.hairline }}>
                       {["Session", "Date / Time", "Gate", "Flags", "Sync"].map((h) => (
-                        <th key={h} className="px-3 sm:px-4 py-3 font-mono font-semibold text-[10.5px] uppercase tracking-[0.06em]" style={{ color: COLORS.muted }}>{h}</th>
+                        <th
+                          key={h}
+                          className="px-3 sm:px-4 py-3 font-mono font-semibold text-[10.5px] uppercase tracking-[0.06em]"
+                          style={{ color: COLORS.muted }}
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {sessions.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="px-4 py-8 text-center text-[12.5px]" style={{ color: COLORS.muted }}>No sessions found.</td>
+                        <td colSpan="5" className="px-4 py-8 text-center text-[12.5px]" style={{ color: COLORS.muted }}>
+                          No sessions found.
+                        </td>
                       </tr>
                     ) : (
                       sessions.map((s) => (
                         <tr key={s.session_id} className="border-t transition-colors" style={{ borderColor: COLORS.hairline }}>
                           <td className="px-3 sm:px-4 py-3">
-                            <div className="font-mono text-[12px]" style={{ color: COLORS.ink }}>{s.session_id?.slice(0, 16)}...</div>
-                            <div className="text-[10px]" style={{ color: COLORS.muted }}>{s.content_session_id || "-"}</div>
+                            <div className="font-mono text-[12px]" style={{ color: COLORS.ink }}>
+                              {s.session_id?.slice(0, 16)}...
+                            </div>
+                            <div className="text-[10px]" style={{ color: COLORS.muted }}>
+                              {s.content_session_id || "-"}
+                            </div>
                           </td>
                           <td className="px-3 sm:px-4 py-3" style={{ color: COLORS.body }}>
                             <div className="text-[12.5px]">{s.session_date || "-"}</div>
-                            <div className="text-[10px]" style={{ color: COLORS.muted }}>{s.session_time || "-"}</div>
+                            <div className="text-[10px]" style={{ color: COLORS.muted }}>
+                              {s.session_time || "-"}
+                            </div>
                           </td>
-                          <td className="px-3 sm:px-4 py-3"><Chip>{s.gate_decision || "-"}</Chip></td>
+                          <td className="px-3 sm:px-4 py-3">
+                            <Chip>{s.gate_decision || "-"}</Chip>
+                          </td>
                           <td className="px-3 sm:px-4 py-3">
                             <div className="flex flex-wrap gap-1">
                               <Chip tone={Number(s.anomaly_flagged) === 1 ? "danger" : "neutral"}>
                                 {Number(s.anomaly_flagged) === 1 ? "Anomaly" : "Normal"}
                               </Chip>
                               {Number(s.alert_triggered) === 1 && <Chip tone="warning">Alert</Chip>}
-                              <Chip tone={s.session_complete === 1 ? "brand" : "neutral"}>
-                                {s.session_complete === 1 ? "Done" : "Open"}
-                              </Chip>
+                              <Chip tone={s.session_complete === 1 ? "brand" : "neutral"}>{s.session_complete === 1 ? "Done" : "Open"}</Chip>
                             </div>
                           </td>
                         </tr>
@@ -365,26 +465,31 @@ function ChildEducationScreen() {
           </motion.div>
         ) : (
           /* ================= CHILDREN DIRECTORY ================= */
-          <Card>
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <SectionHeader icon={List} title="Children Directory" subtitle={`${children.length} enrolled`} />
-              <Button variant="secondary" size="sm" onClick={fetchChildren}><RefreshCw className="w-3.5 h-3.5" /></Button>
-            </div>
-
+          <div>
             {childrenError && (
               <div className="mb-3">
-                <ErrorState title="Could not load children" message={childrenError} onRetry={fetchChildren} retryText="Retry" className="border-0 p-3" style={{ backgroundColor: TONE.danger.bg, color: TONE.danger.color }} />
+                <ErrorState
+                  title="Could not load children"
+                  message={childrenError}
+                  onRetry={fetchChildren}
+                  retryText="Retry"
+                  className="border-0 p-3"
+                  style={{ backgroundColor: TONE.danger.bg, color: TONE.danger.color }}
+                />
               </div>
             )}
 
             <DataTable
               columns={[
                 {
-                  key: "child_id", label: "Child ID",
+                  key: "child_id",
+                  label: "Child ID",
                   render: (val) => (
                     <div className="flex items-center gap-2.5">
                       <Avatar name={val} size="sm" />
-                      <span className="font-medium" style={{ color: COLORS.ink }}>{val}</span>
+                      <span className="font-medium" style={{ color: COLORS.ink }}>
+                        {val}
+                      </span>
                     </div>
                   ),
                 },
@@ -393,14 +498,24 @@ function ChildEducationScreen() {
                 { key: "camp_id", label: "Camp" },
                 { key: "total_sessions", label: "Sessions" },
                 {
-                  key: "alert_status", label: "Alert",
+                  key: "alert_status",
+                  label: "Alert",
                   render: (val) => <Chip tone={val === "active" ? "danger" : val === "resolved" ? "brand" : "neutral"}>{val || "none"}</Chip>,
                 },
               ]}
-              data={children}
+              data={children.filter((row) => {
+                if (alertFilter && row.alert_status !== alertFilter) return false;
+                if (dirSearch) {
+                  const q = dirSearch.toLowerCase();
+                  const matchId = row.child_id?.toLowerCase().includes(q);
+                  const matchRes = row.res_id?.toLowerCase().includes(q);
+                  if (!matchId && !matchRes) return false;
+                }
+                return true;
+              })}
               loading={childrenLoading}
-              searchPlaceholder="Search by child ID or res ID..."
-              searchKeys={["child_id", "res_id"]}
+              searchPlaceholder=""
+              searchKeys={[]}
               pageSize={10}
               emptyMessage="No children found"
               onRowClick={(row) => loadChild(row.child_id)}
@@ -409,7 +524,9 @@ function ChildEducationScreen() {
                   <Avatar name={row.child_id} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[13px] font-semibold truncate" style={{ color: COLORS.ink }}>{row.child_id}</span>
+                      <span className="text-[13px] font-semibold truncate" style={{ color: COLORS.ink }}>
+                        {row.child_id}
+                      </span>
                       <Chip tone={row.alert_status === "active" ? "danger" : "neutral"}>{row.alert_status || "none"}</Chip>
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-[11px]" style={{ color: COLORS.muted }}>
@@ -422,7 +539,7 @@ function ChildEducationScreen() {
                 </div>
               )}
             />
-          </Card>
+          </div>
         )}
       </div>
     </div>

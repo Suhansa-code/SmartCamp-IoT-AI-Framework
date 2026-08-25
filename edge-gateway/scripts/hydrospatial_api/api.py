@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query, HTTPException
 from .service import find_nearest_river_and_station, build_live_payload, build_live_prediction
+from .providers.weather_forecast_location import fetch_forecast_location
 
 
 router = APIRouter()
@@ -31,6 +32,18 @@ def live_payload(
 ):
     """Full live payload: river, gauging station (CSV), live gauge data (ArcGIS), forecast."""
     result = build_live_payload(lat, lon, alt)
+    return result
+
+
+@router.get("/weather")
+def weather(
+    lat: float = Query(..., description="Latitude"),
+    lon: float = Query(..., description="Longitude"),
+):
+    """Weather forecast for a given location via Open-Meteo."""
+    result, error = fetch_forecast_location(lat, lon)
+    if error:
+        raise HTTPException(status_code=502, detail=error)
     return result
 
 
