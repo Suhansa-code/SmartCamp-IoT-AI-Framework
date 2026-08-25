@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import {
   Droplets, Wind, MapPin, RefreshCw, Radar, Navigation, Satellite,
-  CloudRain, Bell, Download, Cpu, Waves, Gauge as GaugeIcon, ArrowRight,
+  CloudRain, Bell, Download, Mountain, Waves, Gauge as GaugeIcon, ArrowRight,
+  TrendingUp, TrendingDown, Minus,
 } from 'lucide-react'
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -161,6 +162,7 @@ export default function DisasterMonitorPage() {
   const [weather, setWeather] = useState(null)
   const [waterLevel, setWaterLevel] = useState(null)
   const [waterHistory, setWaterHistory] = useState([])
+  const [hydrospatial, setHydrospatial] = useState(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
@@ -194,6 +196,10 @@ export default function DisasterMonitorPage() {
           setWaterHistory(computeTrend(mapped))
         }
       })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/hydrospatial/latest`)
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setHydrospatial(data) })
       .catch(() => {})
   }, [])
 
@@ -413,23 +419,33 @@ export default function DisasterMonitorPage() {
 
           <div className="lg:col-span-7">
             <div className="flex items-center gap-3 mb-3">
-              <IconTile icon={Cpu} />
-              <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Device status</h2>
+              <IconTile icon={Mountain} />
+              <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Hydro-spatial insights</h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
-              {[
-                { label: 'Edge Gateway', desc: 'Intel NUC' },
-                { label: 'Prediction Engine', desc: `${BEST_MODEL.name} · ${(BEST_MODEL.roc_auc * 100).toFixed(1)}%` },
-                { label: 'Sensor Station', desc: stationName || '—' },
-                { label: 'MQTT Bridge', desc: 'EMQX broker' },
-              ].map((d) => (
-                <div key={d.label} className="rounded-lg border p-3 sm:p-3.5" style={{ borderColor: COLORS.line }}>
-                  <span className="inline-block w-1.5 h-1.5 rounded-full mb-2" style={{ backgroundColor: COLORS.brand }} />
-                  <p className="text-[12px] sm:text-[12.5px] font-semibold leading-tight">{d.label}</p>
-                  <p className="text-[10.5px] sm:text-[11px] mt-0.5 truncate" style={{ color: COLORS.muted }}>{d.desc}</p>
-                </div>
-              ))}
-            </div>
+            {!hydrospatial ? (
+              <div className="rounded-xl border p-5 text-center" style={{ borderColor: COLORS.line, color: COLORS.muted }}>
+                <p className="text-[13px]">Awaiting hydro-spatial analysis...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+                {[
+                  { label: 'Camp Elevation', value: hydrospatial.elevation != null ? `${hydrospatial.elevation} m` : '—', sub: hydrospatial.source || '—' },
+                  { label: 'Gauge Elevation', value: hydrospatial.gauge_elevation != null ? `${hydrospatial.gauge_elevation} m` : '—', sub: hydrospatial.station_name || '—' },
+                  { label: 'Elevation Δ', value: hydrospatial.elevation_difference != null ? `${hydrospatial.elevation_difference} m` : '—', sub: hydrospatial.elevation_difference > 0 ? 'Camp above gauge' : hydrospatial.elevation_difference < 0 ? 'Camp below gauge' : 'Same level', icon: hydrospatial.elevation_difference > 0 ? TrendingUp : hydrospatial.elevation_difference < 0 ? TrendingDown : Minus },
+                  { label: 'Gauge Distance', value: hydrospatial.gauge_distance != null ? `${hydrospatial.gauge_distance} km` : '—', sub: hydrospatial.gauge_distance != null ? `${(hydrospatial.gauge_distance * 0.621371).toFixed(1)} mi` : '—' },
+                ].map((d) => (
+                  <div key={d.label} className="rounded-lg border p-3 sm:p-3.5" style={{ borderColor: COLORS.line }}>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full mb-2" style={{ backgroundColor: COLORS.brand }} />
+                    <p className="text-[12px] sm:text-[12.5px] font-semibold leading-tight">{d.label}</p>
+                    <p className="text-[14px] sm:text-[15px] font-bold font-mono mt-1">{d.value}</p>
+                    <p className="text-[10.5px] sm:text-[11px] mt-0.5 truncate flex items-center gap-1" style={{ color: COLORS.muted }}>
+                      {d.icon && <d.icon className="w-3 h-3 inline" />}
+                      {d.sub}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
