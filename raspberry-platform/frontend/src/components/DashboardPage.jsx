@@ -40,6 +40,20 @@ const TONE = {
 
 const NETWORK_TONE = { STABLE: "brand", DEGRADED: "warning", CRITICAL: "danger" };
 
+const RISK = {
+  safe:     { label: "Stable",   color: COLORS.brand },
+  caution:  { label: "Caution",  color: "#D97706" },
+  warning:  { label: "Warning",  color: "#EA580C" },
+  critical: { label: "Critical", color: "#DC2626" },
+};
+
+function getRisk(wl, majorFlood, minorFlood, alertLevel) {
+  if (wl >= majorFlood) return RISK.critical;
+  if (wl >= minorFlood) return RISK.warning;
+  if (wl >= alertLevel) return RISK.caution;
+  return RISK.safe;
+}
+
 /* ------------------------------------------------------------------ */
 /*  MOCK DATA — Disaster Insight Card (replace with API endpoints)      */
 /* ------------------------------------------------------------------ */
@@ -362,6 +376,8 @@ export default function DashboardPage() {
   const [campId, setCampId] = useState("");
   const [latestGps, setLatestGps] = useState(null);
   const [weather, setWeather] = useState(null);
+  const [waterLevel, setWaterLevel] = useState(null);
+  const [eduInsights, setEduInsights] = useState(null);
 
   const fetchStats = () => {
     fetch(`${API}/api/stats/overview`)
@@ -397,6 +413,16 @@ export default function DashboardPage() {
         if (data.available) setWeather(data);
       })
       .catch(() => {});
+    fetch(`${API}/api/disaster/water-level/latest`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.available) setWaterLevel(data);
+      })
+      .catch(() => {});
+    fetch(`${API}/api/education/insights`)
+      .then((r) => r.json())
+      .then((data) => setEduInsights(data))
+      .catch(() => {});
     const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
   }, []);
@@ -416,7 +442,6 @@ export default function DashboardPage() {
   const dist = stats?.distribution_today ?? {};
   const pred = stats?.prediction_tomorrow ?? {};
   const mqtt = stats?.mqtt ?? {};
-  const recent = stats?.recent_registrations ?? [];
 
   const netTone = NETWORK_TONE[mqtt.network_state] ?? "neutral";
 
@@ -590,19 +615,31 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="space-y-0">
-                <InsightRow
-                  icon={Activity}
-                  tone={
-                    MOCK_DISASTER_INSIGHT.prediction.risk_level === "high"
-                      ? "danger"
-                      : MOCK_DISASTER_INSIGHT.prediction.risk_level === "moderate"
-                        ? "warning"
-                        : "brand"
-                  }
-                  label="Risk Level"
-                  value={`${MOCK_DISASTER_INSIGHT.prediction.risk_level.charAt(0).toUpperCase() + MOCK_DISASTER_INSIGHT.prediction.risk_level.slice(1)} (${MOCK_DISASTER_INSIGHT.prediction.risk_score}/100)`}
-                  sub={`Model: ${MOCK_DISASTER_INSIGHT.prediction.model} · ${MOCK_DISASTER_INSIGHT.prediction.confidence * 100}% confidence`}
-                />
+                {waterLevel ? (() => {
+                  const risk = getRisk(
+                    waterLevel.water_level,
+                    waterLevel.major_flood_level,
+                    waterLevel.minor_flood_level,
+                    waterLevel.alert_level
+                  );
+                  return (
+                    <InsightRow
+                      icon={Activity}
+                      tone={risk.color === RISK.critical.color ? "danger" : risk.color === RISK.warning.color ? "warning" : "brand"}
+                      label="Risk Level"
+                      value={risk.label}
+                      sub={`${waterLevel.river_name ?? "River"} · ${waterLevel.water_level?.toFixed(2)} m (alert: ${waterLevel.alert_level} m)`}
+                    />
+                  );
+                })() : (
+                  <InsightRow
+                    icon={Activity}
+                    tone="neutral"
+                    label="Risk Level"
+                    value="Awaiting data"
+                    sub="Water level sensor offline"
+                  />
+                )}
               </div>
             </div>
 
@@ -655,8 +692,8 @@ export default function DashboardPage() {
                   icon={CloudRain}
                   tone="info"
                   label="Rainfall"
-                  value={`${MOCK_DISASTER_INSIGHT.rainfall.current_mm} mm/hr`}
-                  sub={`Daily total: ${MOCK_DISASTER_INSIGHT.rainfall.daily_total_mm} mm · Trend: ${MOCK_DISASTER_INSIGHT.rainfall.trend}`}
+                  value={waterLevel?.rainfall != null ? `${waterLevel.rainfall.toFixed(1)} mm` : "—"}
+                  sub={`Station: ${waterLevel?.station_name ?? "—"}`}
                 />
                 <InsightRow
                   icon={Mountain}
@@ -667,65 +704,113 @@ export default function DashboardPage() {
                 />
                 <InsightRow
                   icon={Waves}
-                  tone="info"
-                  label={MOCK_DISASTER_INSIGHT.location.nearest_river}
-                  value={`${MOCK_DISASTER_INSIGHT.location.river_level_m} m`}
-                  sub={`${MOCK_DISASTER_INSIGHT.location.river_distance_km} km away · Trend: ${MOCK_DISASTER_INSIGHT.location.river_trend}`}
+                  tone={waterLevel ? getRisk(waterLevel.water_level, waterLevel.major_flood_level, waterLevel.minor_flood_level, waterLevel.alert_level).color === RISK.critical.color ? "danger" : waterLevel.water_level >= waterLevel.alert_level ? "warning" : "info" : "neutral"}
+                  label={waterLevel?.river_name || "River Level"}
+                  value={waterLevel?.water_level != null ? `${waterLevel.water_level.toFixed(2)} m` : "—"}
+                  sub={waterLevel?.distance_km != null ? `${waterLevel.distance_km} km away` : "Awaiting sensor data"}
                 />
               </div>
             </div>
           </div>
         </Card>
 
-        {/* ================= RECENT REGISTRATIONS ================= */}
-        {recent.length > 0 && (
+        {/* ================= EDUCATIONAL INSIGHTS ================= */}
+        {eduInsights && (
           <Card delay={0.3}>
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <SectionLabel>Recent Registrations</SectionLabel>
-              <span className="flex items-center gap-1 text-[11px] font-mono" style={{ color: COLORS.muted }}>
-                Live <ArrowUpRight className="w-3 h-3" style={{ color: COLORS.brand }} />
-              </span>
+            <SectionLabel>Education Programme (PAGES)</SectionLabel>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+              <StatCard
+                label="Children Enrolled"
+                value={eduInsights.total_children}
+                icon={Users}
+                tone="brand"
+                delay={0}
+              />
+              <StatCard
+                label="Sessions Completed"
+                value={`${eduInsights.completed_sessions}/${eduInsights.total_sessions}`}
+                icon={ClipboardCheck}
+                tone="info"
+                delay={0.05}
+              />
+              <StatCard
+                label="Completion Rate"
+                value={`${eduInsights.completion_rate}%`}
+                icon={TrendingUp}
+                tone="violet"
+                delay={0.1}
+              />
+              <StatCard
+                label="Avg Composite Score"
+                value={eduInsights.avg_composite != null ? eduInsights.avg_composite.toFixed(1) : "—"}
+                icon={BrainCircuit}
+                tone="warning"
+                delay={0.15}
+              />
+              <StatCard
+                label="Active Alerts"
+                value={eduInsights.active_alerts}
+                icon={Activity}
+                tone={eduInsights.active_alerts > 0 ? "danger" : "brand"}
+                delay={0.2}
+              />
             </div>
-            <div className="overflow-x-auto rounded-xl border" style={{ borderColor: COLORS.line }}>
-              <table className="w-full text-[13px]">
-                <thead>
-                  <tr className="text-left border-b" style={{ borderColor: COLORS.hairline, backgroundColor: "#FAFAF9" }}>
-                    {["Name", "Age", "Gender", "Wristband", "Status", "Time"].map((h) => (
-                      <th
-                        key={h}
-                        className="py-3 px-4 font-mono font-semibold text-[10.5px] uppercase tracking-[0.06em]"
-                        style={{ color: COLORS.muted }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.slice(0, 10).map((p) => (
-                    <tr key={p.id} className="border-t transition-colors" style={{ borderColor: COLORS.hairline }}>
-                      <td className="py-3 px-4 font-semibold" style={{ color: COLORS.ink }}>
-                        {p.full_name}
-                      </td>
-                      <td className="py-3 px-4" style={{ color: COLORS.body }}>
-                        {p.age}
-                      </td>
-                      <td className="py-3 px-4" style={{ color: COLORS.body }}>
-                        {p.gender}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-[12px]" style={{ color: COLORS.body }}>
-                        {p.wristband_barcode ?? "—"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Chip tone={p.pre_registered ? "brand" : "info"}>{p.pre_registered ? "Pre-registered" : "New"}</Chip>
-                      </td>
-                      <td className="py-3 px-4 font-mono text-[11.5px]" style={{ color: COLORS.muted }}>
-                        {p.created_at ? new Date(p.created_at).toLocaleTimeString() : "—"}
-                      </td>
-                    </tr>
+
+            {/* Grade Distribution + Recent Sessions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+              {/* Grade Distribution */}
+              <div>
+                <p className="text-[11px] font-mono uppercase tracking-[0.08em] mb-2" style={{ color: COLORS.muted }}>
+                  Grade Distribution
+                </p>
+                <div className="space-y-2">
+                  {eduInsights.grade_distribution?.map((g) => (
+                    <div key={g.grade} className="flex items-center gap-3">
+                      <span className="text-[12px] font-semibold w-16" style={{ color: COLORS.ink }}>
+                        Grade {g.grade}
+                      </span>
+                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: COLORS.line }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            backgroundColor: COLORS.brand,
+                            width: `${eduInsights.total_children > 0 ? (g.count / eduInsights.total_children) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-mono" style={{ color: COLORS.muted }}>
+                        {g.count}
+                      </span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
+
+              {/* Recent Sessions */}
+              <div>
+                <p className="text-[11px] font-mono uppercase tracking-[0.08em] mb-2" style={{ color: COLORS.muted }}>
+                  Recent Sessions
+                </p>
+                <div className="space-y-1.5">
+                  {eduInsights.recent_sessions?.slice(0, 5).map((s) => (
+                    <div
+                      key={s.session_id}
+                      className="flex items-center justify-between py-1.5 px-2 rounded-lg text-[12px]"
+                      style={{ backgroundColor: "#FAFAF9" }}
+                    >
+                      <span className="font-mono" style={{ color: COLORS.ink }}>
+                        {s.child_id}
+                      </span>
+                      <span className="font-mono" style={{ color: COLORS.muted }}>
+                        {s.composite_score != null ? s.composite_score.toFixed(1) : "—"}
+                      </span>
+                      <Chip tone={s.session_complete ? "brand" : "warning"}>
+                        {s.gate_decision ?? (s.session_complete ? "Done" : "Pending")}
+                      </Chip>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </Card>
         )}
