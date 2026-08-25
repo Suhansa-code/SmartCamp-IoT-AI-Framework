@@ -316,6 +316,7 @@ export default function DashboardPage() {
   const [weather, setWeather] = useState(null);
   const [waterLevel, setWaterLevel] = useState(null);
   const [eduInsights, setEduInsights] = useState(null);
+  const [prediction, setPrediction] = useState(null);
 
   const fetchStats = () => {
     fetch(`${API}/api/stats/overview`)
@@ -360,6 +361,14 @@ export default function DashboardPage() {
     fetch(`${API}/api/education/insights`)
       .then((r) => r.json())
       .then((data) => setEduInsights(data))
+      .catch(() => {});
+    fetch(`${API}/api/disaster/predict`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.status === 'success' && data.prediction) {
+          setPrediction(data);
+        }
+      })
       .catch(() => {});
     const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
@@ -544,38 +553,42 @@ export default function DashboardPage() {
         <Card delay={0.3}>
           <SectionLabel>Disaster Insight</SectionLabel>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Model Prediction */}
+            {/* Flood Prediction */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <BrainCircuit className="w-4 h-4" style={{ color: COLORS.brand }} />
                 <span className="text-[12px] font-semibold" style={{ color: COLORS.ink }}>
-                  Model Prediction
+                  Flood Prediction
                 </span>
+                {prediction?.mode === 'simulation' && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-amber-100 text-amber-700">SIM</span>
+                )}
               </div>
               <div className="space-y-0">
-                {waterLevel ? (() => {
-                  const risk = getRisk(
-                    waterLevel.water_level,
-                    waterLevel.major_flood_level,
-                    waterLevel.minor_flood_level,
-                    waterLevel.alert_level
-                  );
-                  return (
+                {prediction?.prediction ? (
+                  <>
                     <InsightRow
                       icon={Activity}
-                      tone={risk.color === RISK.critical.color ? "danger" : risk.color === RISK.warning.color ? "warning" : "brand"}
+                      tone={prediction.prediction.risk_category === 'High' ? 'danger' : prediction.prediction.risk_category === 'Medium' ? 'warning' : 'brand'}
                       label="Risk Level"
-                      value={risk.label}
-                      sub={`${waterLevel.river_name ?? "River"} · ${waterLevel.water_level?.toFixed(2)} m (alert: ${waterLevel.alert_level} m)`}
+                      value={prediction.prediction.risk_category}
+                      sub={`${prediction.prediction.flood_probability_percent}% probability · ${prediction.prediction.occurrence}`}
                     />
-                  );
-                })() : (
+                    <InsightRow
+                      icon={Wind}
+                      tone="info"
+                      label="Forecast"
+                      value={`Next ${prediction.prediction.forecast_hours} hours`}
+                      sub={`Source: ${prediction.prediction.source}`}
+                    />
+                  </>
+                ) : (
                   <InsightRow
                     icon={Activity}
                     tone="neutral"
                     label="Risk Level"
-                    value="Awaiting data"
-                    sub="Water level sensor offline"
+                    value="Awaiting prediction"
+                    sub="Model initializing"
                   />
                 )}
               </div>

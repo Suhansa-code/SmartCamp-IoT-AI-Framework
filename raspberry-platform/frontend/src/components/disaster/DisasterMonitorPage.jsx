@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Droplets, Wind, MapPin, RefreshCw, Radar, Navigation, Satellite,
   CloudRain, Bell, Download, Mountain, Waves, Gauge as GaugeIcon, ArrowRight,
-  TrendingUp, TrendingDown, Minus,
+  TrendingUp, TrendingDown, Minus, Activity, Zap, Clock,
 } from 'lucide-react'
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -33,6 +33,13 @@ function computeTrend(levels) {
 }
 
 const BEST_MODEL = { name: 'XGBoost', roc_auc: 0.927 }
+
+const PRED_RISK = {
+  Low:    { label: 'Low',    color: COLORS.brand },
+  Medium: { label: 'Medium', color: '#D97706' },
+  High:   { label: 'High',   color: '#DC2626' },
+  Unknown:{ label: 'N/A',    color: COLORS.muted },
+}
 
 /* ------------------------------------------------------------------ */
 /*  SEMI-CIRCLE GAUGE — fill colour follows live risk level             */
@@ -163,6 +170,9 @@ export default function DisasterMonitorPage() {
   const [waterLevel, setWaterLevel] = useState(null)
   const [waterHistory, setWaterHistory] = useState([])
   const [hydrospatial, setHydrospatial] = useState(null)
+  const [prediction, setPrediction] = useState(null)
+  const [predLoading, setPredLoading] = useState(true)
+  const [predError, setPredError] = useState(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
@@ -201,6 +211,17 @@ export default function DisasterMonitorPage() {
       .then((r) => r.json())
       .then((data) => { if (data.available) setHydrospatial(data) })
       .catch(() => {})
+    fetch(`${API}/api/disaster/predict`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.status === 'success' && data.prediction) {
+          setPrediction(data)
+        } else {
+          setPredError(data.error || 'Prediction unavailable')
+        }
+      })
+      .catch((err) => setPredError(err.message))
+      .finally(() => setPredLoading(false))
   }, [])
 
   const handleRefresh = () => {
@@ -219,6 +240,15 @@ export default function DisasterMonitorPage() {
           })
           mapped[mapped.length - 1].t = 'Now'
           setWaterHistory(computeTrend(mapped))
+        }
+      })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/predict`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.status === 'success' && data.prediction) {
+          setPrediction(data)
+          setPredError(null)
         }
       })
       .catch(() => {})
@@ -376,6 +406,117 @@ export default function DisasterMonitorPage() {
                   <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.trend }} /> Trend</span>
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* ================= FLOOD PREDICTION ================= */}
+        <div className="rounded-xl border p-4 sm:p-6 mb-4 sm:mb-6" style={{ borderColor: COLORS.line }}>
+          <div className="flex items-center justify-between mb-4 sm:mb-5">
+            <div className="flex items-center gap-3">
+              <IconTile icon={Activity} />
+              <div>
+                <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Flood prediction</h2>
+                <p className="text-[11px] sm:text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>XGBoost model · {BEST_MODEL.name} {(BEST_MODEL.roc_auc * 100).toFixed(1)}% AUC</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {prediction?.mode === 'simulation' && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-100 text-amber-700">SIMULATION</span>
+              )}
+              {prediction?.mode === 'live' && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-600">LIVE</span>
+              )}
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-1.5 rounded-lg border transition-colors hover:bg-gray-50"
+                style={{ borderColor: COLORS.line }}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: COLORS.muted }} />
+              </button>
+            </div>
+          </div>
+
+          {predLoading ? (
+            <div className="flex items-center justify-center py-12" style={{ color: COLORS.muted }}>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-[13px]">Running flood prediction model...</p>
+              </div>
+            </div>
+          ) : predError ? (
+            <div className="rounded-lg border p-4 text-center" style={{ borderColor: COLORS.line, color: COLORS.muted }}>
+              <p className="text-[13px]">Prediction unavailable: {predError}</p>
+            </div>
+          ) : prediction?.prediction ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Probability */}
+              <div className="rounded-lg border p-4" style={{ borderColor: COLORS.hairline }}>
+                <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Flood Probability</p>
+                <p className="font-serif font-medium text-[32px] sm:text-[36px] leading-none tracking-tight mt-2" style={{ color: (PRED_RISK[prediction.prediction.risk_category] || PRED_RISK.Unknown).color }}>
+                  {prediction.prediction.flood_probability_percent}<span className="text-lg" style={{ color: COLORS.muted }}>%</span>
+                </p>
+                <p className="text-[11px] mt-1" style={{ color: COLORS.muted }}>Next {prediction.prediction.forecast_hours}h forecast</p>
+              </div>
+
+              {/* Risk Category */}
+              <div className="rounded-lg border p-4" style={{ borderColor: COLORS.hairline }}>
+                <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Risk Level</p>
+                <p className="font-serif font-medium text-[28px] sm:text-[32px] leading-none tracking-tight mt-3" style={{ color: (PRED_RISK[prediction.prediction.risk_category] || PRED_RISK.Unknown).color }}>
+                  {prediction.prediction.risk_category}
+                </p>
+              </div>
+
+              {/* Occurrence */}
+              <div className="rounded-lg border p-4" style={{ borderColor: COLORS.hairline }}>
+                <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Occurrence</p>
+                <p className="font-serif font-medium text-[28px] sm:text-[32px] leading-none tracking-tight mt-3" style={{ color: COLORS.ink }}>
+                  {prediction.prediction.occurrence}
+                </p>
+              </div>
+
+              {/* Timestamp */}
+              <div className="rounded-lg border p-4" style={{ borderColor: COLORS.hairline }}>
+                <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Prediction Time</p>
+                <p className="text-[13px] font-mono mt-3" style={{ color: COLORS.ink }}>
+                  {prediction.prediction_timestamp ? new Date(prediction.prediction_timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                </p>
+                {prediction.prediction_duration_ms && (
+                  <p className="text-[10.5px] mt-1" style={{ color: COLORS.muted }}>Latency: {prediction.prediction_duration_ms}ms</p>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Prediction Inputs */}
+          {prediction?.inputs && !predLoading && !predError && (
+            <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
+              <p className="text-[11px] uppercase tracking-wider font-mono mb-3" style={{ color: COLORS.muted }}>Model input conditions</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                {[
+                  { label: 'Rainfall', value: prediction.inputs.rainfall_mm != null ? `${prediction.inputs.rainfall_mm} mm` : '—' },
+                  { label: 'Elevation', value: prediction.inputs.elevation_m != null ? `${prediction.inputs.elevation_m} m` : '—' },
+                  { label: 'River Distance', value: prediction.inputs.river_distance_km != null ? `${prediction.inputs.river_distance_km} km` : '—' },
+                  { label: 'Water Level', value: prediction.inputs.water_level_m != null ? `${prediction.inputs.water_level_m} m` : '—' },
+                  { label: 'Latitude', value: prediction.inputs.latitude?.toFixed(4) ?? '—' },
+                  { label: 'Longitude', value: prediction.inputs.longitude?.toFixed(4) ?? '—' },
+                ].map((d) => (
+                  <div key={d.label} className="rounded-lg border px-2.5 py-2" style={{ borderColor: COLORS.hairline }}>
+                    <p className="text-[10px]" style={{ color: COLORS.muted }}>{d.label}</p>
+                    <p className="text-[12px] font-mono font-medium mt-0.5" style={{ color: COLORS.ink }}>{d.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Simulation overrides indicator */}
+          {prediction?.simulation?.overridden_fields?.length > 0 && (
+            <div className="mt-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-[11px] text-amber-700">
+                Simulation overrides: {prediction.simulation.overridden_fields.join(', ')}
+              </p>
             </div>
           )}
         </div>

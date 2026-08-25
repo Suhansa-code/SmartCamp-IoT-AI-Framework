@@ -6,6 +6,7 @@ import { getLatestDht11, getDht11StorageStatus, fetchAndSaveDht11 } from '../../
 import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, fetchAndSaveWaterLevel } from '../../services/disaster/water-level-storage.js';
 import { getLatestSensorStatus, getSensorStatusStorageStatus, fetchAndSaveSensorStatus } from '../../services/disaster/sensor-status-storage.js';
 import { getLatestHydrospatial, getHydrospatialHistory, getHydrospatialStorageStatus, fetchAndSaveHydrospatial } from '../../services/disaster/hydrospatial-storage.js';
+import { getFloodPrediction } from '../../services/disaster/prediction-service.js';
 import { disasterDb } from '../../config/database.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
@@ -264,5 +265,16 @@ export async function triggerHydrospatialSave(req, res) {
     res.json({ saved, message: saved ? 'Hydrospatial data saved to DB' : 'No data saved (GPS unavailable or fetch failed)' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+}
+
+// ── Flood Prediction ─────────────────────────────────────────────────
+
+export async function getFloodPredictionData(req, res) {
+  try {
+    const result = await getFloodPrediction();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
   }
 }

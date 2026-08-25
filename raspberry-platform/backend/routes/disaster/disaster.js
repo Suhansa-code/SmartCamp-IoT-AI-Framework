@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save, getLatestWaterLevelData, getWaterLevelHistoryData, getWaterLevelStatus, triggerWaterLevelSave, getLatestSensorStatusData, getSensorStatus, triggerSensorStatusSave, getLatestHydrospatialData, getHydrospatialHistoryData, getHydrospatialStatus, triggerHydrospatialSave } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save, getLatestWaterLevelData, getWaterLevelHistoryData, getWaterLevelStatus, triggerWaterLevelSave, getLatestSensorStatusData, getSensorStatus, triggerSensorStatusSave, getLatestHydrospatialData, getHydrospatialHistoryData, getHydrospatialStatus, triggerHydrospatialSave, getFloodPredictionData } from '../../controllers/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 
 const router = express.Router();
@@ -26,18 +26,7 @@ router.get('/live-payload', async (req, res) => {
   }
 });
 
-router.get('/predict', async (req, res) => {
-  const { lat, lon, alt } = req.query;
-  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
-  try {
-    const response = await fetch(`${EDGE_API}/hydrospatial/predict?lat=${lat}&lon=${lon}&alt=${alt || 10}`);
-    if (!response.ok) throw new Error(`Edge gateway returned ${response.status}`);
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    res.status(502).json({ error: err.message });
-  }
-});
+router.get('/predict', getFloodPredictionData);
 
 router.get('/device-status', async (_req, res) => {
   try {
