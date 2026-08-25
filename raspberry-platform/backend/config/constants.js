@@ -79,6 +79,8 @@ export default {
 
   DHT11_STORAGE_INTERVAL_MINUTES: parseInt(process.env.DHT11_STORAGE_INTERVAL_MINUTES, 10) || 5,
 
+  HYDROSPATIAL_STORAGE_INTERVAL_MINUTES: parseInt(process.env.HYDROSPATIAL_STORAGE_INTERVAL_MINUTES, 10) || 30,
+
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,
   EMQX_USERNAME: process.env.EMQX_USERNAME || 'admin',

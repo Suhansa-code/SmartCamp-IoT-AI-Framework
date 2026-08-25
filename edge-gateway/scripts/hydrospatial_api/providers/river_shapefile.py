@@ -275,6 +275,9 @@ def find_upstream_gauging_station(
             else None,
             "minor_flood_level": nearest_upstream_station.get("minor_flood_level") or nearest_upstream_station.get("minor_flood"),
             "major_flood_level": nearest_upstream_station.get("major_flood_level") or nearest_upstream_station.get("major_flood"),
+            "gauge_latitude": float(nearest_upstream_station.get("Latitude")) if pd.notnull(nearest_upstream_station.get("Latitude")) else None,
+            "gauge_longitude": float(nearest_upstream_station.get("Longitude")) if pd.notnull(nearest_upstream_station.get("Longitude")) else None,
+            "ref": nearest_upstream_station.get("ref"),
         }
 
 
@@ -301,6 +304,9 @@ def find_upstream_gauging_station(
         "alert_level": nearest_station.get("alert_level"),
         "minor_flood_level": nearest_station.get("minor_flood"),
         "major_flood_level": nearest_station.get("major_flood"),
+        "gauge_latitude": float(nearest_station.get("Latitude")) if pd.notnull(nearest_station.get("Latitude")) else None,
+        "gauge_longitude": float(nearest_station.get("Longitude")) if pd.notnull(nearest_station.get("Longitude")) else None,
+        "ref": nearest_station.get("ref"),
     }
 
 

@@ -425,6 +425,14 @@ try {
   try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_longitude REAL"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN updated_at TEXT"); } catch (_) {}
 
+  // ── Hydrospatial data extensions ──
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_elevation REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN elevation_difference REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_distance REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_latitude REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_longitude REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN station_name TEXT"); } catch (_) {}
+
   logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
 } catch (err) {
   logger.error(`[DISASTER DB] Initialisation failed: ${err.message}`);

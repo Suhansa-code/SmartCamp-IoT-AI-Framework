@@ -139,6 +139,12 @@ CREATE TABLE IF NOT EXISTS hydrospatial_data (
     river_distance REAL,
     nearest_station_id TEXT,
     river_name TEXT,
+    gauge_elevation REAL,
+    elevation_difference REAL,
+    gauge_distance REAL,
+    gauge_latitude REAL,
+    gauge_longitude REAL,
+    station_name TEXT,
     source TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced INTEGER NOT NULL DEFAULT 0
