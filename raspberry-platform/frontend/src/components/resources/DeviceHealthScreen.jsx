@@ -424,21 +424,7 @@ export default function DeviceHealthScreen() {
   const connectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(Boolean).length;
   const disconnectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(c => !c).length;
 
-  const refresh = useCallback(() => {
-    fetch(`${API}/api/fingerprint/status`)
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null)
-      .then((status) => {
-        setDevices(applyFingerprintStatus(INITIAL_DEVICES, status));
-        setLastAt(new Date());
-      });
-  }, []);
 
-  useEffect(() => {
-    refresh();
-    const timer = setInterval(refresh, 15000);
-    return () => clearInterval(timer);
-  }, [refresh]);
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
@@ -515,7 +501,7 @@ export default function DeviceHealthScreen() {
           {lastAt ? `Last updated ${lastAt.toLocaleTimeString()}` : 'Connecting to Edge Gateway…'}
           {pollError && ` · ${pollError}`}
           {' · '}Polling every {POLL_INTERVAL_MS / 1000}s
-          Last refreshed {lastAt.toLocaleTimeString()} · fingerprint scanner is live; other sensors pending wiring
+          {lastAt && `Last refreshed ${lastAt.toLocaleTimeString()} · `}fingerprint scanner is live; other sensors pending wiring
         </p>
 
       </div>
