@@ -5,10 +5,13 @@
  *
  * Supports LIVE and SIMULATION modes via environment variables.
  * Simulation overrides never touch the database.
+ *
+ * Writes prediction results to flood_predictions and prediction_requests tables.
  */
 import { disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
+import crypto from 'crypto';
 
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
 
@@ -28,6 +31,29 @@ const SIM_WATER_LEVEL = process.env.FLOOD_SIMULATION_WATER_LEVEL;
 
 // ── Data freshness threshold ───────────────────────────────────────────
 const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// ── Prepared statements for DB writes ──────────────────────────────────
+let insertPredictionRequestStmt = null;
+let updatePredictionRequestStmt = null;
+let insertFloodPredictionStmt = null;
+
+function ensureStatements() {
+  if (insertPredictionRequestStmt) return;
+
+  insertPredictionRequestStmt = disasterDb.prepare(`
+    INSERT INTO prediction_requests (request_id, request_type, input_data, status, requested_at)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  updatePredictionRequestStmt = disasterDb.prepare(`
+    UPDATE prediction_requests SET status = ?, response_data = ?, completed_at = ? WHERE request_id = ?
+  `);
+
+  insertFloodPredictionStmt = disasterDb.prepare(`
+    INSERT INTO flood_predictions (prediction_id, latitude, longitude, rainfall, elevation, river_distance, flood_probability, flood_category, forecast_hours, model_version, predicted_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -223,6 +249,23 @@ async function callEdgePrediction(inputs) {
 export async function getFloodPrediction() {
   const startTime = Date.now();
   const mode = SIM_ENABLED ? 'simulation' : 'live';
+  const requestId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  ensureStatements();
+
+  // Insert prediction request record
+  try {
+    insertPredictionRequestStmt.run(
+      requestId,
+      mode === 'simulation' ? 'SIMULATION' : 'LIVE',
+      JSON.stringify({ mode, timestamp: now }),
+      'PENDING',
+      now,
+    );
+  } catch (err) {
+    logger.warn(`[PREDICTION] Failed to insert prediction_request: ${err.message}`);
+  }
 
   // Step 1: Gather latest data from disaster.db
   const data = gatherLatestInputs();
@@ -265,8 +308,41 @@ export async function getFloodPrediction() {
   }
 
   const durationMs = Date.now() - startTime;
+  const completedAt = new Date().toISOString();
 
-  // Step 6: Build response
+  // Step 6: Write prediction result to flood_predictions table
+  if (prediction) {
+    try {
+      const predictionId = crypto.randomUUID();
+      insertFloodPredictionStmt.run(
+        predictionId,
+        inputs.latitude,
+        inputs.longitude,
+        inputs.rainfall_mm,
+        inputs.dem_elevation_m,
+        inputs.nearest_river_m / 1000,
+        prediction.flood_probability,
+        prediction.risk_category,
+        prediction.forecast_hours,
+        prediction.source,
+        completedAt,
+      );
+      logger.info(`[PREDICTION] Saved flood_prediction: ${predictionId}`);
+    } catch (err) {
+      logger.warn(`[PREDICTION] Failed to insert flood_prediction: ${err.message}`);
+    }
+  }
+
+  // Step 7: Update prediction request record
+  try {
+    const status = prediction ? 'COMPLETED' : 'FAILED';
+    const responseData = prediction ? JSON.stringify(prediction) : JSON.stringify({ error: predictionError });
+    updatePredictionRequestStmt.run(status, responseData, completedAt, requestId);
+  } catch (err) {
+    logger.warn(`[PREDICTION] Failed to update prediction_request: ${err.message}`);
+  }
+
+  // Step 8: Build response
   return {
     status: prediction ? 'success' : 'error',
     mode,
@@ -294,7 +370,7 @@ export async function getFloodPrediction() {
       data_timestamp: data.dataTimestamp,
       validation_errors: validationErrors,
     },
-    prediction_timestamp: new Date().toISOString(),
+    prediction_timestamp: completedAt,
     prediction_duration_ms: durationMs,
     error: predictionError,
   };
