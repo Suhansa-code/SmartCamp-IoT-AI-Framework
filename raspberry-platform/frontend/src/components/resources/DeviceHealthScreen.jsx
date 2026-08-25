@@ -4,8 +4,6 @@ import { Satellite, Thermometer, Droplets, Radio, RefreshCw, Activity, MapPin, A
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 import { API } from '../ui/config';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 /* ------------------------------------------------------------------ */
 /*  SEMANTIC COLOUR MAP                                                 */
 /* ------------------------------------------------------------------ */
@@ -434,8 +432,7 @@ export default function DeviceHealthScreen() {
         setDevices(applyFingerprintStatus(INITIAL_DEVICES, status));
         setLastAt(new Date());
       });
-    fetchLocation();
-  }, [fetchLocation]);
+  }, []);
 
   useEffect(() => {
     refresh();

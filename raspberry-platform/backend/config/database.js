@@ -413,6 +413,18 @@ try {
   try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN location_district TEXT"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE gps_readings RENAME COLUMN location_province TO location_district"); } catch (_) {}
 
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN device_id TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN river_name TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN station_name TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN distance_km REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN alert_level REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN minor_flood_level REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN major_flood_level REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN rainfall REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_latitude REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_longitude REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN updated_at TEXT"); } catch (_) {}
+
   logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
 } catch (err) {
   logger.error(`[DISASTER DB] Initialisation failed: ${err.message}`);

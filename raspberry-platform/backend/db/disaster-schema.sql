@@ -41,23 +41,6 @@ CREATE TABLE IF NOT EXISTS sensor_readings (
 );
 
 -- ============================================================
--- 3. ENVIRONMENTAL DATA
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS environmental_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    temperature REAL,
-    humidity REAL,
-    pressure REAL,
-    rainfall REAL,
-    wind_speed REAL,
-    wind_direction REAL,
-    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    source TEXT,
-    synced INTEGER NOT NULL DEFAULT 0
-);
-
--- ============================================================
 -- 4. WATER LEVEL READINGS
 -- ============================================================
 
@@ -108,10 +91,10 @@ CREATE TABLE IF NOT EXISTS rainfall_readings (
 );
 
 -- ============================================================
--- 5c. DHT11 SENSOR READINGS
+-- 5c. HUMIDITY/TEMP SENSOR READINGS
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS dht11_readings (
+CREATE TABLE IF NOT EXISTS HumidityTemp_readings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id TEXT,
     temperature REAL,
@@ -259,9 +242,6 @@ ON sensor_readings(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_sensor_readings_sensor_id
 ON sensor_readings(sensor_id);
 
-CREATE INDEX IF NOT EXISTS idx_environmental_data_recorded_at
-ON environmental_data(recorded_at);
-
 CREATE INDEX IF NOT EXISTS idx_water_level_recorded_at
 ON water_level_readings(recorded_at);
 
@@ -274,8 +254,8 @@ ON gps_readings(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_rainfall_readings_recorded_at
 ON rainfall_readings(recorded_at);
 
-CREATE INDEX IF NOT EXISTS idx_dht11_readings_recorded_at
-ON dht11_readings(recorded_at);
+CREATE INDEX IF NOT EXISTS idx_HumidityTemp_readings_recorded_at
+ON HumidityTemp_readings(recorded_at);
 
 CREATE INDEX IF NOT EXISTS idx_weather_data_forecast_time
 ON weather_data(forecast_time);

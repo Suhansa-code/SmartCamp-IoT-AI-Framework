@@ -17,6 +17,7 @@ import { startGpsStorage } from './services/disaster/gps-storage.js';
 import { startWeatherStorage } from './services/disaster/weather-storage.js';
 import { startRainfallStorage } from './services/disaster/rainfall-storage.js';
 import { startDht11Storage } from './services/disaster/dht11-storage.js';
+import { startWaterLevelStorage } from './services/disaster/water-level-storage.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -114,6 +115,9 @@ startRainfallStorage();
 
 // Start periodic DHT11 sensor storage from Edge Gateway
 startDht11Storage();
+
+// Start periodic water level storage from Edge Gateway
+startWaterLevelStorage();
 // Bring up the fingerprint scanner (no-op when disabled or unplugged)
 initFingerprintHardware().catch(err => logger.error(`[FP] Init failed: ${err.message}`));
 

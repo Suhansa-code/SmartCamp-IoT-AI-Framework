@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save, getLatestWaterLevelData, getWaterLevelHistoryData, getWaterLevelStatus, triggerWaterLevelSave } from '../../controllers/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 
 const router = express.Router();
@@ -76,5 +76,10 @@ router.post('/rainfall/save', triggerRainfallSave);
 router.get('/dht11/latest', getLatestDht11Data);
 router.get('/dht11/status', getDht11Status);
 router.post('/dht11/save', triggerDht11Save);
+
+router.get('/water-level/latest', getLatestWaterLevelData);
+router.get('/water-level/history', getWaterLevelHistoryData);
+router.get('/water-level/status', getWaterLevelStatus);
+router.post('/water-level/save', triggerWaterLevelSave);
 
 export default router;

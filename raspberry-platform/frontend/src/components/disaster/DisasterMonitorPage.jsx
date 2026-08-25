@@ -16,52 +16,22 @@ const RISK = {
   critical: { label: 'Critical', color: '#DC2626' },
 }
 
-/* ------------------------------------------------------------------ */
-/*  MOCK DATA — swap for real API responses                            */
-/* ------------------------------------------------------------------ */
-
-
-const GAUGING = {
-  water_level: 2.35, alert_level: 2.0, minor_flood_level: 3.0, major_flood_level: 4.2,
-  rainfall: 18.4,
-  river: { name: 'Kalu Ganga', distance_km: 1.2 },
-  station: { name: 'Ellagawa Gauge', distance_m: 640 },
-}
-
-function getRisk(wl) {
-  if (wl >= GAUGING.major_flood_level) return RISK.critical
-  if (wl >= GAUGING.minor_flood_level) return RISK.warning
-  if (wl >= GAUGING.alert_level) return RISK.caution
+function getRisk(wl, majorFlood, minorFlood, alertLevel) {
+  if (wl >= majorFlood) return RISK.critical
+  if (wl >= minorFlood) return RISK.warning
+  if (wl >= alertLevel) return RISK.caution
   return RISK.safe
 }
-const CURRENT_RISK = getRisk(GAUGING.water_level)
 
-const HISTORY = [
-  { t: '-6h', level: 1.62 }, { t: '-5h', level: 1.74 }, { t: '-4h', level: 1.88 },
-  { t: '-3h', level: 2.02 }, { t: '-2h', level: 2.15 }, { t: '-1h', level: 2.28 },
-  { t: 'Now', level: 2.35 },
-].map((d, i, arr) => {
-  const win = arr.slice(Math.max(0, i - 2), i + 1)
-  const trend = win.reduce((s, x) => s + x.level, 0) / win.length
-  return { ...d, trend: Number(trend.toFixed(2)) }
-})
+function computeTrend(levels) {
+  return levels.map((d, i, arr) => {
+    const win = arr.slice(Math.max(0, i - 2), i + 1)
+    const trend = win.reduce((s, x) => s + x.level, 0) / win.length
+    return { ...d, trend: Number(trend.toFixed(2)) }
+  })
+}
 
 const BEST_MODEL = { name: 'XGBoost', roc_auc: 0.927 }
-
-const READINGS = [
-  {
-    icon: GaugeIcon, title: 'Ellagawa Gauge Station', meta: `${GAUGING.station.distance_m} m away · ${GAUGING.river.name}`,
-    value: `${GAUGING.water_level.toFixed(2)} m`, note: 'water level',
-  },
-  {
-    icon: CloudRain, title: 'Rain Intensity Sensor', meta: 'Last 24 hours · On-site sensor',
-    value: `${GAUGING.rainfall} mm`, note: 'accumulated',
-  },
-  {
-    icon: Waves, title: GAUGING.river.name, meta: `${GAUGING.river.distance_km} km from camp · Nearest waterway`,
-    value: 'Normal', note: 'flow status',
-  },
-]
 
 /* ------------------------------------------------------------------ */
 /*  SEMI-CIRCLE GAUGE — fill colour follows live risk level             */
@@ -78,17 +48,21 @@ function arcPath(cx, cy, r, startDeg, endDeg) {
   return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`
 }
 
-function LevelGauge() {
-  const max = GAUGING.major_flood_level * 1.1
-  const valueDeg = Math.min(180, (GAUGING.water_level / max) * 180)
+function LevelGauge({ waterLevel, alertLevel, minorFloodLevel, majorFloodLevel, risk }) {
+  const wl = waterLevel ?? 0
+  const al = alertLevel ?? 2.0
+  const mf = minorFloodLevel ?? 3.0
+  const Mf = majorFloodLevel ?? 4.2
+  const max = Mf * 1.1
+  const valueDeg = Math.min(180, (wl / max) * 180)
   const cx = 110, cy = 110, r = 90
 
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 128" className="w-full max-w-60">
         <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke={COLORS.track} strokeWidth="15" strokeLinecap="round" />
-        <path d={arcPath(cx, cy, r, 0, valueDeg)} fill="none" stroke={CURRENT_RISK.color} strokeWidth="15" strokeLinecap="round" />
-        {[GAUGING.alert_level, GAUGING.minor_flood_level, GAUGING.major_flood_level].map((lvl, i) => {
+        <path d={arcPath(cx, cy, r, 0, valueDeg)} fill="none" stroke={risk.color} strokeWidth="15" strokeLinecap="round" />
+        {[al, mf, Mf].map((lvl, i) => {
           const deg = Math.min(180, (lvl / max) * 180)
           const p1 = polar(cx, cy, r - 10, deg)
           const p2 = polar(cx, cy, r + 10, deg)
@@ -96,25 +70,25 @@ function LevelGauge() {
         })}
       </svg>
       <div className="-mt-12 text-center">
-        <p className="font-serif text-[38px] leading-none tabular-nums tracking-tight" style={{ color: CURRENT_RISK.color }}>
-          {GAUGING.water_level.toFixed(2)}<span className="text-lg" style={{ color: COLORS.muted }}>m</span>
+        <p className="font-serif text-[38px] leading-none tabular-nums tracking-tight" style={{ color: risk.color }}>
+          {wl.toFixed(2)}<span className="text-lg" style={{ color: COLORS.muted }}>m</span>
         </p>
-        <p className="text-[11px] mt-2 tracking-[0.08em] uppercase font-semibold" style={{ color: CURRENT_RISK.color }}>{CURRENT_RISK.label}</p>
+        <p className="text-[11px] mt-2 tracking-[0.08em] uppercase font-semibold" style={{ color: risk.color }}>{risk.label}</p>
       </div>
       <div className="flex items-center justify-between w-full max-w-60 mt-4 text-[10.5px] font-mono" style={{ color: COLORS.muted }}>
         <span>0m</span>
-        <span>Alert {GAUGING.alert_level}</span>
-        <span>Major {GAUGING.major_flood_level}</span>
+        <span>Alert {al}</span>
+        <span>Major {Mf}</span>
       </div>
     </div>
   )
 }
 
-function LevelHistoryChart() {
+function LevelHistoryChart({ history, alertLevel }) {
   return (
     <div className="h-50 sm:h-55 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={HISTORY} margin={{ top: 10, right: 6, bottom: 0, left: -18 }}>
+        <ComposedChart data={history} margin={{ top: 10, right: 6, bottom: 0, left: -18 }}>
           <defs>
             <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={COLORS.trend} stopOpacity={0.16} />
@@ -128,7 +102,7 @@ function LevelHistoryChart() {
           <CartesianGrid vertical={false} stroke={COLORS.grid} />
           <XAxis dataKey="t" tick={{ fontSize: 11, fill: COLORS.muted, fontFamily: 'Inter' }} axisLine={{ stroke: COLORS.line }} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: COLORS.muted, fontFamily: 'Inter' }} axisLine={false} tickLine={false} width={34} />
-          <ReferenceLine y={GAUGING.alert_level} stroke={COLORS.noise} strokeDasharray="4 4" />
+          <ReferenceLine y={alertLevel} stroke={COLORS.noise} strokeDasharray="4 4" />
           <Tooltip
             contentStyle={{ borderRadius: 10, border: `1px solid ${COLORS.line}`, fontSize: 12, boxShadow: SHADOW_CARD, fontFamily: 'Inter' }}
             labelStyle={{ color: COLORS.ink, fontWeight: 600 }}
@@ -185,6 +159,8 @@ export default function DisasterMonitorPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [latestGps, setLatestGps] = useState(null)
   const [weather, setWeather] = useState(null)
+  const [waterLevel, setWaterLevel] = useState(null)
+  const [waterHistory, setWaterHistory] = useState([])
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
@@ -198,15 +174,80 @@ export default function DisasterMonitorPage() {
       .catch(() => {})
     fetch(`${API}/api/disaster/weather/latest`)
       .then((r) => r.json())
+      .then((data) => { if (data.available) setWeather(data) })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/water-level/latest`)
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setWaterLevel(data) })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/water-level/history?limit=20`)
+      .then((r) => r.json())
       .then((data) => {
-        if (data.available) setWeather(data)
+        if (data.readings?.length) {
+          const last = data.readings[data.readings.length - 1]
+          const timeLabel = new Date(last.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          const mapped = data.readings.map((r, i) => {
+            const t = new Date(r.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            return { t, level: r.water_level }
+          })
+          mapped[mapped.length - 1].t = 'Now'
+          setWaterHistory(computeTrend(mapped))
+        }
       })
       .catch(() => {})
   }, [])
 
   const handleRefresh = () => {
     setRefreshing(true)
-    setTimeout(() => setRefreshing(false), 700)
+    fetch(`${API}/api/disaster/water-level/latest`)
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setWaterLevel(data) })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/water-level/history?limit=20`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.readings?.length) {
+          const mapped = data.readings.map((r) => {
+            const t = new Date(r.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            return { t, level: r.water_level }
+          })
+          mapped[mapped.length - 1].t = 'Now'
+          setWaterHistory(computeTrend(mapped))
+        }
+      })
+      .catch(() => {})
+      .finally(() => setTimeout(() => setRefreshing(false), 700))
+  }
+
+  const wl = waterLevel?.water_level ?? 0
+  const al = waterLevel?.alert_level ?? 2.0
+  const mf = waterLevel?.minor_flood_level ?? 3.0
+  const Mf = waterLevel?.major_flood_level ?? 4.2
+  const risk = getRisk(wl, Mf, mf, al)
+  const riverName = waterLevel?.river_name || null
+  const stationName = waterLevel?.station_name || null
+  const distanceKm = waterLevel?.distance_km ?? null
+
+  const chartHistory = waterHistory.length > 0 ? waterHistory : [{ t: 'Now', level: 0, trend: 0 }]
+
+  const readings = []
+  if (waterLevel) {
+    readings.push({
+      icon: GaugeIcon,
+      title: stationName || 'Gauging Station',
+      meta: `${distanceKm != null ? `${distanceKm} km away` : '—'}${riverName ? ` · ${riverName}` : ''}`,
+      value: `${wl.toFixed(2)} m`,
+      note: 'water level',
+    })
+  }
+  if (riverName) {
+    readings.push({
+      icon: Waves,
+      title: riverName,
+      meta: `${distanceKm != null ? `${distanceKm} km from camp` : '—'} · Nearest waterway`,
+      value: risk.label,
+      note: 'flow status',
+    })
   }
 
   return (
@@ -229,8 +270,8 @@ export default function DisasterMonitorPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 text-[13px]">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: CURRENT_RISK.color }} />
-            <span className="font-semibold" style={{ color: CURRENT_RISK.color }}>{CURRENT_RISK.label}</span>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: risk.color }} />
+            <span className="font-semibold" style={{ color: risk.color }}>{risk.label}</span>
           </div>
         </div>
 
@@ -238,9 +279,9 @@ export default function DisasterMonitorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 pb-4 sm:pb-6">
           <div className="lg:col-span-5 rounded-xl border p-4 sm:p-6 flex flex-col" style={{ borderColor: COLORS.line }}>
             <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Flood risk overview</p>
-            <p className="font-serif font-medium text-[28px] sm:text-[30px] mt-2 tracking-tight" style={{ color: CURRENT_RISK.color }}>{CURRENT_RISK.label}</p>
+            <p className="font-serif font-medium text-[28px] sm:text-[30px] mt-2 tracking-tight" style={{ color: risk.color }}>{risk.label}</p>
             <p className="text-[13.5px] leading-relaxed mt-3" style={{ color: COLORS.body }}>
-              Readings from the {GAUGING.station.name} are within the safe range. Prediction engine: {BEST_MODEL.name}, {(BEST_MODEL.roc_auc * 100).toFixed(1)}% confidence.
+              {stationName ? `Readings from the ${stationName} are within the safe range.` : 'Awaiting gauging station data.'} Prediction engine: {BEST_MODEL.name}, {(BEST_MODEL.roc_auc * 100).toFixed(1)}% confidence.
             </p>
             <div className="flex items-center gap-2 mt-5 pt-5 border-t" style={{ borderColor: COLORS.hairline }}>
               <button className="flex-1 rounded-lg border text-[12.5px] font-semibold py-2.5 flex items-center justify-center gap-1.5 transition-colors" style={{ borderColor: COLORS.line, color: COLORS.body }}>
@@ -297,43 +338,63 @@ export default function DisasterMonitorPage() {
           <div className="flex items-center justify-between mb-4 sm:mb-5">
             <div className="flex items-center gap-3">
               <IconTile icon={GaugeIcon} />
-              <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Water level</h2>
-            </div>
-            <span className="text-[11px] sm:text-[11.5px] font-mono" style={{ color: COLORS.muted }}>Last 6 hours</span>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-center">
-            <div className="lg:col-span-4 flex justify-center">
-              <LevelGauge />
-            </div>
-            <div className="lg:col-span-8">
-              <LevelHistoryChart />
-              <div className="flex items-center gap-4 mt-3 text-[11px] font-mono" style={{ color: COLORS.muted }}>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm" style={{ backgroundColor: COLORS.brand }} /> Level</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.trend }} /> Trend</span>
+              <div>
+                <h2 className="text-[13.5px] sm:text-[14px] font-semibold">Water level</h2>
+                {riverName && <p className="text-[11px] sm:text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>{riverName}</p>}
+                {stationName && <p className="text-[10.5px] sm:text-[11px] mt-0.5" style={{ color: COLORS.muted }}>{stationName}{distanceKm != null ? ` · ${distanceKm} km away` : ''}</p>}
               </div>
             </div>
+            <div className="text-right">
+              <span className="text-[11px] sm:text-[11.5px] font-mono" style={{ color: COLORS.muted }}>Last 6 hours</span>
+              {waterLevel?.recorded_at && (
+                <p className="text-[10px] font-mono mt-0.5" style={{ color: COLORS.muted }}>
+                  Updated: {new Date(waterLevel.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+            </div>
           </div>
+
+          {!waterLevel ? (
+            <div className="flex items-center justify-center py-12" style={{ color: COLORS.muted }}>
+              <p className="text-[13px]">Awaiting water level data from gauging station...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-center">
+              <div className="lg:col-span-4 flex justify-center">
+                <LevelGauge waterLevel={wl} alertLevel={al} minorFloodLevel={mf} majorFloodLevel={Mf} risk={risk} />
+              </div>
+              <div className="lg:col-span-8">
+                <LevelHistoryChart history={chartHistory} alertLevel={al} />
+                <div className="flex items-center gap-4 mt-3 text-[11px] font-mono" style={{ color: COLORS.muted }}>
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm" style={{ backgroundColor: COLORS.brand }} /> Level</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.trend }} /> Trend</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ================= LIVE READINGS ================= */}
-        <div className="pb-4 sm:pb-6">
-          <h2 className="text-[13.5px] sm:text-[14px] font-semibold mb-3">Live readings</h2>
-          <div className="rounded-xl border divide-y" style={{ borderColor: COLORS.line }}>
-            {READINGS.map((r) => (
-              <div key={r.title} className="flex items-center gap-3 sm:gap-3.5 px-3.5 sm:px-5 py-3.5 sm:py-4" style={{ borderColor: COLORS.hairline }}>
-                <IconTile icon={r.icon} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] sm:text-[13.5px] font-semibold truncate">{r.title}</p>
-                  <p className="text-[11.5px] sm:text-[12px] truncate mt-0.5" style={{ color: COLORS.muted }}>{r.meta}</p>
+        {readings.length > 0 && (
+          <div className="pb-4 sm:pb-6">
+            <h2 className="text-[13.5px] sm:text-[14px] font-semibold mb-3">Live readings</h2>
+            <div className="rounded-xl border divide-y" style={{ borderColor: COLORS.line }}>
+              {readings.map((r) => (
+                <div key={r.title} className="flex items-center gap-3 sm:gap-3.5 px-3.5 sm:px-5 py-3.5 sm:py-4" style={{ borderColor: COLORS.hairline }}>
+                  <IconTile icon={r.icon} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] sm:text-[13.5px] font-semibold truncate">{r.title}</p>
+                    <p className="text-[11.5px] sm:text-[12px] truncate mt-0.5" style={{ color: COLORS.muted }}>{r.meta}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[13.5px] sm:text-[14px] font-bold font-mono">{r.value}</p>
+                    <p className="text-[10px] sm:text-[10.5px]" style={{ color: COLORS.muted }}>{r.note}</p>
+                  </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-[13.5px] sm:text-[14px] font-bold font-mono">{r.value}</p>
-                  <p className="text-[10px] sm:text-[10.5px]" style={{ color: COLORS.muted }}>{r.note}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ================= LOCATION + DEVICE STATUS ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 pb-6 sm:pb-8">
@@ -359,7 +420,7 @@ export default function DisasterMonitorPage() {
               {[
                 { label: 'Edge Gateway', desc: 'Intel NUC' },
                 { label: 'Prediction Engine', desc: `${BEST_MODEL.name} · ${(BEST_MODEL.roc_auc * 100).toFixed(1)}%` },
-                { label: 'Sensor Station', desc: GAUGING.station.name },
+                { label: 'Sensor Station', desc: stationName || '—' },
                 { label: 'MQTT Bridge', desc: 'EMQX broker' },
               ].map((d) => (
                 <div key={d.label} className="rounded-lg border p-3 sm:p-3.5" style={{ borderColor: COLORS.line }}>

@@ -28,7 +28,7 @@ let insertStmt = null;
 function ensureStatements() {
   if (insertStmt) return;
   insertStmt = disasterDb.prepare(`
-    INSERT INTO dht11_readings
+    INSERT INTO HumidityTemp_readings
       (device_id, temperature, humidity, latitude, longitude, recorded_at, synced)
     VALUES (?, ?, ?, ?, ?, ?, 0)
   `);
@@ -176,7 +176,7 @@ export function getDht11StorageStatus() {
 export function getLatestDht11() {
   try {
     const row = disasterDb
-      .prepare('SELECT * FROM dht11_readings ORDER BY id DESC LIMIT 1')
+      .prepare('SELECT * FROM HumidityTemp_readings ORDER BY id DESC LIMIT 1')
       .get();
     if (!row) return null;
     return {

@@ -3,6 +3,7 @@ import * as gpsService from '../../services/disaster/gps.js';
 import { getLatestWeather, getWeatherStorageStatus } from '../../services/disaster/weather-storage.js';
 import { getLatestRainfall, getRainfallStorageStatus, fetchAndSaveRainfall } from '../../services/disaster/rainfall-storage.js';
 import { getLatestDht11, getDht11StorageStatus, fetchAndSaveDht11 } from '../../services/disaster/dht11-storage.js';
+import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, fetchAndSaveWaterLevel } from '../../services/disaster/water-level-storage.js';
 import { disasterDb } from '../../config/database.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
@@ -147,6 +148,46 @@ export async function triggerDht11Save(req, res) {
   try {
     const saved = await fetchAndSaveDht11();
     res.json({ saved, message: saved ? 'DHT11 data saved to DB' : 'No data saved (sensor inactive or fetch failed)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export function getLatestWaterLevelData(req, res) {
+  try {
+    const wl = getLatestWaterLevel();
+    if (!wl) {
+      return res.json({ available: false, message: 'No water level data available yet' });
+    }
+    res.json({ available: true, ...wl });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch water level data' });
+  }
+}
+
+export function getWaterLevelHistoryData(req, res) {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const history = getWaterLevelHistory(limit);
+    res.json({ readings: history });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch water level history' });
+  }
+}
+
+export function getWaterLevelStatus(req, res) {
+  try {
+    const status = getWaterLevelStorageStatus();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch water level status' });
+  }
+}
+
+export async function triggerWaterLevelSave(req, res) {
+  try {
+    const saved = await fetchAndSaveWaterLevel();
+    res.json({ saved, message: saved ? 'Water level data saved to DB' : 'No data saved (GPS unavailable or fetch failed)' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
