@@ -48,8 +48,8 @@ _reverse_geo_lock = threading.Lock()
 
 # ── Reverse geocoding ───────────────────────────────────────────────────────
 
-def _reverse_geocode(lat: float, lng: float) -> str | None:
-    """Return a human-readable location name, or None on failure.
+def _reverse_geocode(lat: float, lng: float) -> tuple[str | None, str | None]:
+    """Return (location_name, district) or (None, None) on failure.
     Caches results by (lat, lng) rounded to 4 decimals."""
     import requests
 
@@ -61,24 +61,23 @@ def _reverse_geocode(lat: float, lng: float) -> str | None:
     try:
         resp = requests.get(
             "https://nominatim.openstreetmap.org/reverse",
-            params={"format": "json", "lat": lat, "lon": lng, "zoom": 18, "addressdetails": 1},
-            headers={"Accept-Language": "en"},
+            params={"format": "json", "lat": lat, "lon": lng, "zoom": 14, "addressdetails": 1},
+            headers={"Accept-Language": "en", "User-Agent": "SmartCampBox/1.0 (research-iot)"},
             timeout=5,
         )
         data = resp.json()
         addr = data.get("address", {})
-        parts = [
-            addr.get("village") or addr.get("town") or addr.get("city") or addr.get("hamlet"),
-            addr.get("district") or addr.get("county") or addr.get("state_district"),
-        ]
-        name = ", ".join(p for p in parts if p) or data.get("display_name") or f"{lat}, {lng}"
+        name = addr.get("village") or addr.get("town") or addr.get("city") or addr.get("hamlet") or data.get("display_name")
+        district = addr.get("district") or addr.get("county") or addr.get("state_district") or addr.get("state")
     except Exception:
         name = None
+        district = None
 
+    result = (name, district)
     with _reverse_geo_lock:
-        _reverse_geo_cache[key] = name
+        _reverse_geo_cache[key] = result
 
-    return name
+    return result
 
 
 # ── Sensor state tracker ────────────────────────────────────────────────────
@@ -211,13 +210,14 @@ def _background_loop():
                     try:
                         msg = pynmea2.parse(line)
                         if msg.latitude and msg.longitude:
-                            loc = _reverse_geocode(msg.latitude, msg.longitude) or "%s, %s" % (msg.latitude, msg.longitude)
+                            loc, dist = _reverse_geocode(msg.latitude, msg.longitude)
                             gps_data = {
                                 "latitude": msg.latitude,
                                 "longitude": msg.longitude,
                                 "altitude": float(msg.altitude or 0),
                                 "satellites": int(msg.num_sats or 0),
-                                "location_name": loc,
+                                "location_name": loc or "",
+                                "district": dist or "",
                             }
                     except Exception:
                         pass

@@ -21,6 +21,7 @@
  */
 import { disasterDb } from '../../config/database.js';
 import { getGpsLocation, getLastKnownLocation } from './gps.js';
+import { reverseGeocode } from './geocode.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { nowISO } from '../../utils/helpers.js';
@@ -47,8 +48,8 @@ let insertStmt = null;
 function ensureStatements() {
   if (insertStmt) return;
   insertStmt = disasterDb.prepare(`
-    INSERT INTO gps_readings (device_id, latitude, longitude, altitude, accuracy, source, recorded_at, synced)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+    INSERT INTO gps_readings (device_id, latitude, longitude, altitude, accuracy, source, location_name, location_district, recorded_at, synced)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
   `);
 }
 
@@ -83,15 +84,15 @@ function isValidCoord(lat, lng) {
  * Insert a GPS reading into the database.
  * Returns true if inserted, false otherwise.
  */
-function insertGpsRecord(lat, lng, altitude, accuracy, source) {
+function insertGpsRecord(lat, lng, altitude, accuracy, source, locationName, locationDistrict) {
   const roundedLat = Math.round(lat * 10000) / 10000;
   const roundedLng = Math.round(lng * 10000) / 10000;
   const now = nowISO();
-  insertStmt.run(DEVICE_ID, roundedLat, roundedLng, altitude ?? null, accuracy ?? null, source, now);
+  insertStmt.run(DEVICE_ID, roundedLat, roundedLng, altitude ?? null, accuracy ?? null, source, locationName ?? null, locationDistrict ?? null, now);
   lastStoredLat = roundedLat;
   lastStoredLng = roundedLng;
   lastSaveTime = Date.now();
-  logger.info(`[GPS-STORAGE] Stored reading: ${roundedLat.toFixed(4)}, ${roundedLng.toFixed(4)} @ ${now}`);
+  logger.info(`[GPS-STORAGE] Stored reading: ${roundedLat.toFixed(4)}, ${roundedLng.toFixed(4)} @ ${now} — name="${locationName}", district="${locationDistrict}"`);
   return true;
 }
 
@@ -112,9 +113,28 @@ export async function storeCurrentLocation(isTimerTick = false) {
     return false;
   }
 
-  const { latitude: lat, longitude: lng, altitude, accuracy, source } = gps ?? {};
+  const { latitude: lat, longitude: lng, altitude, accuracy, source, location_name, district } = gps ?? {};
 
-  logger.debug(`[GPS-STORAGE] GPS data: lat=${lat}, lng=${lng}, source=${source}, isTimerTick=${isTimerTick}`);
+  logger.debug(`[GPS-STORAGE] GPS data: lat=${lat}, lng=${lng}, source=${source}, location="${location_name}", district="${district}", isTimerTick=${isTimerTick}`);
+
+  // If location_name is empty or looks like raw coordinates, try geocoding
+  let resolvedName = location_name || '';
+  let resolvedDistrict = district || '';
+  const looksLikeCoords = /^-?\d+\.?\d*\s*[, ]\s*-?\d+\.?\d*$/.test(resolvedName);
+
+  if ((!resolvedName || looksLikeCoords) && isValidCoord(lat, lng)) {
+    logger.info('[GPS-STORAGE] Location name missing or looks like coords — attempting geocoding');
+    try {
+      const geo = await reverseGeocode(lat, lng);
+      if (geo) {
+        if (geo.name) resolvedName = geo.name;
+        if (geo.district) resolvedDistrict = geo.district;
+        logger.info(`[GPS-STORAGE] Geocoded: name="${resolvedName}", district="${resolvedDistrict}"`);
+      }
+    } catch (err) {
+      logger.warn(`[GPS-STORAGE] Geocoding failed: ${err.message}`);
+    }
+  }
 
   if (!isValidCoord(lat, lng)) {
     logger.info('[GPS-STORAGE] No valid GPS fix — skipping');
@@ -132,9 +152,10 @@ export async function storeCurrentLocation(isTimerTick = false) {
   // GPS is available — check if we missed an interval
   if (missedInterval) {
     logger.info('[GPS-STORAGE] GPS recovered after missed interval — saving immediately');
+    logger.info(`[GPS-STORAGE] Saving: name="${resolvedName}", district="${resolvedDistrict}"`);
     missedInterval = false;
     try {
-      return insertGpsRecord(lat, lng, altitude, accuracy, source);
+      return insertGpsRecord(lat, lng, altitude, accuracy, source, resolvedName, resolvedDistrict);
     } catch (err) {
       logger.error(`[GPS-STORAGE] Insert failed: ${err.message}`);
       return false;
@@ -151,8 +172,9 @@ export async function storeCurrentLocation(isTimerTick = false) {
     logger.info(`[GPS-STORAGE] Movement detected: ${Math.round(dist)}m — storing new reading`);
   }
 
+  logger.info(`[GPS-STORAGE] Saving: name="${resolvedName}", district="${resolvedDistrict}"`);
   try {
-    return insertGpsRecord(lat, lng, altitude, accuracy, source);
+    return insertGpsRecord(lat, lng, altitude, accuracy, source, resolvedName, resolvedDistrict);
   } catch (err) {
     logger.error(`[GPS-STORAGE] Insert failed: ${err.message}`);
     return false;

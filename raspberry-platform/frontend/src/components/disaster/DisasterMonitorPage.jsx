@@ -20,8 +20,6 @@ const RISK = {
 /*  MOCK DATA — swap for real API responses                            */
 /* ------------------------------------------------------------------ */
 
-const CAMP = { name: 'Smart Camp — Kalutara North', type: 'Flood' }
-const CAMP_LOCATION = { latitude: 8.394877, longitude: 80.383354, altitude: 10.0, satellites: 5 }
 
 const GAUGING = {
   water_level: 2.35, alert_level: 2.0, minor_flood_level: 3.0, major_flood_level: 4.2,
@@ -221,10 +219,13 @@ export default function DisasterMonitorPage() {
         <div className="py-2 sm:py-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>{CAMP.type} monitoring</p>
-            <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">{CAMP.name}</h1>
+            <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">
+              Smart Camp — {latestGps?.location_name ?? CAMP.name.split(' — ')[1] ?? 'Unknown Location'}
+            </h1>
             <p className="flex items-center gap-1.5 text-[12.5px] mt-2" style={{ color: COLORS.muted }}>
               <MapPin className="w-3.5 h-3.5" />
               {latestGps?.latitude?.toFixed(4) ?? "—"}, {latestGps?.longitude?.toFixed(4) ?? "—"}
+              {latestGps?.location_district && <span className="ml-1.5">· {latestGps.location_district}</span>}
             </p>
           </div>
           <div className="flex items-center gap-2 text-[13px]">

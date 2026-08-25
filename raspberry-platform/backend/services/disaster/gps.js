@@ -84,14 +84,21 @@ export async function getGpsLocation() {
 
     let locationName = data.location_name || '';
     let district = data.district || '';
-    const looksLikeCoords = /^-?\d+\.?\d*\s*[,]\s*-?\d+\.?\d*$/.test(locationName);
+    const looksLikeCoords = /^-?\d+\.?\d*\s*[, ]\s*-?\d+\.?\d*$/.test(locationName);
 
-    if (data.latitude != null && data.longitude != null && (!locationName || looksLikeCoords)) {
+    // Always try Pi-side geocoding — it's more reliable (zoom 14 + retry at zoom 10)
+    // and takes priority over Edge Gateway result
+    if (data.latitude != null && data.longitude != null) {
       const geo = await reverseGeocode(data.latitude, data.longitude);
       if (geo) {
         if (geo.name) locationName = geo.name;
         if (geo.district) district = geo.district;
       }
+    }
+
+    // If still no name or looks like coords, use Edge Gateway fallback then coordinates
+    if (!locationName || looksLikeCoords) {
+      locationName = `${data.latitude}, ${data.longitude}`;
     }
 
     if (locationName && !looksLikeCoords) {

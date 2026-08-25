@@ -35,6 +35,7 @@ def get_gps():
             "altitude": last.get("altitude", 0),
             "satellites": last.get("satellites", 0),
             "location_name": last.get("location_name", ""),
+            "district": last.get("district", ""),
             "gps_status": "ACTIVE",
             "is_mock": False,
             "source": "GPS_SENSOR",

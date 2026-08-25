@@ -402,6 +402,9 @@ try {
   try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN condition TEXT"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN forecast_data TEXT"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN fetched_at TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN location_name TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN location_district TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE gps_readings RENAME COLUMN location_province TO location_district"); } catch (_) {}
 
   logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
 } catch (err) {

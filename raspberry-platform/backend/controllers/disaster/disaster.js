@@ -51,11 +51,11 @@ export function getLatestGpsLocation(req, res) {
 
   try {
     const row = disasterDb
-      .prepare('SELECT latitude, longitude, altitude, accuracy, source, recorded_at FROM gps_readings ORDER BY id DESC LIMIT 1')
+      .prepare('SELECT latitude, longitude, altitude, accuracy, source, location_name, location_district, recorded_at FROM gps_readings ORDER BY id DESC LIMIT 1')
       .get();
 
     if (!row) {
-      const empty = { latitude: null, longitude: null, altitude: null, accuracy: null, source: null, recorded_at: null };
+      const empty = { latitude: null, longitude: null, altitude: null, accuracy: null, source: null, location_name: null, location_district: null, recorded_at: null };
       latestGpsCache = empty;
       latestGpsCacheTime = now;
       return res.json(empty);
