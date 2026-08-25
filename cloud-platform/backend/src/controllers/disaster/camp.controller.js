@@ -6,14 +6,18 @@ import {
   getDisasterCampSummaries,
   getDisasterDashboardSummary,
   getDisasterMapNodes,
+  getDisasterOperationalData,
 } from '../../data/disaster/camp.repository.js';
 import { predictFloodForCamp } from '../../services/disaster/floodPrediction.service.js';
 import { getWaterLevelHistoryForCamp } from '../../services/disaster/waterLevelHistory.service.js';
 import { listDisasterAlerts, updateDisasterAlertStatus } from '../../data/disaster/alert.repository.js';
+import { env } from '../../config/env.js';
 
 export async function getOverview(_req, res, next) {
   try {
-    res.json(await getDisasterDashboardSummary());
+    const overview = await getDisasterDashboardSummary();
+    const alerts = await listDisasterAlerts({ status: 'ACTIVE' });
+    res.json({ ...overview, alerts, alert_summary: { critical: alerts.filter((alert) => alert.severity === 'CRITICAL').length, high: alerts.filter((alert) => alert.severity === 'HIGH').length } });
   } catch (err) {
     next(err);
   }
@@ -51,6 +55,21 @@ export async function getCampById(req, res, next) {
   }
 
   try {
+    const operational = await getDisasterOperationalData(camp.id);
+    const detail = {
+      ...camp.detail,
+      ...(operational.hydrospatial ? {
+        elev: operational.hydrospatial.elevation ?? camp.detail?.elev,
+        river: operational.hydrospatial.river_name ?? camp.detail?.river,
+        station: operational.hydrospatial.station_name ?? camp.detail?.station,
+        stDist: operational.hydrospatial.gauge_distance ?? camp.detail?.stDist,
+      } : {}),
+      ...(operational.water_level ? { wl: operational.water_level.water_level } : {}),
+    };
+    if (operational.prediction || operational.alerts.length) {
+      return res.json({ ...camp, detail, prediction: operational.prediction, operational });
+    }
+    if (env.db.enabled) return res.json({ ...camp, detail, prediction: null, operational });
     const prediction = predictFloodForCamp(camp);
     return res.json({ ...camp, prediction });
   } catch (error) {

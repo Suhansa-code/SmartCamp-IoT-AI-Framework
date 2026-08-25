@@ -243,6 +243,33 @@ CREATE TABLE IF NOT EXISTS disaster_events (
 
 CREATE INDEX IF NOT EXISTS idx_disaster_events_status ON disaster_events (status);
 
+CREATE TABLE IF NOT EXISTS sensor_readings (
+  id              INTEGER PRIMARY KEY,
+  sensor_id       TEXT NOT NULL,
+  sensor_type     TEXT NOT NULL,
+  value           REAL NOT NULL,
+  unit            TEXT,
+  latitude        REAL,
+  longitude       REAL,
+  recorded_at     TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sensor_readings_sensor ON sensor_readings (sensor_id);
+CREATE INDEX IF NOT EXISTS idx_sensor_readings_recorded ON sensor_readings (recorded_at);
+
+CREATE TABLE IF NOT EXISTS environmental_data (
+  id              INTEGER PRIMARY KEY,
+  temperature     REAL,
+  humidity        REAL,
+  pressure        REAL,
+  rainfall        REAL,
+  wind_speed      REAL,
+  wind_direction  REAL,
+  recorded_at     TIMESTAMPTZ,
+  source          TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_environmental_data_recorded ON environmental_data (recorded_at);
 
 CREATE TABLE IF NOT EXISTS water_level_readings (
   id              INTEGER PRIMARY KEY,

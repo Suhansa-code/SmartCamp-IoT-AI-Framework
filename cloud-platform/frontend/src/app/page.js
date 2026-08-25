@@ -12,7 +12,7 @@ import MiniStat from '@/components/dashboard/MiniStat'
 import ProgressBar from '@/components/dashboard/ProgressBar'
 import StatusDonut from '@/components/dashboard/StatusDonut'
 import ArrowChip from '@/components/alert/ArrowChip'
-import { MOCK_CAMPS, MOCK_EDUCATION, MOCK_RESOURCES, MOCK_DISASTER, DISASTER_MATCH, CAMP_STATUS, DIS_STATUS } from '@/data/dashboard.data'
+import { DISASTER_MATCH, DIS_STATUS } from '@/data/dashboard.data'
 import { Droplets, Users, BookOpen, Bell, Radio, Tent, CalendarCheck, HeartHandshake } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
@@ -52,7 +52,7 @@ export default function DashboardPage() {
     const tryJson = async (p) => (p.status === 'fulfilled' && p.value?.ok ? (await p.value.json()) : null)
 
     const [campsP, eduP, resP, disP, alertP] = await Promise.allSettled([
-      fetch(`${API_BASE}/api/admin/camps`),
+      fetch(`${API_BASE}/api/disaster/camps`),
       fetch(`${API_BASE}/api/alerts/education/camps`),
       fetch(`${API_BASE}/api/resources/overview`),
       fetch(`${API_BASE}/api/disaster/overview`),
@@ -65,10 +65,10 @@ export default function DashboardPage() {
     const disPayload = await tryJson(disP)
     const alertPayload = await tryJson(alertP)
 
-    setCamps(Array.isArray(campsPayload) && campsPayload.length ? campsPayload : MOCK_CAMPS)
-    setEducation(Array.isArray(eduPayload?.camps) && eduPayload.camps.length ? eduPayload.camps : Array.isArray(eduPayload) && eduPayload.length ? eduPayload : MOCK_EDUCATION)
-    setResources(resPayload?.population ? resPayload : MOCK_RESOURCES)
-    setDisaster(Array.isArray(disPayload?.camps) && disPayload.camps.length ? disPayload : MOCK_DISASTER)
+    setCamps(Array.isArray(campsPayload?.camps) ? campsPayload.camps : [])
+    setEducation(Array.isArray(eduPayload?.camps) ? eduPayload.camps : [])
+    setResources(resPayload?.population ? resPayload : null)
+    setDisaster(Array.isArray(disPayload?.camps) ? disPayload : null)
     setDisasterAlerts(Array.isArray(alertPayload?.alerts) ? alertPayload.alerts : [])
 
     if (isRefresh) setRefreshing(false)
@@ -93,8 +93,8 @@ export default function DashboardPage() {
 
   const overallAlerts = useMemo(() => normalizedCamps.reduce((s, c) => s + c.alertCount, 0), [normalizedCamps])
 
-  const res = resources || MOCK_RESOURCES
-  const disCamps = (disaster || MOCK_DISASTER).camps || []
+  const res = resources || { population: {}, distribution_today: {}, mqtt: {}, prediction_tomorrow: {} }
+  const disCamps = disaster?.camps || []
   const activeDisasterAlerts = disasterAlerts.filter((alert) => ['ACTIVE', 'ACKNOWLEDGED'].includes(alert.status))
   const criticalDisasterAlerts = activeDisasterAlerts.filter((alert) => alert.severity === 'CRITICAL').length
   const highDisasterAlerts = activeDisasterAlerts.filter((alert) => alert.severity === 'HIGH').length
@@ -362,7 +362,7 @@ export default function DashboardPage() {
               )}
             >
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <MiniStat label="Registered" value={res.population?.total.toLocaleString()} icon={<Users size={12} />} sub={`${res.population?.families} families`} />
+                <MiniStat label="Registered" value={res.population?.total == null ? '—' : res.population.total.toLocaleString()} icon={<Users size={12} />} sub={res.population?.families == null ? '— families' : `${res.population.families} families`} />
                 <MiniStat label="Attendance" value={`${attendance}%`} icon={<CalendarCheck size={12} />} />
                 <MiniStat label="Fed Today" value={`${fedPct}%`} icon="🍽️" />
               </div>
@@ -376,7 +376,7 @@ export default function DashboardPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: T.muted, fontWeight: 600 }}>
                 <Radio size={13} color={res.mqtt?.network_state === 'GOOD' ? T.green : T.amber} />
-                {res.mqtt?.network_state} · 🔮 tomorrow {res.prediction_tomorrow?.expected_persons} expected
+                {res.mqtt?.network_state || 'No network data'} · tomorrow {res.prediction_tomorrow?.expected_persons ?? '—'} expected
               </div>
             </DashboardCard>
 

@@ -6,7 +6,7 @@ import {
   Users, HeartHandshake, TriangleAlert, MapPin, ChevronRight, X,
   Droplets, Radio, ShieldAlert, Crosshair, ChevronDown,
 } from 'lucide-react'
-import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS } from '@/data/disaster.data'
+import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS, ALERTS } from '@/data/disaster.data'
 import MainMap from './MainMap'
 import { Ring, Sparkline, TrendChart } from './DisasterVisuals'
 import SideNav from '@/components/common/SideNav'
@@ -50,6 +50,7 @@ export default function DisasterDashboard() {
   const [showAllCamps, setShowAllCamps] = useState(false)
   const [campFilter, setCampFilter] = useState('all')
   const [campQuery, setCampQuery] = useState('')
+  const [showMockupData, setShowMockupData] = useState(false)
 
   const dark = mode === 'dark'
   const MAP_THEME = dark ? MAP_DARK : MAP_LIGHT
@@ -60,6 +61,19 @@ export default function DisasterDashboard() {
   const hudCardBorder = dark ? 'rgba(255,255,255,0.1)' : 'rgba(60,110,150,0.18)'
 
   const loadOverview = useCallback(async () => {
+    if (showMockupData) {
+      setOverview({
+        camps: CAMPS,
+        map_nodes: CAMPS.map(({ id, code, name, lat, lng, status, type }) => ({ id, code, name, lat, lng, status, type })),
+        total_displaced: CAMPS.reduce((sum, camp) => sum + camp.displaced, 0),
+        total_workers: CAMPS.reduce((sum, camp) => sum + camp.workers, 0),
+        status_counts: CAMPS.reduce((counts, camp) => ({ ...counts, [camp.status]: (counts[camp.status] || 0) + 1 }), {}),
+      })
+      setDisasterAlerts(ALERTS.map((alert, index) => ({ alert_id: `MOCK-${index}`, severity: index === 0 ? 'CRITICAL' : 'HIGH', status: 'ACTIVE', camp_name: alert.message, title: alert.message, created_at: new Date().toISOString(), flood_probability_percent: null })))
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -80,7 +94,7 @@ export default function DisasterDashboard() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [showMockupData])
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -103,6 +117,12 @@ export default function DisasterDashboard() {
         return
       }
 
+      if (showMockupData) {
+        setSelectedDetail(CAMP_DETAIL[selected] || null)
+        setSelectedDetailLoading(false)
+        return
+      }
+
       setSelectedDetail(null)
       setSelectedDetailLoading(true)
 
@@ -113,10 +133,10 @@ export default function DisasterDashboard() {
         clearTimeout(timer)
         const camp = res.ok ? await res.json() : null
         if (!active) return
-        setSelectedDetail(camp?.detail || CAMP_DETAIL[selected] || null)
+        setSelectedDetail(camp?.detail || null)
       } catch {
         if (!active) return
-        setSelectedDetail(CAMP_DETAIL[selected] || null)
+        setSelectedDetail(null)
       } finally {
         if (active) setSelectedDetailLoading(false)
       }
@@ -127,10 +147,10 @@ export default function DisasterDashboard() {
     return () => {
       active = false
     }
-  }, [selected])
+  }, [selected, showMockupData])
 
-  const camps = (overview?.camps && overview.camps.length ? overview.camps : CAMPS)
-  const mapNodes = overview?.map_nodes || camps
+  const camps = showMockupData ? CAMPS : (overview?.camps || [])
+  const mapNodes = overview?.map_nodes || []
   const filteredCamps = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return camps
@@ -280,6 +300,13 @@ export default function DisasterDashboard() {
                 }}
               />
             </HeaderShell>
+
+            <div style={{ padding: '0 2rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: `1px solid ${showMockupData ? T.amber : T.border}`, borderRadius: 10, background: showMockupData ? `${T.amber}14` : T.card, color: T.ink, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                <input type="checkbox" checked={showMockupData} onChange={(event) => setShowMockupData(event.target.checked)} />
+                {showMockupData ? 'MOCKUP DATA' : 'LIVE DATA'}
+              </label>
+            </div>
 
             <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 

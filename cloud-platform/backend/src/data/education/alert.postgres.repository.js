@@ -4,6 +4,57 @@
  */
 import { getPool } from '../../config/database.js';
 
+export async function getAlerts(status = null, camp = null) {
+  const conditions = [];
+  const values = [];
+  if (status) { values.push(status); conditions.push(`status = $${values.length}`); }
+  if (camp) { values.push(camp); conditions.push(`camp_id = $${values.length}`); }
+  const result = await getPool().query(`SELECT * FROM alerts ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''} ORDER BY triggered_at DESC`, values);
+  return result.rows;
+}
+
+export async function getAlert(alertId) {
+  const result = await getPool().query('SELECT * FROM alerts WHERE alert_id = $1', [alertId]);
+  return result.rows[0] || null;
+}
+
+export async function resolveAlert(alertId, notes = null) {
+  const result = await getPool().query('UPDATE alerts SET status = $1, resolved_at = NOW(), resolved_notes = $2 WHERE alert_id = $3 RETURNING alert_id', ['resolved', notes, alertId]);
+  return result.rowCount > 0;
+}
+
+export async function getCampSummaries() {
+  const result = await getPool().query(`
+    SELECT c.camp_id AS id, COUNT(DISTINCT c.child_id)::int AS children,
+      COUNT(DISTINCT s.session_id)::int AS sessions,
+      COALESCE(ROUND(AVG(s.composite_score)), 0)::int AS avg_composite,
+      COUNT(DISTINCT a.alert_id)::int AS total_alerts,
+      COUNT(DISTINCT a.alert_id) FILTER (WHERE a.status = 'pending')::int AS pending_alerts
+    FROM children c
+    LEFT JOIN sessions s ON s.child_id = c.child_id
+    LEFT JOIN alerts a ON a.camp_id = c.camp_id
+    GROUP BY c.camp_id ORDER BY c.camp_id
+  `);
+  return result.rows;
+}
+
+export async function getCampEducation(campId) {
+  const [childrenResult, sessionsResult, alertsResult] = await Promise.all([
+    getPool().query('SELECT * FROM children WHERE camp_id = $1 ORDER BY child_id', [campId]),
+    getPool().query('SELECT s.* FROM sessions s JOIN children c ON c.child_id = s.child_id WHERE c.camp_id = $1 ORDER BY s.created_at DESC', [campId]),
+    getPool().query('SELECT * FROM alerts WHERE camp_id = $1 ORDER BY triggered_at DESC', [campId]),
+  ]);
+  if (!childrenResult.rows.length) return null;
+  const scores = sessionsResult.rows.map((session) => session.composite_score).filter((score) => score != null);
+  return {
+    id: campId, children_count: childrenResult.rows.length, sessions_count: sessionsResult.rows.length,
+    avg_composite: scores.length ? Math.round(scores.reduce((sum, score) => sum + Number(score), 0) / scores.length) : 0,
+    pending_alerts: alertsResult.rows.filter((alert) => alert.status === 'pending').length,
+    children: childrenResult.rows.map((child) => ({ ...child, recent_scores: sessionsResult.rows.filter((session) => session.child_id === child.child_id).slice(0, 5) })),
+    alerts: alertsResult.rows, grade_distribution: [], language_distribution: [],
+  };
+}
+
 export async function syncChildren(childList) {
   const pool = getPool();
   let count = 0;

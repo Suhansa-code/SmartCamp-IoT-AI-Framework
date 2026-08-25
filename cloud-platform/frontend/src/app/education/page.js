@@ -13,7 +13,7 @@ import StatusDonut from "@/components/dashboard/StatusDonut";
 import ArrowChip from "@/components/alert/ArrowChip";
 import Button from "@/components/common/Button";
 import { useTheme } from "@/components/common/ThemeProvider";
-import { CAMP_META, MOCK_CAMPS } from "@/data/education.data";
+import { CAMP_META } from "@/data/education.data";
 import {
   GraduationCap,
   Users,
@@ -40,78 +40,6 @@ function campMeta(id) {
     .replace(/\b\w/g, (ch) => ch.toUpperCase())
     .trim();
   return { name: pretty || id, location: "Sector", code: (pretty || id).slice(0, 3).toUpperCase() };
-}
-
-function mockCampDetail(summary) {
-  const base = 50 + Math.round(Math.random() * 30);
-  const children = Array.from({ length: Math.min(summary.children, 10) }, (_, i) => ({
-    child_id: `TEST-CHILD-${String(100000 + i).slice(-6)}`,
-    res_id: `RES-${i + 1}`,
-    camp_id: summary.id,
-    grade: summary.grade_distribution[i]?.grade ?? 3,
-    language: ["si", "ta", "en"][i % 3],
-    baseline_score: Math.round(55 + Math.random() * 15),
-    total_sessions: 4 + (i % 8),
-    alert_status: i % 4 === 0 ? "active" : "none",
-    recent_scores: Array.from({ length: 6 }, (_, k) => ({
-      score: Math.max(30, Math.min(95, base - 6 + k * 3 + Math.round(Math.random() * 8))),
-      date: new Date(Date.now() - (6 - k) * 86400e3).toISOString(),
-    })),
-  }));
-
-  const sessions = [];
-  children.forEach((child, ci) => {
-    const n = Math.min(child.total_sessions, 4);
-    for (let s = 0; s < n; s += 1) {
-      sessions.push({
-        session_id: `S-${ci}-${s}`,
-        child_id: child.child_id,
-        composite_score: child.recent_scores[child.recent_scores.length - 1 - s]?.score ?? 60,
-        anomaly_flagged: Math.random() < 0.12 ? 1 : 0,
-        alert_triggered: 0,
-        created_at: new Date(Date.now() - (ci * 3 + s) * 3600e3).toISOString(),
-        grade: child.grade,
-        language: child.language,
-        baseline_score: child.baseline_score,
-      });
-    }
-  });
-  sessions.sort((a, b) => b.created_at.localeCompare(a.created_at));
-
-  const alerts = children
-    .filter((child) => child.alert_status === "active")
-    .slice(0, 2)
-    .map((child, i) => ({
-      alert_id: `AL-${i + 1}`,
-      child_id: child.child_id,
-      res_id: child.res_id,
-      camp_id: summary.id,
-      alert_type: "3_of_5_flagged",
-      trigger_detail: { recent_scores: [50, 44, 38] },
-      triggered_at: new Date(Date.now() - i * 86400e3).toISOString(),
-      status: "pending",
-      resolved_at: null,
-      resolved_notes: null,
-    }));
-
-  return {
-    id: summary.id,
-    children_count: summary.children,
-    sessions_count: sessions.length,
-    flagged_sessions: sessions.filter((s) => s.anomaly_flagged).length,
-    avg_composite: summary.avg_composite,
-    pending_alerts: alerts.length,
-    total_alerts: summary.total_alerts,
-    grade_distribution: summary.grade_distribution,
-    language_distribution: [
-      { language: "si", count: Math.round(summary.children * 0.55) },
-      { language: "ta", count: Math.round(summary.children * 0.3) },
-      { language: "en", count: summary.children - Math.round(summary.children * 0.85) },
-    ],
-    children,
-    sessions,
-    alerts,
-  };
 }
 
 const chip = (label, value, color) => (
@@ -256,17 +184,21 @@ export default function EducationPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   async function loadCamps(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
     else setLoadingCamps(true);
+    setLoadError("");
     try {
       const res = await fetch(`${API_BASE}/api/alerts/education/camps`);
-      const payload = res.ok ? await res.json() : null;
-      const list = Array.isArray(payload?.camps) && payload.camps.length > 0 ? payload.camps : MOCK_CAMPS;
-      setCamps(list.map((c) => ({ ...c, last_session_at: c.last_session_at || new Date(Date.now() - 3600e3 * 4).toISOString() })));
-    } catch {
-      setCamps(MOCK_CAMPS);
+      if (!res.ok) throw new Error(`Cloud Backend returned ${res.status}`);
+      const payload = await res.json();
+      const list = Array.isArray(payload?.camps) ? payload.camps : [];
+      setCamps(list);
+    } catch (error) {
+      setCamps([]);
+      setLoadError(error instanceof Error ? error.message : "Failed to load education data");
     } finally {
       if (isRefresh) setRefreshing(false);
       else setLoadingCamps(false);
@@ -283,10 +215,11 @@ export default function EducationPage() {
     setLoadingDetail(true);
     try {
       const res = await fetch(`${API_BASE}/api/alerts/education/camps/${encodeURIComponent(id)}`);
-      const payload = res.ok ? await res.json() : null;
-      setDetail(payload?.camp ?? mockCampDetail(camps.find((c) => c.id === id) || { id, children: 0, grade_distribution: [] }));
+      if (!res.ok) throw new Error(`Cloud Backend returned ${res.status}`);
+      const payload = await res.json();
+      setDetail(payload?.camp ?? null);
     } catch {
-      setDetail(mockCampDetail(camps.find((c) => c.id === id) || { id, children: 0, grade_distribution: [] }));
+      setDetail(null);
     } finally {
       setLoadingDetail(false);
     }
