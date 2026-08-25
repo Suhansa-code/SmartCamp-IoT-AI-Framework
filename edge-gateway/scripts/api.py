@@ -1,19 +1,32 @@
+"""
+api.py — FastAPI application for the Edge Gateway.
+
+Starts the persistent ESP32 background reader on import.
+Registers shutdown hook to cleanly release the serial port.
+"""
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 from hydrospatial_api.api import router as hydro_router
 from gps_module.gps_api import router as gps_router
 from dht11_module.dht11_api import router as dht11_router
-from sensor_state import gps_state, dht11_state, start_background_readers
+from sensor_state import gps_state, dht11_state, start_background_readers, stop_background_readers
 
-app = FastAPI(title="Edge Gateway API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup: start background reader. Shutdown: cleanly release serial port."""
+    start_background_readers()
+    yield
+    stop_background_readers()
+
+
+app = FastAPI(title="Edge Gateway API", lifespan=lifespan)
 
 app.include_router(hydro_router, prefix="/hydrospatial")
 app.include_router(gps_router, prefix="/api")
 app.include_router(dht11_router, prefix="/api")
-
-# Start background sensor readers on import
-start_background_readers()
 
 
 @app.get("/")
