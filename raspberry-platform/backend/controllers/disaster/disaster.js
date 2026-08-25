@@ -2,6 +2,7 @@ import * as disasterService from '../../services/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 import { getLatestWeather, getWeatherStorageStatus } from '../../services/disaster/weather-storage.js';
 import { getLatestRainfall, getRainfallStorageStatus, fetchAndSaveRainfall } from '../../services/disaster/rainfall-storage.js';
+import { getLatestDht11, getDht11StorageStatus, fetchAndSaveDht11 } from '../../services/disaster/dht11-storage.js';
 import { disasterDb } from '../../config/database.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
@@ -116,6 +117,36 @@ export async function triggerRainfallSave(req, res) {
   try {
     const saved = await fetchAndSaveRainfall();
     res.json({ saved, message: saved ? 'Rainfall data saved to DB' : 'No data saved (sensor inactive or fetch failed)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export function getLatestDht11Data(req, res) {
+  try {
+    const dht11 = getLatestDht11();
+    if (!dht11) {
+      return res.json({ available: false, message: 'No DHT11 data available yet' });
+    }
+    res.json({ available: true, ...dht11 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch DHT11 data' });
+  }
+}
+
+export function getDht11Status(req, res) {
+  try {
+    const status = getDht11StorageStatus();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch DHT11 status' });
+  }
+}
+
+export async function triggerDht11Save(req, res) {
+  try {
+    const saved = await fetchAndSaveDht11();
+    res.json({ saved, message: saved ? 'DHT11 data saved to DB' : 'No data saved (sensor inactive or fetch failed)' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

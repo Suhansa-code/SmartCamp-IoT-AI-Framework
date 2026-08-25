@@ -12,6 +12,7 @@ import { startSync } from './services/sync/sync-manager.js';
 import { startGpsStorage } from './services/disaster/gps-storage.js';
 import { startWeatherStorage } from './services/disaster/weather-storage.js';
 import { startRainfallStorage } from './services/disaster/rainfall-storage.js';
+import { startDht11Storage } from './services/disaster/dht11-storage.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -96,6 +97,9 @@ startWeatherStorage();
 
 // Start periodic rainfall sensor storage from Edge Gateway
 startRainfallStorage();
+
+// Start periodic DHT11 sensor storage from Edge Gateway
+startDht11Storage();
 
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {

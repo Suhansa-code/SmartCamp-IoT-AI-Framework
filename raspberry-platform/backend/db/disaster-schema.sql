@@ -108,6 +108,21 @@ CREATE TABLE IF NOT EXISTS rainfall_readings (
 );
 
 -- ============================================================
+-- 5c. DHT11 SENSOR READINGS
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS dht11_readings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT,
+    temperature REAL,
+    humidity REAL,
+    latitude REAL,
+    longitude REAL,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced INTEGER NOT NULL DEFAULT 0
+);
+
+-- ============================================================
 -- 6. WEATHER DATA
 -- ============================================================
 
@@ -258,6 +273,9 @@ ON gps_readings(recorded_at);
 
 CREATE INDEX IF NOT EXISTS idx_rainfall_readings_recorded_at
 ON rainfall_readings(recorded_at);
+
+CREATE INDEX IF NOT EXISTS idx_dht11_readings_recorded_at
+ON dht11_readings(recorded_at);
 
 CREATE INDEX IF NOT EXISTS idx_weather_data_forecast_time
 ON weather_data(forecast_time);

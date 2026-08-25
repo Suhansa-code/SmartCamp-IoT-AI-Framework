@@ -71,6 +71,8 @@ export default {
 
   RAINFALL_STORAGE_INTERVAL_MINUTES: parseInt(process.env.RAINFALL_STORAGE_INTERVAL_MINUTES, 10) || 15,
 
+  DHT11_STORAGE_INTERVAL_MINUTES: parseInt(process.env.DHT11_STORAGE_INTERVAL_MINUTES, 10) || 5,
+
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,
   EMQX_USERNAME: process.env.EMQX_USERNAME || 'admin',
