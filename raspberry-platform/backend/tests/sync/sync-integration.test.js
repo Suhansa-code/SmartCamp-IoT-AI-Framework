@@ -335,7 +335,4 @@ describe('TEST 7 — Local vs cloud verification', () => {
     expect(classifyRowPriority('disaster_events', { status: 'RESOLVED' }).priority).toBe(PRIORITY.MEDIUM);
   });
 
-  it('sensor readings default to HIGH', () => {
-    expect(classifyRowPriority('sensor_readings', {}).priority).toBe(PRIORITY.HIGH);
-  });
 });

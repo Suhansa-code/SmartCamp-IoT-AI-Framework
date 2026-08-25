@@ -45,7 +45,7 @@ describe('sync-notify', () => {
         'resources', 'resource_usage', 'audit_logs',
         'pages_children', 'pages_sessions', 'pages_behavioral_signals',
         'pages_gate_decisions', 'pages_alerts', 'pages_content_responses',
-        'disaster_events', 'sensor_readings', 'environmental_data',
+        'disaster_events',
         'water_level_readings', 'gps_readings', 'weather_data',
         'hydrospatial_data', 'flood_predictions', 'disaster_alerts',
         'prediction_requests',

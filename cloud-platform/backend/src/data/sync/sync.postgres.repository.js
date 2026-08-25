@@ -235,33 +235,6 @@ export async function upsertDisasterEvent(r) {
   );
 }
 
-export async function upsertSensorReading(r) {
-  const pool = getPool();
-  await pool.query(
-    `INSERT INTO sensor_readings (id,sensor_id,sensor_type,value,unit,latitude,longitude,recorded_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-     ON CONFLICT (id) DO UPDATE SET sensor_id=EXCLUDED.sensor_id,sensor_type=EXCLUDED.sensor_type,
-       value=EXCLUDED.value,unit=EXCLUDED.unit,latitude=EXCLUDED.latitude,
-       longitude=EXCLUDED.longitude,recorded_at=EXCLUDED.recorded_at`,
-    [r.id,r.sensor_id,r.sensor_type,r.value,r.unit||null,
-     r.latitude||null,r.longitude||null,r.recorded_at||null]
-  );
-}
-
-export async function upsertEnvironmentalData(r) {
-  const pool = getPool();
-  await pool.query(
-    `INSERT INTO environmental_data (id,temperature,humidity,pressure,rainfall,
-       wind_speed,wind_direction,recorded_at,source)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-     ON CONFLICT (id) DO UPDATE SET temperature=EXCLUDED.temperature,humidity=EXCLUDED.humidity,
-       pressure=EXCLUDED.pressure,rainfall=EXCLUDED.rainfall,wind_speed=EXCLUDED.wind_speed,
-       wind_direction=EXCLUDED.wind_direction,recorded_at=EXCLUDED.recorded_at,source=EXCLUDED.source`,
-    [r.id,r.temperature||null,r.humidity||null,r.pressure||null,r.rainfall||null,
-     r.wind_speed||null,r.wind_direction||null,r.recorded_at||null,r.source||null]
-  );
-}
-
 export async function upsertWaterLevelReading(r) {
   const pool = getPool();
   await pool.query(

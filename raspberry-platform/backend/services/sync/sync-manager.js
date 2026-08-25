@@ -56,8 +56,6 @@ const TABLE_TO_ENTITY = {
   pages_alerts:               'alerts',
   pages_content_responses:    'content-responses',
   disaster_events:            'disaster-events',
-  sensor_readings:            'sensor-readings',
-  environmental_data:         'environmental-data',
   water_level_readings:       'water-level-readings',
   gps_readings:               'gps-readings',
   weather_data:               'weather-data',
@@ -100,8 +98,8 @@ const TABLE_DB_MAP = {
   pages_children: pagesDb, pages_sessions: pagesDb,
   pages_behavioral_signals: pagesDb, pages_gate_decisions: pagesDb,
   pages_alerts: pagesDb, pages_content_responses: pagesDb,
-  disaster_events: disasterDb, sensor_readings: disasterDb,
-  environmental_data: disasterDb, water_level_readings: disasterDb,
+  disaster_events: disasterDb,
+ water_level_readings: disasterDb,
   gps_readings: disasterDb, weather_data: disasterDb,
   hydrospatial_data: disasterDb, flood_predictions: disasterDb,
   disaster_alerts: disasterDb, prediction_requests: disasterDb,
@@ -117,7 +115,7 @@ let syncCount = 0;
 let currentIntervalMs = SYNC_INTERVAL_MS;
 
 const DISASTER_TABLES = new Set([
-  'disaster_events', 'sensor_readings', 'environmental_data', 'water_level_readings',
+  'disaster_events', 'water_level_readings',
   'gps_readings', 'weather_data', 'hydrospatial_data', 'flood_predictions',
   'disaster_alerts', 'prediction_requests',
 ]);
