@@ -293,6 +293,18 @@ def build_hydrospatial_analysis(latitude: float, longitude: float, altitude: flo
             payload["gauge_latitude"] = gauge_lat
             payload["gauge_longitude"] = gauge_lon
 
+            # Use river name from shapefile if Overpass failed
+            if payload["river_name"] is None and detailed_result.get("nearest_river_name"):
+                payload["river_name"] = detailed_result["nearest_river_name"]
+
+            # Use river name from station CSV if still None
+            if payload["river_name"] is None and detailed_result.get("river_name"):
+                payload["river_name"] = detailed_result["river_name"]
+
+            # Use river distance from shapefile if Overpass failed
+            if payload["river_distance_km"] is None and detailed_result.get("distance_to_river_meters"):
+                payload["river_distance_km"] = round(detailed_result["distance_to_river_meters"] / 1000, 3)
+
             if gauge_lat is not None and gauge_lon is not None:
                 dist = geodesic((latitude, longitude), (gauge_lat, gauge_lon)).km
                 payload["gauge_distance_km"] = round(dist, 2)
