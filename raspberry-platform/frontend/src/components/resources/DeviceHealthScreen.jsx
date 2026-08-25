@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Satellite, Thermometer, Droplets, Radio, RefreshCw, Activity, MapPin, ArrowLeft, Wifi, WifiOff } from 'lucide-react';
+import { Satellite, Thermometer, Droplets, Radio, RefreshCw, Activity, MapPin, ArrowLeft, Wifi, WifiOff, CloudRain, Fingerprint } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -122,23 +122,23 @@ function DeviceStatusCard({ device }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="h-full">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <IconTile icon={Icon} tone={connected ? 'brand' : 'danger'} />
-            <div>
-              <h3 className="text-[13.5px] sm:text-[14px] font-semibold leading-tight" style={{ color: COLORS.ink }}>Edge Gateway</h3>
-              <p className="text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>Raspberry Pi device connectivity</p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h3 className="text-[13.5px] sm:text-[14px] font-semibold leading-tight" style={{ color: COLORS.ink }}>Edge Gateway</h3>
+                <p className="text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>Raspberry Pi device connectivity</p>
+              </div>
+              <div className="hidden sm:flex items-center gap-4 pl-4" style={{ borderLeft: `1px solid ${COLORS.hairline}` }}>
+                <DataRow label="Device ID" value={device?.id || 'edge-gateway'} mono />
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${connected ? 'animate-pulse' : ''}`} style={{ backgroundColor: TONE[tone].color }} />
             <Chip tone={tone}>{connected ? 'Connected' : 'Disconnected'}</Chip>
           </div>
-        </div>
-
-        <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-x-6 gap-y-3" style={{ borderColor: COLORS.hairline }}>
-          <DataRow label="Device ID" value={device?.id || 'edge-gateway'} mono />
-          <DataRow label="Status" value={connected ? 'Connected' : 'Disconnected'} />
         </div>
       </Card>
     </motion.div>
@@ -273,6 +273,80 @@ function HumidityCard({ sensor }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  RAINFALL CARD                                                       */
+/* ------------------------------------------------------------------ */
+
+function RainfallCard() {
+  const connected = true;
+
+  const mockData = {
+    rainfall_mm: 12.5,
+    intensity: 'Moderate',
+    duration_min: 45,
+    last_rain: '2h ago',
+  };
+
+  return (
+    <SensorCard icon={CloudRain} name="Rainfall Sensor" description="Rain gauge for weather monitoring" connected={connected} lastUpdated={new Date().toISOString()}>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+        <DataRow label="Rainfall" value={`${mockData.rainfall_mm} mm`} mono />
+        <DataRow label="Intensity" value={mockData.intensity} />
+        <DataRow label="Duration" value={`${mockData.duration_min} min`} mono />
+        <DataRow label="Last Rain" value={mockData.last_rain} />
+      </div>
+
+      <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
+        <CloudRain className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
+        <div className="flex-1">
+          <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Current Conditions</p>
+          <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
+            {mockData.rainfall_mm > 10 ? 'Heavy rain expected' : 'Light to moderate rainfall'}
+            <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>
+          </p>
+        </div>
+      </div>
+    </SensorCard>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  FINGERPRINT CARD                                                    */
+/* ------------------------------------------------------------------ */
+
+function FingerprintCard() {
+  const connected = true;
+
+  const mockData = {
+    enrolled: 24,
+    last_scan: '5m ago',
+    match_score: 98.5,
+    access_count: 156,
+  };
+
+  return (
+    <SensorCard icon={Fingerprint} name="Fingerprint Sensor" description="Biometric identification for camp access" connected={connected} lastUpdated={new Date().toISOString()}>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+        <DataRow label="Enrolled" value={mockData.enrolled} mono />
+        <DataRow label="Last Scan" value={mockData.last_scan} />
+        <DataRow label="Match Score" value={`${mockData.match_score}%`} mono />
+        <DataRow label="Access Count" value={mockData.access_count} mono />
+      </div>
+
+      <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
+        <Fingerprint className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
+        <div className="flex-1">
+          <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>System Status</p>
+          <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
+            {mockData.enrolled > 0 ? 'Operational — ready for scanning' : 'No fingerprints enrolled'}
+            <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>
+          </p>
+        </div>
+      </div>
+    </SensorCard>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  MAIN SCREEN                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -315,8 +389,10 @@ export default function DeviceHealthScreen() {
   const gpsConnected = !!sensors.gps?.connected;
   const tempConnected = !!sensors.temperature?.connected;
   const humConnected = !!sensors.humidity?.connected;
-  const connectedSensors = [gpsConnected, tempConnected, humConnected].filter(Boolean).length;
-  const disconnectedSensors = [gpsConnected, tempConnected, humConnected].filter(c => !c).length;
+  const rainConnected = true;
+  const fpConnected = true;
+  const connectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(Boolean).length;
+  const disconnectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(c => !c).length;
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
@@ -385,6 +461,8 @@ export default function DeviceHealthScreen() {
           <GpsCard sensor={sensors.gps} />
           <TemperatureCard sensor={sensors.temperature} />
           <HumidityCard sensor={sensors.humidity} />
+          <RainfallCard />
+          <FingerprintCard />
         </div>
 
         <p className="text-[11.5px] font-mono" style={{ color: COLORS.muted }}>

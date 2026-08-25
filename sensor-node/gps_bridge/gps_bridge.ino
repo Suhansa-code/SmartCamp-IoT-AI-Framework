@@ -1,21 +1,20 @@
 #include <HardwareSerial.h>
+#include <DHT.h>
 
 HardwareSerial GPSSerial(2);
 
 // GPS pins
-#define GPS_RX 16   // ESP32 RX <- GPS TX
-#define GPS_TX 17   // ESP32 TX -> GPS RX
+#define GPS_RX 16
+#define GPS_TX 17
 
 // DHT11 pins
-#define DHT_PIN 4   // ESP32 GPIO4 -> DHT11 DATA
-#define DHT_TYPE 11
-
-#include <DHT.h>
+#define DHT_PIN 4
+#define DHT_TYPE DHT11
 
 DHT dht(DHT_PIN, DHT_TYPE);
 
 unsigned long lastDhtRead = 0;
-const unsigned long DHT_INTERVAL = 2000; // read DHT11 every 2 seconds
+const unsigned long DHT_INTERVAL = 2000;
 
 void setup() {
   Serial.begin(115200);
@@ -25,18 +24,21 @@ void setup() {
   dht.begin();
 
   delay(1000);
+
   Serial.println("ESP32 GPS+DHT11 Bridge Started");
 }
 
 void loop() {
-  // Forward GPS NMEA data to computer
+
+  // Forward GPS NMEA data
   while (GPSSerial.available()) {
     char c = GPSSerial.read();
     Serial.write(c);
   }
 
-  // Read and send DHT11 data every 2 seconds
+  // Read DHT11 every 2 seconds
   unsigned long now = millis();
+
   if (now - lastDhtRead >= DHT_INTERVAL) {
     lastDhtRead = now;
 
