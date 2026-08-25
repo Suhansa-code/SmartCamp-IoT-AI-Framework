@@ -85,18 +85,20 @@ async function fetchRainfallFromGateway() {
 
 // ── Core fetch + save logic ─────────────────────────────────────────────
 
-async function fetchAndSaveRainfall() {
+export async function fetchAndSaveRainfall() {
   ensureStatements();
 
   const { data, error } = await fetchRainfallFromGateway();
 
   if (error || !data) {
-    logger.warn(`[RAINFALL] Fetch failed: ${error || 'no data'}`);
+    logger.warn(`[RAINFALL] Fetch from Edge Gateway failed: ${error || 'no data'}`);
     return false;
   }
 
+  logger.info(`[RAINFALL] Fetched from gateway: status="${data.sensor_status}", analog=${data.rain_analog}, rain="${data.rain_status}"`);
+
   if (data.sensor_status !== 'ACTIVE') {
-    logger.debug('[RAINFALL] Sensor not active — skipping');
+    logger.warn(`[RAINFALL] Sensor not active (status="${data.sensor_status}") — skipping save`);
     return false;
   }
 

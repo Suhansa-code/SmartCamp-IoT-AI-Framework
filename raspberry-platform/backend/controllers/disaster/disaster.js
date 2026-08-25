@@ -1,7 +1,7 @@
 import * as disasterService from '../../services/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 import { getLatestWeather, getWeatherStorageStatus } from '../../services/disaster/weather-storage.js';
-import { getLatestRainfall, getRainfallStorageStatus } from '../../services/disaster/rainfall-storage.js';
+import { getLatestRainfall, getRainfallStorageStatus, fetchAndSaveRainfall } from '../../services/disaster/rainfall-storage.js';
 import { disasterDb } from '../../config/database.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
@@ -109,5 +109,14 @@ export function getRainfallStatus(req, res) {
     res.json(status);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch rainfall status' });
+  }
+}
+
+export async function triggerRainfallSave(req, res) {
+  try {
+    const saved = await fetchAndSaveRainfall();
+    res.json({ saved, message: saved ? 'Rainfall data saved to DB' : 'No data saved (sensor inactive or fetch failed)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 }

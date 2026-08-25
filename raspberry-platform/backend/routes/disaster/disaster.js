@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave } from '../../controllers/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 
 const router = express.Router();
@@ -71,5 +71,6 @@ router.get('/weather/latest', getLatestWeatherData);
 router.get('/weather/status', getWeatherStatus);
 router.get('/rainfall/latest', getLatestRainfallData);
 router.get('/rainfall/status', getRainfallStatus);
+router.post('/rainfall/save', triggerRainfallSave);
 
 export default router;
