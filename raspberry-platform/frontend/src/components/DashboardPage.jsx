@@ -55,44 +55,7 @@ function getRisk(wl, majorFlood, minorFlood, alertLevel) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  MOCK DATA — Disaster Insight Card (replace with API endpoints)      */
-/* ------------------------------------------------------------------ */
-
-const MOCK_DISASTER_INSIGHT = {
-  prediction: {
-    risk_level: "moderate",
-    risk_score: 62,
-    model: "XGBoost v2.1",
-    confidence: 0.84,
-    updated_at: "2026-08-24T10:30:00+05:30",
-  },
-  weather: {
-    condition: "Partly Cloudy",
-    temp_c: 28,
-    humidity_pct: 76,
-    wind_kph: 18,
-    forecast: "Light showers expected after 14:00",
-  },
-  rainfall: {
-    current_mm: 2.4,
-    hourly_avg_mm: 1.8,
-    daily_total_mm: 14.2,
-    trend: "increasing",
-  },
-  location: {
-    altitude_m: 48,
-    lat: 6.9271,
-    lon: 79.8612,
-    district: "Central Province",
-    nearest_river: "Mahaweli River",
-    river_distance_km: 3.2,
-    river_level_m: 2.8,
-    river_trend: "rising",
-  },
-};
-
-/* ------------------------------------------------------------------ */
-/*  MOCK DATA — Resource & Network Charts (replace with API endpoints)  */
+/*  MOCK DATA — Resource Charts (replace with API endpoints)            */
 /* ------------------------------------------------------------------ */
 
 const MOCK_RESOURCE_USAGE = [
@@ -100,15 +63,6 @@ const MOCK_RESOURCE_USAGE = [
   { label: "Water", used: 4200, total: 5000, unit: "L", color: "#0891B2" },
   { label: "Medical", used: 156, total: 200, unit: "kits", color: "#DC2626" },
   { label: "Shelter", used: 42, total: 50, unit: "units", color: "#D97706" },
-];
-
-const MOCK_SYNC_TIMELINE = [
-  { hour: "06:00", sent: 120, received: 118, failed: 2 },
-  { hour: "08:00", sent: 340, received: 335, failed: 5 },
-  { hour: "10:00", sent: 280, received: 278, failed: 2 },
-  { hour: "12:00", sent: 190, received: 185, failed: 5 },
-  { hour: "14:00", sent: 420, received: 412, failed: 8 },
-  { hour: "16:00", sent: 310, received: 308, failed: 2 },
 ];
 
 const MOCK_POPULATION = [
@@ -344,23 +298,6 @@ function DonutChart({ data, size = 160, strokeWidth = 24 }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function SyncBar({ data, maxVal }) {
-  const sentH = Math.round((data.sent / maxVal) * 100);
-  const failedH = Math.round((data.failed / maxVal) * 100);
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative w-8 flex flex-col justify-end" style={{ height: 80 }}>
-        <div className="absolute bottom-0 w-full rounded-t-sm" style={{ height: `${sentH}%`, backgroundColor: COLORS.brand, opacity: 0.2 }} />
-        <div className="absolute bottom-0 w-full rounded-t-sm" style={{ height: `${sentH - failedH}%`, backgroundColor: COLORS.brand }} />
-        {data.failed > 0 && <div className="absolute bottom-0 w-full rounded-t-sm" style={{ height: `${failedH}%`, backgroundColor: "#DC2626" }} />}
-      </div>
-      <span className="text-[9px] font-mono" style={{ color: COLORS.muted }}>
-        {data.hour}
-      </span>
     </div>
   );
 }
