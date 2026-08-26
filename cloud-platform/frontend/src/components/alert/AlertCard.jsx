@@ -19,7 +19,7 @@ export default function AlertCard({ alert, onAction, highlighted }) {
     try {
       const endpoint = `/api/alerts/${alert.id}/resolve`
       const body = action === 'escalate' ? { notes: 'Escalated by admin' } : { notes: 'Reviewed by admin' }
-      const res = await fetch(`http://localhost:3001${endpoint}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

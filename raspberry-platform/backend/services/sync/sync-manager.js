@@ -30,6 +30,7 @@ import { campDb, pagesDb, disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import { fetchAllPending, countPending } from './sync-queue.js';
 import { PRIORITY } from './sync-priority.js';
+import { nowISO } from '../../utils/helpers.js';
 
 const SYNC_INTERVAL_MS = 30_000;
 const SYNC_INTERVAL_STABLE_MS = 5_000;
@@ -457,7 +458,7 @@ export async function runSyncCycle() {
       }
     }
 
-    lastSyncAt = new Date().toISOString();
+    lastSyncAt = nowISO();
     syncCount++;
 
     const elapsed = Date.now() - startTime;

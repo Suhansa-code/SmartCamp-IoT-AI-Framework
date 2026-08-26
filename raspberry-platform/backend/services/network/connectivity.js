@@ -42,6 +42,7 @@ export function startConnectivityWatcher() {
     () => sample().catch((e) => logger.error(`[CONNECTIVITY] Check failed: ${e.message}`)),
     intervalMs
   );
+
 }
 
 export function stopConnectivityWatcher() {

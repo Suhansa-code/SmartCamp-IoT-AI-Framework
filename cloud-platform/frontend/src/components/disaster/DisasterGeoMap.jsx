@@ -68,7 +68,7 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
       }
 
       if (theme.mode === 'dark') {
-        ctx.fillStyle = '#07182a'
+        ctx.fillStyle = '#1A2332'
         for (let gx = 0; gx <= width; gx += 20) {
           for (let gy = 0; gy <= height; gy += 20) {
             ctx.fillRect(gx, gy, 1, 1)
@@ -104,7 +104,7 @@ export function DisasterGeoMap({ camps, selected, onSelect, theme }) {
 
       ctx.setLineDash([3, 5])
       ctx.lineWidth = 0.6
-      ctx.strokeStyle = theme.mode === 'dark' ? '#0b2030' : '#90b8d0'
+      ctx.strokeStyle = theme.mode === 'dark' ? '#334155' : '#94A3B8'
       PROVS.forEach(([start, end]) => {
         const [ax, ay] = proj(start[0], start[1], width, height)
         const [bx, by] = proj(end[0], end[1], width, height)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useRouter } from "../../../lib/router";
 import { useAuth } from "../../../lib/AuthContext";
@@ -18,6 +18,8 @@ import {
   Cpu,
 } from "lucide-react";
 import { COLORS, SHADOW_CARD } from "../../../lib/tokens";
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -92,8 +94,33 @@ export default function Navbar() {
   const { isAuthenticated, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuRef = useRef(null);
-  const [connectedDevices, setConnectedDevices] = useState(0);
-  const [totalDevices, setTotalDevices] = useState(0);
+  const [disconnectedCount, setDisconnectedCount] = useState(0);
+
+  const fetchDeviceStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/disaster/device-status`, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) return;
+      const data = await res.json();
+      const device = data.device || {};
+      const sensors = data.sensors || {};
+      const allConnected = [
+        device.status === 'connected',
+        !!sensors.gps?.connected,
+        !!sensors.temperature?.connected,
+        !!sensors.humidity?.connected,
+      ].filter(Boolean).length;
+      const total = 4;
+      setDisconnectedCount(total - allConnected);
+    } catch {
+      setDisconnectedCount(4);
+    }
+  }, [API]);
+
+  useEffect(() => {
+    fetchDeviceStatus();
+    const id = setInterval(fetchDeviceStatus, 10000);
+    return () => clearInterval(id);
+  }, [fetchDeviceStatus]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -181,25 +208,35 @@ export default function Navbar() {
               >
                 <Cpu className="w-4 h-4 pointer-events-none" strokeWidth={1.8} />
 
-                {connectedDevices < totalDevices ? (
-                  <span className="absolute -top-1 -right-1 z-20 min-w-4.25 h-4.25 px-1 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold border-2 border-white pointer-events-none">
-                    {totalDevices - connectedDevices}
+                {disconnectedCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-1.5 z-20 min-w-[22px] h-[22px] px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold border-2 border-white pointer-events-none">
+                    {disconnectedCount}
                   </span>
                 ) : (
-                  <span className="absolute top-1 right-1 z-20 w-2 h-2 rounded-full bg-green-500 border border-white pointer-events-none" />
+                  <span className="absolute top-1 right-1 z-20 w-3 h-3 rounded-full bg-green-500 border-2 border-white pointer-events-none" />
                 )}
               </Link>
             </div>
 
-            <button
-              onClick={() => setMobileOpen((o) => !o)}
-              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
-              style={{ borderColor: COLORS.line, color: COLORS.body }}
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileOpen}
-            >
-              {mobileOpen ? <X className="w-4 h-4" strokeWidth={1.8} /> : <Menu className="w-4 h-4" strokeWidth={1.8} />}
-            </button>
+            <div className="lg:hidden flex items-center gap-2">
+              <Link
+                to="/devices"
+                aria-label="View connected devices"
+                className="flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
+                style={{ borderColor: COLORS.line, color: COLORS.body }}
+              >
+                <Cpu className="w-4 h-4" strokeWidth={1.8} />
+              </Link>
+              <button
+                onClick={() => setMobileOpen((o) => !o)}
+                className="flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
+                style={{ borderColor: COLORS.line, color: COLORS.body }}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileOpen}
+              >
+                {mobileOpen ? <X className="w-4 h-4" strokeWidth={1.8} /> : <Menu className="w-4 h-4" strokeWidth={1.8} />}
+              </button>
+            </div>
           </div>
         </div>
       </nav>

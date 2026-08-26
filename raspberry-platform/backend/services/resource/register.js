@@ -187,14 +187,29 @@ export async function registerPerson(data) {
   let childId = null;
   if (parseInt(age) < 18) {
     const campId = C.CAMP_ID;
-    childId = nextChildId(campId);
+    const resId = String(personId);
     const resolvedGrade = school_going === false ? 3 : (Number(grade) || 3);
 
-    pagesDb.prepare(`
-      INSERT INTO pages_children (child_id, res_id, grade, camp_id, language, enrolled_at)
-      VALUES (?, ?, ?, ?, 'si', ?)
-    `).run(childId, String(personId), resolvedGrade, campId, nowISO());
+    const enrollChild = pagesDb.transaction(() => {
+      const existingChild = pagesDb.prepare(
+        'SELECT child_id FROM pages_children WHERE res_id = ? AND camp_id = ? LIMIT 1'
+      ).get(resId, campId);
 
+      if (existingChild) {
+        return existingChild.child_id;
+      }
+
+      const newChildId = nextChildId(campId);
+
+      pagesDb.prepare(`
+        INSERT INTO pages_children (child_id, res_id, grade, camp_id, language, enrolled_at)
+        VALUES (?, ?, ?, ?, 'si', ?)
+      `).run(newChildId, resId, resolvedGrade, campId, nowISO());
+
+      return newChildId;
+    });
+
+    childId = enrollChild();
     enqueueSync('pages_children', childId);
   }
 

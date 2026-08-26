@@ -1,12 +1,5 @@
 import 'dotenv/config';
 
-const firstDefined = (...values) => {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return undefined;
-};
-
 const parseOrigins = (value) => {
   if (typeof value !== 'string' || !value.trim()) return [];
   return value.split(',').map(s => s.trim()).filter(Boolean);
@@ -39,9 +32,6 @@ export default {
 
   JWT_SECRET: process.env.JWT_SECRET || 'CHANGE_THIS_SECRET',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
-
-  TURSO_URL: firstDefined(process.env.TURSO_URL, process.env.TURSO_DATABASE_URL, process.env.LIBSQL_URL, process.env.DATABASE_URL),
-  TURSO_AUTH_TOKEN: firstDefined(process.env.TURSO_AUTH_TOKEN, process.env.TURSO_TOKEN, process.env.LIBSQL_AUTH_TOKEN, process.env.DATABASE_AUTH_TOKEN),
 
   CORS_ORIGINS: [
     ...parseOrigins(process.env.CORS_ORIGINS),
@@ -81,6 +71,13 @@ export default {
   FINGERPRINT_BAUD_RATE: parseInt(process.env.FINGERPRINT_BAUD_RATE, 10) || 115200,
   FINGERPRINT_MAX_SLOTS: parseInt(process.env.FINGERPRINT_MAX_SLOTS, 10) || 200,
   FINGERPRINT_SIMULATE: parseBoolean(process.env.FINGERPRINT_SIMULATE, true),
+
+  WEATHER_FETCH_INTERVAL_MINUTES: parseInt(process.env.WEATHER_FETCH_INTERVAL_MINUTES, 10) || 30,
+  WEATHER_LOCATION_THRESHOLD_METERS: parseFloat(process.env.WEATHER_LOCATION_THRESHOLD_METERS) || 500,
+
+  RAINFALL_STORAGE_INTERVAL_MINUTES: parseInt(process.env.RAINFALL_STORAGE_INTERVAL_MINUTES, 10) || 15,
+
+  DHT11_STORAGE_INTERVAL_MINUTES: parseInt(process.env.DHT11_STORAGE_INTERVAL_MINUTES, 10) || 5,
 
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,

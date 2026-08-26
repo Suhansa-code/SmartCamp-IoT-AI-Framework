@@ -30,7 +30,7 @@ import {
   HeartPulse,
 } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
 
 function campMeta(id) {
   if (CAMP_META[id]) return CAMP_META[id];
@@ -474,7 +474,6 @@ export default function EducationPage() {
                       ? `${meta?.code || ""} · ${meta?.location || "Sector"} · ${detail.children_count} children tracked`
                       : `${camps.length} camps · ${totals.children.toLocaleString()} children · ${totals.sessions.toLocaleString()} sessions`
                 }
-                pendingCount={totals.alerts}
                 search={{
                   value: search,
                   onChange: setSearch,
@@ -649,7 +648,7 @@ function OverviewView({
           label="Total Camps"
           value={list.length}
           icon={<GraduationCap size={17} />}
-          color="#60A5FA"
+          color="#2563EB"
           delta="active sites"
           pct={100}
           spark={sparkFor("children").map((_, i) => i + 1)}
@@ -809,7 +808,7 @@ function OverviewView({
               width: 7,
               height: 7,
               borderRadius: "50%",
-              background: "#D8F24E",
+              background: "#2563EB",
               opacity: 0.8,
               animation: "eduFloat 5s ease-in-out infinite",
             }}
@@ -867,7 +866,7 @@ function OverviewView({
               style={{
                 background: T.mode === 'dark'
                   ? "linear-gradient(160deg, #F8FAFC 0%, #E2E8F0 100%)"
-                  : "linear-gradient(160deg, #14213D 0%, #0B1322 100%)",
+                  : "linear-gradient(160deg, #0F172A 0%, #1E293B 100%)",
                 borderRadius: "1.25rem",
                 padding: "1.1rem 1.25rem",
                 display: "flex",
@@ -1124,7 +1123,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             label="Children"
             value={detail.children_count.toLocaleString()}
             icon={<Users size={17} />}
-            color="#60A5FA"
+            color="#2563EB"
             delta="tracked"
             pct={100}
           />

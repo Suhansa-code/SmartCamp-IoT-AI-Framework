@@ -2,44 +2,44 @@
 
 /* ══════════════════════════════════════════════════════════════════════════
    Design tokens — single source of truth for the colour palette.
-   Generated as Tailwind v4 theme (via @theme) + CSS variables (:root).
+   Professional disaster-management palette: calm, trustworthy, modern.
    Mirror the JS tokens in @/components/common/theme.js.
    ══════════════════════════════════════════════════════════════════════════ */
 @theme {
   /* Neutrals / backgrounds */
-  --color-navy: #0A2540;          /* page background (admin) */
-  --color-navy-deep: #071B30;     /* header / chrome background */
+  --color-navy: #1E3A5F;          /* page background (admin) */
+  --color-navy-deep: #162D4A;     /* header / chrome background */
   --color-navy-card: #1E3A5F;     /* card surfaces */
-  --color-navy-light: #243B5E;    /* skeleton / lighter card surface */
-  --color-panel: #0D1F35;         /* sub-panel surface */
-  --color-sky: #F0F9FF;           /* light page background */
+  --color-navy-light: #2A4A6E;    /* skeleton / lighter card surface */
+  --color-panel: #0F2A45;         /* sub-panel surface */
+  --color-sky: #F0F4F8;           /* light page background */
   --color-surface: #FFFFFF;
 
   /* Borders / lines */
-  --color-border: #2D4A70;        /* dark chrome border */
+  --color-border: #334155;        /* dark chrome border */
   --color-line: #1E3A5F;          /* panel inner border */
 
-  /* Brand accents */
-  --color-teal: #0D9488;
-  --color-teal-mid: #14B8A6;
-  --color-teal-light: #CCFBF1;
-  --color-coral: #F97316;
-  --color-coral-light: #FED7AA;
+  /* Brand accents — professional blue primary */
+  --color-teal: #2563EB;
+  --color-teal-mid: #3B82F6;
+  --color-teal-light: #DBEAFE;
+  --color-coral: #475569;
+  --color-coral-light: #E2E8F0;
 
   /* Status */
-  --color-amber: #F59E0B;
-  --color-warn: #F59E0B;
-  --color-yellow: #FACC15;
-  --color-green: #22C55E;
-  --color-good: #22C55E;
-  --color-red: #F87171;
-  --color-danger: #EF4444;
-  --color-offline: #EF4444;
-  --color-purple: #A78BFA;
-  --color-blue: #60A5FA;
-  --color-weak: #F59E0B;
-  --color-poor: #F97316;
-  --color-routine: #4A90D9;
+  --color-amber: #D97706;
+  --color-warn: #D97706;
+  --color-yellow: #F59E0B;
+  --color-green: #16A34A;
+  --color-good: #16A34A;
+  --color-red: #DC2626;
+  --color-danger: #DC2626;
+  --color-offline: #DC2626;
+  --color-purple: #2563EB;
+  --color-blue: #0891B2;
+  --color-weak: #D97706;
+  --color-poor: #DC2626;
+  --color-routine: #475569;
 
   /* Text */
   --color-text: #E2E8F0;
@@ -51,36 +51,36 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  --teal:    #0D9488;
-  --teal-light: #CCFBF1;
-  --sky-bg:  #F0F9FF;
-  --coral:   #F97316;
-  --coral-light: #FED7AA;
+  --foreground: #0F172A;
+  --teal:    #2563EB;
+  --teal-light: #DBEAFE;
+  --sky-bg:  #F8FAFC;
+  --coral:   #475569;
+  --coral-light: #E2E8F0;
   --navy:    #1E3A5F;
-  --navy-light: #3B5F8A;
+  --navy-light: #2A4A6E;
   --white:   #FFFFFF;
   --gray-soft: #E2E8F0;
 
-  --eli-teal:       #0D9488;
-  --eli-teal-mid:   #14B8A6;
-  --eli-teal-light: #CCFBF1;
-  --eli-sky:        #E0F7FF;
-  --eli-coral:      #FF6B35;
-  --eli-coral-soft: #FFB347;
-  --eli-yellow:     #FFD93D;
-  --eli-purple:     #A855F7;
-  --eli-purple-soft:#EDE9FE;
-  --eli-pink:       #FF6B9D;
-  --eli-green:      #4ADE80;
+  --eli-teal:       #2563EB;
+  --eli-teal-mid:   #3B82F6;
+  --eli-teal-light: #DBEAFE;
+  --eli-sky:        #EFF6FF;
+  --eli-coral:      #475569;
+  --eli-coral-soft: #CBD5E1;
+  --eli-yellow:     #F59E0B;
+  --eli-purple:     #2563EB;
+  --eli-purple-soft:#DBEAFE;
+  --eli-pink:       #DC2626;
+  --eli-green:      #16A34A;
   --eli-navy:       #1E3A5F;
   --eli-cloud:      #FFFFFF;
-  --eli-grass:      #86EFAC;
+  --eli-grass:      #16A34A;
 
-  --sky-top:    #87CEEB;
-  --sky-mid:    #B8E4F7;
-  --sky-bottom: #D4F1FF;
-  --ground:     #6DBE47;
+  --sky-top:    #BFDBFE;
+  --sky-mid:    #DBEAFE;
+  --sky-bottom: #EFF6FF;
+  --ground:     #16A34A;
 }
 
 @layer base {
@@ -115,10 +115,10 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-orange-500 text-white font-bold rounded-3xl py-4 px-8 text-xl;
+    @apply text-white font-bold rounded-3xl py-4 px-8 text-xl;
     @apply shadow-lg active:scale-95 transition-transform duration-150;
     @apply min-h-[64px] flex items-center justify-center gap-2;
-    background-color: var(--coral);
+    background-color: var(--teal);
     font-size: 1.375rem;
   }
 
@@ -278,8 +278,8 @@
 
 /* Breathing circle */
 @keyframes breathe-expand {
-  0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139,92,246,0.4); }
-  50%     { transform: scale(1.08); box-shadow: 0 0 60px 20px rgba(139,92,246,0.15); }
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
+  50%     { transform: scale(1.08); box-shadow: 0 0 60px 20px rgba(37,99,235,0.15); }
 }
 .breathe-pulse { animation: breathe-expand 4s ease-in-out infinite; }
 
@@ -355,8 +355,8 @@
 
 /* Scan button glow (child welcome) */
 @keyframes btn-glow {
-  0%,100% { box-shadow: 0 8px 32px rgba(255,107,53,0.4), 0 0 0 0 rgba(255,107,53,0.3); }
-  50%      { box-shadow: 0 12px 40px rgba(255,107,53,0.5), 0 0 0 10px rgba(255,107,53,0.08); }
+  0%,100% { box-shadow: 0 8px 32px rgba(37,99,235,0.4), 0 0 0 0 rgba(37,99,235,0.3); }
+  50%      { box-shadow: 0 12px 40px rgba(37,99,235,0.5), 0 0 0 10px rgba(37,99,235,0.08); }
 }
 .scan-btn { animation: btn-glow 2.5s ease-in-out infinite; }
 

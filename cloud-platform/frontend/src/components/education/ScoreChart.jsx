@@ -6,7 +6,7 @@ const PAD = { top: 20, right: 20, bottom: 32, left: 44 }
 
 export default function ScoreChart({ data = [], darkMode = false }) {
   const textColor = darkMode ? '#94A3B8' : '#1E3A5F'
-  const gridColor = darkMode ? '#2D4A70'  : '#E2E8F0'
+  const gridColor = darkMode ? '#334155'  : '#E2E8F0'
 
   const points = useMemo(() => {
     if (!data.length) return []
@@ -21,7 +21,7 @@ export default function ScoreChart({ data = [], darkMode = false }) {
 
   if (!data.length) {
     return (
-      <div style={{ textAlign:'center', padding:'2rem', color: '#0D9488' }}>
+      <div style={{ textAlign:'center', padding:'2rem', color: '#2563EB' }}>
         <p style={{ fontWeight:600 }}>No data yet</p>
       </div>
     )
@@ -52,9 +52,9 @@ export default function ScoreChart({ data = [], darkMode = false }) {
         })}
 
         {/* Area fill */}
-        <path d={areaD} fill="#0D9488" opacity="0.07" />
+        <path d={areaD} fill="#2563EB" opacity="0.07" />
         {/* Line */}
-        <path d={pathD} fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathD} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
         {/* Points */}
         {points.map((p, i) => (

@@ -14,6 +14,9 @@ import { setSocketServer } from './services/resource/fingerprint-events.js';
 import { checkFlaskHealth } from './services/education/scoring.js';
 import { startSync } from './services/sync/sync-manager.js';
 import { startGpsStorage } from './services/disaster/gps-storage.js';
+import { startWeatherStorage } from './services/disaster/weather-storage.js';
+import { startRainfallStorage } from './services/disaster/rainfall-storage.js';
+import { startDht11Storage } from './services/disaster/dht11-storage.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -109,6 +112,14 @@ startSync();
 // Start periodic GPS storage to disaster.db
 startGpsStorage();
 
+// Start periodic weather forecast storage via EDGE Gateway
+startWeatherStorage();
+
+// Start periodic rainfall sensor storage from Edge Gateway
+startRainfallStorage();
+
+// Start periodic DHT11 sensor storage from Edge Gateway
+startDht11Storage();
 // Bring up the fingerprint scanner (no-op when disabled or unplugged)
 initFingerprintHardware().catch(err => logger.error(`[FP] Init failed: ${err.message}`));
 

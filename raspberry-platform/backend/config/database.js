@@ -406,6 +406,15 @@ try {
 
   try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN source TEXT DEFAULT 'GPS_SENSOR'"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE disaster_events ADD COLUMN synced INTEGER NOT NULL DEFAULT 0"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN device_id TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN humidity REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN wind_direction REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN condition TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN forecast_data TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN fetched_at TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN location_name TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN location_district TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE gps_readings RENAME COLUMN location_province TO location_district"); } catch (_) {}
 
   logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
 } catch (err) {
@@ -437,24 +446,6 @@ if (C.AWS_RDS_HOST) {
 } else {
   pgPool = null;
   logger.info('[PG] No AWS_RDS_HOST configured — PostgreSQL disabled');
-}
-
-export async function pgIsReachable() {
-  if (!pgPool) return false;
-  try {
-    const client = await pgPool.connect();
-    await client.query('SELECT 1');
-    client.release();
-    return true;
-  } catch { return false; }
-}
-
-export async function pgQuery(text, params = []) {
-  if (!pgPool) throw new Error('PostgreSQL not configured');
-  const client = await pgPool.connect();
-  try {
-    return await client.query(text, params);
-  } finally { client.release(); }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

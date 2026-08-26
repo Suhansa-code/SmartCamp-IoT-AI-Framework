@@ -30,7 +30,7 @@ export default function AlertsPage() {
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/alerts?camp=${selectedCamp === "all" ? "" : selectedCamp}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/alerts?camp=${selectedCamp === "all" ? "" : selectedCamp}`);
       if (res.ok) {
         const data = await res.json();
         const transformed = data.alerts.map((a) => ({
@@ -165,16 +165,6 @@ export default function AlertsPage() {
                 placeholder: "Search child ID, camp, alert type…",
                 onRefresh: fetchAlerts,
                 refreshing: loading,
-              }}
-              pendingCount={pendingCount}
-              escalatedCount={escalatedCount}
-              onBellClick={() => {
-                const a = alerts.find((x) => x.status === "pending");
-                if (a) viewAlert(a.id);
-              }}
-              onEscalatedClick={() => {
-                const a = alerts.find((x) => x.status === "escalated");
-                if (a) viewAlert(a.id);
               }}
             />
 

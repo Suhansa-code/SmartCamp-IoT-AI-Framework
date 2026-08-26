@@ -1,24 +1,24 @@
-// "nitec"-style palette — white theme, independent of app theme.
+// Professional disaster-management palette — calm, trustworthy, modern.
 // Design tokens + semantic color maps used across the app.
 
 export const P = {
-  outer:     'linear-gradient(135deg, #FFFFFF 0%, #F6F8FB 50%, #EDF1F7 100%)',
+  outer:     'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%)',
   panel:     '#FFFFFF',
-  panelSoft: '#F8FAFD',
+  panelSoft: '#F8FAFC',
   card:      '#FFFFFF',
-  cardSoft:  '#F7F9FC',
+  cardSoft:  '#F8FAFC',
   ink:       '#0F172A',
-  inkSoft:   '#334155',
+  inkSoft:   '#475569',
   muted:     '#64748B',
-  border:    '#E9EDF3',
-  lime:      '#D8F24E',
-  limeDark:  '#B9DD2E',
+  border:    '#E2E8F0',
+  lime:      '#2563EB',
+  limeDark:  '#1D4ED8',
   dark:      '#0F172A',
-  red:       '#EF4444',
-  amber:     '#F59E0B',
-  green:     '#22C55E',
-  purple:    '#8B5CF6',
-  teal:      '#0D9488',
+  red:       '#DC2626',
+  amber:     '#D97706',
+  green:     '#16A34A',
+  purple:    '#2563EB',
+  teal:      '#2563EB',
 }
 
 export const SEVERITY_COLOR = { high: P.red, medium: P.amber, low: P.green }
