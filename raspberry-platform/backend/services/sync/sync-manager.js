@@ -106,7 +106,9 @@ const TABLE_DB_MAP = {
   disaster_alerts: disasterDb, prediction_requests: disasterDb,
 };
 
-const META_FIELDS = ['_priority', '_reason', '_qos', '_timestamp'];
+// mqtt_password is a live broker credential and has no business reaching the
+// cloud; the rest are internal bookkeeping.
+const META_FIELDS = ['_priority', '_reason', '_qos', '_timestamp', 'mqtt_password'];
 
 let syncTimer = null;
 let ackTimer = null;
@@ -132,11 +134,13 @@ function getDomainForTable(table) {
 function syncLog(event, entity, localId, extra = {}) {
   const meta = { entity, local_id: localId, ...extra };
   switch (event) {
-    case 'queued':      logger.info(`[SYNC] Queued ${entity} id=${localId}`, meta); break;
-    case 'published':   logger.info(`[SYNC] Published ${entity} id=${localId}`, meta); break;
-    case 'buffered':    logger.info(`[SYNC] Buffered ${entity} id=${localId} (offline/CRITICAL)`, meta); break;
-    case 'acknowledged': logger.info(`[SYNC] Acknowledged ${entity} id=${localId}`, meta); break;
-    case 'synchronized': logger.info(`[SYNC] Synchronized ${entity} id=${localId}`, meta); break;
+    // Per-record events: one line per message, so a 1000-row backlog is 2000
+    // INFO lines. The per-cycle summary carries the counts instead.
+    case 'queued':      logger.debug(`[SYNC] Queued ${entity} id=${localId}`, meta); break;
+    case 'published':   logger.debug(`[SYNC] Published ${entity} id=${localId}`, meta); break;
+    case 'buffered':    logger.debug(`[SYNC] Buffered ${entity} id=${localId} (offline/CRITICAL)`, meta); break;
+    case 'acknowledged': logger.debug(`[SYNC] Acknowledged ${entity} id=${localId}`, meta); break;
+    case 'synchronized': logger.debug(`[SYNC] Synchronized ${entity} id=${localId}`, meta); break;
     case 'failed':      logger.error(`[SYNC] Failed ${entity} id=${localId}`, meta); break;
     case 'retrying':    logger.warn(`[SYNC] Retrying ${entity} id=${localId}`, meta); break;
     case 'permanently_failed': logger.error(`[SYNC] Permanent failure ${entity} id=${localId}`, meta); break;
@@ -165,6 +169,58 @@ function insertPending(syncId, entity, tableName, localId, operation, priority, 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
     ).run(syncId, entity, tableName, strLocalId, operation, priority, C.CAMP_ID, C.DEVICE_ID, JSON.stringify(payload));
   }
+}
+
+/**
+ * Is this source row already sitting unpublished in the queue?
+ *
+ * fetchAllPending() reads the source tables (WHERE synced = 0), and a row is
+ * only marked synced after a *successful publish*. Buffering is not a success,
+ * so while publishing was degraded every cycle re-selected the same rows and
+ * buffered another copy of each — 62 records became 1458 buffered messages.
+ * Once a row is queued, the retry path owns it.
+ */
+function isAlreadyQueued(tableName, localId) {
+  return !!campDb.prepare(
+    'SELECT 1 FROM sync_pending WHERE table_name = ? AND local_id = ? AND published = 0 LIMIT 1'
+  ).get(tableName, String(localId));
+}
+
+/**
+ * Is a copy of this record already sitting in the SAAMP buffer, unflushed?
+ *
+ * A publish that gets buffered is not a failure to retry — the message is
+ * queued and the recovery flush will deliver it. Retrying anyway just appends
+ * another copy, and since a buffered result never sets a retry backoff the row
+ * stays immediately eligible, so it happened on every tick.
+ */
+function isAlreadyBuffered(syncId) {
+  return !!campDb.prepare(
+    `SELECT 1 FROM mqtt_buffer
+     WHERE flushed = 0 AND json_extract(payload, '$.sync_id') = ? LIMIT 1`
+  ).get(syncId);
+}
+
+/**
+ * Rebuild the full sync envelope from a queued row.
+ *
+ * The retry path used to publish JSON.parse(row.payload) — but insertPending
+ * stores payload.payload, the bare table row. So retries went out with no
+ * sync_id, entity or operation: the cloud could not ack what it could not
+ * identify, so the record was never marked acked and retried indefinitely.
+ */
+function envelopeFromPending(row) {
+  return {
+    sync_id: row.sync_id,
+    entity: row.entity,
+    local_id: row.local_id,
+    operation: row.operation,
+    priority: row.priority,
+    camp_id: row.camp_id,
+    device_id: row.device_id,
+    timestamp: new Date().toISOString(),
+    payload: JSON.parse(row.payload),
+  };
 }
 
 function markPublished(syncId) {
@@ -246,6 +302,15 @@ function handleFlush(flushedMessages) {
 
 // ── Build sync message ───────────────────────────────────────────────────
 
+/**
+ * Takes the *annotated* row, not a stripped one.
+ *
+ * sync-queue attaches `_priority` from classifyRowPriority, but this used to be
+ * called as buildSyncMessage(entity, stripMeta(row)) — which deleted `_priority`
+ * one line before it was read here, so every message silently fell back to
+ * MEDIUM and the content-based classification never reached the wire. Strip
+ * inside, after the annotation has been read.
+ */
 function buildSyncMessage(entity, row) {
   const pk = ENTITY_PK[entity] || 'id';
   return {
@@ -257,11 +322,11 @@ function buildSyncMessage(entity, row) {
     camp_id: C.CAMP_ID,
     device_id: C.DEVICE_ID,
     timestamp: new Date().toISOString(),
-    payload: row,
+    payload: stripMeta(row),
   };
 }
 
-function stripMeta(row) {
+export function stripMeta(row) {
   const clean = { ...row };
   for (const key of META_FIELDS) delete clean[key];
   return clean;
@@ -269,7 +334,7 @@ function stripMeta(row) {
 
 // ── Retry pending unacked records ────────────────────────────────────────
 
-function retryPendingAcks() {
+async function retryPendingAcks() {
   const now = new Date().toISOString();
   const rows = campDb.prepare(
     `SELECT * FROM sync_pending
@@ -282,12 +347,15 @@ function retryPendingAcks() {
 
   if (rows.length === 0) return;
 
-  logger.info(`[SYNC] Retrying ${rows.length} unacked records`);
-  for (const row of rows) {
+  const retryable = rows.filter((row) => !isAlreadyBuffered(row.sync_id));
+  if (retryable.length === 0) return;
+
+  logger.info(`[SYNC] Retrying ${retryable.length} unacked records`);
+  for (const row of retryable) {
     const topic = `smartcamp/sync/${row.entity}`;
-    const payload = JSON.parse(row.payload);
+    const payload = envelopeFromPending(row);
     const domain = getDomainForTable(row.table_name);
-    const result = saamp.publish(topic, payload, 'sync', domain);
+    const result = await saamp.publish(topic, payload, 'sync', domain, row.priority);
 
     if (result.published) {
       markPublished(row.sync_id);
@@ -334,7 +402,7 @@ export async function runSyncCycle() {
   const networkState = saamp.getNetworkState();
 
   try {
-    retryPendingAcks();
+    await retryPendingAcks();
 
     if (networkState === 'CRITICAL') {
       logger.debug('[SYNC] Network CRITICAL — deferring new sync publishes');
@@ -360,18 +428,27 @@ export async function runSyncCycle() {
       const topic = `smartcamp/sync/${entity}`;
 
       for (const row of batch.rows) {
-        const syncId = randomUUID();
-        const payload = buildSyncMessage(entity, stripMeta(row));
+        const payload = buildSyncMessage(entity, row);
+        // One id for the wire and the queue. These were two separate
+        // randomUUID() calls, so the sync_id the cloud acked never matched the
+        // one stored in sync_pending — nothing was ever marked acked, and
+        // handleFlush could not mark buffered messages published either.
+        const syncId = payload.sync_id;
+
+        if (isAlreadyQueued(batch.table, payload.local_id)) {
+          continue;
+        }
 
         insertPending(syncId, entity, batch.table, payload.local_id, payload.operation, payload.priority, payload.payload);
         syncLog('queued', entity, payload.local_id, { sync_id: syncId, priority: payload.priority });
 
         const domain = getDomainForTable(batch.table);
-        const result = saamp.publish(topic, payload, 'sync', domain);
+        const result = await saamp.publish(topic, payload, 'sync', domain, payload.priority);
 
         if (result.published) {
           markPublished(syncId);
-          syncLog('published', entity, payload.local_id, { sync_id: syncId, qos: result.final_qos });
+          syncLog('published', entity, payload.local_id,
+            { sync_id: syncId, priority: result.priority, qos: result.final_qos });
           totalPublished++;
         } else {
           syncLog('buffered', entity, payload.local_id, { sync_id: syncId, network: networkState });
@@ -425,7 +502,10 @@ export function startSync(intervalMs = SYNC_INTERVAL_MS) {
   setTimeout(() => {
     runSyncCycle();
     syncTimer = setInterval(runSyncCycle, intervalMs);
-    ackTimer = setInterval(retryPendingAcks, ACK_CHECK_INTERVAL_MS);
+    ackTimer = setInterval(
+      () => retryPendingAcks().catch((e) => logger.error(`[SYNC] Ack retry failed: ${e.message}`)),
+      ACK_CHECK_INTERVAL_MS
+    );
   }, 5000);
 
   logger.info(`[SYNC] Started (initial interval: ${intervalMs}ms, adaptive: 5s/15s/60s, device: ${C.DEVICE_ID})`);

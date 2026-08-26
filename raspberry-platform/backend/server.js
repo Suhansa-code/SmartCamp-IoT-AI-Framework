@@ -36,12 +36,33 @@ import childRoute from './routes/education/child.js';
 import sessionRoute from './routes/education/session.js';
 import dashboardRoute from './routes/education/dashboard.js';
 
+// CORS
+const isLocalhost = (hostname) => hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+
+const isAllowedOrigin = (origin) => {
+  if (C.CORS_ORIGINS.includes(origin)) return true;
+  let parsedOrigin;
+  try { parsedOrigin = new URL(origin); } catch { return false; }
+  // Vite picks the next free port (5174, 5175...) when 5173 is taken, so allow any
+  // localhost port outside production rather than chasing the drift in the allow-list.
+  if (C.NODE_ENV !== 'production' && isLocalhost(parsedOrigin.hostname)) return true;
+  if (!C.ALLOW_VERCEL_PREVIEWS) return false;
+  return parsedOrigin.protocol === 'https:' && /(^|\.)vercel\.app$/i.test(parsedOrigin.hostname);
+};
+
+const corsOriginCheck = (origin, callback) => {
+  if (!origin) return callback(null, true);
+  if (isAllowedOrigin(origin)) return callback(null, true);
+  logger.warn(`[CORS] Blocked origin: ${origin}`);
+  callback(new Error(`CORS blocked: ${origin}`));
+};
+
 const app = express();
 const PORT = C.PORT;
 const server = http.createServer(app);
 const io = new SocketServer(server, {
   cors: {
-    origin: C.CORS_ORIGINS,
+    origin: corsOriginCheck,
     credentials: true,
   },
 });
@@ -51,23 +72,8 @@ app.set('io', io);
 // Security headers
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// CORS
-const isAllowedOrigin = (origin) => {
-  if (C.CORS_ORIGINS.includes(origin)) return true;
-  if (!C.ALLOW_VERCEL_PREVIEWS) return false;
-  try {
-    const parsedOrigin = new URL(origin);
-    return parsedOrigin.protocol === 'https:' && /(^|\.)vercel\.app$/i.test(parsedOrigin.hostname);
-  } catch { return false; }
-};
-
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (isAllowedOrigin(origin)) return callback(null, true);
-    logger.warn(`[CORS] Blocked origin: ${origin}`);
-    callback(new Error(`CORS blocked: ${origin}`));
-  },
+  origin: corsOriginCheck,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,

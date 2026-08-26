@@ -1,8 +1,8 @@
 import { campDb as db, pagesDb } from '../../config/database.js';
+import { redactPerson } from '../../utils/redact.js';
 import C from '../../config/constants.js';
 import * as saamp from '../network/saamp-mqtt.js';
-import * as emqx from '../network/emqx-manager.js';
-import { genPassword, genId } from '../../utils/crypto.js';
+import { genId } from '../../utils/crypto.js';
 import { generateWristbandQRCode } from './wristband.js';
 import { audit } from './resources.js';
 import { nextChildId, nowISO } from '../../utils/helpers.js';
@@ -200,16 +200,20 @@ export async function registerPerson(data) {
 
   let mqttResult = null;
   try {
-    const clientId = `sc-person-${personId}`;
-    const password = genPassword();
-    await emqx.createMqttUser(clientId, password);
-    db.prepare('UPDATE persons SET mqtt_client_id = ?, mqtt_password = ? WHERE id = ?').run(clientId, password, personId);
-
     const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(personId);
-    mqttResult = await saamp.publishAsClient(
+
+    // Published on the shared broker connection, like everything else the Pi
+    // sends. redactPerson strips mqtt_password, which the row still carries for
+    // anyone provisioned before this change.
+    mqttResult = await saamp.publish(
       'smartcamp/registration/new',
-      { event: 'new_registration', person, wristband_barcode: barcode, timestamp: new Date().toISOString() },
-      clientId, password, 'fingerprint_scanner', 'new_registration'
+      {
+        event: 'new_registration',
+        person: redactPerson(person),
+        wristband_barcode: barcode,
+        timestamp: new Date().toISOString(),
+      },
+      'fingerprint_scanner', 'new_registration'
     );
   } catch (mqttErr) {
     // MQTT failure is non-fatal — person is registered, wristband issued

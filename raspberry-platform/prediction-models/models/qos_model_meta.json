@@ -1,0 +1,130 @@
+{
+  "model_type": "RandomForestClassifier",
+  "target": "required_qos",
+  "buffer_class": -1,
+  "features": [
+    "rtt_avg",
+    "rtt_max",
+    "packet_loss",
+    "jitter",
+    "broker_rtt",
+    "bridge_alive",
+    "queue_depth",
+    "queue_delta",
+    "rtt_avg_mean_5",
+    "packet_loss_mean_5",
+    "jitter_mean_5",
+    "broker_rtt_mean_5",
+    "queue_depth_mean_5",
+    "rtt_avg_slope_5",
+    "packet_loss_slope_5",
+    "jitter_slope_5",
+    "broker_rtt_slope_5",
+    "queue_depth_slope_5",
+    "rtt_std_5",
+    "bridge_uptime_5",
+    "loss_rtt_product",
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "priority_scaled"
+  ],
+  "label_accuracy": 0.9952,
+  "policy_comparison": {
+    "saamp_rules": {
+      "LOW": {
+        "delivery_rate": 0.5595,
+        "mean_qos": 0.0,
+        "buffered_pct": 0.0,
+        "meets_target": false
+      },
+      "MEDIUM": {
+        "delivery_rate": 0.8298,
+        "mean_qos": 0.926,
+        "buffered_pct": 0.0,
+        "meets_target": false
+      },
+      "HIGH": {
+        "delivery_rate": 0.843,
+        "mean_qos": 1.0,
+        "buffered_pct": 0.0,
+        "meets_target": false
+      },
+      "CRITICAL": {
+        "delivery_rate": 0.932,
+        "mean_qos": 2.0,
+        "buffered_pct": 0.0,
+        "meets_target": false
+      },
+      "overall": {
+        "delivery_rate": 0.825,
+        "mean_qos": 1.14,
+        "buffered_pct": 0.0
+      }
+    },
+    "model": {
+      "LOW": {
+        "delivery_rate": 0.719,
+        "mean_qos": 0.393,
+        "buffered_pct": 4.7,
+        "meets_target": true
+      },
+      "MEDIUM": {
+        "delivery_rate": 0.9313,
+        "mean_qos": 1.368,
+        "buffered_pct": 4.71,
+        "meets_target": true
+      },
+      "HIGH": {
+        "delivery_rate": 0.9497,
+        "mean_qos": 1.0,
+        "buffered_pct": 41.35,
+        "meets_target": false
+      },
+      "CRITICAL": {
+        "delivery_rate": 0.932,
+        "mean_qos": 2.0,
+        "buffered_pct": 0.0,
+        "meets_target": false
+      },
+      "overall": {
+        "delivery_rate": 0.9008,
+        "mean_qos": 1.375,
+        "buffered_pct": 12.23
+      }
+    },
+    "oracle": {
+      "LOW": {
+        "delivery_rate": 0.72,
+        "mean_qos": 0.401,
+        "buffered_pct": 3.84,
+        "meets_target": true
+      },
+      "MEDIUM": {
+        "delivery_rate": 0.9314,
+        "mean_qos": 1.372,
+        "buffered_pct": 4.21,
+        "meets_target": true
+      },
+      "HIGH": {
+        "delivery_rate": 0.95,
+        "mean_qos": 1.0,
+        "buffered_pct": 41.35,
+        "meets_target": true
+      },
+      "CRITICAL": {
+        "delivery_rate": 0.932,
+        "mean_qos": 2.0,
+        "buffered_pct": 0.0,
+        "meets_target": false
+      },
+      "overall": {
+        "delivery_rate": 0.9008,
+        "mean_qos": 1.376,
+        "buffered_pct": 11.95
+      }
+    }
+  },
+  "notes": "Both policies scored against data_generator.delivery_probability, the simulator physics that also defined the labels. Beating the rule table here shows the table is miscalibrated relative to those assumptions, not that it is wrong about a real link."
+}

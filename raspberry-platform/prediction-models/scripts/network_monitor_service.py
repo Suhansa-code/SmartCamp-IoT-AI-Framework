@@ -1,179 +1,269 @@
 #!/usr/bin/env python3
-"""
-Network QoS Monitor Service
-Measures real network metrics, runs the trained Random Forest model,
-and pushes the predicted state (STABLE/DEGRADED/CRITICAL) to the
-Node.js backend via POST /api/network/state every INTERVAL seconds.
+"""Network state monitor for SAAMP.
+
+Measures the link the Pi actually depends on, forecasts how it will look over
+the next few minutes, and pushes that to the Node backend so SAAMP can raise
+QoS and start buffering *before* messages are lost.
+
+Two things distinguish it from a threshold check:
+  * it forecasts a horizon, not the present moment, so there is lead time; and
+  * it escalates on doubt (a probability band), not on the single most likely
+    outcome, because missing an escalation is far worse than a false alarm.
 
 Usage:
   python3 network_monitor_service.py
   python3 network_monitor_service.py --interval 15 --backend http://localhost:5000
-  python3 network_monitor_service.py --dry-run       # print predictions without pushing
+  python3 network_monitor_service.py --dry-run
+  python3 network_monitor_service.py --simulate CRITICAL
 """
 
 import argparse
 import datetime
 import json
+import os
 import re
+import socket
 import subprocess
 import sys
 import time
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 
-# ── Paths ─────────────────────────────────────────────────────
 HERE = Path(__file__).resolve().parent
 MODELS_DIR = HERE.parent / 'models'
 SRC_DIR = HERE.parent / 'src'
 sys.path.insert(0, str(SRC_DIR))
 
-# ── Config ─────────────────────────────────────────────────────
-EMQX_HOST   = 'i17140d1.ala.asia-southeast1.emqxsl.com'
+EMQX_HOST = 'i17140d1.ala.asia-southeast1.emqxsl.com'
+EMQX_PORT = 8883
 PING_TARGET = '8.8.8.8'
-INTERVAL    = 30        # seconds between predictions
+INTERVAL = 30
 BACKEND_URL = 'http://localhost:5000'
-PING_COUNT  = 5
+PING_COUNT = 5
+BROKER_PROBES = 3
+PRIORITIES = {0: 'LOW', 1: 'MEDIUM', 2: 'HIGH', 3: 'CRITICAL'}
+BROKER_TIMEOUT = 2.0      # per connect attempt
+BROKER_DEADLINE = 6.0     # total, so a dead broker cannot stall the cycle
+UNREACHABLE_RTT = 4000.0
 
 
-# ── Network measurement ────────────────────────────────────────
+# ── Measurement ───────────────────────────────────────────────────────────
 
 def measure_ping(host, count=PING_COUNT, timeout=20):
-    """Return rtt_avg, rtt_max, packet_loss, jitter via ping."""
+    """rtt_avg / rtt_max / packet_loss / jitter from ping."""
     try:
-        r = subprocess.run(
-            ['ping', '-c', str(count), '-W', '3', host],
-            capture_output=True, text=True, timeout=timeout
-        )
+        r = subprocess.run(['ping', '-c', str(count), '-W', '3', host],
+                           capture_output=True, text=True, timeout=timeout)
         out = r.stdout + r.stderr
     except (subprocess.TimeoutExpired, FileNotFoundError):
-        return {'rtt_avg': 999.0, 'rtt_max': 999.0,
-                'packet_loss': 100.0, 'jitter': 0.0}
+        return {'rtt_avg': 999.0, 'rtt_max': 999.0, 'packet_loss': 100.0, 'jitter': 0.0}
 
-    rtt_avg, rtt_max, jitter = 999.0, 999.0, 0.0
+    rtt_avg = rtt_max = 999.0
+    jitter = 0.0
     packet_loss = 100.0
 
     m = re.search(r'(\d+(?:\.\d+)?)% packet loss', out)
     if m:
         packet_loss = float(m.group(1))
-
     m = re.search(r'rtt min/avg/max/mdev = [\d.]+/([\d.]+)/([\d.]+)/([\d.]+)', out)
     if m:
-        rtt_avg = float(m.group(1))
-        rtt_max = float(m.group(2))
-        jitter  = float(m.group(3))
+        rtt_avg, rtt_max, jitter = float(m.group(1)), float(m.group(2)), float(m.group(3))
 
     return {'rtt_avg': rtt_avg, 'rtt_max': rtt_max,
             'packet_loss': packet_loss, 'jitter': jitter}
 
 
-def check_broker_alive(host=EMQX_HOST, port=8883, timeout=4):
-    """TCP reachability check for the MQTT broker."""
+def probe_broker(host=EMQX_HOST, port=EMQX_PORT, probes=BROKER_PROBES,
+                 timeout=BROKER_TIMEOUT, deadline=BROKER_DEADLINE):
+    """TCP connect latency to the broker.
+
+    The path that matters is the one to EMQX, not to Google. A ping to 8.8.8.8
+    says the internet works; it says nothing about whether the broker is
+    reachable or how far away it currently feels.
+
+    Deliberately not socket.create_connection: that walks every address
+    getaddrinfo returns (v4 and v6, several A records) giving each the full
+    timeout, so an unreachable broker took ~48s for three probes — far longer
+    than the monitor's own interval, and only when the broker is down, which is
+    exactly when the reading is needed on time. Resolve once, then bound both
+    the per-attempt timeout and the total.
+    """
+    started = time.perf_counter()
     try:
-        import socket
-        s = socket.create_connection((host, port), timeout=timeout)
-        s.close()
-        return True
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except OSError:
-        return False
+        return {'broker_rtt': UNREACHABLE_RTT, 'bridge_alive': False}
+    if not infos:
+        return {'broker_rtt': UNREACHABLE_RTT, 'bridge_alive': False}
+
+    family, socktype, proto, _, sockaddr = infos[0]
+    samples = []
+
+    for _ in range(probes):
+        if time.perf_counter() - started > deadline:
+            break
+        s = socket.socket(family, socktype, proto)
+        s.settimeout(timeout)
+        start = time.perf_counter()
+        try:
+            s.connect(sockaddr)
+            samples.append((time.perf_counter() - start) * 1000.0)
+        except OSError:
+            pass
+        finally:
+            s.close()
+
+    if not samples:
+        return {'broker_rtt': UNREACHABLE_RTT, 'bridge_alive': False}
+    return {'broker_rtt': sum(samples) / len(samples), 'bridge_alive': True}
 
 
-def collect_metrics(history: list) -> dict:
+def fetch_queue_depth(backend_url, timeout=3):
+    """Real buffered-message count from the backend.
+
+    Previously this was invented as rtt_avg/5, which made it a restatement of
+    latency rather than evidence. The true depth is a genuine, independent
+    signal: a queue that is growing means SAAMP is already struggling.
     """
-    Measure current network metrics and derive features needed by the model.
-    history is a list of past metric dicts used for queue_delta / throughput.
-    """
+    try:
+        with urllib.request.urlopen(f'{backend_url}/api/network/status', timeout=timeout) as r:
+            return int(json.loads(r.read()).get('buffered_messages', 0))
+    except (urllib.error.URLError, ValueError, KeyError, TimeoutError):
+        return None
+
+
+def collect_metrics(history, backend_url):
     ping = measure_ping(PING_TARGET)
-    broker = check_broker_alive()
-
+    broker = probe_broker()
     now = datetime.datetime.now()
+
+    depth = fetch_queue_depth(backend_url)
+    if depth is None:
+        depth = history[-1]['queue_depth'] if history else 0
+
     metrics = {
-        'rtt_avg':      ping['rtt_avg'],
-        'rtt_max':      ping['rtt_max'],
-        'packet_loss':  ping['packet_loss'],
-        'jitter':       ping['jitter'],
-        'bridge_alive': broker,
-        'hour':         float(now.hour),
-        'day_of_week':  float(now.weekday()),
-        # Derived / estimated
-        'bandwidth':    max(0.5, 50.0 - ping['rtt_avg'] * 0.05),
-        'throughput':   max(0.0, 200.0 - ping['rtt_avg'] * 0.3),
-        'drop_rate':    ping['packet_loss'] * 0.5,
-        'clients':      20,
-        'queue_depth':  int(min(200, ping['rtt_avg'] / 5)),
+        **ping, **broker,
+        'hour': float(now.hour),
+        'day_of_week': float(now.weekday()),
+        'queue_depth': depth,
     }
+    metrics['queue_delta'] = depth - history[-1]['queue_depth'] if history else 0
 
-    # queue_delta from previous sample
-    if history:
-        prev_depth = history[-1].get('queue_depth', metrics['queue_depth'])
-        metrics['queue_delta'] = metrics['queue_depth'] - prev_depth
-    else:
-        metrics['queue_delta'] = 0
-
-    history.append(metrics)
-    if len(history) > 120:
-        history.pop(0)
+    # An internet path that is fine while the broker is unreachable is a
+    # broker-side fault, not a degraded uplink — worth saying out loud.
+    if not broker['bridge_alive'] and ping['packet_loss'] < 5:
+        print('[monitor] broker unreachable but internet path is healthy — broker-side fault')
 
     return metrics
 
 
-# ── Model prediction ───────────────────────────────────────────
+# ── Model ─────────────────────────────────────────────────────────────────
+
+def load_qos_model():
+    """Optional — SAAMP falls back to its rule table when this is absent."""
+    import joblib
+    try:
+        return (joblib.load(MODELS_DIR / 'qos_model.pkl'),
+                joblib.load(MODELS_DIR / 'qos_scaler.pkl'),
+                joblib.load(MODELS_DIR / 'qos_features.pkl'))
+    except FileNotFoundError:
+        return None, None, None
+
 
 def load_model():
-    """Load the trained Random Forest + scaler from disk."""
     import joblib
-    model   = joblib.load(MODELS_DIR / 'network_model.pkl')
-    scaler  = joblib.load(MODELS_DIR / 'network_scaler.pkl')
+    model = joblib.load(MODELS_DIR / 'network_model.pkl')
+    scaler = joblib.load(MODELS_DIR / 'network_scaler.pkl')
     features = joblib.load(MODELS_DIR / 'network_features.pkl')
-    return model, scaler, features
+
+    meta_path = MODELS_DIR / 'network_model_meta.json'
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    thresholds = meta.get('thresholds', {})
+
+    # Overridable without retraining, because the trained default trades away
+    # something the sweep does not measure. At t_critical=0.25 the model reaches
+    # its best escalation recall (0.49) but P(CRITICAL) sits near 0.3 for almost
+    # any non-pristine link, so DEGRADED is effectively unreachable and SAAMP
+    # collapses to two states — its QoS-upgrade path never runs. t_critical=0.5
+    # restores three usable states at lower recall (0.33) and far fewer false
+    # alarms (2.4% vs 12.3%). Which is right depends on whether you would rather
+    # buffer early or use the graduated response.
+    return model, scaler, features, {
+        't_critical': float(os.environ.get('NETWORK_T_CRITICAL',
+                                           thresholds.get('t_critical', 0.25))),
+        't_degraded': float(os.environ.get('NETWORK_T_DEGRADED',
+                                           thresholds.get('t_degraded', 0.25))),
+        'horizon': meta.get('horizon_samples', 10),
+    }
 
 
-def predict_state(metrics: dict, model, scaler, features, priority=1) -> str:
-    """
-    Run the trained model on live metrics.
-    priority: 0=LOW, 1=MEDIUM, 2=HIGH, 3=CRITICAL (default MEDIUM for monitoring)
+def predict_state(history, model, scaler, features, thresholds):
+    """Forecast from the recent window and escalate on doubt."""
+    import pandas as pd
+    from feature_extraction import engineer_features
+    from network_predictor import INV_STATE_MAP, decide_state
+
+    df = engineer_features(pd.DataFrame(history))
+    for col in features:
+        if col not in df.columns:
+            df[col] = 0.0
+
+    X = df[features].fillna(0).iloc[[-1]]
+    proba = model.predict_proba(scaler.transform(X))[0]
+    classes = [INV_STATE_MAP[c] for c in model.classes_]
+
+    state = decide_state(proba, classes, thresholds['t_critical'], thresholds['t_degraded'])
+    return state, {c: round(float(p), 3) for c, p in zip(classes, proba)}
+
+
+def predict_qos_policy(history, qos_model, qos_scaler, qos_features):
+    """QoS for each priority under current conditions.
+
+    Network metrics are identical for every message at a given moment, so the
+    whole policy is four predictions per cycle rather than one per message —
+    no Python in the publish path, and nothing breaks when this process dies.
     """
     import pandas as pd
     from feature_extraction import engineer_features
 
-    row = {**metrics, 'priority': priority}
-    df = pd.DataFrame([row])
-    df_feat = engineer_features(df)
+    df = engineer_features(pd.DataFrame(history))
+    policy = {}
 
-    # Fill any missing engineered columns with 0
-    for col in features:
-        if col not in df_feat.columns:
-            df_feat[col] = 0.0
+    for code, name in PRIORITIES.items():
+        row = df.iloc[[-1]].copy()
+        row['priority_scaled'] = code / 3.0
+        for col in qos_features:
+            if col not in row.columns:
+                row[col] = 0.0
+        X = row[qos_features].fillna(0)
+        policy[name] = int(qos_model.predict(qos_scaler.transform(X))[0])
 
-    X = df_feat[features].fillna(0)
-    X_sc = scaler.transform(X)
-    pred = model.predict(X_sc)[0]
-    inv_map = {0: 'STABLE', 1: 'DEGRADED', 2: 'CRITICAL'}
-    return inv_map.get(int(pred), 'STABLE')
+    return policy
 
 
-# ── Push to backend ────────────────────────────────────────────
+# ── Backend ───────────────────────────────────────────────────────────────
 
-def push_state(state: str, metrics: dict, backend_url: str) -> bool:
-    """POST predicted network state + metrics to the Node.js backend."""
-    url  = f'{backend_url}/api/network/state'
+def push_state(state, metrics, probabilities, qos_policy, backend_url):
     payload = {
         'state': state,
         'metrics': {
-            'rtt_avg':      round(metrics.get('rtt_avg', 0), 1),
-            'rtt_max':      round(metrics.get('rtt_max', 0), 1),
-            'packet_loss':  round(metrics.get('packet_loss', 0), 2),
-            'jitter':       round(metrics.get('jitter', 0), 1),
-            'bandwidth':    round(metrics.get('bandwidth', 0), 1),
+            'rtt_avg': round(metrics.get('rtt_avg', 0), 1),
+            'rtt_max': round(metrics.get('rtt_max', 0), 1),
+            'packet_loss': round(metrics.get('packet_loss', 0), 2),
+            'jitter': round(metrics.get('jitter', 0), 1),
+            'broker_rtt': round(metrics.get('broker_rtt', 0), 1),
             'bridge_alive': metrics.get('bridge_alive', False),
-            'queue_depth':  metrics.get('queue_depth', 0),
+            'queue_depth': metrics.get('queue_depth', 0),
+            'probabilities': probabilities,
         },
+        'qos_policy': qos_policy,
     }
-    body = json.dumps(payload).encode()
-    req  = urllib.request.Request(
-        url, data=body,
+    req = urllib.request.Request(
+        f'{backend_url}/api/network/state',
+        data=json.dumps(payload).encode(),
         headers={'Content-Type': 'application/json'},
-        method='POST'
+        method='POST',
     )
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:
@@ -183,27 +273,28 @@ def push_state(state: str, metrics: dict, backend_url: str) -> bool:
         return False
 
 
-# ── Main loop ──────────────────────────────────────────────────
-
 SIMULATED_PROFILES = {
-    'STABLE':   {'rtt_avg': 40.0,   'rtt_max': 55.0,  'packet_loss': 0.1, 'jitter': 3.0,
-                 'queue_depth': 10, 'bandwidth': 48.0, 'throughput': 185.0, 'drop_rate': 0.1,
-                 'bridge_alive': True, 'clients': 25, 'queue_delta': 0},
-    'DEGRADED': {'rtt_avg': 420.0,  'rtt_max': 650.0, 'packet_loss': 7.0, 'jitter': 55.0,
-                 'queue_depth': 60, 'bandwidth': 3.0,  'throughput': 25.0, 'drop_rate': 4.0,
-                 'bridge_alive': True, 'clients': 35, 'queue_delta': 5},
-    'CRITICAL': {'rtt_avg': 1400.0, 'rtt_max': 2200.0,'packet_loss': 25.0,'jitter': 180.0,
-                 'queue_depth': 120,'bandwidth': 0.4,  'throughput': 3.0,  'drop_rate': 15.0,
-                 'bridge_alive': False,'clients': 8, 'queue_delta': 12},
+    'STABLE':   {'rtt_avg': 40.0, 'rtt_max': 55.0, 'packet_loss': 0.1, 'jitter': 3.0,
+                 'broker_rtt': 30.0, 'bridge_alive': True, 'queue_depth': 2},
+    'DEGRADED': {'rtt_avg': 420.0, 'rtt_max': 650.0, 'packet_loss': 7.0, 'jitter': 55.0,
+                 'broker_rtt': 500.0, 'bridge_alive': True, 'queue_depth': 60},
+    'CRITICAL': {'rtt_avg': 1400.0, 'rtt_max': 2200.0, 'packet_loss': 25.0, 'jitter': 180.0,
+                 'broker_rtt': UNREACHABLE_RTT, 'bridge_alive': False, 'queue_depth': 150},
 }
 
 
 def run(interval=INTERVAL, backend_url=BACKEND_URL, dry_run=False, simulate=None):
     print(f'[monitor] Loading model from {MODELS_DIR}')
-    model, scaler, features = load_model()
-    print(f'[monitor] Model loaded ({len(features)} features)')
+    model, scaler, features, thresholds = load_model()
+    qos_model, qos_scaler, qos_features = load_qos_model()
+    print(f'[monitor] Model loaded ({len(features)} features, horizon '
+          f'{thresholds["horizon"]} samples)')
+    print(f'[monitor] Escalate at P(CRITICAL)>={thresholds["t_critical"]}, '
+          f'P(not stable)>={thresholds["t_degraded"]}')
+    print('[monitor] QoS: ' + ('model-driven' if qos_model
+                               else 'no qos_model.pkl — SAAMP uses its rule table'))
     if simulate:
-        print(f'[monitor] SIMULATION mode: forcing {simulate} network profile')
+        print(f'[monitor] SIMULATION mode: forcing {simulate}')
     else:
         print(f'[monitor] Measuring every {interval}s → {backend_url}')
     if dry_run:
@@ -217,23 +308,33 @@ def run(interval=INTERVAL, backend_url=BACKEND_URL, dry_run=False, simulate=None
                 now = datetime.datetime.now()
                 metrics = {**SIMULATED_PROFILES[simulate],
                            'hour': float(now.hour),
-                           'day_of_week': float(now.weekday())}
-                history.append(metrics)
+                           'day_of_week': float(now.weekday()),
+                           'queue_delta': 0}
             else:
-                metrics = collect_metrics(history)
+                metrics = collect_metrics(history, backend_url)
 
-            state = predict_state(metrics, model, scaler, features)
+            history.append(metrics)
+            if len(history) > 120:
+                history.pop(0)
 
-            rtt  = metrics['rtt_avg']
-            loss = metrics['packet_loss']
+            state, probabilities = predict_state(history, model, scaler, features, thresholds)
+
+            qos_policy = None
+            if qos_model is not None:
+                qos_policy = predict_qos_policy(history, qos_model, qos_scaler, qos_features)
+
             brok = 'up' if metrics['bridge_alive'] else 'DOWN'
-            tag  = ' [SIMULATED]' if simulate else ''
-            print(f'[monitor] {ts}  RTT={rtt:.0f}ms  loss={loss:.1f}%  broker={brok}  → {state}{tag}')
+            tag = ' [SIMULATED]' if simulate else ''
+            print(f'[monitor] {ts}  RTT={metrics["rtt_avg"]:.0f}ms  '
+                  f'loss={metrics["packet_loss"]:.1f}%  broker={brok} '
+                  f'({metrics["broker_rtt"]:.0f}ms)  q={metrics["queue_depth"]}  '
+                  f'→ {state} {probabilities}{tag}')
+            if qos_policy:
+                print(f'[monitor] {ts}  QoS policy {qos_policy}')
 
             if not dry_run:
-                ok = push_state(state, metrics, backend_url)
-                status = 'pushed' if ok else 'PUSH FAILED'
-                print(f'[monitor] {ts}  State {state} {status}')
+                ok = push_state(state, metrics, probabilities, qos_policy, backend_url)
+                print(f'[monitor] {ts}  State {state} {"pushed" if ok else "PUSH FAILED"}')
 
         except Exception as e:
             print(f'[monitor] {ts}  ERROR: {e}')
@@ -242,16 +343,11 @@ def run(interval=INTERVAL, backend_url=BACKEND_URL, dry_run=False, simulate=None
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Network QoS Monitor Service')
-    parser.add_argument('--interval', type=int, default=INTERVAL,
-                        help=f'Seconds between measurements (default: {INTERVAL})')
-    parser.add_argument('--backend', default=BACKEND_URL,
-                        help=f'Backend base URL (default: {BACKEND_URL})')
-    parser.add_argument('--dry-run', action='store_true',
-                        help='Print predictions without pushing to backend')
-    parser.add_argument('--simulate', choices=['STABLE', 'DEGRADED', 'CRITICAL'],
-                        default=None,
-                        help='Skip real ping; inject a fixed network profile for testing')
+    parser = argparse.ArgumentParser(description='SAAMP network state monitor')
+    parser.add_argument('--interval', type=int, default=INTERVAL)
+    parser.add_argument('--backend', default=BACKEND_URL)
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--simulate', choices=['STABLE', 'DEGRADED', 'CRITICAL'], default=None)
     args = parser.parse_args()
     run(interval=args.interval, backend_url=args.backend,
         dry_run=args.dry_run, simulate=args.simulate)
