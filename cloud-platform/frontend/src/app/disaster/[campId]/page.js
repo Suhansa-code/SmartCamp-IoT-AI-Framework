@@ -68,6 +68,22 @@ function SkeletonCard({ children, delay = 0 }) {
   )
 }
 
+function CampMapSkeletonOverlay() {
+  const { isLoaded } = useMap()
+  if (isLoaded) return null
+  return (
+    <div aria-label="Loading camp disaster map" className="absolute inset-0 z-[20] flex items-center justify-center p-6 pointer-events-none" style={{ background: 'rgba(226,232,240,0.72)', backdropFilter: 'blur(2px)' }}>
+      <div className="flex w-full max-w-[340px] flex-col gap-3 rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(148,163,184,0.35)', boxShadow: '0 14px 32px rgba(15,23,42,0.12)' }}>
+        <div className="map-detail-skeleton-line" style={{ width: '42%', height: 12 }} />
+        <div className="map-detail-skeleton-line" style={{ width: '78%', height: 9 }} />
+        <div className="map-detail-skeleton-grid">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="map-detail-skeleton-line" style={{ height: 38 }} />)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CampSkeleton() {
   const { T } = useTheme()
   return (
@@ -75,6 +91,8 @@ function CampSkeleton() {
       <SideNav />
       <style>{`
         @keyframes skeletonShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .map-detail-skeleton-line { border-radius: 5px; background: linear-gradient(90deg, ${T.cardSoft} 25%, ${T.border} 50%, ${T.cardSoft} 75%); background-size: 200% 100%; animation: skeletonShimmer 1.5s ease-in-out infinite; }
+        .map-detail-skeleton-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       `}</style>
       <div style={{ minHeight: '100vh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink }}>
         <main style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -538,6 +556,7 @@ export default function DisasterCampDetailPage() {
                 className="absolute inset-0"
                 theme={dark ? 'dark' : 'light'}
               >
+                <CampMapSkeletonOverlay />
                 <MapControls showZoom showLocate showCompass />
                 <MapViewController viewMode={viewMode} />
                 <CampDetailTerrain viewMode={viewMode} />

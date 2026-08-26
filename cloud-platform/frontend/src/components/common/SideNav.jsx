@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
 import { RAIL_EXPANDED, RAIL_COLLAPSED, STORAGE_KEY, MOBILE_BREAKPOINT, DEFAULT_RAIL_WIDTH, NAV_ITEMS } from '@/data/navigation.data'
+import { MOCK_USER } from '@/data/user.data'
 
 const LIME = '#16A34A'
 
@@ -281,7 +282,7 @@ export default function SideNav() {
                 color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(37,99,235,0.35)',
               }}>
-                DP
+                {MOCK_USER.initials}
               </div>
               <span style={{
                 position: 'absolute', bottom: 0, right: 0, width: 11, height: 11,
@@ -293,8 +294,8 @@ export default function SideNav() {
             </div>
             {(!collapsed || isMobile) && (
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: T.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Dr. Perera</div>
-                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.08em', fontWeight: 700, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Administrator</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: T.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{MOCK_USER.name}</div>
+                <div style={{ fontSize: '0.6rem', color: T.muted, letterSpacing: '0.08em', fontWeight: 700, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{MOCK_USER.role}</div>
               </div>
             )}
           </div>

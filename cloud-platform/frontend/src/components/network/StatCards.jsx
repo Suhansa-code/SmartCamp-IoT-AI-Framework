@@ -5,6 +5,7 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts'
 import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useTheme } from '@/components/common/ThemeProvider'
+import { STAT_THRESHOLDS } from '@/data/network.data'
 
 function MiniChart({ data, dataKey, color }) {
   if (!data || data.length < 2) return null
@@ -38,10 +39,10 @@ export default function StatCards({ metrics, history }) {
   const m = metrics || {}
 
   const cards = [
-    { label: 'RTT Average', value: m.rtt_avg || 0, unit: 'ms', color: getValColorInfo(T, m.rtt_avg || 0, 100, 300), dataKey: 'rtt_avg' },
-    { label: 'Packet Loss', value: m.packet_loss || 0, unit: '%', color: getValColorInfo(T, m.packet_loss || 0, 5, 20), dataKey: 'packet_loss' },
-    { label: 'Queue Depth', value: m.queue_depth || 0, unit: 'msgs', color: getValColorInfo(T, m.queue_depth || 0, 10, 50), dataKey: 'queue_depth' },
-    { label: 'Throughput', value: m.throughput || 0, unit: 'msg/s', color: getValColorInfo(T, m.throughput || 0, 5, 12, true), dataKey: 'throughput' },
+    { label: 'RTT Average', value: m.rtt_avg || 0, unit: 'ms', color: getValColorInfo(T, m.rtt_avg || 0, STAT_THRESHOLDS.rtt_avg.warn, STAT_THRESHOLDS.rtt_avg.crit), dataKey: 'rtt_avg' },
+    { label: 'Packet Loss', value: m.packet_loss || 0, unit: '%', color: getValColorInfo(T, m.packet_loss || 0, STAT_THRESHOLDS.packet_loss.warn, STAT_THRESHOLDS.packet_loss.crit), dataKey: 'packet_loss' },
+    { label: 'Queue Depth', value: m.queue_depth || 0, unit: 'msgs', color: getValColorInfo(T, m.queue_depth || 0, STAT_THRESHOLDS.queue_depth.warn, STAT_THRESHOLDS.queue_depth.crit), dataKey: 'queue_depth' },
+    { label: 'Throughput', value: m.throughput || 0, unit: 'msg/s', color: getValColorInfo(T, m.throughput || 0, STAT_THRESHOLDS.throughput.warn, STAT_THRESHOLDS.throughput.crit, true), dataKey: 'throughput' },
   ]
 
   return (

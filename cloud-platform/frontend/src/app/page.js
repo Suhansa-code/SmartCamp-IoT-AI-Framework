@@ -13,16 +13,13 @@ import ProgressBar from '@/components/dashboard/ProgressBar'
 import StatusDonut from '@/components/dashboard/StatusDonut'
 import ArrowChip from '@/components/alert/ArrowChip'
 import { DISASTER_MATCH, DIS_STATUS } from '@/data/dashboard.data'
+import { CHILDREN_PROGRESS_MAX, SESSIONS_PROGRESS_MAX, ALERTS_PROGRESS_MAX, EDU_CODE_MAP } from '@/data/constants.data'
 import { Droplets, Users, BookOpen, Bell, Radio, Tent, CalendarCheck, HeartHandshake } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
 
 function eduCode(id) {
-  const known = {
-    'CAMP-B-HOMAGAMA': 'HMG', 'CAMP-B-GALLE': 'GAL', 'CAMP-B-RATHNAPURA': 'RTP',
-    'CAMP-B-MATARA': 'MAT', 'CAMP-B-KALUTARA': 'KAL', 'CAMP-B-BATTICALOA': 'BAT',
-  }
-  return known[id] || id.replace(/^CAMP-B-/, '').slice(0, 3).toUpperCase()
+  return EDU_CODE_MAP[id] || id.replace(/^CAMP-B-/, '').slice(0, 3).toUpperCase()
 }
 
 export default function DashboardPage() {
@@ -266,9 +263,9 @@ export default function DashboardPage() {
           {/* ── KPI row ── */}
           <div className="dash-kpi">
             <KpiCard label="Total Camps" value={scopeStats.camps} icon={<Tent size={17} />} color={T.blue} delta="relief sites" pct={100} spark={sparkFor('alertCount').map((_, i) => i + 1)} />
-            <KpiCard label="Children" value={scopeStats.children.toLocaleString()} icon={<Users size={17} />} color={T.teal} delta="tracked" pct={Math.min(100, Math.round((scopeStats.children / 1500) * 100))} spark={sparkFor('childCount')} />
-            <KpiCard label="Learning Sessions" value={scopeStats.sessions.toLocaleString()} icon={<BookOpen size={17} />} color={T.purple} delta="synced" pct={Math.min(100, Math.round((scopeStats.sessions / 900) * 100))} spark={sparkFor('sessionCount')} />
-            <KpiCard label="Open Alerts" value={scopeStats.alerts} icon={<Bell size={17} />} color={scopeStats.alerts > 0 ? T.red : T.green} delta={scopeStats.urgent > 0 ? `${scopeStats.urgent} urgent` : 'all clear'} pct={Math.min(100, Math.round((scopeStats.alerts / 8) * 100))} spark={sparkFor('alertCount')} />
+            <KpiCard label="Children" value={scopeStats.children.toLocaleString()} icon={<Users size={17} />} color={T.teal} delta="tracked" pct={Math.min(100, Math.round((scopeStats.children / CHILDREN_PROGRESS_MAX) * 100))} spark={sparkFor('childCount')} />
+            <KpiCard label="Learning Sessions" value={scopeStats.sessions.toLocaleString()} icon={<BookOpen size={17} />} color={T.purple} delta="synced" pct={Math.min(100, Math.round((scopeStats.sessions / SESSIONS_PROGRESS_MAX) * 100))} spark={sparkFor('sessionCount')} />
+            <KpiCard label="Open Alerts" value={scopeStats.alerts} icon={<Bell size={17} />} color={scopeStats.alerts > 0 ? T.red : T.green} delta={scopeStats.urgent > 0 ? `${scopeStats.urgent} urgent` : 'all clear'} pct={Math.min(100, Math.round((scopeStats.alerts / ALERTS_PROGRESS_MAX) * 100))} spark={sparkFor('alertCount')} />
           </div>
 
           {/* ── Charts row ── */}

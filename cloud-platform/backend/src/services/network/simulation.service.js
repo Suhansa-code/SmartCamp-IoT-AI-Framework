@@ -1,4 +1,5 @@
 import { RealNetworkMonitor } from './realNetworkMonitor.service.js';
+import { SIMULATION_TOPICS, SIMULATION_ACTIONS, OFFLINE_METRICS } from '../../data/network/simulationTopics.data.js';
 
 export class SimulationService {
   constructor(networkMonitor) {
@@ -44,30 +45,15 @@ export class SimulationService {
       }
     } catch (error) {
       console.error('[Monitor] Error measuring network:', error.message);
-      this.networkMonitor.updateSimulatedMetrics({
-        rtt_avg: 999,
-        rtt_max: 999,
-        packet_loss: 100,
-        bandwidth: 0,
-        connected: false,
-      });
+      this.networkMonitor.updateSimulatedMetrics(OFFLINE_METRICS);
     }
   }
 
   simulateMessageTraffic() {
-    const topics = [
-      { topic: 'camp/sensor/temperature', source: 'Temperature Sensor' },
-      { topic: 'camp/sensor/humidity', source: 'Humidity Sensor' },
-      { topic: 'camp/sensor/gps', source: 'GPS Module' },
-      { topic: 'camp/sensor/water', source: 'Water Quality Monitor' },
-      { topic: 'camp/alert/emergency', source: 'Emergency System' },
-      { topic: 'camp/status/heartbeat', source: 'Heartbeat Monitor' },
-    ];
-
-    const topicInfo = topics[Math.floor(Math.random() * topics.length)];
+    const topicInfo = SIMULATION_TOPICS[Math.floor(Math.random() * SIMULATION_TOPICS.length)];
     const payload = {
       source: topicInfo.source,
-      action: ['publish', 'data', 'ack', 'ping'][Math.floor(Math.random() * 4)],
+      action: SIMULATION_ACTIONS[Math.floor(Math.random() * SIMULATION_ACTIONS.length)],
       timestamp: Date.now(),
       priority: Math.random() < 0.1 ? 'high' : 'normal',
     };

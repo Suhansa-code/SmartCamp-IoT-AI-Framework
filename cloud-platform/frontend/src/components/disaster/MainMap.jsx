@@ -47,6 +47,23 @@ function MapViewController({ viewMode }) {
   return null
 }
 
+function MapSkeletonOverlay() {
+  const { isLoaded } = useMap()
+  if (isLoaded) return null
+  return (
+    <div aria-label="Loading disaster map" className="absolute inset-0 z-[20] flex items-center justify-center p-6 pointer-events-none" style={{ background: 'rgba(226,232,240,0.72)', backdropFilter: 'blur(2px)' }}>
+      <style>{`.map-skeleton-line { border-radius: 5px; background: linear-gradient(90deg, rgba(226,232,240,0.9) 25%, rgba(203,213,225,0.95) 50%, rgba(226,232,240,0.9) 75%); background-size: 200% 100%; animation: mapSkeletonShimmer 1.5s ease-in-out infinite; } .map-skeleton-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } @keyframes mapSkeletonShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+      <div className="flex w-full max-w-[340px] flex-col gap-3 rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(148,163,184,0.35)', boxShadow: '0 14px 32px rgba(15,23,42,0.12)' }}>
+        <div className="map-skeleton-line" style={{ width: '42%', height: 12 }} />
+        <div className="map-skeleton-line" style={{ width: '78%', height: 9 }} />
+        <div className="map-skeleton-grid">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="map-skeleton-line" style={{ height: 38 }} />)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TerrainSetup({ viewMode, onTerrainReady }) {
   const { map, isLoaded } = useMap()
   const enableTerrain = viewMode !== '2d'
@@ -296,13 +313,13 @@ function ColomboHubMarker() {
     el.style.cssText = `
       width:24px; height:24px; border-radius:50%;
       background: radial-gradient(circle, #16A34A 30%, rgba(22,163,74,0.3) 70%, transparent 100%);
-      border:3px solid #fff; box-shadow: 0 0 20px rgba(37,99,235,0.6), 0 0 40px rgba(37,99,235,0.3);
+      border:3px solid #fff; box-shadow: 0 0 20px rgba(22,163,74,0.6), 0 0 40px rgba(22,163,74,0.3);
       cursor:default; position:relative;
     `
     const pulse = document.createElement('div')
     pulse.style.cssText = `
       position:absolute; inset:-8px; border-radius:50%;
-      border:2px solid rgba(37,99,235,0.4);
+      border:2px solid rgba(22,163,74,0.4);
       animation: hubPulse 2s ease-in-out infinite;
     `
     el.appendChild(pulse)
@@ -335,7 +352,7 @@ function ColomboHubMarker() {
   return null
 }
 
-export default function MainMap({ camps, selected, onSelect, statusCounts, error, mapNodes }) {
+export default function MainMap({ camps, selected, onSelect, statusCounts, error, mapNodes, showMockupData, onMockupToggle }) {
   const { mode, T } = useTheme()
   const dark = mode === 'dark'
   const [viewMode, setViewMode] = useState('2d')
@@ -345,16 +362,19 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
   const hudCardBg = dark ? 'rgba(4,10,17,0.72)' : 'rgba(255,255,255,0.85)'
   const hudCardBorder = dark ? 'rgba(255,255,255,0.1)' : 'rgba(60,110,150,0.18)'
 
+  const mockCamps = useMemo(() => {
+    if (!showMockupData || !camps?.length) return []
+    return camps.filter((c) => typeof c.lat === 'number' && typeof c.lng === 'number')
+  }, [camps, showMockupData])
+
   const arcData = useMemo(() => {
-    if (!camps?.length) return []
-    return camps
-      .filter((c) => typeof c.lat === 'number' && typeof c.lng === 'number')
-      .map((camp) => ({
-        id: `camp-${camp.id}-colombo`,
-        from: [camp.lng, camp.lat],
-        to: [COLOMBO_HUB.lng, COLOMBO_HUB.lat],
-      }))
-  }, [camps])
+    if (!mockCamps.length) return []
+    return mockCamps.map((camp) => ({
+      id: `camp-${camp.id}-colombo`,
+      from: [camp.lng, camp.lat],
+      to: [COLOMBO_HUB.lng, COLOMBO_HUB.lat],
+    }))
+  }, [mockCamps])
 
   const cycleMode = useCallback(() => {
     setViewMode((prev) => {
@@ -377,35 +397,33 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
         className="absolute inset-0"
         theme={dark ? 'dark' : 'light'}
       >
+        <MapSkeletonOverlay />
         <MapControls showZoom showLocate showCompass />
         <MapViewController viewMode={viewMode} />
         <TerrainSetup viewMode={viewMode} onTerrainReady={setTerrainReady} />
 
-        {arcData.length > 0 && (
-          <MapArc
-            data={arcData}
-            curvature={0.25}
-            interactive={false}
-            paint={{
-              'line-color': dark ? 'rgba(59,130,246,0.55)' : 'rgba(37,99,235,0.5)',
-              'line-width': 1.8,
-              'line-opacity': 0.8,
-            }}
-          />
-        )}
+        <MapArc
+          data={arcData}
+          curvature={0.25}
+          interactive={false}
+          paint={{
+            'line-color': dark ? 'rgba(34,197,94,0.55)' : 'rgba(22,163,74,0.5)',
+            'line-width': 1.8,
+            'line-opacity': 0.8,
+          }}
+        />
 
         <ElevationProvider camps={camps} viewMode={viewMode}>
           <CampMarkers camps={camps} selected={selected} onSelect={onSelect} />
         </ElevationProvider>
-        <ColomboHubMarker />
+        {showMockupData && <ColomboHubMarker />}
       </Map>
 
-      {/* HUD title */}
-      <div className="absolute z-[13] pointer-events-none top-[15px] left-[20px] max-w-[420px]">
-        <div className="flex items-center gap-[6px] text-[12px] font-extrabold uppercase tracking-[0.16em] mb-1" style={{ color: dark ? '#4ADE80' : '#16A34A' }}>
-          <Crosshair size={14} /> Relief Operations Grid
-        </div>
-      </div>
+      {/* Map-local display control. The label deliberately stays stable in both modes. */}
+      <label className="absolute z-[13] pointer-events-auto top-4 left-4 flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.08em] cursor-pointer backdrop-blur-[10px]" style={{ color: hudInk, background: showMockupData ? 'rgba(245,158,11,0.16)' : hudCardBg, border: `1px solid ${showMockupData ? 'rgba(245,158,11,0.55)' : hudCardBorder}` }}>
+        <input type="checkbox" checked={showMockupData} onChange={(event) => onMockupToggle(event.target.checked)} />
+        Show Mock Data
+      </label>
 
       {/* HUD top-right: mode toggle + chips */}
       <div className="absolute z-[13] pointer-events-auto top-[15px] right-4 flex items-center gap-2">
@@ -426,7 +444,7 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
                   display: 'flex', alignItems: 'center', gap: 3,
                   padding: '4px 8px', fontSize: '0.55rem', fontWeight: 800,
                   letterSpacing: '0.06em', cursor: 'pointer', border: 'none',
-                  background: active ? (dark ? 'rgba(96,165,250,0.2)' : 'rgba(37,99,235,0.18)') : 'transparent',
+                  background: active ? (dark ? 'rgba(34,197,94,0.2)' : 'rgba(22,163,74,0.18)') : 'transparent',
                   color: active ? (dark ? '#4ADE80' : '#16A34A') : T.muted,
                   transition: 'all 0.2s ease',
                   borderRadius: 999,
@@ -441,10 +459,6 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
           })}
         </div>
 
-        <Chip color={dark ? '#4ADE80' : '#16A34A'} style={{ background: dark ? 'rgba(74,222,128,0.12)' : 'rgba(22,163,74,0.12)', border: `1px solid ${dark ? 'rgba(74,222,128,0.4)' : 'rgba(22,163,74,0.4)'}` }}>
-          <span className="w-[6px] h-[6px] rounded-full" style={{ background: dark ? '#4ADE80' : '#16A34A', boxShadow: `0 0 8px ${dark ? '#4ADE80' : '#16A34A'}` }} />
-          LIVE MAP
-        </Chip>
         <Chip color={error ? T.red : dark ? '#4ade80' : '#16a34a'} style={{ background: hudCardBg, border: `1px solid ${hudCardBorder}` }}>
           {error ? 'DEGRADED' : `${mapNodes.length} NODES`}
         </Chip>

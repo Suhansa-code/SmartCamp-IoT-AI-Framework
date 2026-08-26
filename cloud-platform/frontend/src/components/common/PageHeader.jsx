@@ -10,6 +10,7 @@ import { useNotifications } from "./NotificationsContext";
 import SearchBar from "@/components/common/SearchBar";
 import Button from "@/components/common/Button";
 import { daysSince } from "@/components/common/utils";
+import { MOCK_USER } from "@/data/user.data";
 
 export const HEADER_PADDING = "clamp(1rem, 2vw, 1.75rem) clamp(1rem, 2vw, 1.75rem) 0";
 
@@ -269,11 +270,11 @@ function ProfileDropdown({ open, onClose, T }) {
             fontSize: "0.78rem",
           }}
         >
-          DP
+          {MOCK_USER.initials}
         </div>
         <div>
           <div style={{ fontSize: "0.82rem", fontWeight: 800, color: T.textPrimary }}>
-            Dr. Perera
+            {MOCK_USER.name}
           </div>
           <div
             style={{
@@ -284,7 +285,7 @@ function ProfileDropdown({ open, onClose, T }) {
               letterSpacing: "0.08em",
             }}
           >
-            Administrator
+            {MOCK_USER.role}
           </div>
         </div>
       </div>
@@ -519,7 +520,7 @@ export default function PageHeader({
               }}
             >
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: T.textPrimary, textWrap: "nowrap" }}>
-                Dr. Perera
+                {MOCK_USER.name}
               </span>
               <div style={{ position: "relative" }}>
                 <div
@@ -536,7 +537,7 @@ export default function PageHeader({
                     fontSize: "0.78rem",
                   }}
                 >
-                  DP
+                  {MOCK_USER.initials}
                 </div>
                 <span
                   style={{

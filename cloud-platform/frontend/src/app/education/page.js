@@ -14,6 +14,7 @@ import ArrowChip from "@/components/alert/ArrowChip";
 import Button from "@/components/common/Button";
 import { useTheme } from "@/components/common/ThemeProvider";
 import { CAMP_META } from "@/data/education.data";
+import { CHILDREN_PROGRESS_MAX as EDU_CHILDREN_MAX, EDU_SESSIONS_PROGRESS_MAX } from "@/data/constants.data";
 import {
   GraduationCap,
   Users,
@@ -592,7 +593,7 @@ function OverviewView({
           icon={<Users size={17} />}
           color={T.teal}
           delta="grade 3 & 4"
-          pct={Math.min(100, Math.round((scopeTotals.children / 1500) * 100))}
+          pct={Math.min(100, Math.round((scopeTotals.children / EDU_CHILDREN_MAX) * 100))}
           spark={sparkFor("children")}
         />
         <KpiCard
@@ -601,7 +602,7 @@ function OverviewView({
           icon={<BookOpen size={17} />}
           color={T.purple}
           delta="synced"
-          pct={Math.min(100, Math.round((scopeTotals.sessions / 2400) * 100))}
+          pct={Math.min(100, Math.round((scopeTotals.sessions / EDU_SESSIONS_PROGRESS_MAX) * 100))}
           spark={sparkFor("sessions")}
         />
         <KpiCard

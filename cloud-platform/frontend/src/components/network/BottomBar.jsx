@@ -3,6 +3,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { useTheme } from '@/components/common/ThemeProvider'
+import { STAT_THRESHOLDS } from '@/data/network.data'
 
 const getValColorInfo = (T, v, warn, crit, invert = false) => {
   const bad = invert ? v < warn : v > crit
@@ -29,11 +30,11 @@ export default function BottomBar({ metrics }) {
   const m = metrics || {}
 
   const items = [
-    { label: 'Jitter', value: `${m.jitter || 0}ms`, color: getValColorInfo(T, m.jitter || 0, 15, 50) },
+    { label: 'Jitter', value: `${m.jitter || 0}ms`, color: getValColorInfo(T, m.jitter || 0, STAT_THRESHOLDS.jitter.warn, STAT_THRESHOLDS.jitter.crit) },
     { label: 'Bandwidth', value: `${m.bandwidth || 0} Mbps`, color: T.blue },
     { label: 'Drop Rate', value: `${m.drop_rate || 0}/s`, color: getDropRateColorInfo(T, m.drop_rate || 0) },
     { label: 'WiFi Clients', value: m.clients || 0, color: T.green },
-    { label: 'Throughput', value: `${m.throughput || 0} msg/s`, color: getValColorInfo(T, m.throughput || 0, 5, 12, true) },
+    { label: 'Throughput', value: `${m.throughput || 0} msg/s`, color: getValColorInfo(T, m.throughput || 0, STAT_THRESHOLDS.throughput.warn, STAT_THRESHOLDS.throughput.crit, true) },
     { label: 'Queue Δ', value: `${(m.queue_delta || 0) >= 0 ? '+' : ''}${m.queue_delta || 0}`, color: getQueueDeltaColorInfo(T, m.queue_delta || 0) },
   ]
 

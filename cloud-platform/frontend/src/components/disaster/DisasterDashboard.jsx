@@ -14,6 +14,7 @@ import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import Button from '@/components/common/Button'
 import MiniStat from '@/components/dashboard/MiniStat'
 import DashboardCard from '@/components/dashboard/DashboardCard'
+import { RELIEF_STATS } from '@/data/constants.data'
 import StatusDonut from '@/components/dashboard/StatusDonut'
 import ArrowChip from '@/components/alert/ArrowChip'
 import FilterPills from '@/components/alert/FilterPills'
@@ -269,6 +270,11 @@ export default function DisasterDashboard() {
         }
         @media (max-width: 900px) { .dis-two { grid-template-columns: 1fr; } }
         @media (max-width: 560px) { .dis-strip { grid-template-columns: repeat(2, 1fr); } }
+        .map-shell { min-width: 0; display: flex; flex-direction: column; gap: 0.65rem; }
+        .detail-skeleton { display: grid; gap: 0.7rem; padding: 1rem; }
+        .detail-skeleton-line { height: 10px; border-radius: 5px; background: linear-gradient(90deg, ${T.cardSoft}, ${T.border}, ${T.cardSoft}); background-size: 200% 100%; animation: disSkeleton 1.4s ease-in-out infinite; }
+        .selected-detail-scroll { overflow-y: hidden; }
+        @keyframes disSkeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
       `}</style>
 
       <div style={{ minHeight: '100svh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink, paddingLeft: 'var(--rail-width, 236px)', transition: 'padding-left 0.2s ease' }}>
@@ -301,26 +307,26 @@ export default function DisasterDashboard() {
               />
             </HeaderShell>
 
-            <div style={{ padding: '0 2rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: `1px solid ${showMockupData ? T.amber : T.border}`, borderRadius: 10, background: showMockupData ? `${T.amber}14` : T.card, color: T.ink, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                <input type="checkbox" checked={showMockupData} onChange={(event) => setShowMockupData(event.target.checked)} />
-                {showMockupData ? 'MOCKUP DATA' : 'LIVE DATA'}
-              </label>
-            </div>
-
             <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
               {/* ── HERO: map (left) + side panel (right) ─────────────── */}
               <div className="dis-hero-grid">
                 {/* Map (left) */}
-                <MainMap
-                  camps={camps}
-                  mapNodes={mapNodes}
-                  selected={selected}
-                  onSelect={setSelected}
-                  statusCounts={statusCounts}
-                  error={error}
-                />
+                <div className="map-shell">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: T.teal, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                    <Crosshair size={14} /> Relief Operations Grid
+                  </div>
+                  <MainMap
+                    camps={camps}
+                    mapNodes={mapNodes}
+                    selected={selected}
+                    onSelect={setSelected}
+                    statusCounts={statusCounts}
+                    error={error}
+                    showMockupData={showMockupData}
+                    onMockupToggle={setShowMockupData}
+                  />
+                </div>
 
                 {/* Right side panel — Active Camps + Selected Camp */}
                 <aside className="right-panel">
@@ -342,7 +348,7 @@ export default function DisasterDashboard() {
                       </div>
                       <Chip color={T.red} style={{ background: `${T.red}14`, border: `1px solid ${T.red}44` }}>{criticalCamps.length} CRITICAL</Chip>
                     </div>
-                    <div className="right-scroll" style={{ flex: 1 }}>
+                    <div className="right-scroll selected-detail-scroll" style={{ flex: 1 }}>
                       {criticalCamps.length === 0 ? (
                         <div style={{ textAlign: 'center', color: T.muted, padding: '1.5rem 0.5rem', fontSize: '0.78rem', fontWeight: 600 }}>
                           No critical camps right now
@@ -402,12 +408,17 @@ export default function DisasterDashboard() {
                           <p style={{ fontSize: '0.7rem', opacity: 0.75, marginTop: 2, fontWeight: 500 }}>Click a node on the map or a camp in the list above</p>
                         </div>
                       ) : selectedDetailLoading ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: T.muted, textAlign: 'center' }}>
-                          <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTop: `3px solid ${T.textPrimary}`, borderRadius: '50%', animation: 'disSpin 1s linear infinite' }} />
-                          <p style={{ fontWeight: 600, fontSize: '0.8rem', marginTop: 12, color: T.inkSoft }}>Loading camp details…</p>
+                        <div className="detail-skeleton" aria-label="Loading camp details">
+                          <div className="detail-skeleton-line" style={{ width: '42%', height: 12 }} />
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            {[1, 2, 3, 4].map((item) => <div key={item} className="detail-skeleton-line" style={{ height: 48 }} />)}
+                          </div>
+                          <div className="detail-skeleton-line" style={{ width: '78%' }} />
+                          <div className="detail-skeleton-line" style={{ width: '62%' }} />
+                          <div className="detail-skeleton-line" style={{ height: 36, marginTop: 4 }} />
                         </div>
                       ) : (
-                        <div style={{ padding: '0.9rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                        <div style={{ padding: '0.75rem 1rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.62rem', overflow: 'hidden' }}>
                           <div style={{ fontSize: '0.64rem', color: T.muted, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                             {selectedCamp.code} · {selectedCamp.type} · {selectedCamp.lat.toFixed(2)}°N, {selectedCamp.lng.toFixed(2)}°E
                           </div>
@@ -438,8 +449,8 @@ export default function DisasterDashboard() {
                             ))}
                           </div>
 
-                          <Button href={`/disaster/${selectedCamp.id}`} icon={<ChevronRight size={15} />}>
-                            View Full Details
+                          <Button href={`/disaster/${selectedCamp.id}`} icon={<ChevronRight size={15} />} style={{ width: '100%', justifyContent: 'center', marginTop: 2 }}>
+                            View Full Detail
                           </Button>
                         </div>
                       )}
@@ -507,8 +518,8 @@ export default function DisasterDashboard() {
                     {['JAN', 'MAR', 'MAY', 'JUL', 'SEP', 'NOV'].map((month) => <span key={month}>{month}</span>)}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: T.ink, marginTop: 4 }}>
-                    <span>Last reading <span style={{ color: T.teal }}>1,982</span></span>
-                    <span>↑ 12.1% YoY</span>
+                    <span>Last reading <span style={{ color: T.teal }}>{RELIEF_STATS.lastReading}</span></span>
+                    <span>{RELIEF_STATS.yoyChange}</span>
                   </div>
                 </DashboardCard>
 
@@ -519,8 +530,8 @@ export default function DisasterDashboard() {
                 >
                   <div style={{ display: 'grid', gap: '0.85rem' }}>
                     {[
-                      { label: 'Displaced', value: '12,480', arrow: '↑ 8.4%', accent: '#D97706', data: DISPLACED_SPARK, sparkColor: '#D97706' },
-                      { label: 'Aided', value: '9,340', arrow: '↑ 12.1%', accent: T.green, data: AIDED_SPARK, sparkColor: T.teal },
+                      { label: 'Displaced', value: RELIEF_STATS.displaced, arrow: RELIEF_STATS.displacedArrow, accent: '#D97706', data: DISPLACED_SPARK, sparkColor: '#D97706' },
+                      { label: 'Aided', value: RELIEF_STATS.aided, arrow: RELIEF_STATS.aidedArrow, accent: T.green, data: AIDED_SPARK, sparkColor: T.teal },
                     ].map((stat) => (
                       <div key={stat.label} style={{ padding: '0.7rem 0.85rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -548,7 +559,7 @@ export default function DisasterDashboard() {
                 <MiniStat label="Displaced" value={totalDisplaced.toLocaleString()} icon={<Users size={12} />} color="#D97706" sub="Region-wide" />
                 <MiniStat label="Aid Workers" value={totalWorkers.toLocaleString()} icon={<HeartHandshake size={12} />} color={T.purple} sub="Deployed" />
                 <MiniStat label="Critical" value={String(statusCounts.critical || 0)} icon={<TriangleAlert size={12} />} color={T.red} sub="Needs attention" />
-                <MiniStat label="Coverage" value="89%" icon={<ShieldAlert size={12} />} color={T.green} sub="Aid coverage" />
+                <MiniStat label="Coverage" value={RELIEF_STATS.aidCoverage} icon={<ShieldAlert size={12} />} color={T.green} sub="Aid coverage" />
                 <MiniStat label="Tick" value={String(tick)} icon={<Radio size={12} />} color={T.muted} sub="Live refresh" />
               </div>
             </div>

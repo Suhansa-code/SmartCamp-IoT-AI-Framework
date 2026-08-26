@@ -27,3 +27,14 @@ export const FEATURES = [
   { key: 'drop_rate',   label: 'Drop Rate',      importance: 0.05, fmt: (v) => `${v}/s`    },
   { key: 'bridge_alive',label: 'Bridge Alive',   importance: 0.19, fmt: (v) => (v ? 'YES' : 'NO') },
 ]
+
+// Metric threshold values for color-coding stat cards and bottom bar
+export const STAT_THRESHOLDS = {
+  rtt_avg:      { warn: 100, crit: 300 },
+  packet_loss:  { warn: 5, crit: 20 },
+  queue_depth:  { warn: 10, crit: 50 },
+  throughput:   { warn: 5, crit: 12 },
+  jitter:       { warn: 15, crit: 50 },
+  drop_rate:    { crit: 2 },
+  queue_delta:  { warn: 10 },
+}
