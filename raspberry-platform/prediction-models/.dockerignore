@@ -1,0 +1,9 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+notebooks/
+# Regenerated deterministically by the trainer; ~10MB that the image never uses.
+data/
