@@ -20,6 +20,7 @@ import {
   upsertWaterLevelReading, upsertGpsReading, upsertWeatherData,
   upsertHydrospatialData, upsertFloodPrediction, upsertDisasterAlert,
   upsertPredictionRequest,
+  upsertDevice,
 } from '../../data/sync/sync.postgres.repository.js';
 
 const { host, port, username, password, caCertPath } = env.emqx;
@@ -118,12 +119,21 @@ async function handleSyncMessage(topic, buffer) {
   }
 
   receivedCount++;
-  const { sync_id, entity, local_id, operation, camp_id, payload } = envelope;
+  const { sync_id, entity, local_id, operation, camp_id, device_id, payload } = envelope;
 
   if (!sync_id || !entity || !payload) {
     console.warn('[Sync Receiver] Invalid envelope: missing sync_id/entity/payload');
     console.warn('[Sync Receiver] Topic:', topic, '| Keys:', Object.keys(envelope).join(','), '| Snippet:', JSON.stringify(envelope).slice(0, 200));
     return;
+  }
+
+  // Auto-register device if unknown
+  if (device_id && camp_id) {
+    try {
+      await upsertDevice(device_id, camp_id);
+    } catch (err) {
+      console.error(`[Sync Receiver] Failed to register device ${device_id}: ${err.message}`);
+    }
   }
 
   // Idempotency check — already persisted, send success ACK again
@@ -141,10 +151,11 @@ async function handleSyncMessage(topic, buffer) {
   }
 
   try {
-    await handler(payload);
-    await logSync(sync_id, entity, local_id, camp_id, operation);
+    const ctx = { device_id: device_id || null };
+    await handler(payload, ctx);
+    await logSync(sync_id, entity, local_id, camp_id, operation, device_id);
     processedCount++;
-    console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} (QoS ${envelope.priority})`);
+    console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} device=${device_id || 'n/a'} (QoS ${envelope.priority})`);
     publishAck(envelope, 'ok');
   } catch (err) {
     errorCount++;
@@ -167,9 +178,10 @@ async function handleAlertMessage(topic, buffer) {
   }
   try {
     if (await isSyncProcessed(`alert:${alert.event_id}`)) return;
-    await upsertDisasterAlert(alert);
-    await logSync(`alert:${alert.event_id}`, 'disaster-alerts', alert.id, alert.camp_id, 'CREATE');
-    console.log(`[Alert Receiver] Persisted ${alert.alert_type} event=${alert.event_id}`);
+    const ctx = { device_id: alert.device_id || null };
+    await upsertDisasterAlert(alert, ctx);
+    await logSync(`alert:${alert.event_id}`, 'disaster-alerts', alert.id, alert.camp_id, 'CREATE', alert.device_id);
+    console.log(`[Alert Receiver] Persisted ${alert.alert_type} event=${alert.event_id} device=${alert.device_id || 'n/a'}`);
   } catch (err) {
     console.error(`[Alert Receiver] Failed to persist event: ${err.message}`);
   }

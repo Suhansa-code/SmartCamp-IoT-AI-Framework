@@ -38,18 +38,45 @@ export function invalidateDisasterCache() {
   cache = { expiresAt: 0, value: null };
 }
 
+// ── Device registry helpers ─────────────────────────────────────────────
+
+export async function getDevicesForCamp(campId) {
+  const pool = getPool();
+  const result = await pool.query('SELECT device_id, name, status FROM devices WHERE camp_id = $1', [campId]);
+  return result.rows;
+}
+
+export async function getDeviceIdsForCamp(campId) {
+  const pool = getPool();
+  const result = await pool.query('SELECT device_id FROM devices WHERE camp_id = $1', [campId]);
+  return result.rows.map((r) => r.device_id);
+}
+
+export async function getAllDevices() {
+  const pool = getPool();
+  const result = await pool.query('SELECT device_id, camp_id, name, status FROM devices ORDER BY camp_id, device_id');
+  return result.rows;
+}
+
+// ── Device-aware disaster queries ───────────────────────────────────────
+
 export async function getDisasterCampById(campId) {
-  if (!env.db.enabled) return mockRepository.getDisasterCampById(campId);
+  if (!env.db.enabled) return null;
   return (await getCloudCamps()).find((camp) => camp.id === campId) || null;
 }
 
 export async function getDisasterCampSummaries() {
-  if (!env.db.enabled) return mockRepository.getDisasterCampSummaries();
+  if (!env.db.enabled) return [];
   return (await getCloudCamps()).map(({ detail, ...camp }) => camp);
 }
 
 export async function getDisasterDashboardSummary() {
-  if (!env.db.enabled) return mockRepository.getDisasterDashboardSummary();
+  if (!env.db.enabled) {
+    return {
+      source: 'empty', timestamp: new Date().toISOString(), camps: [],
+      map_nodes: [], total_displaced: 0, total_workers: 0, status_counts: {},
+    };
+  }
   const camps = await getCloudCamps();
   const statusCounts = camps.reduce((counts, camp) => ({ ...counts, [camp.status]: (counts[camp.status] || 0) + 1 }), {});
   return {
@@ -61,19 +88,36 @@ export async function getDisasterDashboardSummary() {
 }
 
 export async function getDisasterMapNodes() {
-  if (!env.db.enabled) return mockRepository.getDisasterMapNodes();
+  if (!env.db.enabled) return [];
   return (await getCloudCamps()).map(({ id, code, name, lat, lng, status, type }) => ({ id, code, name, lat, lng, status, type }));
 }
 
 export async function getDisasterOperationalData(campId) {
   if (!env.db.enabled) return { prediction: null, hydrospatial: null, water_level: null, alerts: [] };
   const pool = getPool();
-  const [prediction, hydrospatial, waterLevel, alerts] = await Promise.all([
-    pool.query('SELECT * FROM flood_predictions ORDER BY predicted_at DESC LIMIT 1'),
-    pool.query('SELECT * FROM hydrospatial_data ORDER BY created_at DESC LIMIT 1'),
-    pool.query('SELECT * FROM water_level_readings ORDER BY recorded_at DESC LIMIT 1'),
-    pool.query('SELECT * FROM disaster_alerts WHERE camp_id = $1 AND status IN (\'ACTIVE\', \'ACKNOWLEDGED\') ORDER BY created_at DESC', [campId]),
-  ]);
+
+  const deviceIds = await getDeviceIdsForCamp(campId);
+
+  let prediction, hydrospatial, waterLevel;
+  if (deviceIds.length > 0) {
+    [prediction, hydrospatial, waterLevel] = await Promise.all([
+      pool.query('SELECT * FROM flood_predictions WHERE device_id = ANY($1) ORDER BY predicted_at DESC LIMIT 1', [deviceIds]),
+      pool.query('SELECT * FROM hydrospatial_data WHERE device_id = ANY($1) ORDER BY created_at DESC LIMIT 1', [deviceIds]),
+      pool.query('SELECT * FROM water_level_readings WHERE device_id = ANY($1) ORDER BY recorded_at DESC LIMIT 1', [deviceIds]),
+    ]);
+  } else {
+    [prediction, hydrospatial, waterLevel] = await Promise.all([
+      pool.query('SELECT * FROM flood_predictions ORDER BY predicted_at DESC LIMIT 1'),
+      pool.query('SELECT * FROM hydrospatial_data ORDER BY created_at DESC LIMIT 1'),
+      pool.query('SELECT * FROM water_level_readings ORDER BY recorded_at DESC LIMIT 1'),
+    ]);
+  }
+
+  const alerts = await pool.query(
+    'SELECT * FROM disaster_alerts WHERE camp_id = $1 AND status IN (\'ACTIVE\', \'ACKNOWLEDGED\') ORDER BY created_at DESC',
+    [campId]
+  );
+
   const row = prediction.rows[0];
   return {
     prediction: row ? {

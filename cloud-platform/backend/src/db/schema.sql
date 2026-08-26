@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS children (
 
 CREATE INDEX IF NOT EXISTS idx_children_camp ON children (camp_id);
 
+ALTER TABLE children ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_children_device ON children (device_id);
+
 CREATE TABLE IF NOT EXISTS sessions (
   session_id      TEXT PRIMARY KEY,
   child_id        TEXT NOT NULL REFERENCES children (child_id),
@@ -86,6 +89,9 @@ CREATE TABLE IF NOT EXISTS persons (
 
 CREATE INDEX IF NOT EXISTS idx_persons_fingerprint ON persons (fingerprint_id);
 
+ALTER TABLE persons ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_persons_device ON persons (device_id);
+
 CREATE TABLE IF NOT EXISTS camp_checkins (
   id              INTEGER PRIMARY KEY,
   person_id       INTEGER REFERENCES persons(id),
@@ -95,6 +101,9 @@ CREATE TABLE IF NOT EXISTS camp_checkins (
 );
 
 CREATE INDEX IF NOT EXISTS idx_checkins_person ON camp_checkins (person_id);
+
+ALTER TABLE camp_checkins ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_checkins_device ON camp_checkins (device_id);
 
 CREATE TABLE IF NOT EXISTS wristbands (
   id              INTEGER PRIMARY KEY,
@@ -126,6 +135,9 @@ CREATE TABLE IF NOT EXISTS distributions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_distributions_barcode ON distributions (wristband_barcode);
+
+ALTER TABLE distributions ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_distributions_device ON distributions (device_id);
 
 CREATE TABLE IF NOT EXISTS resources (
   id                  INTEGER PRIMARY KEY,
@@ -211,6 +223,19 @@ CREATE TABLE IF NOT EXISTS pages_content_responses (
 
 CREATE INDEX IF NOT EXISTS idx_responses_session ON pages_content_responses (session_id);
 
+-- ── Device registry (DEVICE_ID → CAMP_ID mapping) ───────────────────────
+
+CREATE TABLE IF NOT EXISTS devices (
+  device_id     TEXT PRIMARY KEY,
+  camp_id       TEXT NOT NULL,
+  name          TEXT,
+  status        TEXT DEFAULT 'active',
+  registered_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_devices_camp ON devices (camp_id);
+
 -- ── Sync log (idempotency tracking) ──────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS sync_log (
@@ -218,6 +243,7 @@ CREATE TABLE IF NOT EXISTS sync_log (
   entity        TEXT NOT NULL,
   local_id      TEXT NOT NULL,
   camp_id       TEXT,
+  device_id     TEXT,
   operation     TEXT NOT NULL,
   status        TEXT DEFAULT 'received',
   received_at   TIMESTAMPTZ DEFAULT NOW()
@@ -225,6 +251,7 @@ CREATE TABLE IF NOT EXISTS sync_log (
 
 CREATE INDEX IF NOT EXISTS idx_sync_log_entity ON sync_log (entity, local_id);
 CREATE INDEX IF NOT EXISTS idx_sync_log_received ON sync_log (received_at);
+CREATE INDEX IF NOT EXISTS idx_sync_log_device ON sync_log (device_id);
 
 -- ── Disaster domain (synced from Raspberry Pi via MQTT) ─────────────────
 
@@ -243,6 +270,9 @@ CREATE TABLE IF NOT EXISTS disaster_events (
 
 CREATE INDEX IF NOT EXISTS idx_disaster_events_status ON disaster_events (status);
 
+ALTER TABLE disaster_events ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_disaster_events_device ON disaster_events (device_id);
+
 CREATE TABLE IF NOT EXISTS sensor_readings (
   id              INTEGER PRIMARY KEY,
   sensor_id       TEXT NOT NULL,
@@ -256,6 +286,9 @@ CREATE TABLE IF NOT EXISTS sensor_readings (
 
 CREATE INDEX IF NOT EXISTS idx_sensor_readings_sensor ON sensor_readings (sensor_id);
 CREATE INDEX IF NOT EXISTS idx_sensor_readings_recorded ON sensor_readings (recorded_at);
+
+ALTER TABLE sensor_readings ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_sensor_readings_device ON sensor_readings (device_id);
 
 CREATE TABLE IF NOT EXISTS environmental_data (
   id              INTEGER PRIMARY KEY,
@@ -271,6 +304,9 @@ CREATE TABLE IF NOT EXISTS environmental_data (
 
 CREATE INDEX IF NOT EXISTS idx_environmental_data_recorded ON environmental_data (recorded_at);
 
+ALTER TABLE environmental_data ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_environmental_data_device ON environmental_data (device_id);
+
 CREATE TABLE IF NOT EXISTS water_level_readings (
   id              INTEGER PRIMARY KEY,
   station_id      TEXT,
@@ -285,6 +321,9 @@ CREATE TABLE IF NOT EXISTS water_level_readings (
 CREATE INDEX IF NOT EXISTS idx_water_level_station ON water_level_readings (station_id);
 CREATE INDEX IF NOT EXISTS idx_water_level_recorded ON water_level_readings (recorded_at);
 
+ALTER TABLE water_level_readings ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_water_level_device ON water_level_readings (device_id);
+
 CREATE TABLE IF NOT EXISTS gps_readings (
   id              INTEGER PRIMARY KEY,
   device_id       TEXT,
@@ -297,6 +336,7 @@ CREATE TABLE IF NOT EXISTS gps_readings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_gps_readings_recorded ON gps_readings (recorded_at);
+CREATE INDEX IF NOT EXISTS idx_gps_readings_device ON gps_readings (device_id);
 
 CREATE TABLE IF NOT EXISTS weather_data (
   id              INTEGER PRIMARY KEY,
@@ -314,6 +354,9 @@ CREATE TABLE IF NOT EXISTS weather_data (
 
 CREATE INDEX IF NOT EXISTS idx_weather_forecast ON weather_data (forecast_time);
 
+ALTER TABLE weather_data ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_weather_data_device ON weather_data (device_id);
+
 CREATE TABLE IF NOT EXISTS hydrospatial_data (
   id                  INTEGER PRIMARY KEY,
   latitude            REAL,
@@ -325,6 +368,9 @@ CREATE TABLE IF NOT EXISTS hydrospatial_data (
   source              TEXT,
   created_at          TIMESTAMPTZ
 );
+
+ALTER TABLE hydrospatial_data ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_hydrospatial_device ON hydrospatial_data (device_id);
 
 CREATE TABLE IF NOT EXISTS flood_predictions (
   id                  INTEGER PRIMARY KEY,
@@ -343,6 +389,9 @@ CREATE TABLE IF NOT EXISTS flood_predictions (
 
 CREATE INDEX IF NOT EXISTS idx_flood_predictions_category ON flood_predictions (flood_category);
 CREATE INDEX IF NOT EXISTS idx_flood_predictions_predicted ON flood_predictions (predicted_at);
+
+ALTER TABLE flood_predictions ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_flood_predictions_device ON flood_predictions (device_id);
 
 CREATE TABLE IF NOT EXISTS disaster_alerts (
   id              INTEGER PRIMARY KEY,
@@ -423,6 +472,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_disaster_alerts_event_id ON disaster_alert
 CREATE UNIQUE INDEX IF NOT EXISTS idx_disaster_alerts_alert_id ON disaster_alerts (alert_id) WHERE alert_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_disaster_alerts_camp ON disaster_alerts (camp_id, status);
 
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_device ON disaster_alerts (device_id);
+
 CREATE TABLE IF NOT EXISTS prediction_requests (
   id              INTEGER PRIMARY KEY,
   request_id      TEXT UNIQUE,
@@ -433,6 +485,9 @@ CREATE TABLE IF NOT EXISTS prediction_requests (
   requested_at    TIMESTAMPTZ,
   completed_at    TIMESTAMPTZ
 );
+
+ALTER TABLE prediction_requests ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_prediction_requests_device ON prediction_requests (device_id);
 
 -- ── Resources domain: camp roster and daily population history ───────────────
 -- The roster arrives over MQTT and used to live only in memory, which meant a

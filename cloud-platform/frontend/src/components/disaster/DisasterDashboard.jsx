@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Users, HeartHandshake, TriangleAlert, MapPin, ChevronRight, X,
@@ -52,6 +52,19 @@ export default function DisasterDashboard() {
   const [campFilter, setCampFilter] = useState('all')
   const [campQuery, setCampQuery] = useState('')
   const [showMockupData, setShowMockupData] = useState(false)
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setOverview(null)
+    setDisasterAlerts([])
+    setSelectedDetail(null)
+    setLoading(true)
+    setError('')
+  }, [showMockupData])
 
   const dark = mode === 'dark'
   const MAP_THEME = dark ? MAP_DARK : MAP_LIGHT
