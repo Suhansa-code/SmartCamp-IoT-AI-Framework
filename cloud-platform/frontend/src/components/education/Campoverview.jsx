@@ -18,18 +18,18 @@ export default function CampOverview({ camp, onCampClick, darkMode = false }) {
   const sc = statusConfig[status]
 
   const textColor = darkMode ? '#E2E8F0' : '#1E3A5F'
-  const subColor  = darkMode ? '#94A3B8' : '#0D9488'
-  const cardBg    = darkMode ? '#1E3A5F' : '#F0F9FF'
+  const subColor  = darkMode ? '#94A3B8' : '#2563EB'
+  const cardBg    = darkMode ? '#1E293B' : '#F0F4F8'
   const mutedColor = darkMode ? 'rgba(226,232,240,0.5)' : 'rgba(30,58,95,0.5)'
 
   return (
     <div
       className="flex flex-col gap-4 cursor-pointer hover:shadow-xl transition-shadow duration-200 active:scale-[0.98]"
       style={{
-        background: darkMode ? '#0F2A4A' : 'white',
+        background: darkMode ? '#0F172A' : 'white',
         borderRadius: '1.25rem',
         padding: '1.25rem',
-        border: darkMode ? '1px solid #2D4A70' : '1px solid #E2E8F0',
+        border: darkMode ? '1px solid #334155' : '1px solid #E2E8F0',
       }}
       onClick={() => onCampClick?.(camp.id)}
     >

@@ -49,7 +49,7 @@ export default function CampSidebar({ camps, selectedCamp, onSelect, counts }) {
             {count > 0 && (
               <span style={{
                 background: T.amber,
-                color: '#1C1917',
+                color: '#FFFFFF',
                 borderRadius: '9999px',
                 padding: '1px 8px',
                 fontSize: '0.72rem',

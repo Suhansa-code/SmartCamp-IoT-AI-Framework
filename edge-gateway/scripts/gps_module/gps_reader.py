@@ -11,9 +11,12 @@ class GPSReader:
             timeout=1
         )
 
-    def get_gps_data(self):
-
-        while True:
+    def get_gps_data(self, max_lines=50):
+        """Read up to max_lines serial lines looking for a valid NMEA fix.
+        Returns dict on success, None if no fix found within the limit."""
+        attempts = 0
+        while attempts < max_lines:
+            attempts += 1
             try:
                 line = self.serial_port.readline().decode(
                     'ascii',
@@ -22,8 +25,6 @@ class GPSReader:
 
                 if not line:
                     continue
-
-                # print("Received:", line)
 
                 if line.startswith('$GPGGA') or line.startswith('$GNGGA'):
 
@@ -41,3 +42,5 @@ class GPSReader:
 
             except Exception as e:
                 print("GPS Error:", e)
+
+        return None

@@ -3,9 +3,9 @@
 
 import { P } from './theme.data'
 
-export const BLUE = '#60A5FA'
+export const BLUE = '#0891B2'
 
-export const STATE_COLOR  = { GOOD: P.green, WEAK: P.amber, POOR: '#F97316', OFFLINE: P.red }
+export const STATE_COLOR  = { GOOD: P.green, WEAK: P.amber, POOR: '#DC2626', OFFLINE: P.red }
 export const PRIO_COLOR   = { CRITICAL: P.red, IMPORTANT: P.amber, ROUTINE: BLUE }
 export const STATUS_COLOR = { sent: P.green, buffered: P.amber, dropped: P.red, delayed: P.amber }
 

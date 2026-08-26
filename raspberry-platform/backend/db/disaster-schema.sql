@@ -90,20 +90,59 @@ CREATE TABLE IF NOT EXISTS gps_readings (
 );
 
 -- ============================================================
+-- 5b. RAINFALL SENSOR READINGS
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS rainfall_readings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT,
+    rain_analog INTEGER,
+    rain_digital INTEGER,
+    rain_status TEXT,
+    wetness_level TEXT,
+    wetness_value INTEGER,
+    latitude REAL,
+    longitude REAL,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced INTEGER NOT NULL DEFAULT 0
+);
+
+-- ============================================================
+-- 5c. DHT11 SENSOR READINGS
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS dht11_readings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT,
+    temperature REAL,
+    humidity REAL,
+    latitude REAL,
+    longitude REAL,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced INTEGER NOT NULL DEFAULT 0
+);
+
+-- ============================================================
 -- 6. WEATHER DATA
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS weather_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT,
     latitude REAL,
     longitude REAL,
     temperature REAL,
+    humidity REAL,
     precipitation REAL,
     rainfall REAL,
     wind_speed REAL,
+    wind_direction REAL,
     weather_code INTEGER,
+    condition TEXT,
+    forecast_data TEXT,
     forecast_time TEXT,
     source TEXT,
+    fetched_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced INTEGER NOT NULL DEFAULT 0
 );
@@ -231,6 +270,12 @@ ON water_level_readings(station_id);
 
 CREATE INDEX IF NOT EXISTS idx_gps_readings_recorded_at
 ON gps_readings(recorded_at);
+
+CREATE INDEX IF NOT EXISTS idx_rainfall_readings_recorded_at
+ON rainfall_readings(recorded_at);
+
+CREATE INDEX IF NOT EXISTS idx_dht11_readings_recorded_at
+ON dht11_readings(recorded_at);
 
 CREATE INDEX IF NOT EXISTS idx_weather_data_forecast_time
 ON weather_data(forecast_time);

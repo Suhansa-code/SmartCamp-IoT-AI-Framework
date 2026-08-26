@@ -60,9 +60,9 @@ export const CAMP_STATUS = {
 }
 
 export const DIS_STATUS = {
-  critical: { label: 'Critical', color: '#EF4444' },
-  high:     { label: 'High',     color: '#F97316' },
+  critical: { label: 'Critical', color: '#DC2626' },
+  high:     { label: 'High',     color: '#D97706' },
   medium:   { label: 'Medium',   color: '#F59E0B' },
-  stable:   { label: 'Stable',   color: '#22C55E' },
-  recovery: { label: 'Recovery', color: '#0D9488' },
+  stable:   { label: 'Stable',   color: '#16A34A' },
+  recovery: { label: 'Recovery', color: '#2563EB' },
 }

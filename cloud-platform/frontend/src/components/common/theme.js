@@ -1,44 +1,45 @@
 // ════════════════════════════════════════════════════════════════════════════
 // Design tokens (JS mirror of the Tailwind `@theme` block in globals.css).
 // Import from anywhere:  import { C } from '@/components/common/theme'
+// Professional disaster-management palette — calm, trustworthy, modern.
 // ════════════════════════════════════════════════════════════════════════════
 
 export const C = {
   // backgrounds
-  navy:        '#0A2540',   // page background (admin)
-  navyDeep:    '#071B30',   // header / chrome background
+  navy:        '#1E3A5F',   // page background (admin)
+  navyDeep:    '#162D4A',   // header / chrome background
   navyCard:    '#1E3A5F',   // card surfaces
-  navyLight:   '#243B5E',   // skeleton / lighter card surface
-  panel:       '#0D1F35',   // sub-panel surface
-  sky:         '#F0F9FF',   // light page background
+  navyLight:   '#2A4A6E',   // skeleton / lighter card surface
+  panel:       '#0F2A45',   // sub-panel surface
+  sky:         '#F0F4F8',   // light page background
   surface:     '#FFFFFF',
 
   // borders / lines
-  border:      '#2D4A70',   // dark chrome border
+  border:      '#334155',   // dark chrome border
   line:        '#1E3A5F',   // panel inner border
 
-  // brand accents
-  teal:        '#0D9488',
-  tealMid:     '#14B8A6',
-  tealLight:   '#CCFBF1',
-  tealDim:     '#0A6B62',
-  coral:       '#F97316',
-  coralLight:  '#FED7AA',
+  // brand accents — professional blue primary
+  teal:        '#2563EB',   // primary accent (blue)
+  tealMid:     '#3B82F6',   // mid blue
+  tealLight:   '#DBEAFE',   // light blue tint
+  tealDim:     '#1D4ED8',   // deep blue
+  coral:       '#475569',   // secondary accent (slate)
+  coralLight:  '#E2E8F0',   // light slate tint
 
   // status
-  amber:       '#F59E0B',
-  warn:        '#F59E0B',
-  yellow:      '#FACC15',
-  green:       '#22C55E',
-  good:        '#22C55E',
-  red:         '#F87171',
-  danger:      '#EF4444',
-  offline:     '#EF4444',
-  purple:      '#A78BFA',
-  blue:        '#60A5FA',
-  weak:        '#F59E0B',
-  poor:        '#F97316',
-  routine:     '#4A90D9',
+  amber:       '#D97706',   // warning amber
+  warn:        '#D97706',
+  yellow:      '#F59E0B',   // amber-500
+  green:       '#16A34A',   // success green
+  good:        '#16A34A',
+  red:         '#DC2626',   // danger red
+  danger:      '#DC2626',
+  offline:     '#DC2626',
+  purple:      '#2563EB',   // info blue (replaces purple)
+  blue:        '#0891B2',   // info cyan
+  weak:        '#D97706',
+  poor:        '#DC2626',
+  routine:     '#475569',
 
   // text
   text:        '#E2E8F0',
@@ -54,72 +55,72 @@ export const C = {
 // light/dark by swapping `C.` → `T.` and updating hard-coded hex literals.
 export const DARK = {
   mode: 'dark',
-  bg:        '#0A0A0B',
-  bgDeep:    '#121214',
-  bgSoft:    '#0E0E10',
-  outer:     '#0A0A0B',
-  card:      '#131316',
-  cardSolid: '#0F0F11',
-  cardSoft:  '#1A1A1E',
-  bar:       '#1A1A1E',
-  border:    '#26262B',
-  line:      '#1E1E23',
-  panel:     '#0E0E10',
-  panelSoft: '#1A1A1E',
-  text:      '#E4E4E7',
-  textPrimary: '#FAFAFA',
-  textSoft:  '#F4F4F5',
-  ink:       '#FAFAFA',
-  inkSoft:   '#A1A1AA',
-  muted:     '#A1A1AA',
-  dim:       '#8F8F96',
-  slate:     '#71717A',
+  bg:        '#0F172A',
+  bgDeep:    '#1E293B',
+  bgSoft:    '#1A2332',
+  outer:     '#0F172A',
+  card:      '#1E293B',
+  cardSolid: '#172033',
+  cardSoft:  '#253449',
+  bar:       '#253449',
+  border:    '#334155',
+  line:      '#1E293B',
+  panel:     '#1A2332',
+  panelSoft: '#253449',
+  text:      '#CBD5E1',
+  textPrimary: '#F1F5F9',
+  textSoft:  '#E2E8F0',
+  ink:       '#F1F5F9',
+  inkSoft:   '#94A3B8',
+  muted:     '#94A3B8',
+  dim:       '#64748B',
+  slate:     '#475569',
   teal:      C.teal,   tealMid: C.tealMid, tealLight: C.tealLight, tealDim: C.tealDim,
   coral:     C.coral,  coralLight: C.coralLight,
   amber:     C.amber,  warn: C.warn,  yellow: C.yellow,
   green:     C.green,  good: C.green,
-  orange:    '#F97316',
-  lime:      '#D8F24E',
+  orange:    '#D97706',
+  lime:      '#16A34A',
   red:       C.red,    danger: C.red, offline: C.offline,
   purple:    C.purple, blue: C.blue,
   weak:      C.weak,   poor: C.poor,  routine: C.routine,
-  navy:      '#0A0A0B', navyDeep: '#121214', navyCard: '#131316', navyLight: '#1A1A1E',
-  sky: C.sky,   surface: C.surface,
+  navy:      '#0F172A', navyDeep: '#1E293B', navyCard: '#1E293B', navyLight: '#253449',
+  sky: '#0F172A',   surface: '#FFFFFF',
 }
 
 export const LIGHT = {
   mode: 'light',
-  bg:        '#EAF4FB',
+  bg:        '#F8FAFC',
   bgDeep:    '#FFFFFF',
   bgSoft:    '#FFFFFF',
-  outer:     '#EAF4FB',
+  outer:     '#F8FAFC',
   card:      '#FFFFFF',
   cardSolid: '#FFFFFF',
-  cardSoft:  '#F7F9FC',
-  bar:       '#F7F9FC',
-  border:    '#E9EDF3',
-  line:      '#E9EDF3',
+  cardSoft:  '#F8FAFC',
+  bar:       '#F1F5F9',
+  border:    '#E2E8F0',
+  line:      '#E2E8F0',
   panel:     '#FFFFFF',
-  panelSoft: '#F7F9FC',
+  panelSoft: '#F8FAFC',
   text:      '#1E3A5F',
-  textPrimary: '#0F2540',
-  textSoft:  '#0F2540',
-  ink:       '#0F2540',
-  inkSoft:   '#5B7184',
-  muted:     '#5B7184',
+  textPrimary: '#0F172A',
+  textSoft:  '#0F172A',
+  ink:       '#0F172A',
+  inkSoft:   '#475569',
+  muted:     '#475569',
   dim:       '#64748B',
   slate:     '#64748B',
-  teal:      '#0F766E', tealMid: '#0D9488', tealLight: '#CCFBF1', tealDim: '#134E4A',
-  coral:     '#EA580C', coralLight: '#FED7AA',
-  amber:     '#B45309', warn: '#B45309', yellow: '#A16207',
+  teal:      '#2563EB', tealMid: '#3B82F6', tealLight: '#DBEAFE', tealDim: '#1D4ED8',
+  coral:     '#475569', coralLight: '#E2E8F0',
+  amber:     '#D97706', warn: '#D97706', yellow: '#F59E0B',
   green:     '#16A34A', good: '#16A34A',
-  orange:    '#EA580C',
-  lime:      '#D8F24E',
+  orange:    '#D97706',
+  lime:      '#16A34A',
   red:       '#DC2626', danger: '#DC2626', offline: '#DC2626',
-  purple:    '#7C3AED', blue: '#2563EB',
-  weak:      '#B45309', poor: '#EA580C', routine: '#2563EB',
-  navy:      '#EAF4FB', navyDeep: '#FFFFFF', navyCard: '#FFFFFF', navyLight: '#F8FAFC',
-  sky: '#EAF4FB', surface: '#FFFFFF',
+  purple:    '#2563EB', blue: '#0891B2',
+  weak:      '#D97706', poor: '#DC2626', routine: '#475569',
+  navy:      '#F8FAFC', navyDeep: '#FFFFFF', navyCard: '#FFFFFF', navyLight: '#F8FAFC',
+  sky: '#F8FAFC', surface: '#FFFFFF',
 }
 
 export const stateColor = (T, s) =>

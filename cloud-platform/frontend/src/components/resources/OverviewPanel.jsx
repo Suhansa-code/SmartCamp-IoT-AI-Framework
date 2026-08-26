@@ -7,7 +7,7 @@ import { useTheme } from '@/components/common/ThemeProvider'
 import { BLUE } from '@/data/network.data'
 import { timeAgo } from '@/components/common/utils'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

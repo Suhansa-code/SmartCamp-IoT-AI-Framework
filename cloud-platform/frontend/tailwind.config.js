@@ -10,7 +10,26 @@ module.exports = {
     './src/app/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        navy: {
+          DEFAULT: '#1E3A5F',
+          deep: '#162D4A',
+          card: '#1E3A5F',
+          light: '#2A4A6E',
+        },
+        brand: {
+          DEFAULT: '#2563EB',
+          mid: '#3B82F6',
+          light: '#DBEAFE',
+          dim: '#1D4ED8',
+        },
+        success: '#16A34A',
+        warning: '#D97706',
+        danger: '#DC2626',
+        info: '#0891B2',
+      },
+    },
   },
   plugins: [],
 }
