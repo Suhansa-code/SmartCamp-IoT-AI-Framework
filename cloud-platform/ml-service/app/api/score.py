@@ -38,8 +38,9 @@ def score():
     z_score = scoring_service.compute_z_score(child_id, composite, history.session_history, config)
 
     # 3. Isolation Forest score (from session 8 onwards)
+    current_session = {**task_metrics, **passive_signals}
     if_score = scoring_service.compute_if_score(
-        child_id, composite, task_score, passive_score, history.session_history, config
+        child_id, current_session, history.session_history, config
     )
 
     # 4. Anomaly detection

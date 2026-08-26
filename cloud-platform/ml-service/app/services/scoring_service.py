@@ -67,7 +67,7 @@ def train_if_model(child_id: str, history, config, include_current: list | None 
         return None
 
 
-def compute_if_score(child_id: str, current_composite: float, current_task: float, current_passive: float, history, config) -> float | None:
+def compute_if_score(child_id: str, current_session: dict, history, config) -> float | None:
     """Isolation Forest anomaly score; active from session IF_MIN_SESSIONS onward."""
     if not NUMPY_AVAILABLE or not SKLEARN_AVAILABLE:
         return None
@@ -76,7 +76,7 @@ def compute_if_score(child_id: str, current_composite: float, current_task: floa
     if total_sessions_after_current < config.IF_MIN_SESSIONS:
         return None
 
-    current_feature = [float(current_composite), float(current_task), float(current_passive)]
+    current_feature = session_to_feature_vector(current_session)
 
     path = _model_path(config, child_id)
     model = None

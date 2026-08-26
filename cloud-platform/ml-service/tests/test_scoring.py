@@ -91,7 +91,7 @@ class TestIfScore:
     def test_returns_none_when_ml_unavailable_or_history_too_short(self):
         # With no history the IF path should gracefully return None
         assert (
-            scoring_service.compute_if_score('child-2', 60.0, 60.0, 60.0, {}, Config) is None
+            scoring_service.compute_if_score('child-2', {}, {}, Config) is None
         )
 
     def test_detection_flags_combination(self):
