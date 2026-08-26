@@ -2,8 +2,11 @@
 # Multi-purpose Dockerfile for Raspberry Platform backend
 # - Node 20 runtime for the Express server
 # - Python3 + pip for model scripts under `python/`
+# Both stages MUST stay on the same Debian release: better-sqlite3 compiles a
+# native module against the builder's glibc, and a bullseye->bookworm mismatch
+# makes it segfault intermittently at runtime rather than failing the build.
 ## Builder stage: install build deps and compile native modules
-FROM node:20-bullseye AS builder
+FROM node:20-bookworm AS builder
 
 ENV NODE_ENV=production
 WORKDIR /usr/src/app
@@ -25,10 +28,10 @@ RUN npm ci --omit=dev
 COPY . .
 
 ## Runtime stage: slim image with only runtime files
-FROM node:20-slim AS runner
+FROM node:20-bookworm-slim AS runner
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=5000
 WORKDIR /usr/src/app
 
 # Copy built node_modules and app from builder
