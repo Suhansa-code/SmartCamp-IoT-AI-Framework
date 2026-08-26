@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { Server as SocketServer } from 'socket.io';
 import C from './config/constants.js';
+import { getCampId } from './config/camp-id.js';
 import logger from './utils/logger.js';
 import { initializeCampDb } from './config/database.js';
 import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
@@ -132,7 +133,7 @@ initFingerprintHardware().catch(err => logger.error(`[FP] Init failed: ${err.mes
 
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'smartcamp-backend', device: C.DEVICE_ID, camp: C.CAMP_ID });
+  res.json({ status: 'ok', service: 'smartcamp-backend', device: C.DEVICE_ID, camp: getCampId() });
 });
 
 // ── Camp Operations Routes ───────────────────────────────────
@@ -165,7 +166,7 @@ server.listen(PORT, '0.0.0.0', () => {
   logger.info('════════════════════════════════════════════');
   logger.info('  SmartCamp Unified Backend');
   logger.info(`  Device:  ${C.DEVICE_ID}`);
-  logger.info(`  Camp:    ${C.CAMP_ID}`);
+  logger.info(`  Camp:    ${getCampId()}`);
   logger.info(`  Port:    ${PORT}`);
   logger.info(`  Env:     ${C.NODE_ENV}`);
   logger.info('════════════════════════════════════════════');

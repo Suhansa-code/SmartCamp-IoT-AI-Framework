@@ -28,6 +28,7 @@ import logger from '../../utils/logger.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import { campDb, pagesDb, disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
+import { getCampId } from '../../config/camp-id.js';
 import { fetchAllPending, countPending } from './sync-queue.js';
 import { PRIORITY } from './sync-priority.js';
 import { nowISO } from '../../utils/helpers.js';
@@ -163,7 +164,7 @@ function insertPending(syncId, entity, tableName, localId, operation, priority, 
       `INSERT INTO sync_pending
          (sync_id, entity, table_name, local_id, operation, priority, camp_id, device_id, payload, published)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
-    ).run(syncId, entity, tableName, strLocalId, operation, priority, C.CAMP_ID, C.DEVICE_ID, JSON.stringify(payload));
+    ).run(syncId, entity, tableName, strLocalId, operation, priority, getCampId(), C.DEVICE_ID, JSON.stringify(payload));
   }
 }
 
@@ -260,7 +261,7 @@ function buildSyncMessage(entity, row) {
     local_id: row[pk],
     operation: row.synced === 0 ? 'CREATE' : 'UPDATE',
     priority: row._priority || PRIORITY.MEDIUM,
-    camp_id: C.CAMP_ID,
+    camp_id: getCampId(),
     device_id: C.DEVICE_ID,
     timestamp: nowISO(),
     payload: row,

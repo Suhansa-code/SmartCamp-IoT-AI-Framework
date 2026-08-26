@@ -1,5 +1,6 @@
 import { pagesDb, sqliteInsert, sqliteUpdate, sqliteGetLastChildId } from '../../config/database.js';
 import C from '../../config/constants.js';
+import { getCampId } from '../../config/camp-id.js';
 import logger from '../../utils/logger.js';
 import { nextChildId, nowISO } from '../../utils/helpers.js';
 import { createError } from '../../middleware/error-handler.js';
@@ -9,7 +10,7 @@ import { enqueueSync } from '../../services/sync/sync-notify.js';
 export async function enrolChild(req, res, next) {
   try {
     const { res_id, grade, zone_id = null, language = 'si' } = req.body;
-    const campId = C.CAMP_ID;
+    const campId = getCampId();
 
     const existing = pagesDb.prepare(
       'SELECT child_id, qr_code_data FROM pages_children WHERE res_id = ? AND camp_id = ? LIMIT 1'
@@ -74,7 +75,7 @@ export async function testChildIdGeneration(req, res, next) {
     }
 
     sqliteInsert('pages_children', {
-      child_id, res_id: 'TEST-RES-001', grade: 3, camp_id: C.CAMP_ID,
+      child_id, res_id: 'TEST-RES-001', grade: 3, camp_id: getCampId(),
       zone_id: 'ZONE-TEST', language: 'si', qr_code_data: qrCodeData,
     });
 

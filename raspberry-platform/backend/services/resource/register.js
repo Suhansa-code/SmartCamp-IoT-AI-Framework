@@ -1,5 +1,6 @@
 import { campDb as db, pagesDb } from '../../config/database.js';
 import C from '../../config/constants.js';
+import { getCampId } from '../../config/camp-id.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import * as emqx from '../network/emqx-manager.js';
 import { genPassword, genId } from '../../utils/crypto.js';
@@ -186,7 +187,7 @@ export async function registerPerson(data) {
   // Auto-enrol child in pages_children when age < 18
   let childId = null;
   if (parseInt(age) < 18) {
-    const campId = C.CAMP_ID;
+    const campId = getCampId();
     const resId = String(personId);
     const resolvedGrade = school_going === false ? 3 : (Number(grade) || 3);
 

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { disasterDb } from '../../config/database.js';
-import C from '../../config/constants.js';
+import { getCampId } from '../../config/camp-id.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import { getCampById } from './disaster.js';
 
@@ -19,8 +19,8 @@ export function normalizeRisk(value) {
 
 function buildAlert({ prediction, inputs, hydrospatial, predictionId, predictionTimestamp }) {
   const risk = normalizeRisk(prediction.risk_category);
-  const camp = getCampById(C.CAMP_ID) || {};
-  const campName = camp.name || C.CAMP_ID;
+  const camp = getCampById(getCampId()) || {};
+  const campName = camp.name || getCampId();
   const probability = numberOrNull(prediction.flood_probability);
   const probabilityPercent = numberOrNull(prediction.flood_probability_percent ?? (probability == null ? null : probability * 100));
   const title = `${risk} FLOOD RISK - ${campName}`;
@@ -31,7 +31,7 @@ function buildAlert({ prediction, inputs, hydrospatial, predictionId, prediction
     risk === 'CRITICAL' ? 'Urgent authority attention is required.' : 'Immediate monitoring is recommended.',
   ].filter(Boolean).join(' ');
   return {
-    alert_id: crypto.randomUUID(), event_id: crypto.randomUUID(), camp_id: C.CAMP_ID, camp_name: campName,
+    alert_id: crypto.randomUUID(), event_id: crypto.randomUUID(), camp_id: getCampId(), camp_name: campName,
     alert_type: `FLOOD_RISK_${risk}`, severity: risk, priority: 'HIGH', status: 'ACTIVE', title, message,
     latitude: inputs.latitude, longitude: inputs.longitude, camp_latitude: inputs.latitude, camp_longitude: inputs.longitude,
     prediction_id: predictionId, flood_probability: probability, flood_probability_percent: probabilityPercent,
@@ -57,7 +57,7 @@ export function evaluateFloodPrediction({ prediction, inputs, hydrospatial, pred
   const risk = normalizeRisk(prediction?.risk_category);
   if (!ALERTABLE_RISKS.has(risk)) return { created: false, reason: 'risk_not_alertable', risk_category: risk };
 
-  const active = disasterDb.prepare(`SELECT * FROM disaster_alerts WHERE camp_id = ? AND status IN ('ACTIVE', 'ACKNOWLEDGED') ORDER BY id DESC`).all(C.CAMP_ID);
+  const active = disasterDb.prepare(`SELECT * FROM disaster_alerts WHERE camp_id = ? AND status IN ('ACTIVE', 'ACKNOWLEDGED') ORDER BY id DESC`).all(getCampId());
   const higherOrEquivalent = active.find((alert) => (SEVERITY_RANK[normalizeRisk(alert.severity)] ?? -1) >= SEVERITY_RANK[risk]);
   if (higherOrEquivalent) {
     disasterDb.prepare(`UPDATE disaster_alerts SET cloud_sync_status = 'PENDING', synced = 0 WHERE id = ?`).run(higherOrEquivalent.id);
