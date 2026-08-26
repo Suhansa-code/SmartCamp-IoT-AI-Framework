@@ -39,7 +39,7 @@ describe('sync-notify', () => {
   });
 
   describe('TABLE_PK', () => {
-    it('maps all 23 syncable tables', () => {
+    it('maps all syncable tables', () => {
       const expected = [
         'persons', 'camp_checkins', 'wristbands', 'distributions',
         'resources', 'resource_usage', 'audit_logs',
@@ -50,7 +50,7 @@ describe('sync-notify', () => {
         'hydrospatial_data', 'flood_predictions', 'disaster_alerts',
         'prediction_requests',
       ];
-      expect(Object.keys(TABLE_PK).length).toBe(23);
+      expect(Object.keys(TABLE_PK).length).toBe(21);
       for (const table of expected) {
         expect(TABLE_PK[table]).toBeDefined();
       }

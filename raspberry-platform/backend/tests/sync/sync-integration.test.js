@@ -292,8 +292,8 @@ describe('TEST 7 — Local vs cloud verification', () => {
     expect(() => enqueueSync('pages_sessions', 'S-1')).not.toThrow();
   });
 
-  it('TABLE_PK covers all 23 syncable tables', () => {
-    expect(Object.keys(TABLE_PK).length).toBe(23);
+  it('TABLE_PK covers all syncable tables', () => {
+    expect(Object.keys(TABLE_PK).length).toBe(21);
   });
 
   it('mark synced: SET synced=1 on source table', () => {

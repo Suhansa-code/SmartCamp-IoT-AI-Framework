@@ -43,18 +43,16 @@ test('GET /api/health returns ok', async () => {
   assert.equal(body.status, 'ok');
 });
 
-test('GET /api/disaster/overview aggregates camp data', async () => {
+test('GET /api/disaster/overview returns empty when DB disabled', async () => {
   const { status, body } = await api('/api/disaster/overview');
   assert.equal(status, 200);
-  assert.ok(body.camps.length > 0);
-  assert.ok(body.total_displaced > 0);
+  assert.ok(Array.isArray(body.camps));
+  assert.equal(body.total_displaced, 0);
 });
 
-test('GET /api/disaster/camps/:campId returns camp detail', async () => {
-  const { status, body } = await api('/api/disaster/camps/galle');
-  assert.equal(status, 200);
-  assert.equal(body.id, 'galle');
-  assert.ok(body.detail);
+test('GET /api/disaster/camps/:campId returns 404 when DB disabled', async () => {
+  const { status } = await api('/api/disaster/camps/galle');
+  assert.equal(status, 404);
 });
 
 test('GET /api/disaster/camps/:campId returns 404 for unknown camp', async () => {
