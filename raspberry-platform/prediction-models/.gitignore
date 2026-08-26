@@ -9,3 +9,13 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
+
+# Generated training data — deterministic (RANDOM_STATE=42), so regenerate
+# with `python src/network_predictor.py` rather than committing ~10MB of CSV.
+data/*.csv
+
+# ...but the trained artifacts ARE shipped. The repo root .gitignore excludes
+# *.pkl globally, which is why a fresh clone previously failed at the Docker
+# `COPY models/` step. These are ~4.5MB total and must match the pinned
+# scikit-learn in requirements.txt.
+!models/*.pkl

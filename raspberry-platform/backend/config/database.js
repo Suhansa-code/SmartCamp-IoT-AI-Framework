@@ -82,6 +82,9 @@ function initializeCampDb() {
       flushed INTEGER DEFAULT 0
     );
 
+    CREATE INDEX IF NOT EXISTS idx_mqtt_buffer_drain
+      ON mqtt_buffer(flushed, priority, created_at);
+
     CREATE TABLE IF NOT EXISTS prediction_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       inputs TEXT NOT NULL,
