@@ -275,11 +275,7 @@ export async function completeSession(req, res, next) {
       consecutive_low: compositeScore >= C.GATE_THRESHOLD ? 0 : child.consecutive_low,
     }, 'child_id = ?', [child_id]);
 
-    const updatedSessionRows = sqliteRetrieve('pages_sessions', 'anomaly_flagged', 'session_id = ?', [session_id]);
-    const updatedSession = updatedSessionRows[0];
-    if (updatedSession && updatedSession.anomaly_flagged === 1) {
-      checkAndCreateAlert(child_id, session_id);
-    }
+    checkAndCreateAlert(child_id, session_id);
 
     return res.json({ success: true, message: 'Session saved', new_baseline: newBaseline });
   } catch (err) { next(err); }
