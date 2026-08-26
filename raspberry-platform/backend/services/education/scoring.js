@@ -42,8 +42,17 @@ export async function checkFlaskHealth() {
   } catch { return false; }
 }
 
-export async function getScore(childId, sessionId, taskMetrics, passiveSignals, baselineOverride = null) {
+function getAnomalyMode(sessionNumber) {
+  const n = Number(sessionNumber);
+  if (!Number.isFinite(n)) return 'none';
+  if (n >= 3 && n <= 7) return 'z';
+  if (n >= 8) return 'if';
+  return 'none';
+}
+
+export async function getScore(childId, sessionId, taskMetrics, passiveSignals, baselineOverride = null, sessionNumber = null) {
   const body = { child_id: childId, session_id: sessionId, taskMetrics, passiveSignals };
+  const anomalyMode = getAnomalyMode(sessionNumber);
 
   try {
     const res = await axios.post(`${flaskUrl}/score`, body, {
@@ -51,8 +60,8 @@ export async function getScore(childId, sessionId, taskMetrics, passiveSignals, 
       headers: { 'Content-Type': 'application/json' },
     });
     const d = res.data;
-    const localZScore = await computeLocalZScore(childId, d.compositeScore);
-    const ifScore = d.ifScore ?? null;
+    const localZScore = anomalyMode === 'z' ? await computeLocalZScore(childId, d.compositeScore) : null;
+    const ifScore = anomalyMode === 'if' ? (d.ifScore ?? null) : null;
     const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
     const anomalyByIF = ifScore !== null && ifScore < C.IF_SCORE_THRESHOLD;
     return {
@@ -68,7 +77,7 @@ export async function getScore(childId, sessionId, taskMetrics, passiveSignals, 
   } catch (err) {
     logger.warn(`[SCORING] Flask unreachable — using fallback scoring: ${err.message}`);
     const fallback = fallbackScore(taskMetrics, passiveSignals, baselineOverride);
-    const localZScore = await computeLocalZScore(childId, fallback.compositeScore);
+    const localZScore = anomalyMode === 'z' ? await computeLocalZScore(childId, fallback.compositeScore) : null;
     const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
     return {
       ...fallback,
