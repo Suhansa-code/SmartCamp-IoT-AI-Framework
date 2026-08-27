@@ -37,14 +37,13 @@ def _model_path(config, child_id: str) -> Path:
     return Path(config.MODELS_DIR) / f'{child_id}.pkl'
 
 
-def train_if_model(child_id: str, history, config, include_current: list | None = None):
+def train_if_model(child_id: str, history, config):
     """Train (or update) the per-child Isolation Forest model."""
     if not NUMPY_AVAILABLE or not SKLEARN_AVAILABLE:
         return None
 
-    features = [session_to_feature_vector(session) for session in history.get(child_id, [])]
-    if include_current is not None:
-        features.append(include_current)
+    sessions = history.get(child_id, [])
+    features = [session_to_feature_vector(session) for session in sessions]
 
     if len(features) < config.IF_MIN_SESSIONS:
         return None
@@ -67,38 +66,70 @@ def train_if_model(child_id: str, history, config, include_current: list | None 
         return None
 
 
-def compute_if_score(child_id: str, current_session: dict, history, config) -> float | None:
+def compute_if_score(child_id: str, current_session: dict, history, config) -> dict | None:
     """Isolation Forest anomaly score; active from session IF_MIN_SESSIONS onward."""
     if not NUMPY_AVAILABLE or not SKLEARN_AVAILABLE:
         return None
 
-    total_sessions_after_current = len(history.get(child_id, [])) + 1
-    if total_sessions_after_current < config.IF_MIN_SESSIONS:
+    previous_sessions = history.get(child_id, [])
+    previous_session_count = len(previous_sessions)
+
+    if previous_session_count < config.IF_MIN_SESSIONS:
         return None
 
-    current_feature = session_to_feature_vector(current_session)
+    model = train_if_model(
+        child_id=child_id,
+        history=history,
+        config=config
+    )
 
-    path = _model_path(config, child_id)
-    model = None
+    if model is None:
 
-    if total_sessions_after_current >= config.IF_MIN_SESSIONS:
-        model = train_if_model(child_id, history, config, include_current=current_feature)
+        path = _model_path(config, child_id)
 
-    if model is None and path.exists():
+        if not path.exists():
+            return None
+
         try:
             with open(path, 'rb') as f:
                 model = pickle.load(f)
+
         except Exception as e:
-            print(f'[IF] Could not load existing model for {child_id}: {e}')
+            print(
+                f'[IF] Could not load existing model '
+                f'for {child_id}: {e}'
+            )
             return None
 
-    if model is None:
-        return None
+    current_feature = session_to_feature_vector(current_session)
 
+    feature_vector = np.array(
+        [current_feature],
+        dtype=float
+    )
     try:
-        feature_vector = np.array([current_feature])
-        if_score = float(model.score_samples(feature_vector)[0])
-        return round(if_score, 4)
+        raw_score = float(
+            model.score_samples(feature_vector)[0]
+        )
+        decision_score = float(
+            model.decision_function(feature_vector)[0]
+        )
+        prediction = int(
+            model.predict(feature_vector)[0]
+        )
+        is_anomaly = prediction == -1
+
+        return {
+            'raw_score': round(raw_score, 4),
+            'decision_score': round(decision_score, 4),
+            'prediction': prediction,
+            'is_anomaly': is_anomaly
+        }
     except Exception as e:
-        print(f'[IF] Could not compute IF score for {child_id}: {e}')
+
+        print(
+            f'[IF] Could not compute IF score '
+            f'for {child_id}: {e}'
+        )
+
         return None
