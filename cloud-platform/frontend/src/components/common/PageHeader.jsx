@@ -10,6 +10,7 @@ import { useNotifications } from "./NotificationsContext";
 import SearchBar from "@/components/common/SearchBar";
 import Button from "@/components/common/Button";
 import { daysSince } from "@/components/common/utils";
+import { MOCK_USER } from "@/data/user.data";
 
 export const HEADER_PADDING = "clamp(1rem, 2vw, 1.75rem) clamp(1rem, 2vw, 1.75rem) 0";
 
@@ -17,7 +18,7 @@ export function HeaderShell({ children, style }) {
   return <div style={{ width: "100%", padding: HEADER_PADDING, ...style }}>{children}</div>;
 }
 
-const LIME = "#2563EB";
+const LIME = "#16A34A";
 
 function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
   const ref = useRef(null);
@@ -116,7 +117,7 @@ function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
           No {isWarning ? "warnings" : "notifications"}
         </div>
       ) : (
-        filtered.slice(0, 8).map((item) => (
+        filtered.map((item) => (
           <div
             key={item.id}
             style={{
@@ -260,7 +261,7 @@ function ProfileDropdown({ open, onClose, T }) {
             width: 36,
             height: 36,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #3B82F6, #2563EB)",
+            background: "linear-gradient(135deg, #22C55E, #16A34A)",
             color: "#fff",
             display: "flex",
             alignItems: "center",
@@ -269,11 +270,11 @@ function ProfileDropdown({ open, onClose, T }) {
             fontSize: "0.78rem",
           }}
         >
-          DP
+          {MOCK_USER.initials}
         </div>
         <div>
           <div style={{ fontSize: "0.82rem", fontWeight: 800, color: T.textPrimary }}>
-            Dr. Perera
+            {MOCK_USER.name}
           </div>
           <div
             style={{
@@ -284,7 +285,7 @@ function ProfileDropdown({ open, onClose, T }) {
               letterSpacing: "0.08em",
             }}
           >
-            Administrator
+            {MOCK_USER.role}
           </div>
         </div>
       </div>
@@ -505,6 +506,7 @@ export default function PageHeader({
           {/* Profile */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingLeft: "0.3rem", position: "relative" }}>
             <button
+              suppressHydrationWarning
               onClick={toggleProfile}
               aria-expanded={profileOpen}
               aria-label="Profile menu"
@@ -519,7 +521,7 @@ export default function PageHeader({
               }}
             >
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: T.textPrimary, textWrap: "nowrap" }}>
-                Dr. Perera
+                {MOCK_USER.name}
               </span>
               <div style={{ position: "relative" }}>
                 <div
@@ -527,7 +529,7 @@ export default function PageHeader({
                     width: 36,
                     height: 36,
                     borderRadius: "50%",
-                    background: "linear-gradient(135deg, #3B82F6, #2563EB)",
+                    background: "linear-gradient(135deg, #22C55E, #16A34A)",
                     color: "#fff",
                     display: "flex",
                     alignItems: "center",
@@ -536,7 +538,7 @@ export default function PageHeader({
                     fontSize: "0.78rem",
                   }}
                 >
-                  DP
+                  {MOCK_USER.initials}
                 </div>
                 <span
                   style={{

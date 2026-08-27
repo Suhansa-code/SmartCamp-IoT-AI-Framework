@@ -14,7 +14,9 @@ export default {
   PORT: parseInt(process.env.PORT, 10) || 5000,
   NODE_ENV: process.env.NODE_ENV || 'development',
   DEVICE_ID: process.env.DEVICE_ID || 'SCB-UNIT-01',
-  CAMP_ID: process.env.CAMP_ID || 'CAMP-B',
+  // CAMP_ID is now derived from GPS location via camp-id.js (not from env)
+  FLOOD_ALERT_HIGH_THRESHOLD: process.env.FLOOD_ALERT_HIGH_THRESHOLD ? parseFloat(process.env.FLOOD_ALERT_HIGH_THRESHOLD) : null,
+  FLOOD_ALERT_CRITICAL_THRESHOLD: process.env.FLOOD_ALERT_CRITICAL_THRESHOLD ? parseFloat(process.env.FLOOD_ALERT_CRITICAL_THRESHOLD) : null,
 
   GATE_THRESHOLD: parseFloat(process.env.GATE_THRESHOLD) || 55,
   BASELINE_INIT: 60.0,
@@ -78,6 +80,17 @@ export default {
   RAINFALL_STORAGE_INTERVAL_MINUTES: parseInt(process.env.RAINFALL_STORAGE_INTERVAL_MINUTES, 10) || 15,
 
   DHT11_STORAGE_INTERVAL_MINUTES: parseInt(process.env.DHT11_STORAGE_INTERVAL_MINUTES, 10) || 5,
+
+  HYDROSPATIAL_STORAGE_INTERVAL_MINUTES: parseInt(process.env.HYDROSPATIAL_STORAGE_INTERVAL_MINUTES, 10) || 30,
+
+  // ── Flood simulation overrides (for demo) ──────────────────────────────
+  FLOOD_SIMULATION_ENABLED: process.env.FLOOD_SIMULATION_ENABLED === 'true',
+  FLOOD_SIMULATION_RAINFALL: process.env.FLOOD_SIMULATION_RAINFALL,
+  FLOOD_SIMULATION_LATITUDE: process.env.FLOOD_SIMULATION_LATITUDE,
+  FLOOD_SIMULATION_LONGITUDE: process.env.FLOOD_SIMULATION_LONGITUDE,
+  FLOOD_SIMULATION_ELEVATION: process.env.FLOOD_SIMULATION_ELEVATION,
+  FLOOD_SIMULATION_RIVER_DISTANCE_KM: process.env.FLOOD_SIMULATION_RIVER_DISTANCE_KM,
+  FLOOD_SIMULATION_WATER_LEVEL: process.env.FLOOD_SIMULATION_WATER_LEVEL,
 
   EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,

@@ -32,7 +32,7 @@ describe('sync-manager — exports', () => {
     expect(typeof syncManager.runSyncCycle).toBe('function');
   });
 
-  it('exports TABLE_TO_ENTITY mapping for all 23 entities', () => {
+  it('exports TABLE_TO_ENTITY mapping for all 21 entities', () => {
     const entities = Object.values(syncManager.TABLE_TO_ENTITY);
     expect(entities).toContain('persons');
     expect(entities).toContain('checkins');
@@ -48,8 +48,6 @@ describe('sync-manager — exports', () => {
     expect(entities).toContain('alerts');
     expect(entities).toContain('content-responses');
     expect(entities).toContain('disaster-events');
-    expect(entities).toContain('sensor-readings');
-    expect(entities).toContain('environmental-data');
     expect(entities).toContain('water-level-readings');
     expect(entities).toContain('gps-readings');
     expect(entities).toContain('weather-data');

@@ -1,4 +1,5 @@
 import time
+import logging
 
 from .providers.gauging_station import get_nearest_waterlevel_station
 from .providers.river_lookup import get_nearest_named_river
@@ -11,6 +12,9 @@ from .providers.river_shapefile import (
     get_station_graph_nodes,
     find_upstream_gauging_station,
 )
+from digital_elevation_model.elevation_service import get_elevation
+
+logger = logging.getLogger(__name__)
 
 # In-memory cache: river/station data for a location rarely changes
 _cache = {}
@@ -87,38 +91,68 @@ def find_nearest_river_and_station(latitude: float, longitude: float):
 
 
 def build_live_payload(latitude: float, longitude: float, altitude: float = 10.0):
-    """Full live payload: river (Overpass), station (CSV+graph), live gauge (ArcGIS)."""
+    """Full live payload: river (Overpass), station (CSV+graph), live gauge (ArcGIS), DEM elevation."""
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+
+    OVERPASS_STEP_TIMEOUT = 35  # seconds per Overpass-dependent step
+
     payload = {
         "query_location": {"lat": latitude, "lon": longitude, "alt": altitude},
         "nearest_river": None,
         "gauging_station": None,
         "live_gauge_data": None,
+        "camp_elevation": None,
         "errors": {},
     }
 
+    # ── DEM elevation (no Overpass, fast) ────────────────────────────────
     try:
-        nearest_river, river_error = get_nearest_named_river(latitude, longitude)
+        camp_elev = get_elevation(latitude, longitude, use_api_fallback=True)
+        if camp_elev.get("elevation_m") is not None:
+            payload["camp_elevation"] = camp_elev["elevation_m"]
+        else:
+            payload["errors"]["elevation"] = camp_elev.get("error", "Elevation unavailable")
+    except Exception as exc:
+        payload["errors"]["elevation"] = str(exc)
+
+    # ── River lookup (Overpass, with timeout) ─────────────────────────────
+    try:
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(get_nearest_named_river, latitude, longitude)
+            nearest_river, river_error = future.result(timeout=OVERPASS_STEP_TIMEOUT)
         if river_error:
             payload["errors"]["river_lookup"] = river_error
         else:
             payload["nearest_river"] = nearest_river
+    except FuturesTimeout:
+        payload["errors"]["river_lookup"] = f"River lookup timed out after {OVERPASS_STEP_TIMEOUT}s"
     except Exception as exc:
         payload["errors"]["river_lookup"] = str(exc)
 
+    # ── Gauging station (Overpass + shapefile, with timeout) ──────────────
+    detailed_result = None
     try:
-        detailed_result, detailed_error = find_nearest_gauging_station_detailed(latitude, longitude)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(find_nearest_gauging_station_detailed, latitude, longitude)
+            detailed_result, detailed_error = future.result(timeout=OVERPASS_STEP_TIMEOUT)
         if detailed_error:
             payload["errors"]["gauging_station"] = detailed_error
         else:
             payload["gauging_station"] = detailed_result
+    except FuturesTimeout:
+        payload["errors"]["gauging_station"] = f"Gauging station lookup timed out after {OVERPASS_STEP_TIMEOUT}s"
     except Exception as exc:
         payload["errors"]["gauging_station"] = str(exc)
-        detailed_result = None
 
+    # ── Live gauge data (ArcGIS, with timeout) ───────────────────────────
     station_name = detailed_result.get("station_name") if detailed_result else ""
     if station_name:
         try:
-            payload["live_gauge_data"] = get_latest_gauge_data(station_name, include_geometry=True)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(get_latest_gauge_data, station_name, True)
+                payload["live_gauge_data"] = future.result(timeout=15)
+        except FuturesTimeout:
+            payload["errors"]["live_gauge_data"] = "Gauge data fetch timed out"
         except Exception as exc:
             payload["errors"]["live_gauge_data"] = str(exc)
 
@@ -138,12 +172,15 @@ def build_live_prediction(latitude: float, longitude: float, altitude: float = 1
         river = payload.get("nearest_river") or {}
         nearest_river_m = (river.get("distance_km") or 0) * 1000
 
+    # Use DEM elevation if available, fallback to station elevation or altitude parameter
+    dem_elevation = payload.get("camp_elevation") or station.get("elevation") or altitude
+
     inputs = {
         "rainfall_mm": gauge.get("rainfall") or 0.0,
         "longitude": longitude,
         "latitude": latitude,
         "altitude_m": altitude,
-        "dem_elevation_m": station.get("elevation"),
+        "dem_elevation_m": dem_elevation,
         "nearest_river_m": nearest_river_m,
         "gauging_station_current_water_level_m": gauge.get("water_level") or 0.0,
         "is_forecast": True,
@@ -178,3 +215,131 @@ def build_live_prediction(latitude: float, longitude: float, altitude: float = 1
         },
         "errors": payload.get("errors", {}),
     }, None
+
+
+def build_hydrospatial_analysis(latitude: float, longitude: float, altitude: float = 10.0):
+    """
+    Complete hydro-spatial analysis for a camp location.
+
+    Combines DEM elevation, river/station lookup, and live gauge data
+    into a single structured payload with spatial relationships.
+
+    Each Overpass-dependent step runs with an independent timeout so that
+    a slow/unresponsive Overpass API does not block the entire analysis.
+    """
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+    from geopy.distance import geodesic
+
+    OVERPASS_STEP_TIMEOUT = 35  # seconds per Overpass-dependent step
+
+    payload = {
+        "query_location": {"lat": latitude, "lon": longitude, "alt": altitude},
+        "camp_elevation": None,
+        "gauge_elevation": None,
+        "elevation_difference": None,
+        "river_name": None,
+        "river_distance_km": None,
+        "station_name": None,
+        "gauge_distance_km": None,
+        "gauge_latitude": None,
+        "gauge_longitude": None,
+        "nearest_river": None,
+        "gauging_station": None,
+        "live_gauge_data": None,
+        "errors": {},
+    }
+
+    # ── Step 1: Get camp elevation from DEM (no Overpass, fast) ──────────
+    try:
+        camp_elev = get_elevation(latitude, longitude, use_api_fallback=True)
+        if camp_elev.get("elevation_m") is not None:
+            payload["camp_elevation"] = camp_elev["elevation_m"]
+        else:
+            payload["errors"]["camp_elevation"] = camp_elev.get("error", "Elevation unavailable")
+    except Exception as exc:
+        payload["errors"]["camp_elevation"] = str(exc)
+
+    # ── Step 2: Find nearest river (Overpass, with timeout) ──────────────
+    try:
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(get_nearest_named_river, latitude, longitude)
+            nearest_river, river_error = future.result(timeout=OVERPASS_STEP_TIMEOUT)
+        if river_error:
+            payload["errors"]["river_lookup"] = river_error
+        else:
+            payload["nearest_river"] = nearest_river
+            payload["river_name"] = nearest_river.get("name")
+            payload["river_distance_km"] = nearest_river.get("distance_km")
+    except FuturesTimeout:
+        payload["errors"]["river_lookup"] = f"River lookup timed out after {OVERPASS_STEP_TIMEOUT}s"
+        logger.warning(f"[HYDROSPATIAL] River lookup timed out for ({latitude}, {longitude})")
+    except Exception as exc:
+        payload["errors"]["river_lookup"] = str(exc)
+
+    # ── Step 3: Find gauging station (Overpass + shapefile, with timeout) ─
+    try:
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(find_nearest_gauging_station_detailed, latitude, longitude)
+            detailed_result, detailed_error = future.result(timeout=OVERPASS_STEP_TIMEOUT)
+        if detailed_error:
+            payload["errors"]["gauging_station"] = detailed_error
+        else:
+            payload["gauging_station"] = detailed_result
+            payload["station_name"] = detailed_result.get("station_name")
+            gauge_lat = detailed_result.get("gauge_latitude")
+            gauge_lon = detailed_result.get("gauge_longitude")
+            payload["gauge_latitude"] = gauge_lat
+            payload["gauge_longitude"] = gauge_lon
+
+            # Use river name from shapefile if Overpass failed
+            if payload["river_name"] is None and detailed_result.get("nearest_river_name"):
+                payload["river_name"] = detailed_result["nearest_river_name"]
+
+            # Use river name from station CSV if still None
+            if payload["river_name"] is None and detailed_result.get("river_name"):
+                payload["river_name"] = detailed_result["river_name"]
+
+            # Use river distance from shapefile if Overpass failed
+            if payload["river_distance_km"] is None and detailed_result.get("distance_to_river_meters"):
+                payload["river_distance_km"] = round(detailed_result["distance_to_river_meters"] / 1000, 3)
+
+            if gauge_lat is not None and gauge_lon is not None:
+                dist = geodesic((latitude, longitude), (gauge_lat, gauge_lon)).km
+                payload["gauge_distance_km"] = round(dist, 2)
+    except FuturesTimeout:
+        payload["errors"]["gauging_station"] = f"Gauging station lookup timed out after {OVERPASS_STEP_TIMEOUT}s"
+        logger.warning(f"[HYDROSPATIAL] Gauging station lookup timed out for ({latitude}, {longitude})")
+    except Exception as exc:
+        payload["errors"]["gauging_station"] = str(exc)
+
+    # ── Step 4: Get gauge elevation from DEM (no Overpass, fast) ─────────
+    if payload["gauge_latitude"] is not None and payload["gauge_longitude"] is not None:
+        try:
+            gauge_elev = get_elevation(
+                payload["gauge_latitude"], payload["gauge_longitude"],
+                use_api_fallback=True,
+            )
+            if gauge_elev.get("elevation_m") is not None:
+                payload["gauge_elevation"] = gauge_elev["elevation_m"]
+            else:
+                payload["errors"]["gauge_elevation"] = gauge_elev.get("error", "Gauge elevation unavailable")
+        except Exception as exc:
+            payload["errors"]["gauge_elevation"] = str(exc)
+
+    # ── Step 5: Calculate elevation difference ───────────────────────────
+    if payload["camp_elevation"] is not None and payload["gauge_elevation"] is not None:
+        payload["elevation_difference"] = round(payload["camp_elevation"] - payload["gauge_elevation"], 2)
+
+    # ── Step 6: Get live gauge data (ArcGIS, with timeout) ───────────────
+    station_name = payload.get("station_name")
+    if station_name:
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(get_latest_gauge_data, station_name, True)
+                payload["live_gauge_data"] = future.result(timeout=15)
+        except FuturesTimeout:
+            payload["errors"]["live_gauge_data"] = "Gauge data fetch timed out"
+        except Exception as exc:
+            payload["errors"]["live_gauge_data"] = str(exc)
+
+    return payload

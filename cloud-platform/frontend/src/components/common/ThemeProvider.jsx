@@ -5,10 +5,10 @@ import { DARK, LIGHT } from './theme'
 
 const STORAGE_KEY = 'smartcamp.theme'
 
-const ThemeContext = createContext({ mode: 'dark', T: DARK, toggle: () => {} })
+const ThemeContext = createContext({ mode: 'light', T: LIGHT, toggle: () => {} })
 
 export function ThemeProvider({ children }) {
-  const [mode, setMode] = useState('dark')
+  const [mode, setMode] = useState('light')
 
   // Restore the saved theme after mount (avoids hydration mismatch).
   useEffect(() => {

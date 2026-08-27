@@ -13,7 +13,8 @@ import StatusDonut from "@/components/dashboard/StatusDonut";
 import ArrowChip from "@/components/alert/ArrowChip";
 import Button from "@/components/common/Button";
 import { useTheme } from "@/components/common/ThemeProvider";
-import { CAMP_META, MOCK_CAMPS } from "@/data/education.data";
+import { CAMP_META } from "@/data/education.data";
+import { CHILDREN_PROGRESS_MAX as EDU_CHILDREN_MAX, EDU_SESSIONS_PROGRESS_MAX } from "@/data/constants.data";
 import {
   GraduationCap,
   Users,
@@ -28,6 +29,10 @@ import {
   Radio,
   Search,
   HeartPulse,
+  Target,
+  Timer,
+  Zap,
+  BarChart3,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
@@ -40,78 +45,6 @@ function campMeta(id) {
     .replace(/\b\w/g, (ch) => ch.toUpperCase())
     .trim();
   return { name: pretty || id, location: "Sector", code: (pretty || id).slice(0, 3).toUpperCase() };
-}
-
-function mockCampDetail(summary) {
-  const base = 50 + Math.round(Math.random() * 30);
-  const children = Array.from({ length: Math.min(summary.children, 10) }, (_, i) => ({
-    child_id: `TEST-CHILD-${String(100000 + i).slice(-6)}`,
-    res_id: `RES-${i + 1}`,
-    camp_id: summary.id,
-    grade: summary.grade_distribution[i]?.grade ?? 3,
-    language: ["si", "ta", "en"][i % 3],
-    baseline_score: Math.round(55 + Math.random() * 15),
-    total_sessions: 4 + (i % 8),
-    alert_status: i % 4 === 0 ? "active" : "none",
-    recent_scores: Array.from({ length: 6 }, (_, k) => ({
-      score: Math.max(30, Math.min(95, base - 6 + k * 3 + Math.round(Math.random() * 8))),
-      date: new Date(Date.now() - (6 - k) * 86400e3).toISOString(),
-    })),
-  }));
-
-  const sessions = [];
-  children.forEach((child, ci) => {
-    const n = Math.min(child.total_sessions, 4);
-    for (let s = 0; s < n; s += 1) {
-      sessions.push({
-        session_id: `S-${ci}-${s}`,
-        child_id: child.child_id,
-        composite_score: child.recent_scores[child.recent_scores.length - 1 - s]?.score ?? 60,
-        anomaly_flagged: Math.random() < 0.12 ? 1 : 0,
-        alert_triggered: 0,
-        created_at: new Date(Date.now() - (ci * 3 + s) * 3600e3).toISOString(),
-        grade: child.grade,
-        language: child.language,
-        baseline_score: child.baseline_score,
-      });
-    }
-  });
-  sessions.sort((a, b) => b.created_at.localeCompare(a.created_at));
-
-  const alerts = children
-    .filter((child) => child.alert_status === "active")
-    .slice(0, 2)
-    .map((child, i) => ({
-      alert_id: `AL-${i + 1}`,
-      child_id: child.child_id,
-      res_id: child.res_id,
-      camp_id: summary.id,
-      alert_type: "3_of_5_flagged",
-      trigger_detail: { recent_scores: [50, 44, 38] },
-      triggered_at: new Date(Date.now() - i * 86400e3).toISOString(),
-      status: "pending",
-      resolved_at: null,
-      resolved_notes: null,
-    }));
-
-  return {
-    id: summary.id,
-    children_count: summary.children,
-    sessions_count: sessions.length,
-    flagged_sessions: sessions.filter((s) => s.anomaly_flagged).length,
-    avg_composite: summary.avg_composite,
-    pending_alerts: alerts.length,
-    total_alerts: summary.total_alerts,
-    grade_distribution: summary.grade_distribution,
-    language_distribution: [
-      { language: "si", count: Math.round(summary.children * 0.55) },
-      { language: "ta", count: Math.round(summary.children * 0.3) },
-      { language: "en", count: summary.children - Math.round(summary.children * 0.85) },
-    ],
-    children,
-    sessions,
-    alerts,
-  };
 }
 
 const chip = (label, value, color) => (
@@ -256,17 +189,21 @@ export default function EducationPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   async function loadCamps(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
     else setLoadingCamps(true);
+    setLoadError("");
     try {
       const res = await fetch(`${API_BASE}/api/alerts/education/camps`);
-      const payload = res.ok ? await res.json() : null;
-      const list = Array.isArray(payload?.camps) && payload.camps.length > 0 ? payload.camps : MOCK_CAMPS;
-      setCamps(list.map((c) => ({ ...c, last_session_at: c.last_session_at || new Date(Date.now() - 3600e3 * 4).toISOString() })));
-    } catch {
-      setCamps(MOCK_CAMPS);
+      if (!res.ok) throw new Error(`Cloud Backend returned ${res.status}`);
+      const payload = await res.json();
+      const list = Array.isArray(payload?.camps) ? payload.camps : [];
+      setCamps(list);
+    } catch (error) {
+      setCamps([]);
+      setLoadError(error instanceof Error ? error.message : "Failed to load education data");
     } finally {
       if (isRefresh) setRefreshing(false);
       else setLoadingCamps(false);
@@ -283,10 +220,11 @@ export default function EducationPage() {
     setLoadingDetail(true);
     try {
       const res = await fetch(`${API_BASE}/api/alerts/education/camps/${encodeURIComponent(id)}`);
-      const payload = res.ok ? await res.json() : null;
-      setDetail(payload?.camp ?? mockCampDetail(camps.find((c) => c.id === id) || { id, children: 0, grade_distribution: [] }));
+      if (!res.ok) throw new Error(`Cloud Backend returned ${res.status}`);
+      const payload = await res.json();
+      setDetail(payload?.camp ?? null);
     } catch {
-      setDetail(mockCampDetail(camps.find((c) => c.id === id) || { id, children: 0, grade_distribution: [] }));
+      setDetail(null);
     } finally {
       setLoadingDetail(false);
     }
@@ -648,7 +586,7 @@ function OverviewView({
           label="Total Camps"
           value={list.length}
           icon={<GraduationCap size={17} />}
-          color="#2563EB"
+          color="#16A34A"
           delta="active sites"
           pct={100}
           spark={sparkFor("children").map((_, i) => i + 1)}
@@ -659,7 +597,7 @@ function OverviewView({
           icon={<Users size={17} />}
           color={T.teal}
           delta="grade 3 & 4"
-          pct={Math.min(100, Math.round((scopeTotals.children / 1500) * 100))}
+          pct={Math.min(100, Math.round((scopeTotals.children / EDU_CHILDREN_MAX) * 100))}
           spark={sparkFor("children")}
         />
         <KpiCard
@@ -668,7 +606,7 @@ function OverviewView({
           icon={<BookOpen size={17} />}
           color={T.purple}
           delta="synced"
-          pct={Math.min(100, Math.round((scopeTotals.sessions / 2400) * 100))}
+          pct={Math.min(100, Math.round((scopeTotals.sessions / EDU_SESSIONS_PROGRESS_MAX) * 100))}
           spark={sparkFor("sessions")}
         />
         <KpiCard
@@ -808,7 +746,7 @@ function OverviewView({
               width: 7,
               height: 7,
               borderRadius: "50%",
-              background: "#2563EB",
+              background: "#16A34A",
               opacity: 0.8,
               animation: "eduFloat 5s ease-in-out infinite",
             }}
@@ -997,7 +935,7 @@ function OverviewView({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gridTemplateColumns: "repeat(4, 1fr)",
                   gap: 8,
                   marginTop: "0.9rem",
                   paddingTop: "0.9rem",
@@ -1049,6 +987,23 @@ function OverviewView({
                     }}
                   >
                     Avg Score
+                  </div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: (camp.avg_accuracy || 0) >= 70 ? T.green : (camp.avg_accuracy || 0) >= 50 ? T.amber : T.muted }}>
+                    {camp.avg_accuracy != null ? `${camp.avg_accuracy}%` : '—'}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 3,
+                      fontSize: "0.62rem",
+                      color: T.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    Accuracy
                   </div>
                 </div>
               </div>
@@ -1123,7 +1078,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             label="Children"
             value={detail.children_count.toLocaleString()}
             icon={<Users size={17} />}
-            color="#2563EB"
+            color="#16A34A"
             delta="tracked"
             pct={100}
           />
@@ -1345,8 +1300,89 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
         </div>
       </DashboardCard>
 
+      {/* ── Behavioral Insights ── */}
+      {detail.behavioral && detail.behavioral.signal_count > 0 && (
+        <div className="edu-charts">
+          <DashboardCard
+            title="Behavioral Insights"
+            subtitle={`Aggregated from ${detail.behavioral.signal_count} signals`}
+            right={<Zap size={16} color={T.amber} />}
+            bodyStyle={{ height: 240 }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', height: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Avg Accuracy</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: detail.behavioral.avg_accuracy >= 70 ? T.green : detail.behavioral.avg_accuracy >= 50 ? T.amber : T.red }}>{detail.behavioral.avg_accuracy ?? '—'}%</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 99, background: T.border, marginTop: 6, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, detail.behavioral.avg_accuracy || 0)}%`, height: '100%', borderRadius: 99, background: detail.behavioral.avg_accuracy >= 70 ? T.green : detail.behavioral.avg_accuracy >= 50 ? T.amber : T.red }} />
+                  </div>
+                </div>
+                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Avg Reaction</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: T.teal }}>{detail.behavioral.avg_reaction_ms ?? '—'}</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: T.muted }}>ms</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Completion Rate</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: T.purple }}>{detail.behavioral.avg_completion != null ? `${Math.round(detail.behavioral.avg_completion * 100)}%` : '—'}</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 99, background: T.border, marginTop: 6, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, Math.round((detail.behavioral.avg_completion || 0) * 100))}%`, height: '100%', borderRadius: 99, background: T.purple }} />
+                  </div>
+                </div>
+                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>False Tap Rate</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: detail.behavioral.avg_false_tap > 0.15 ? T.red : T.green }}>{detail.behavioral.avg_false_tap != null ? `${Math.round(detail.behavioral.avg_false_tap * 100)}%` : '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DashboardCard>
+
+          <DashboardCard
+            title="Content Accuracy"
+            subtitle={`From ${detail.content?.total_responses || 0} responses`}
+            right={<Target size={16} color={T.teal} />}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+              <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                <div style={{ fontSize: '2.2rem', fontWeight: 800, color: (detail.content?.accuracy_pct || 0) >= 70 ? T.green : (detail.content?.accuracy_pct || 0) >= 50 ? T.amber : T.red }}>
+                  {detail.content?.accuracy_pct != null ? `${detail.content.accuracy_pct}%` : '—'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 700 }}>Correct Responses</div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: T.green }}>
+                  <CheckCircle2 size={13} /> {detail.content?.correct || 0} correct
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: T.red }}>
+                  <AlertTriangle size={13} /> {(detail.content?.total_responses || 0) - (detail.content?.correct || 0)} wrong
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 99, background: T.border, overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, detail.content?.accuracy_pct || 0)}%`, height: '100%', borderRadius: 99, background: (detail.content?.accuracy_pct || 0) >= 70 ? T.green : (detail.content?.accuracy_pct || 0) >= 50 ? T.amber : T.red, transition: 'width 0.6s ease' }} />
+              </div>
+              {detail.gate_decisions > 0 && (
+                <div style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 600, textAlign: 'center' }}>
+                  {detail.gate_decisions} gate decisions recorded
+                </div>
+              )}
+            </div>
+          </DashboardCard>
+        </div>
+      )}
+
       {/* ── Camp alerts ── */}
-      {/* <DashboardCard
+      <DashboardCard
         title="Camp Alerts"
         subtitle="Triggered welfare alerts for this camp"
         right={chip("pending", detail.pending_alerts, detail.pending_alerts > 0 ? T.red : T.green)}
@@ -1373,13 +1409,12 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: "0.82rem", fontWeight: 800, color: T.ink }}>
-                  {alert.child_id} · {alert.alert_type.replace(/_/g, " ")}
+                  {alert.child_id} · {alert.alert_type?.replace(/_/g, " ") || 'alert'}
                 </div>
                 <div style={{ fontSize: "0.72rem", color: T.muted, marginTop: 2 }}>
                   {alert.triggered_at
                     ? new Date(alert.triggered_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
                     : "—"}
-                  {alert.trigger_detail?.recent_scores ? ` · recent: ${alert.trigger_detail.recent_scores.join(" → ")}` : ""}
                 </div>
               </div>
               <Tag color={alert.status === "pending" ? T.red : T.green}>{alert.status}</Tag>
@@ -1391,7 +1426,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             <p style={{ fontSize: "0.85rem", fontWeight: 700 }}>No alerts for this camp</p>
           </div>
         )}
-      </DashboardCard> */}
+      </DashboardCard>
 
 
     </>

@@ -102,14 +102,10 @@ export function classifyRowPriority(tableName, row) {
       return classifyDisasterAlert(row);
     case 'flood_predictions':
       return classifyFloodPrediction(row);
-    case 'sensor_readings':
-      return classifySensorReading(row);
     case 'water_level_readings':
       return classifyWaterLevel(row);
     case 'disaster_events':
       return classifyDisasterEvent(row);
-    case 'environmental_data':
-      return md('environmental_data');
     case 'weather_data':
       return md('weather_data');
     case 'gps_readings':
@@ -295,10 +291,8 @@ export function getTableDefaultPriority(tableName) {
     pages_content_responses:  PRIORITY.LOW,
     disaster_alerts:       PRIORITY.CRITICAL,
     flood_predictions:     PRIORITY.CRITICAL,
-    sensor_readings:       PRIORITY.HIGH,
     water_level_readings:  PRIORITY.HIGH,
     disaster_events:       PRIORITY.HIGH,
-    environmental_data:    PRIORITY.MEDIUM,
     weather_data:          PRIORITY.MEDIUM,
     gps_readings:          PRIORITY.MEDIUM,
     hydrospatial_data:     PRIORITY.MEDIUM,

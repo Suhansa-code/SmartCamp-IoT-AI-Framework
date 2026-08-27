@@ -25,39 +25,6 @@ CREATE TABLE IF NOT EXISTS disaster_events (
 );
 
 -- ============================================================
--- 2. SENSOR READINGS
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS sensor_readings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sensor_id TEXT NOT NULL,
-    sensor_type TEXT NOT NULL,
-    value REAL NOT NULL,
-    unit TEXT,
-    latitude REAL,
-    longitude REAL,
-    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    synced INTEGER NOT NULL DEFAULT 0
-);
-
--- ============================================================
--- 3. ENVIRONMENTAL DATA
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS environmental_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    temperature REAL,
-    humidity REAL,
-    pressure REAL,
-    rainfall REAL,
-    wind_speed REAL,
-    wind_direction REAL,
-    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    source TEXT,
-    synced INTEGER NOT NULL DEFAULT 0
-);
-
--- ============================================================
 -- 4. WATER LEVEL READINGS
 -- ============================================================
 
@@ -108,10 +75,10 @@ CREATE TABLE IF NOT EXISTS rainfall_readings (
 );
 
 -- ============================================================
--- 5c. DHT11 SENSOR READINGS
+-- 5c. HUMIDITY/TEMP SENSOR READINGS
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS dht11_readings (
+CREATE TABLE IF NOT EXISTS HumidityTemp_readings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id TEXT,
     temperature REAL,
@@ -123,7 +90,20 @@ CREATE TABLE IF NOT EXISTS dht11_readings (
 );
 
 -- ============================================================
--- 6. WEATHER DATA
+-- 5d. SENSOR STATUS READINGS
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS sensor_status_readings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT,
+    gps_connected INTEGER,
+    temperature_connected INTEGER,
+    humidity_connected INTEGER,
+    rainfall_connected INTEGER,
+    gateway_status TEXT,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced INTEGER NOT NULL DEFAULT 0
+);
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS weather_data (
@@ -159,6 +139,12 @@ CREATE TABLE IF NOT EXISTS hydrospatial_data (
     river_distance REAL,
     nearest_station_id TEXT,
     river_name TEXT,
+    gauge_elevation REAL,
+    elevation_difference REAL,
+    gauge_distance REAL,
+    gauge_latitude REAL,
+    gauge_longitude REAL,
+    station_name TEXT,
     source TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced INTEGER NOT NULL DEFAULT 0
@@ -190,18 +176,52 @@ CREATE TABLE IF NOT EXISTS flood_predictions (
 
 CREATE TABLE IF NOT EXISTS disaster_alerts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_id TEXT UNIQUE,
+    event_id TEXT UNIQUE,
+    camp_id TEXT,
+    camp_name TEXT,
     alert_type TEXT NOT NULL,
     severity TEXT NOT NULL,
+    priority TEXT NOT NULL DEFAULT 'NORMAL',
     title TEXT,
     message TEXT,
     latitude REAL,
     longitude REAL,
     prediction_id TEXT,
+    flood_probability REAL,
+    flood_probability_percent REAL,
+    risk_category TEXT,
+    forecast_hours INTEGER,
+    rainfall REAL,
+    camp_elevation REAL,
+    river_distance_km REAL,
+    water_level REAL,
+    station_id TEXT,
+    station_name TEXT,
+    gauge_elevation REAL,
+    elevation_difference REAL,
+    gauge_distance_km REAL,
+    gauge_latitude REAL,
+    gauge_longitude REAL,
+    river_name TEXT,
+    camp_latitude REAL,
+    camp_longitude REAL,
+    source TEXT,
+    prediction_timestamp TEXT,
+    expires_at TEXT,
+    schema_version TEXT NOT NULL DEFAULT '1.0',
     status TEXT NOT NULL DEFAULT 'ACTIVE',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     acknowledged_at TEXT,
+    mqtt_status TEXT NOT NULL DEFAULT 'PENDING',
+    cloud_sync_status TEXT NOT NULL DEFAULT 'PENDING',
     synced INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_active
+    ON disaster_alerts(camp_id, alert_type, risk_category, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_disaster_alerts_event_id
+    ON disaster_alerts(event_id) WHERE event_id IS NOT NULL;
 
 -- ============================================================
 -- 10. PREDICTION REQUESTS
@@ -253,15 +273,6 @@ CREATE TABLE IF NOT EXISTS disaster_sync_log (
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX IF NOT EXISTS idx_sensor_readings_recorded_at
-ON sensor_readings(recorded_at);
-
-CREATE INDEX IF NOT EXISTS idx_sensor_readings_sensor_id
-ON sensor_readings(sensor_id);
-
-CREATE INDEX IF NOT EXISTS idx_environmental_data_recorded_at
-ON environmental_data(recorded_at);
-
 CREATE INDEX IF NOT EXISTS idx_water_level_recorded_at
 ON water_level_readings(recorded_at);
 
@@ -274,8 +285,11 @@ ON gps_readings(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_rainfall_readings_recorded_at
 ON rainfall_readings(recorded_at);
 
-CREATE INDEX IF NOT EXISTS idx_dht11_readings_recorded_at
-ON dht11_readings(recorded_at);
+CREATE INDEX IF NOT EXISTS idx_HumidityTemp_readings_recorded_at
+ON HumidityTemp_readings(recorded_at);
+
+CREATE INDEX IF NOT EXISTS idx_sensor_status_recorded_at
+ON sensor_status_readings(recorded_at);
 
 CREATE INDEX IF NOT EXISTS idx_weather_data_forecast_time
 ON weather_data(forecast_time);

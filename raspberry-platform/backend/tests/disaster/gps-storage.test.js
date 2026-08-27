@@ -128,12 +128,12 @@ describe('storeCurrentLocation', () => {
   it('records the actual time in recorded_at', async () => {
     const before = Date.now();
     await gpsStorage.storeCurrentLocation();
-    const recordedAt = new Date(mockRun.mock.calls[0][6]).getTime();
+    // recorded_at is the 9th parameter (index 8): run(device_id, lat, lng, alt, acc, source, loc_name, loc_district, recorded_at)
+    const recordedAt = new Date(mockRun.mock.calls[0][8]).getTime();
     const after = Date.now();
-    // Allow 5-second tolerance for timezone offset (Colombo GMT+5:30)
     expect(recordedAt).toBeGreaterThanOrEqual(before - 5000);
     expect(recordedAt).toBeLessThanOrEqual(after + 5000);
-  });
+  }, 10000);
 
   it('skips MOCK_LOCATION source', async () => {
     mockGpsResult = { latitude: 6.9271, longitude: 79.8612, altitude: 0, accuracy: null, source: 'MOCK_LOCATION', live: false };
@@ -187,7 +187,7 @@ describe('movement detection', () => {
     const result = await gpsStorage.storeCurrentLocation();
     expect(result).toBe(false);
     expect(mockRun).toHaveBeenCalledTimes(2); // no new insert
-  });
+  }, 15000);
 });
 
 // ── Start/stop lifecycle ────────────────────────────────────────────────

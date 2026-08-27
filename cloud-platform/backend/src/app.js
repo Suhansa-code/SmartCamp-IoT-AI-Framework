@@ -8,16 +8,15 @@ import { requestLogger } from './middleware/requestLogger.js';
 /**
  * Builds and configures the Express application.
  * Kept free of side effects so it can be reused by tests.
- * @param {{ monitor?: object }} deps
  */
-export function createApp({ monitor } = {}) {
+export function createApp() {
   const app = express();
 
   app.use(cors());
   app.use(express.json());
   app.use(requestLogger);
 
-  app.use('/api', routes({ monitor }));
+  app.use('/api', routes());
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: Date.now() });

@@ -9,8 +9,7 @@ import Button from '@/components/common/Button'
 export default function SearchBar({
   value, onChange, placeholder, onRefresh, refreshing, style,
 }) {
-  const { T, mode } = useTheme()
-  const dark = mode === 'dark'
+  const { T } = useTheme()
   return (
     <>
       <style>{`
@@ -39,15 +38,11 @@ export default function SearchBar({
         />
         {onRefresh && (
           <Button
-            variant="circle"
+            variant="circleRefresh"
             size={34}
             onClick={onRefresh}
             disabled={refreshing}
             aria-label="Refresh"
-            style={{
-              background: dark ? '#FFFFFF' : '#0F172A',
-              color: dark ? '#0F172A' : '#FFFFFF',
-            }}
           >
             <RefreshCw size={15} style={refreshing ? { animation: 'searchSpin 0.8s linear infinite' } : undefined} />
           </Button>

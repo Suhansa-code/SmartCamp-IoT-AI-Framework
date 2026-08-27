@@ -4,15 +4,19 @@ import Link from 'next/link'
 import { useTheme } from './ThemeProvider'
 
 const INK = '#0F172A'
-const LIME = '#2563EB'
+const GREEN = 'rgb(22, 163, 74)'
 
-// Shared action-button component (alert-page "nitec" design language).
+// Shared action-button component.
 //
 // Variants:
-//   'lime'   (default) — lime pill with dark text, optional trailing circle icon
-//   'outline'          — white pill with dark border, used for secondary actions
-//   'circle'           — solid dark round icon button
-//   'circleOutline'    — white round icon button with border
+//   'green'          (default) — green pill with white text, optional trailing circle icon
+//   'outline'                  — pill with border, secondary actions (cd-toolbtn style)
+//   'danger'                   — red pill with white text
+//   'teal'                     — teal pill with white text
+//   'ghost'                    — transparent pill with text, no background
+//   'circle'                   — solid round icon button
+//   'circleOutline'            — round icon button with border
+//   'circleRefresh'            — search-bar style refresh circle button
 //
 // All pill variants share a consistent ~36px height.
 export default function Button({
@@ -21,7 +25,7 @@ export default function Button({
   href,
   icon,
   circleIcon = true,
-  variant = 'lime',
+  variant = 'green',
   size = 38,
   disabled = false,
   style,
@@ -39,8 +43,8 @@ export default function Button({
             width: 26,
             height: 26,
             borderRadius: '50%',
-            background: INK,
-            color: '#fff',
+            background: dark ? '#FFFFFF' : '#FFFFFF',
+            color: dark ? INK : INK,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -55,15 +59,50 @@ export default function Button({
     </>
   )
 
-  const base = variant === 'circle' || variant === 'circleOutline'
+  const isCircle = variant === 'circle' || variant === 'circleOutline' || variant === 'circleRefresh'
+
+  const variantBg = {
+    green: GREEN,
+    outline: 'transparent',
+    danger: T.red,
+    teal: T.teal,
+    ghost: 'transparent',
+    circle: dark ? T.bar : INK,
+    circleOutline: dark ? T.card : '#FFFFFF',
+    circleRefresh: dark ? '#FFFFFF' : INK,
+  }
+
+  const variantBorder = {
+    green: 'none',
+    outline: `1px solid ${T.border}`,
+    danger: 'none',
+    teal: 'none',
+    ghost: 'none',
+    circle: 'none',
+    circleOutline: `1px solid ${T.border}`,
+    circleRefresh: 'none',
+  }
+
+  const variantColor = {
+    green: '#FFFFFF',
+    outline: T.textPrimary,
+    danger: '#FFFFFF',
+    teal: '#FFFFFF',
+    ghost: T.muted,
+    circle: T.textPrimary,
+    circleOutline: T.textPrimary,
+    circleRefresh: dark ? INK : '#FFFFFF',
+  }
+
+  const base = isCircle
     ? {
         width: size,
         height: size,
         borderRadius: '50%',
         position: 'relative',
-        background: variant === 'circle' ? (dark ? T.bar : INK) : (dark ? T.card : '#FFFFFF'),
-        border: variant === 'circle' ? 'none' : `1px solid ${T.border}`,
-        color: T.textPrimary,
+        background: variantBg[variant],
+        border: variantBorder[variant],
+        color: variantColor[variant],
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -79,10 +118,10 @@ export default function Button({
         justifyContent: 'center',
         gap: '0.6rem',
         width: 'fit-content',
-        background: variant === 'outline' ? 'transparent' : LIME,
-        color: variant === 'outline' ? T.textPrimary : INK,
+        background: variantBg[variant],
+        color: variantColor[variant],
         borderRadius: '9999px',
-        border: variant === 'outline' ? `2px solid ${dark ? T.border : INK}` : 'none',
+        border: variantBorder[variant],
         fontWeight: 700,
         fontSize: '0.8rem',
         cursor: disabled ? 'not-allowed' : 'pointer',

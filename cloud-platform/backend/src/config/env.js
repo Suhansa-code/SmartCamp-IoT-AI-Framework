@@ -27,11 +27,6 @@ export const env = {
     connectionString: process.env.DATABASE_URL || undefined,
   },
 
-  // Network monitoring
-  enableSimulation: process.env.ENABLE_SIMULATION === 'true',
-  useRealNetwork: process.env.USE_REAL_NETWORK === 'true',
-  pingTarget: process.env.PING_TARGET || '8.8.8.8',
-
   mqtt: {
     brokerUrl: process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883',
     username: process.env.MQTT_USERNAME || undefined,

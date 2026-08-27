@@ -78,7 +78,7 @@ function SensorCard({ icon: Icon, name, description, connected, lastUpdated, chi
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="h-full">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3">
             <IconTile icon={Icon} tone={connected ? 'brand' : 'danger'} />
             <div>
@@ -86,7 +86,7 @@ function SensorCard({ icon: Icon, name, description, connected, lastUpdated, chi
               <p className="text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>{description}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:self-start">
             <span className={`w-2 h-2 rounded-full ${connected ? 'animate-pulse' : ''}`} style={{ backgroundColor: TONE[tone].color }} />
             <Chip tone={tone}>{connected ? 'Connected' : 'Disconnected'}</Chip>
           </div>
@@ -121,10 +121,10 @@ function DeviceStatusCard({ device }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="h-full">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3">
             <IconTile icon={Icon} tone={connected ? 'brand' : 'danger'} />
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
               <div>
                 <h3 className="text-[13.5px] sm:text-[14px] font-semibold leading-tight" style={{ color: COLORS.ink }}>Edge Gateway</h3>
                 <p className="text-[11.5px] mt-0.5" style={{ color: COLORS.muted }}>Raspberry Pi device connectivity</p>
@@ -134,7 +134,7 @@ function DeviceStatusCard({ device }) {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:self-center">
             <span className={`w-2 h-2 rounded-full ${connected ? 'animate-pulse' : ''}`} style={{ backgroundColor: TONE[tone].color }} />
             <Chip tone={tone}>{connected ? 'Connected' : 'Disconnected'}</Chip>
           </div>
@@ -185,26 +185,26 @@ function GpsCard({ sensor }) {
     <SensorCard icon={Satellite} name="GPS Sensor" description="Camp location & disaster-response tracking" connected={connected} lastUpdated={sensor?.timestamp}>
       {connected ? (
         <>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+          <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3">
             <DataRow label="Latitude" value={sensor?.latitude != null ? `${Number(sensor.latitude).toFixed(4)}°` : '—'} mono />
             <DataRow label="Longitude" value={sensor?.longitude != null ? `${Number(sensor.longitude).toFixed(4)}°` : '—'} mono />
             <DataRow label="Altitude" value={sensor?.altitude != null ? `${sensor.altitude} m` : '—'} mono />
             <DataRow label="Satellites" value={sensor?.satellites ?? '—'} mono />
           </div>
 
-          <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
-            <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
-            <div className="flex-1">
+          <div className="mt-3 pt-3 border-t flex items-start gap-2" style={{ borderColor: COLORS.hairline }}>
+            <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: COLORS.brand }} />
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Location</p>
               {geo.loading ? (
                 <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.muted }}>Fetching location…</p>
               ) : geo.name ? (
                 <>
-                  <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
+                  <p className="text-[12.5px] font-medium mt-0.5 break-words" style={{ color: COLORS.ink }}>
                     {geo.name}
                     {sensor?.is_mock && <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>}
                   </p>
-                  {geo.district && <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>{geo.district}</p>}
+                  {geo.district && <p className="text-[11px] mt-0.5 break-words" style={{ color: COLORS.muted }}>{geo.district}</p>}
                 </>
               ) : (
                 <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.muted }}>Location unavailable</p>
@@ -282,16 +282,16 @@ function RainfallCard({ sensor }) {
     <SensorCard icon={CloudRain} name="Rainfall Sensor" description="YL-83 rain gauge via ESP32" connected={connected} lastUpdated={sensor?.timestamp}>
       {connected ? (
         <>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+          <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3">
             <DataRow label="Analog Value" value={sensor?.rain_analog ?? '—'} mono />
             <DataRow label="Digital" value={sensor?.rain_digital === 1 ? 'Wet' : 'Dry'} />
             <DataRow label="Status" value={sensor?.rain_status ?? '—'} />
             <DataRow label="Wetness" value={sensor?.wetness_level ?? '—'} />
           </div>
 
-          <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
-            <CloudRain className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
-            <div className="flex-1">
+          <div className="mt-3 pt-3 border-t flex items-start gap-2" style={{ borderColor: COLORS.hairline }}>
+            <CloudRain className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: COLORS.brand }} />
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Current Conditions</p>
               <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
                 {sensor?.rain_status === 'RAIN_DETECTED' ? 'Rain detected' : 'No rain'}
@@ -325,18 +325,18 @@ function FingerprintCard() {
 
   return (
     <SensorCard icon={Fingerprint} name="Fingerprint Sensor" description="Biometric identification for camp access" connected={connected} lastUpdated={new Date().toISOString()}>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+      <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3">
         <DataRow label="Enrolled" value={mockData.enrolled} mono />
         <DataRow label="Last Scan" value={mockData.last_scan} />
         <DataRow label="Match Score" value={`${mockData.match_score}%`} mono />
         <DataRow label="Access Count" value={mockData.access_count} mono />
       </div>
 
-      <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: COLORS.hairline }}>
-        <Fingerprint className="w-3.5 h-3.5 shrink-0" style={{ color: COLORS.brand }} />
-        <div className="flex-1">
+      <div className="mt-3 pt-3 border-t flex items-start gap-2" style={{ borderColor: COLORS.hairline }}>
+        <Fingerprint className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: COLORS.brand }} />
+        <div className="flex-1 min-w-0">
           <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>System Status</p>
-          <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
+          <p className="text-[12.5px] font-medium mt-0.5 break-words" style={{ color: COLORS.ink }}>
             {mockData.enrolled > 0 ? 'Operational — ready for scanning' : 'No fingerprints enrolled'}
             <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>
           </p>
@@ -424,22 +424,7 @@ export default function DeviceHealthScreen() {
   const connectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(Boolean).length;
   const disconnectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(c => !c).length;
 
-  const refresh = useCallback(() => {
-    fetch(`${API}/api/fingerprint/status`)
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null)
-      .then((status) => {
-        setDevices(applyFingerprintStatus(INITIAL_DEVICES, status));
-        setLastAt(new Date());
-      });
-    fetchLocation();
-  }, [fetchLocation]);
 
-  useEffect(() => {
-    refresh();
-    const timer = setInterval(refresh, 15000);
-    return () => clearInterval(timer);
-  }, [refresh]);
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
@@ -479,7 +464,7 @@ export default function DeviceHealthScreen() {
         </div>
 
         {/* ================= SUMMARY STRIP ================= */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {[
             { label: 'Gateway', value: gatewayConnected ? 'Online' : 'Offline', tone: gatewayConnected ? 'brand' : 'danger', icon: gatewayConnected ? Wifi : WifiOff },
             { label: 'Connected Sensors', value: connectedSensors, tone: 'brand', icon: Activity },
@@ -512,12 +497,11 @@ export default function DeviceHealthScreen() {
           <FingerprintCard />
         </div>
 
-        <p className="text-[11.5px] font-mono" style={{ color: COLORS.muted }}>
-          {lastAt ? `Last updated ${lastAt.toLocaleTimeString()}` : 'Connecting to Edge Gateway…'}
-          {pollError && ` · ${pollError}`}
-          {' · '}Polling every {POLL_INTERVAL_MS / 1000}s
-          Last refreshed {lastAt.toLocaleTimeString()} · fingerprint scanner is live; other sensors pending wiring
-        </p>
+        <div className="text-[11.5px] font-mono space-y-1" style={{ color: COLORS.muted }}>
+          <p>{lastAt ? `Last updated ${lastAt.toLocaleTimeString()}` : 'Connecting to Edge Gateway…'}</p>
+          {pollError && <p className="text-[11px]" style={{ color: TONE.danger.color }}>{pollError}</p>}
+          <p>Polling every {POLL_INTERVAL_MS / 1000}s · Fingerprint scanner is live; other sensors pending wiring</p>
+        </div>
 
       </div>
     </div>
