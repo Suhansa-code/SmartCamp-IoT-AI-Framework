@@ -1,5 +1,10 @@
 const LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
-const currentLevel = (process.env.NODE_ENV || 'development') === 'development' ? LEVELS.DEBUG : LEVELS.INFO;
+
+// LOG_LEVEL wins when set; otherwise development defaults to DEBUG as before.
+const envLevel = (process.env.LOG_LEVEL || '').toUpperCase();
+const currentLevel = envLevel in LEVELS
+  ? LEVELS[envLevel]
+  : ((process.env.NODE_ENV || 'development') === 'development' ? LEVELS.DEBUG : LEVELS.INFO);
 
 function formatMsg(level, message) {
   const parts = new Intl.DateTimeFormat('en-CA', {

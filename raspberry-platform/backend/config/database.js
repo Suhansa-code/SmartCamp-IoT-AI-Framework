@@ -82,6 +82,9 @@ function initializeCampDb() {
       flushed INTEGER DEFAULT 0
     );
 
+    CREATE INDEX IF NOT EXISTS idx_mqtt_buffer_drain
+      ON mqtt_buffer(flushed, priority, created_at);
+
     CREATE TABLE IF NOT EXISTS prediction_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       inputs TEXT NOT NULL,
@@ -477,6 +480,31 @@ if (C.AWS_RDS_HOST) {
 } else {
   pgPool = null;
   logger.info('[PG] No AWS_RDS_HOST configured — PostgreSQL disabled');
+}
+
+/**
+ * Can the cloud database actually be reached right now?
+ *
+ * Distinct from `pgPool` being non-null: the pool exists as soon as a host is
+ * configured, whether or not the far end answers. The connectivity watcher
+ * needs the live answer, so this actually round-trips a query.
+ */
+export async function pgIsReachable() {
+  if (!pgPool) return false;
+
+  let client;
+  try {
+    client = await pgPool.connect();
+    await client.query('SELECT 1');
+    return true;
+  } catch {
+    return false;
+  } finally {
+    // Release even when the query throws — otherwise a database that accepts
+    // connections but fails queries leaks one from the pool on every check,
+    // and the watcher runs every 30s.
+    client?.release();
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

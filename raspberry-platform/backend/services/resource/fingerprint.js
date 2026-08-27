@@ -1,4 +1,5 @@
 import { campDb as db } from '../../config/database.js';
+import { redactPerson } from '../../utils/redact.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import * as saamp from '../network/saamp-mqtt.js';
@@ -215,16 +216,14 @@ export function confirmEnrollment({ slot } = {}) {
 
 async function publishVerification(person, confidence) {
   try {
-    await saamp.publishAsClient(
+    await saamp.publish(
       'smartcamp/persons/verified',
       {
         event: 'fingerprint_verified',
-        person,
+        person: redactPerson(person),
         confidence: confidence ?? null,
         timestamp: new Date().toISOString(),
       },
-      person.mqtt_client_id || `sc-person-${person.id}`,
-      person.mqtt_password || '',
       'fingerprint_scanner',
       'verification'
     );

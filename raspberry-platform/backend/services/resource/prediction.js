@@ -125,7 +125,7 @@ export async function getForecast(days) {
     }
   }
 
-  const mqttMeta = saamp.publish(
+  const mqttMeta = await saamp.publish(
     'smartcamp/prediction/forecast_request',
     { request_id: requestId, days: dayForecasts, timestamp: new Date().toISOString() },
     'prediction_model', 'daily_forecast'
