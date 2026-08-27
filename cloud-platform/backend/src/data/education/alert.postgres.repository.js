@@ -84,6 +84,7 @@ export async function getCampEducation(campId) {
     avg_composite: scores.length ? Math.round(scores.reduce((sum, score) => sum + Number(score), 0) / scores.length) : 0,
     pending_alerts: alertsResult.rows.filter((alert) => alert.status === 'pending').length,
     children: childrenResult.rows.map((child) => ({ ...child, recent_scores: sessionsResult.rows.filter((session) => session.child_id === child.child_id).slice(0, 5) })),
+    sessions: sessionsResult.rows,
     alerts: alertsResult.rows,
     grade_distribution: Array.from(gradeMap.entries()).map(([grade, count]) => ({ grade, count })),
     language_distribution: Array.from(langMap.entries()).map(([language, count]) => ({ language, count })),
