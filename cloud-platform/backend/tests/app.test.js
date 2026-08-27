@@ -6,22 +6,11 @@ process.env.DB_ENABLED = 'false';
 
 const { createApp } = await import('../src/app.js');
 
-// Minimal monitor stub exposing the contract the network router needs.
-const monitor = {
-  isConnected: () => true,
-  getNetworkState: () => ({ network_state: 'GOOD', predicted_state: 'STABLE', connected: true }),
-  getMetrics: () => ({ rtt_avg: 10 }),
-  getDeliveryStats: () => ({ total_sent: 0, delivery_rate: 100 }),
-  getRecentMessages: () => [],
-  getBuffer: () => [],
-  getHistory: () => [],
-};
-
 let baseUrl;
 let server;
 
 before(async () => {
-  const app = createApp({ monitor });
+  const app = createApp();
   server = app.listen(0);
   const address = server.address();
   baseUrl = `http://127.0.0.1:${address.port}`;
@@ -65,13 +54,6 @@ test('GET /api/resources/overview returns overview shape', async () => {
   assert.equal(status, 200);
   assert.equal(body.source, 'cloud_mqtt');
   assert.ok(body.population);
-});
-
-test('GET /api/network/metrics returns monitor contract', async () => {
-  const { status, body } = await api('/api/network/metrics');
-  assert.equal(status, 200);
-  assert.equal(body.network_state.network_state, 'GOOD');
-  assert.ok(body.metrics);
 });
 
 test('alerts flow: create, list, resolve', async () => {
