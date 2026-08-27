@@ -1,7 +1,6 @@
 import { campDb as db } from '../../config/database.js';
+import { redactPerson } from '../../utils/redact.js';
 import * as saamp from '../network/saamp-mqtt.js';
-import * as emqx from '../network/emqx-manager.js';
-import { genPassword } from '../../utils/crypto.js';
 import { enqueueSync, enqueueSyncBatch } from '../sync/sync-notify.js';
 
 export async function checkinPerson(personId) {
@@ -23,20 +22,16 @@ export async function checkinPerson(personId) {
     wristband = { barcode };
   }
 
-  let clientId = person.mqtt_client_id;
-  let password = person.mqtt_password;
 
-  if (!clientId) {
-    clientId = `sc-person-${personId}`;
-    password = genPassword();
-    await emqx.createMqttUser(clientId, password);
-    db.prepare('UPDATE persons SET mqtt_client_id = ?, mqtt_password = ? WHERE id = ?').run(clientId, password, personId);
-  }
-
-  const mqttResult = await saamp.publishAsClient(
+  const mqttResult = await saamp.publish(
     'smartcamp/registration/checkin',
-    { event: 'checkin', person, wristband_barcode: wristband.barcode, timestamp: new Date().toISOString() },
-    clientId, password, 'fingerprint_scanner', 'checkin'
+    {
+      event: 'checkin',
+      person: redactPerson(person),
+      wristband_barcode: wristband.barcode,
+      timestamp: new Date().toISOString(),
+    },
+    'fingerprint_scanner', 'checkin'
   );
 
   return { person, wristband_barcode: wristband.barcode, mqtt: mqttResult };

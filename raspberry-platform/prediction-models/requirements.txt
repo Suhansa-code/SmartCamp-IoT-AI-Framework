@@ -4,9 +4,12 @@
 # psycopg2 (this model never touches the database), no lightgbm, and
 # jupyter/xgboost are optional extras needed only to retrain from the
 # notebook. Inference needs the first four packages only.
+# scikit-learn is pinned exactly: the committed models/*.pkl are pickled by it,
+# and a different minor version emits InconsistentVersionWarning and may fail to
+# unpickle outright. Bump this and retrain in the same commit.
 numpy>=1.24.0
 pandas>=2.0.0
-scikit-learn>=1.3.0
+scikit-learn==1.9.0
 joblib>=1.3.0
 
 # Retraining only (notebooks/03_network_prediction_model.ipynb)

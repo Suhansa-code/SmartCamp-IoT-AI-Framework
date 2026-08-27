@@ -1,4 +1,5 @@
 import * as saamp from './saamp-mqtt.js';
+import { getReachability } from './connectivity.js';
 import { campDb as db } from '../../config/database.js';
 
 let lastMetrics = null;
@@ -8,17 +9,97 @@ export function getNetworkState() {
   return saamp.getNetworkState();
 }
 
-export function getNetworkStatus() {
-  const buffered = db.prepare('SELECT COUNT(*) as c FROM mqtt_buffer WHERE flushed = 0').get().c;
-  return { state: saamp.getNetworkState(), metrics: lastMetrics, updated_at: lastUpdatedAt, buffered_messages: buffered };
+// The order flushBuffer() actually drains in.
+const FLUSH_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+
+/**
+ * Buffer contents grouped by priority, in flush order.
+ *
+ * A single total cannot show the thing that matters — that a CRITICAL message
+ * leaves before a MEDIUM one regardless of which arrived first — so the UI
+ * needs the breakdown, not just the count.
+ */
+function bufferByPriority() {
+  const rows = db.prepare(
+    `SELECT priority, COUNT(*) AS count, MIN(created_at) AS oldest_at
+       FROM mqtt_buffer WHERE flushed = 0 GROUP BY priority`
+  ).all();
+
+  const counts = Object.fromEntries(rows.map((r) => [r.priority, r]));
+  return FLUSH_ORDER.map((priority, index) => ({
+    priority,
+    flush_position: index + 1,
+    count: counts[priority]?.count ?? 0,
+    oldest_at: counts[priority]?.oldest_at ?? null,
+  }));
 }
 
-export function setNetworkState(state, metrics) {
+// Deliberately no payload: these carry names, ages and medical notes, and
+// this response is rendered in a browser that may be on screen in public.
+// Topic and priority are enough to see what is held and in what order.
+function bufferMessages(limit = 25) {
+  return db.prepare(
+    `SELECT id, topic, priority, qos, created_at
+       FROM mqtt_buffer WHERE flushed = 0
+      ORDER BY CASE priority
+                 WHEN 'CRITICAL' THEN 0 WHEN 'HIGH' THEN 1
+                 WHEN 'MEDIUM' THEN 2 ELSE 3 END ASC,
+               created_at ASC
+      LIMIT ?`
+  ).all(limit);
+}
+
+export function getNetworkStatus() {
+  const buffered = db.prepare('SELECT COUNT(*) as c FROM mqtt_buffer WHERE flushed = 0').get().c;
+  return {
+    state: saamp.getNetworkState(),
+    metrics: lastMetrics,
+    updated_at: lastUpdatedAt,
+    buffered_messages: buffered,
+    buffer_by_priority: bufferByPriority(),
+    buffer_messages: bufferMessages(),
+    diagnostics: saamp.getNetworkDiagnostics(),
+    reachability: getReachability(),
+  };
+}
+
+export function setNetworkState(state, metrics, qosPolicy) {
   saamp.setNetworkState(state);
   if (metrics) lastMetrics = metrics;
+  if (qosPolicy) saamp.setQosPolicy(qosPolicy);
   lastUpdatedAt = new Date().toISOString();
 }
 
+// Priority -> a (source, action) pair that classifyMessage maps to it, so a
+// caller can exercise one specific priority path.
+const TEST_ROUTES = {
+  CRITICAL: ['fingerprint_scanner', 'new_registration'],
+  HIGH:     ['sync', 'resources'],
+  MEDIUM:   ['system', 'network_state'],
+  LOW:      ['system', 'heartbeat'],
+};
+
+/**
+ * Publish a synthetic message and report what SAAMP decided to do with it.
+ *
+ * A real diagnostic, not only a demo aid: it is the only way to verify the
+ * publish/buffer/flush path end to end in the field without waiting for live
+ * traffic to happen to arrive at the right moment.
+ */
+export async function testPublish(priority = 'MEDIUM') {
+  const route = TEST_ROUTES[priority];
+  if (!route) throw new Error(`unknown priority: ${priority}`);
+
+  const [source, action] = route;
+  const result = await saamp.publish(
+    'smartcamp/diagnostic/test',
+    { test: true, priority, timestamp: new Date().toISOString() },
+    source, action
+  );
+  return result;
+}
+
 export function flushBuffer() {
-  saamp.flushBuffer();
+  // Fire-and-forget: a large flush must not hold the HTTP response open.
+  saamp.flushBuffer().catch((e) => console.error('[SAAMP] Flush failed:', e.message));
 }
