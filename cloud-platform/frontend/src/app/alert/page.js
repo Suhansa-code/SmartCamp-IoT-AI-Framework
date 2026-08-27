@@ -519,11 +519,12 @@ export default function AlertsPage() {
                   onClick={() => mostCritical && viewAlert(mostCritical.id)}
                   style={{
                     background: T.mode === 'dark'
-                      ? `linear-gradient(155deg, #F8FAFC 0%, #E2E8F0 100%)`
-                      : `linear-gradient(155deg, #0F172A 0%, #1E293B 100%)`,
+                      ? `linear-gradient(155deg, #0F172A 0%, #1E293B 100%)`
+                      : `linear-gradient(155deg, #F8FAFC 0%, #E2E8F0 100%)`,
                     borderRadius: "1.25rem",
                     padding: "1.1rem 1.25rem",
-                    color: T.mode === 'dark' ? '#0F172A' : '#fff',
+                    border: T.mode === 'dark' ? 'none' : `1px solid ${T.border}`,
+                    color: T.mode === 'dark' ? '#fff' : '#0F172A',
                     cursor: mostCritical ? "pointer" : "default",
                     display: "flex",
                     flexDirection: "column",
@@ -531,13 +532,13 @@ export default function AlertsPage() {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: T.mode === 'dark' ? '#475569' : "rgba(255,255,255,0.65)" }}>Most Critical</p>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: T.mode === 'dark' ? "rgba(255,255,255,0.65)" : '#475569' }}>Most Critical</p>
                     <ArrowChip dark={T.mode === 'light'} />
                   </div>
                   {mostCritical ? (
                     <>
                       <p style={{ fontSize: "1.15rem", fontWeight: 800 }}>{mostCritical.childId}</p>
-                      <p style={{ fontSize: "0.76rem", color: T.mode === 'dark' ? '#64748B' : "rgba(255,255,255,0.7)" }}>{mostCritical.alertType}</p>
+                      <p style={{ fontSize: "0.76rem", color: T.mode === 'dark' ? "rgba(255,255,255,0.7)" : '#64748B' }}>{mostCritical.alertType}</p>
                     </>
                   ) : (
                     <p style={{ fontSize: "0.95rem", fontWeight: 700 }}>No Recodes</p>
