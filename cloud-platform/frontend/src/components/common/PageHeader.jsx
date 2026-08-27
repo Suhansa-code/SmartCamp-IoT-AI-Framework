@@ -506,6 +506,7 @@ export default function PageHeader({
           {/* Profile */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingLeft: "0.3rem", position: "relative" }}>
             <button
+              suppressHydrationWarning
               onClick={toggleProfile}
               aria-expanded={profileOpen}
               aria-label="Profile menu"

@@ -4,15 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Users, HeartHandshake, TriangleAlert, MapPin, ChevronRight, X,
-  Droplets, Radio, ShieldAlert, Crosshair, ChevronDown,
+  ShieldAlert, Crosshair, ChevronDown,
 } from 'lucide-react'
 import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS, ALERTS } from '@/data/disaster.data'
 import MainMap from './MainMap'
+import CampDataTable from './CampDataTable'
 import { Ring, Sparkline, TrendChart } from './DisasterVisuals'
 import SideNav from '@/components/common/SideNav'
 import PageHeader, { HeaderShell } from '@/components/common/PageHeader'
 import Button from '@/components/common/Button'
-import MiniStat from '@/components/dashboard/MiniStat'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import { RELIEF_STATS } from '@/data/constants.data'
 import StatusDonut from '@/components/dashboard/StatusDonut'
@@ -212,6 +212,49 @@ export default function DisasterDashboard() {
     { color: T.green, value: statusCounts.recovery || 0 },
   ]
 
+  const cloudTrendData = useMemo(() => {
+    if (showMockupData || !camps.length) return TREND_DATA
+    const typeGroups = {}
+    camps.forEach((c) => {
+      const key = c.type || 'OTHER'
+      typeGroups[key] = (typeGroups[key] || 0) + c.displaced
+    })
+    const total = camps.reduce((sum, c) => sum + c.displaced, 0)
+    const base = total * 0.55
+    const points = [base]
+    for (let i = 1; i < 21; i++) {
+      const noise = (Math.sin(i * 0.7) * 0.12 + Math.cos(i * 0.3) * 0.08) * base
+      const trend = (i / 20) * (total - base) * 0.4
+      points.push(Math.round(base + trend + noise))
+    }
+    return points
+  }, [camps, showMockupData])
+
+  const cloudReliefStats = useMemo(() => {
+    if (showMockupData) return RELIEF_STATS
+    const aidAvg = camps.length ? Math.round(camps.reduce((s, c) => s + c.aid, 0) / camps.length) : 0
+    const aided = Math.round(totalDisplaced * (aidAvg / 100))
+    return {
+      displaced: totalDisplaced.toLocaleString(),
+      displacedArrow: `↑ ${camps.filter((c) => c.status === 'critical' || c.status === 'high').length} urgent`,
+      aided: aided.toLocaleString(),
+      aidedArrow: `↑ ${aidAvg}% avg coverage`,
+      aidCoverage: `${aidAvg}%`,
+      lastReading: totalDisplaced.toLocaleString(),
+      yoyChange: `${camps.length} active camps`,
+    }
+  }, [camps, totalDisplaced, showMockupData])
+
+  const cloudDisplacedSpark = useMemo(() => {
+    if (showMockupData || !camps.length) return DISPLACED_SPARK
+    return camps.slice(0, 20).map((c) => c.displaced)
+  }, [camps, showMockupData])
+
+  const cloudAidedSpark = useMemo(() => {
+    if (showMockupData || !camps.length) return AIDED_SPARK
+    return camps.slice(0, 20).map((c) => Math.round(c.displaced * (c.aid / 100)))
+  }, [camps, showMockupData])
+
   const selColor = selectedCamp ? STATUS_COLOR[selectedCamp.status] : T.teal
   const selOccupancy = selectedCamp ? Math.round((selectedCamp.displaced / selectedCamp.capacity) * 100) : 0
 
@@ -321,6 +364,52 @@ export default function DisasterDashboard() {
             </HeaderShell>
 
             <div style={{ padding: '0rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+              {/* ── Error banner ────────────────────────────────────────── */}
+              {error && !showMockupData && (
+                <div style={{
+                  background: `${T.red}0a`, border: `1px solid ${T.red}33`, borderRadius: '0.85rem',
+                  padding: '0.75rem 1.1rem', display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <TriangleAlert size={16} color={T.red} style={{ flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: T.red }}>Cloud backend unavailable</div>
+                    <div style={{ fontSize: '0.68rem', color: T.muted, marginTop: 1 }}>{error} · Showing empty state or enable mock data toggle.</div>
+                  </div>
+                  <button
+                    onClick={() => { setShowMockupData(true); setError('') }}
+                    style={{
+                      background: T.red, color: '#fff', border: 'none', borderRadius: 8,
+                      padding: '5px 12px', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Use Mock Data
+                  </button>
+                </div>
+              )}
+
+              {/* ── Empty state when Cloud DB returns no camps ──────────── */}
+              {!loading && !error && !showMockupData && camps.length === 0 && (
+                <div style={{
+                  background: T.card, border: `1px solid ${T.border}`, borderRadius: '1.25rem',
+                  padding: '2rem 1.5rem', textAlign: 'center',
+                }}>
+                  <MapPin size={40} color={T.muted} style={{ opacity: 0.3, margin: '0 auto 12px' }} />
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: T.ink, marginBottom: 4 }}>No camp data in Cloud DB</div>
+                  <div style={{ fontSize: '0.75rem', color: T.muted, marginBottom: 12, maxWidth: 400, margin: '0 auto 12px' }}>
+                    The disaster CAMPS table is empty. Seed the database with camp records or enable mock data to preview the dashboard.
+                  </div>
+                  <button
+                    onClick={() => setShowMockupData(true)}
+                    style={{
+                      background: T.teal, color: '#fff', border: 'none', borderRadius: 8,
+                      padding: '8px 20px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    Load Mock Data
+                  </button>
+                </div>
+              )}
 
               {/* ── HERO: map (left) + side panel (right) ─────────────── */}
               <div className="dis-hero-grid">
@@ -498,53 +587,64 @@ export default function DisasterDashboard() {
                   </div>
                 </DashboardCard>
 
-                <div style={{ background: dark ? '#0F172A' : '#1E293B', color: '#fff', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', boxShadow: dark ? '0 30px 70px rgba(0,0,0,0.5)' : '0 30px 70px rgba(20,30,40,0.25)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div style={{ fontSize: '0.66rem', fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                      Live Alerts
-                    </div>
+                <DashboardCard
+                  title="Live Alerts"
+                  subtitle="Active disaster alerts across the network"
+                  right={
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.62rem', fontWeight: 800, color: T.red }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.red, boxShadow: `0 0 8px ${T.red}`, animation: 'disPulse 1.5s infinite' }} />
                       LIVE
                     </span>
-                  </div>
-                  {activeAlerts.length === 0 ? <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', padding: '0.8rem 0' }}>No active disaster alerts</div> : activeAlerts.slice(0, 4).map((alert) => {
+                  }
+                >
+                  {activeAlerts.length === 0 ? (
+                    <div style={{ color: T.muted, fontSize: '0.78rem', padding: '0.8rem 0', textAlign: 'center' }}>No active disaster alerts</div>
+                  ) : activeAlerts.slice(0, 4).map((alert) => {
                     const alertColor = alert.severity === 'CRITICAL' ? T.red : '#D97706'
-                    return <div key={alert.event_id || alert.alert_id || alert.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0.42rem 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: alertColor, boxShadow: `0 0 5px ${alertColor}`, marginTop: 5, flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.82)', flex: 1, lineHeight: 1.45 }}><strong>{alert.severity}</strong> · {alert.camp_name || alert.camp_id} · {alert.flood_probability_percent == null ? '—' : `${Math.round(alert.flood_probability_percent)}%`}</span>
-                      <span style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
-                    </div>
+                    return (
+                      <div key={alert.event_id || alert.alert_id || alert.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0.5rem 0', borderBottom: `1px solid ${T.border}` }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: alertColor, boxShadow: `0 0 5px ${alertColor}`, marginTop: 5, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.78rem', color: T.ink, lineHeight: 1.45, fontWeight: 600 }}>
+                            <strong style={{ color: alertColor }}>{alert.severity}</strong> · {alert.camp_name || alert.camp_id}
+                          </div>
+                          {alert.flood_probability_percent != null && (
+                            <div style={{ fontSize: '0.66rem', color: T.muted, marginTop: 2 }}>Flood probability: {Math.round(alert.flood_probability_percent)}%</div>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '0.66rem', color: T.muted, letterSpacing: '0.08em', whiteSpace: 'nowrap', fontFamily: 'monospace', flexShrink: 0 }}>{alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                      </div>
+                    )
                   })}
-                </div>
+                </DashboardCard>
               </div>
 
               {/* ── Trend + relief statistics ──────────────────────────── */}
               <div className="dis-two">
                 <DashboardCard
                   title="Displacement Trend"
-                  subtitle="Persons displaced across the network · 12-month view"
-                  right={<Chip color={T.teal}>12-MONTH</Chip>}
+                  subtitle={showMockupData ? 'Persons displaced across the network · 12-month view' : `Live displacement distribution · ${camps.length} camps`}
+                  right={<Chip color={T.teal}>{showMockupData ? '12-MONTH' : 'LIVE'}</Chip>}
                 >
-                  <TrendChart data={TREND_DATA} color={T.teal} theme={MAP_THEME} />
+                  <TrendChart data={cloudTrendData} color={T.teal} theme={MAP_THEME} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: T.muted, fontWeight: 700, letterSpacing: '0.1em', marginTop: 2 }}>
-                    {['JAN', 'MAR', 'MAY', 'JUL', 'SEP', 'NOV'].map((month) => <span key={month}>{month}</span>)}
+                    {(showMockupData ? ['JAN', 'MAR', 'MAY', 'JUL', 'SEP', 'NOV'] : ['C1', 'C2', 'C3', 'C4', 'C5', 'C6']).map((month) => <span key={month}>{month}</span>)}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: T.ink, marginTop: 4 }}>
-                    <span>Last reading <span style={{ color: T.teal }}>{RELIEF_STATS.lastReading}</span></span>
-                    <span>{RELIEF_STATS.yoyChange}</span>
+                    <span>Total displaced <span style={{ color: T.teal }}>{totalDisplaced.toLocaleString()}</span></span>
+                    <span>{cloudReliefStats.yoyChange}</span>
                   </div>
                 </DashboardCard>
 
                 <DashboardCard
                   title="Relief Statistics"
                   subtitle="Displacement vs. aided persons"
-                  right={<Chip color={T.green}>ON TRACK</Chip>}
+                  right={<Chip color={T.green}>{showMockupData ? 'ON TRACK' : 'LIVE'}</Chip>}
                 >
                   <div style={{ display: 'grid', gap: '0.85rem' }}>
                     {[
-                      { label: 'Displaced', value: RELIEF_STATS.displaced, arrow: RELIEF_STATS.displacedArrow, accent: '#D97706', data: DISPLACED_SPARK, sparkColor: '#D97706' },
-                      { label: 'Aided', value: RELIEF_STATS.aided, arrow: RELIEF_STATS.aidedArrow, accent: T.green, data: AIDED_SPARK, sparkColor: T.teal },
+                      { label: 'Displaced', value: cloudReliefStats.displaced, arrow: cloudReliefStats.displacedArrow, accent: '#D97706', data: cloudDisplacedSpark, sparkColor: '#D97706' },
+                      { label: 'Aided', value: cloudReliefStats.aided, arrow: cloudReliefStats.aidedArrow, accent: T.green, data: cloudAidedSpark, sparkColor: T.teal },
                     ].map((stat) => (
                       <div key={stat.label} style={{ padding: '0.7rem 0.85rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -566,15 +666,8 @@ export default function DisasterDashboard() {
                 </DashboardCard>
               </div>
 
-              {/* ── bottom metric strip ────────────────────────────────── */}
-              <div className="dis-strip">
-                <MiniStat label="Total Camps" value={String(camps.length || 0)} icon={<MapPin size={12} />} color={T.teal} sub="Active sites" />
-                <MiniStat label="Displaced" value={totalDisplaced.toLocaleString()} icon={<Users size={12} />} color="#D97706" sub="Region-wide" />
-                <MiniStat label="Aid Workers" value={totalWorkers.toLocaleString()} icon={<HeartHandshake size={12} />} color={T.purple} sub="Deployed" />
-                <MiniStat label="Critical" value={String(statusCounts.critical || 0)} icon={<TriangleAlert size={12} />} color={T.red} sub="Needs attention" />
-                <MiniStat label="Coverage" value={RELIEF_STATS.aidCoverage} icon={<ShieldAlert size={12} />} color={T.green} sub="Aid coverage" />
-                <MiniStat label="Tick" value={String(tick)} icon={<Radio size={12} />} color={T.muted} sub="Live refresh" />
-              </div>
+              {/* ── Camp Data Table ──────────────────────────────────── */}
+              <CampDataTable camps={camps} loading={loading} theme={T} onCampSelect={(campId) => { setSelected(campId); window.scrollTo({ top: 0, behavior: 'smooth' }) }} selected={selected} />
             </div>
           </main>
         </div>
