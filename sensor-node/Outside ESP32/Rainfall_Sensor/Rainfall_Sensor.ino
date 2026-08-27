@@ -6,6 +6,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
+
 // ── Configuration (change for production) ───────────────────────────────
 const char* WIFI_SSID = "SmartCamp-Rain";
 const char* WIFI_PASSWORD = "SmartCamp123";
@@ -15,6 +16,9 @@ const char* DEVICE_ID = "RAIN-001";
 // ── Sensor Pins ─────────────────────────────────────────────────────────
 #define RAIN_DO 27
 #define RAIN_AO 34
+
+// ── Wifi LED Bulb ─────────────────────────────────────────────────────────
+#define WIFI_LED 2
 
 // ── Timing ──────────────────────────────────────────────────────────────
 const unsigned long SEND_INTERVAL_MS = 2000;
@@ -29,6 +33,10 @@ void setup() {
   
   // Connect to Wi-Fi
   connectToWiFi();
+
+  //Show LED when Connect to Wifi
+  pinMode(WIFI_LED, OUTPUT);
+  digitalWrite(WIFI_LED, LOW);
   
   Serial.println();
   Serial.println("========================================");
@@ -52,15 +60,19 @@ void connectToWiFi() {
     Serial.print(".");
     attempt++;
   }
+
+  digitalWrite(WIFI_LED, HIGH);
   
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println();
     Serial.println("Wi-Fi Connected!");
     Serial.print("ESP32 IP: ");
     Serial.println(WiFi.localIP());
+    digitalWrite(WIFI_LED, HIGH);
   } else {
     Serial.println();
     Serial.println("Wi-Fi connection failed! Will retry...");
+    digitalWrite(WIFI_LED, LOW);
   }
 }
 
