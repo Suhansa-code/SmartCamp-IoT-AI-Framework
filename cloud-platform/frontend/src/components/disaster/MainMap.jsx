@@ -7,7 +7,7 @@ import { STATUS_COLOR } from '@/data/disaster.data'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { Map, MapControls, MapArc, useMap } from '@/components/ui/map'
 
-export const COLOMBO_HUB = { name: 'Colombo Hub', lat: 6.9271, lng: 79.8612 }
+export const COLOMBO_HUB = { name: 'Disaster Management Center', lat: 6.905756541552449, lng: 79.87149345240267 }
 
 const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
 const TERRAIN_SOURCE = 'disaster-terrain-dem'

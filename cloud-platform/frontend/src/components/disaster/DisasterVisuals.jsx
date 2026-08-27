@@ -176,14 +176,14 @@ export function ThemeToggle({ mode, onToggle, theme }) {
  */
 export function GaugingChart({ points = [], alertL, minorL, majorL, theme, station }) {
   const width = 520
-  const height = 180
-  const padding = { top: 20, right: 16, bottom: 28, left: 42 }
+  const height = 200
+  const padding = { top: 20, right: 16, bottom: 32, left: 42 }
   const chartW = width - padding.left - padding.right
   const chartH = height - padding.top - padding.bottom
 
   if (points.length === 0) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: height, color: theme.muted, fontSize: 12, fontWeight: 600 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180, color: theme.muted, fontSize: 12, fontWeight: 600 }}>
         No gauging data available
       </div>
     )
@@ -214,7 +214,7 @@ export function GaugingChart({ points = [], alertL, minorL, majorL, theme, stati
           {station} Station — Water Level History
         </div>
       )}
-      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height }}>
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 200 }}>
         <defs>
           <linearGradient id="gaugeGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={theme.teal} stopOpacity="0.25" />
@@ -237,6 +237,11 @@ export function GaugingChart({ points = [], alertL, minorL, majorL, theme, stati
           )
         })}
 
+        {/* Vertical column lines at each data point */}
+        {points.map((p, i) => (
+          <line key={`col-${i}`} x1={x(i)} y1={padding.top} x2={x(i)} y2={padding.top + chartH} stroke={theme.border} strokeWidth="0.5" strokeDasharray="2,2" opacity="0.4" />
+        ))}
+
         {/* Threshold lines */}
         {thresholdLines.map((t) => (
           <g key={t.label}>
@@ -252,9 +257,14 @@ export function GaugingChart({ points = [], alertL, minorL, majorL, theme, stati
         {/* Line */}
         <path d={linePath} fill="none" stroke={theme.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${theme.teal}50)` }} clipPath="url(#gaugeClip)" />
 
-        {/* Data points */}
+        {/* Data points with value labels */}
         {points.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={y(p.water_level)} r="2.5" fill={theme.teal} stroke={theme.card} strokeWidth="1" />
+          <g key={i}>
+            <circle cx={x(i)} cy={y(p.water_level)} r="2.5" fill={theme.teal} stroke={theme.card} strokeWidth="1" />
+            <text x={x(i)} y={y(p.water_level) - 6} textAnchor="middle" fontSize="6.5" fill={theme.teal} fontWeight="700" fontFamily="Inter, sans-serif">
+              {p.water_level.toFixed(1)}
+            </text>
+          </g>
         ))}
 
         {/* Last point highlight */}
@@ -262,7 +272,7 @@ export function GaugingChart({ points = [], alertL, minorL, majorL, theme, stati
 
         {/* Time labels */}
         {points.filter((_, i) => i % Math.max(1, Math.floor(points.length / 5)) === 0 || i === points.length - 1).map((p, idx) => (
-          <text key={idx} x={x(points.indexOf(p))} y={height - 6} textAnchor="middle" fontSize="7" fill={theme.muted} fontFamily="Inter, sans-serif">
+          <text key={idx} x={x(points.indexOf(p))} y={height - 8} textAnchor="middle" fontSize="7" fill={theme.muted} fontFamily="Inter, sans-serif">
             {new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </text>
         ))}

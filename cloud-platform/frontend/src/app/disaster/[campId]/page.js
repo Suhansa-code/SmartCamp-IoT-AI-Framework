@@ -14,7 +14,6 @@ import SideNav from '@/components/common/SideNav'
 import Button from '@/components/common/Button'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { Map, MapControls, useMap } from '@/components/ui/map'
-import KpiCard from '@/components/dashboard/KpiCard'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import { GaugingChart, WaterLevelBarChart } from '@/components/disaster/DisasterVisuals'
 
@@ -517,16 +516,13 @@ export default function DisasterCampDetailPage() {
         ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
         .camp-detail-popup .maplibregl-popup-content { border-radius: 12px !important; padding: 0 !important; box-shadow: 0 12px 32px rgba(0,0,0,0.2) !important; border: 1px solid ${T.border} !important; background: ${T.card} !important; }
         .camp-detail-popup .maplibregl-popup-tip { border-top-color: ${T.card} !important; }
-        .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
         .cd-two { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1rem; align-items: start; }
         .cd-three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .cd-water { display: grid; grid-template-columns: 0.35fr 0.65fr; gap: 1rem; align-items: start; }
         .cd-crumb-btn { background: none; border: none; color: inherit; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; font-size: 12px; transition: color 0.15s ease; }
         .cd-crumb-btn:hover { color: ${T.teal}; }
-        .cd-toolbtn { display: flex; align-items: center; gap: 6px; padding: 0 16px; height: 38px; border-radius: 999px; border: 1px solid ${T.border}; background: ${T.card}; color: ${T.ink}; font-size: 12px; font-weight: 700; cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease; }
-        .cd-toolbtn:hover { border-color: ${T.teal}66; }
-        .cd-toolbtn:active { transform: scale(0.97); }
-        @media (max-width: 1100px) { .cd-grid { grid-template-columns: repeat(2, 1fr); } .cd-two { grid-template-columns: 1fr; } }
-        @media (max-width: 700px) { .cd-grid { grid-template-columns: 1fr; } .cd-three { grid-template-columns: 1fr; } }
+        @media (max-width: 1100px) { .cd-two { grid-template-columns: 1fr; } .cd-water { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) { .cd-three { grid-template-columns: 1fr; } }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: T.panel, fontFamily: "'Inter',sans-serif", color: T.ink }}>
@@ -536,11 +532,11 @@ export default function DisasterCampDetailPage() {
           <div style={{ padding: `1.25rem ${PAGE_PAD} 0`, display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* breadcrumb */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: T.muted }}>
-              <button className="cd-crumb-btn" onClick={() => router.push('/disaster')}>
+              <Button variant="ghost" circleIcon={false} onClick={() => router.push('/disaster')} style={{ fontSize: 12, padding: 0, gap: 4 }}>
                 <ArrowLeft size={12} /> Disaster Operations
-              </button>
+              </Button>
               <span style={{ opacity: 0.35 }}>/</span>
-              <button className="cd-crumb-btn" onClick={() => router.push('/disaster')}>Camps</button>
+              <Button variant="ghost" circleIcon={false} onClick={() => router.push('/disaster')} style={{ fontSize: 12, padding: 0 }}>Camps</Button>
               <span style={{ opacity: 0.35 }}>/</span>
               <span style={{ color: T.ink, fontWeight: 700 }}>{camp.name}</span>
             </div>
@@ -560,12 +556,12 @@ export default function DisasterCampDetailPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="cd-toolbtn" onClick={refreshCamp} disabled={refreshing} style={{ opacity: refreshing ? 0.55 : 1 }}>
-                  <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Refresh
-                </button>
-                <button className="cd-toolbtn" onClick={() => router.push('/disaster')}>
-                  <ArrowLeft size={13} /> Overview
-                </button>
+                <Button variant="outline" circleIcon={false} onClick={refreshCamp} disabled={refreshing} icon={<RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />} style={{ opacity: refreshing ? 0.55 : 1 }}>
+                  Refresh
+                </Button>
+                <Button variant="outline" circleIcon={false} onClick={() => router.push('/disaster')} icon={<ArrowLeft size={13} />}>
+                  Overview
+                </Button>
               </div>
             </div>
           </div>
@@ -630,14 +626,6 @@ export default function DisasterCampDetailPage() {
 
           {/* ── Content grid ─────────────────────────────────────── */}
           <div style={{ padding: `0 ${PAGE_PAD} ${PAGE_PAD}`, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-            {/* ── Key Stats ── */}
-            <div className="cd-grid">
-              <KpiCard label="Displaced" value={camp.displaced.toLocaleString()} icon={<Users size={16} />} color={T.coral} delta={`${occupancy}% occupancy`} pct={occupancy} />
-              <KpiCard label="Capacity" value={camp.capacity.toLocaleString()} icon={<MapPin size={16} />} color={T.blue} delta="Maximum" pct={100} />
-              <KpiCard label="Aid Coverage" value={`${camp.aid}%`} icon={<HeartHandshake size={16} />} color={T.green} delta="Active aid" pct={camp.aid} />
-              <KpiCard label="Workers" value={String(camp.workers)} icon={<Shield size={16} />} color={T.purple} delta="Deployed" pct={100} />
-            </div>
 
             {/* ── Two-column: Prediction + Location ── */}
             <div className="cd-two">
@@ -779,9 +767,9 @@ export default function DisasterCampDetailPage() {
 
             {/* ── Water Level Gauging Charts ── */}
             {(detail?.wl != null || waterHistory.length > 0) && (
-              <div className="cd-two">
+              <div className="cd-water">
                 {/* Water Level Bar Chart */}
-                <DashboardCard title="Water Level Status" subtitle="Current level vs. alert thresholds">
+                <DashboardCard title="Water Level Status" subtitle="Current level vs. thresholds">
                   <WaterLevelBarChart
                     currentWl={detail?.wl}
                     alertL={detail?.alertL}

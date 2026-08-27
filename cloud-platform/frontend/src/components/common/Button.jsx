@@ -9,13 +9,14 @@ const GREEN = 'rgb(22, 163, 74)'
 // Shared action-button component.
 //
 // Variants:
-//   'green'    (default) — green pill with white text, optional trailing circle icon
-//   'outline'           — pill with border, used for secondary actions
-//   'danger'            — red pill with white text
-//   'teal'              — teal pill with white text
-//   'ghost'             — transparent pill with text, no background
-//   'circle'            — solid round icon button
-//   'circleOutline'     — white round icon button with border
+//   'green'          (default) — green pill with white text, optional trailing circle icon
+//   'outline'                  — pill with border, secondary actions (cd-toolbtn style)
+//   'danger'                   — red pill with white text
+//   'teal'                     — teal pill with white text
+//   'ghost'                    — transparent pill with text, no background
+//   'circle'                   — solid round icon button
+//   'circleOutline'            — round icon button with border
+//   'circleRefresh'            — search-bar style refresh circle button
 //
 // All pill variants share a consistent ~36px height.
 export default function Button({
@@ -42,8 +43,8 @@ export default function Button({
             width: 26,
             height: 26,
             borderRadius: '50%',
-            background: dark ? '#FFFFFF' : INK,
-            color: dark ? INK : '#fff',
+            background: dark ? '#FFFFFF' : '#FFFFFF',
+            color: dark ? INK : INK,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -58,7 +59,7 @@ export default function Button({
     </>
   )
 
-  const isCircle = variant === 'circle' || variant === 'circleOutline'
+  const isCircle = variant === 'circle' || variant === 'circleOutline' || variant === 'circleRefresh'
 
   const variantBg = {
     green: GREEN,
@@ -68,16 +69,18 @@ export default function Button({
     ghost: 'transparent',
     circle: dark ? T.bar : INK,
     circleOutline: dark ? T.card : '#FFFFFF',
+    circleRefresh: dark ? '#FFFFFF' : INK,
   }
 
   const variantBorder = {
     green: 'none',
-    outline: `2px solid ${dark ? T.border : INK}`,
+    outline: `1px solid ${T.border}`,
     danger: 'none',
     teal: 'none',
     ghost: 'none',
     circle: 'none',
     circleOutline: `1px solid ${T.border}`,
+    circleRefresh: 'none',
   }
 
   const variantColor = {
@@ -88,6 +91,7 @@ export default function Button({
     ghost: T.muted,
     circle: T.textPrimary,
     circleOutline: T.textPrimary,
+    circleRefresh: dark ? INK : '#FFFFFF',
   }
 
   const base = isCircle

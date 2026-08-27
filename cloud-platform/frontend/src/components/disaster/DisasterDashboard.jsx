@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Users, HeartHandshake, TriangleAlert, MapPin, ChevronRight, X,
-  ShieldAlert, Crosshair, ChevronDown,
+  ShieldAlert, Crosshair, ChevronDown, RefreshCw,
 } from 'lucide-react'
 import { CAMPS, CAMP_DETAIL, DISPLACED_SPARK, AIDED_SPARK, TREND_DATA, MAP_DARK, MAP_LIGHT, STATUS_COLOR, STATUS_TEXT, FILTER_OPTIONS, ALERTS } from '@/data/disaster.data'
 import MainMap from './MainMap'
@@ -89,7 +89,7 @@ export default function DisasterDashboard() {
       setRefreshing(false)
       return
     }
-    setLoading(true)
+    setRefreshing(true)
     setError('')
     try {
       const res = await fetch(`${DISASTER_API_BASE}/api/disaster/overview`)
@@ -347,7 +347,9 @@ export default function DisasterDashboard() {
                 subtitle={
                   loading
                     ? 'Connecting to the cloud backend…'
-                    : `Interactive relief grid · ${camps.length} camps · click a node or camp to inspect`
+                    : refreshing
+                      ? 'Refreshing live data…'
+                      : `Interactive relief grid · ${camps.length} camps · click a node or camp to inspect`
                 }
                 pendingCount={statusCounts.high}
                 escalatedCount={statusCounts.critical}
@@ -516,14 +518,20 @@ export default function DisasterDashboard() {
 
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                             {[
-                              { label: 'Displaced', value: selectedCamp.displaced.toLocaleString(), accent: '#D97706' },
-                              { label: 'Capacity', value: selectedCamp.capacity.toLocaleString(), accent: T.inkSoft },
-                              { label: 'Aid', value: `${selectedCamp.aid}%`, accent: T.green },
-                              { label: 'Occupancy', value: `${selOccupancy}%`, accent: T.amber },
+                              { label: 'Displaced', value: selectedCamp.displaced.toLocaleString(), accent: '#D97706', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.08), rgba(217,119,6,0.02))', barPct: Math.min((selectedCamp.displaced / selectedCamp.capacity) * 100, 100) },
+                              { label: 'Capacity', value: selectedCamp.capacity.toLocaleString(), accent: '#0F172A', gradient: 'linear-gradient(135deg, rgba(15,23,42,0.08), rgba(15,23,42,0.02))', barPct: 100 },
+                              { label: 'Aid', value: `${selectedCamp.aid}%`, accent: '#16A34A', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.08), rgba(22,163,74,0.02))', barPct: selectedCamp.aid },
+                              { label: 'Occupancy', value: `${selOccupancy}%`, accent: '#D97706', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.08), rgba(217,119,6,0.02))', barPct: selOccupancy },
                             ].map((s) => (
-                              <div key={s.label} style={{ padding: '0.6rem 0.75rem', borderRadius: 12, background: T.panelSoft, border: `1px solid ${T.border}`, borderLeft: `3px solid ${s.accent}` }}>
-                                <div style={{ fontSize: '0.56rem', fontWeight: 600, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
-                                <div style={{ fontSize: '1.05rem', fontWeight: 600, color: s.accent, marginTop: 3, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{s.value}</div>
+                              <div key={s.label} style={{ padding: '0.75rem 0.85rem', borderRadius: 14, background: s.gradient, border: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                  <span style={{ fontSize: '0.58rem', fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</span>
+                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.accent, opacity: 0.6 }} />
+                                </div>
+                                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: s.accent, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{s.value}</div>
+                                <div style={{ height: 3, borderRadius: 2, background: `${T.border}`, marginTop: 8, overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${s.barPct}%`, borderRadius: 2, background: s.accent, opacity: 0.7, transition: 'width 0.4s ease' }} />
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -681,17 +689,9 @@ export default function DisasterDashboard() {
                 <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: T.ink }}>All Active Camps</h2>
                 <p style={{ fontSize: '0.78rem', color: T.muted, margin: '2px 0 0', fontWeight: 600 }}>{camps.length} camps in the network · select one to inspect</p>
               </div>
-              <button
-                onClick={() => setShowAllCamps(false)}
-                aria-label="Close"
-                suppressHydrationWarning
-                style={{
-                  width: 36, height: 36, borderRadius: '50%', border: `1px solid ${T.border}`, background: T.cardSoft,
-                  color: T.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
-                }}
-              >
+              <Button variant="circleOutline" size={36} onClick={() => setShowAllCamps(false)} aria-label="Close">
                 <X size={17} />
-              </button>
+              </Button>
             </div>
 
             <div style={{ padding: '0.85rem 1.4rem', borderBottom: `1px solid ${T.border}`, background: T.panelSoft, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
