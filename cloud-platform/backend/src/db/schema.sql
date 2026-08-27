@@ -63,8 +63,15 @@ CREATE TABLE IF NOT EXISTS "CAMPS" (
   fc_lat NUMERIC(9,6), fc_lng NUMERIC(9,6), elev INTEGER,
   min_t NUMERIC(5,2), max_t NUMERIC(5,2), hum INTEGER,
   precip NUMERIC(7,2), max_hr_prec NUMERIC(7,2),
-  max_wind INTEGER, avg_wind INTEGER, soil NUMERIC(5,3), pres INTEGER, cloud INTEGER
+  max_wind INTEGER, avg_wind INTEGER, soil NUMERIC(5,3), pres INTEGER, cloud INTEGER,
+  last_aggregation_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE "CAMPS" ADD COLUMN IF NOT EXISTS last_aggregation_at TIMESTAMPTZ;
+ALTER TABLE "CAMPS" ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE "CAMPS" ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- ── Resource domain (synced from Raspberry Pi via MQTT) ──────────────────
 

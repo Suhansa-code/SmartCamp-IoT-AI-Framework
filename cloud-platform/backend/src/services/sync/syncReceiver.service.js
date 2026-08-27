@@ -20,8 +20,9 @@ import {
   upsertWaterLevelReading, upsertGpsReading, upsertWeatherData,
   upsertHydrospatialData, upsertFloodPrediction, upsertDisasterAlert,
   upsertPredictionRequest,
-  upsertDevice,
+  upsertDevice, getDeviceCampId,
 } from '../../data/sync/sync.postgres.repository.js';
+import { triggerAggregation } from '../disaster/campsAggregation.service.js';
 
 const { host, port, username, password, caCertPath } = env.emqx;
 
@@ -53,6 +54,16 @@ const ENTITY_HANDLERS = {
   'disaster-alerts':    upsertDisasterAlert,
   'prediction-requests': upsertPredictionRequest,
 };
+
+/**
+ * Entities that affect disaster camp aggregation.
+ * After a successful upsert of one of these entities, trigger aggregation.
+ */
+const CAMP_AGGREGATION_ENTITIES = new Set([
+  'disaster-events', 'sensor-readings', 'environmental-data',
+  'water-level-readings', 'gps-readings', 'weather-data',
+  'hydrospatial-data', 'flood-predictions', 'disaster-alerts',
+]);
 
 let client = null;
 let isConnected = false;
@@ -156,6 +167,15 @@ async function handleSyncMessage(topic, buffer) {
     await logSync(sync_id, entity, local_id, camp_id, operation, device_id);
     processedCount++;
     console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} device=${device_id || 'n/a'} (QoS ${envelope.priority})`);
+
+    // Trigger CAMPS aggregation for disaster-domain entities
+    if (CAMP_AGGREGATION_ENTITIES.has(entity)) {
+      const resolvedCampId = camp_id || (device_id ? await getDeviceCampId(device_id) : null);
+      if (resolvedCampId) {
+        triggerAggregation(resolvedCampId);
+      }
+    }
+
     publishAck(envelope, 'ok');
   } catch (err) {
     errorCount++;
@@ -182,6 +202,11 @@ async function handleAlertMessage(topic, buffer) {
     await upsertDisasterAlert(alert, ctx);
     await logSync(`alert:${alert.event_id}`, 'disaster-alerts', alert.id, alert.camp_id, 'CREATE', alert.device_id);
     console.log(`[Alert Receiver] Persisted ${alert.alert_type} event=${alert.event_id} device=${alert.device_id || 'n/a'}`);
+
+    // Trigger CAMPS aggregation for the affected camp
+    if (alert.camp_id) {
+      triggerAggregation(alert.camp_id);
+    }
   } catch (err) {
     console.error(`[Alert Receiver] Failed to persist event: ${err.message}`);
   }

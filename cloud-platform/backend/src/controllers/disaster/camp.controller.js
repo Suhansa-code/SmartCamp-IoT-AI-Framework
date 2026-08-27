@@ -11,6 +11,7 @@ import {
 import { predictFloodForCamp } from '../../services/disaster/floodPrediction.service.js';
 import { getWaterLevelHistoryForCamp } from '../../services/disaster/waterLevelHistory.service.js';
 import { listDisasterAlerts, updateDisasterAlertStatus } from '../../data/disaster/alert.repository.js';
+import { aggregateCampImmediate, aggregateAllCamps, getAggregationStatus } from '../../services/disaster/campsAggregation.service.js';
 import { env } from '../../config/env.js';
 
 export async function getOverview(_req, res, next) {
@@ -149,6 +150,34 @@ export async function updateAlertStatus(req, res, next) {
     const alert = await updateDisasterAlertStatus(req.params.alertId, status);
     if (!alert) return res.status(404).json({ error: 'Disaster alert not found' });
     res.json({ alert });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Aggregation endpoints ────────────────────────────────────────────
+
+export async function getAggregationOverview(_req, res, next) {
+  try {
+    res.json(getAggregationStatus());
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function triggerCampAggregation(req, res, next) {
+  try {
+    const result = await aggregateCampImmediate(req.params.campId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function triggerAllCampAggregations(_req, res, next) {
+  try {
+    const result = await aggregateAllCamps();
+    res.json(result);
   } catch (err) {
     next(err);
   }

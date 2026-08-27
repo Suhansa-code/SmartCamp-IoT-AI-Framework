@@ -10,6 +10,9 @@ function mapCamp(row) {
     id: row.id, code: row.code, name: row.name, lat: Number(row.lat), lng: Number(row.lng), status: row.status,
     displaced: Number(row.displaced || 0), capacity: Number(row.capacity || 0), aid: Number(row.aid || 0),
     type: row.type, workers: Number(row.workers || 0),
+    last_aggregation_at: row.last_aggregation_at || null,
+    created_at: row.created_at || null,
+    updated_at: row.updated_at || null,
     detail: {
       waterPath: row.water_path, river: row.river, station: row.station, stDist: Number(row.st_dist || 0),
       upDist: Number(row.up_dist || 0), wl: row.wl == null ? null : Number(row.wl), rain: row.rain == null ? null : Number(row.rain),
