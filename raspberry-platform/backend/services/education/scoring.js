@@ -28,7 +28,7 @@ export async function computeLocalZScore(childId, compositeScore) {
     const stdDev = varianceScore > 0 ? Math.sqrt(varianceScore) : 1;
     const z = (compositeScore - meanScore) / stdDev;
 
-    return round(z < 0 ? Math.max(z, -5) : z, 4);
+    return round(z, 4);
   } catch (err) {
     logger.warn(`[SCORING] Local z-score computation failed for child ${childId}: ${err.message}`);
     return null;

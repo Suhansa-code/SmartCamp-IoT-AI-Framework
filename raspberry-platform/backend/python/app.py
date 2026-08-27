@@ -170,39 +170,6 @@ def compute_composite(task_score: float,
     return round(min(max(score, 0.0), 100.0), 2)
 
 
-def compute_z_score(child_id: str,
-                    composite: float) -> float | None:
-
-    history = session_history.get(child_id, [])
-    prev_scores = [s['composite'] for s in history]
-
-    # Need minimum 2 previous sessions
-    # This means Z-Score activates on session 3
-    if len(prev_scores) < 2:
-        return None
-
-    n    = len(prev_scores)
-    mean = sum(prev_scores) / n
-
-    # Population standard deviation
-    variance = sum((x - mean) ** 2 for x in prev_scores) / n
-
-    # Minimum std dev of 1.0 prevents division by zero
-    # when all previous sessions have identical scores
-    std = math.sqrt(variance) if variance > 0 else 1.0
-
-    z = (composite - mean) / std
-
-    logger.info(
-        f'[ZSCORE] {child_id}: '
-        f'z={z:.4f} current={composite:.2f} '
-        f'mean={mean:.2f} std={std:.2f} '
-        f'n={n} previous sessions'
-    )
-
-    return round(z, 4)
-
-
 def _session_to_feature_vector(session: dict) -> list[float]:
     """Map a saved session into IF feature vector format."""
     return [
@@ -386,16 +353,15 @@ def score():
     baseline      = child_baselines.get(child_id, BASELINE_INIT)
     composite     = compute_composite(task_score, passive_score, baseline)
 
-    # 2. Z-score (from session 3 onwards)
-    z_score = compute_z_score(child_id, composite)
+    # 2. Z-score moved to Node.js — Flask returns null
+    z_score = None
 
     # 3. Isolation Forest score (from session 8 onwards, model auto-created/updated)
     if_score = compute_if_score(child_id, composite, task_score, passive_score)
 
-    # 4. Anomaly detection
-    anomaly_by_z  = z_score  is not None and z_score  < ZSCORE_THRESHOLD
+    # 4. Anomaly detection (IF only)
     anomaly_by_if = if_score is not None and if_score < IF_SCORE_THRESHOLD
-    anomaly_flagged = anomaly_by_z or anomaly_by_if
+    anomaly_flagged = anomaly_by_if
 
     # 5. Update history AFTER computing z-score (so this session isn't compared to itself)
     new_baseline = update_history(child_id, composite, task_score, passive_score)
@@ -434,7 +400,7 @@ def get_history(child_id):
         'baseline':        baseline,
         'session_count':   len(history),
         'sessions':        history,
-        'z_score_active':  len(history) >= ZSCORE_MIN_SESSIONS,
+        'z_score_active':  False,  # Z-score now computed in Node.js
         'if_score_active': len(history) >= IF_MIN_SESSIONS,
     })
 
@@ -458,7 +424,7 @@ if __name__ == '__main__':
     logger.info('  PAGES ML Scoring Service')
     logger.info(f'  Port:             {port}')
     logger.info(f'  Gate threshold:   {GATE_THRESHOLD}')
-    logger.info(f'  Z-score from:     session {ZSCORE_MIN_SESSIONS}')
+    logger.info(f'  Z-score:          computed in Node.js (session {ZSCORE_MIN_SESSIONS})')
     logger.info(f'  IF model from:    session {IF_MIN_SESSIONS}')
     logger.info(f'  numpy available:  {NUMPY_AVAILABLE}')
     logger.info(f'  sklearn available:{SKLEARN_AVAILABLE}')

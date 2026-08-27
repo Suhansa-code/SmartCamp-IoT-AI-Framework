@@ -98,36 +98,13 @@ class TestScoreContract:
 
 
 class TestZScoreActivation:
-    def test_zscore_null_before_session_3(self, client):
+    def test_zscore_always_null_in_flask(self, client):
         child_id = 'ZSCORE-TEST-1'
-        for i in range(2):
+        for i in range(5):
             res = client.post('/score', json=valid_payload(child_id, f'{child_id}-S{i}'))
             assert res.status_code == 200
             body = res.get_json()
-            assert body['zScore'] is None, f"Z-score should be None at session {i+1}"
-
-    def test_zscore_active_at_session_3(self, client):
-        child_id = 'ZSCORE-TEST-2'
-        for i in range(3):
-            res = client.post('/score', json=valid_payload(child_id, f'{child_id}-S{i}'))
-            assert res.status_code == 200
-            body = res.get_json()
-        assert body['zScore'] is not None, "Z-score should be computed at session 3"
-        assert isinstance(body['zScore'], (int, float))
-
-    def test_zscore_anomaly_detection(self, client):
-        child_id = 'ZSCORE-ANOMALY'
-        for i in range(3):
-            client.post('/score', json=valid_payload(child_id, f'{child_id}-S{i}'))
-        res = client.post('/score', json={
-            'child_id': child_id,
-            'session_id': f'{child_id}-S3',
-            'taskMetrics': {'accuracyRate': 0.1, 'falseTapRate': 0.9, 'avgReactionTime': 2000, 'reactionVariance': 2000},
-            'passiveSignals': {'idleTimeRatio': 0.9, 'rapidClickCount': 20, 'completionRatio': 0.1},
-        })
-        body = res.get_json()
-        if body['zScore'] is not None and body['zScore'] < -2.0:
-            assert body['anomalyFlagged'] is True
+            assert body['zScore'] is None, f"Z-score should be None in Flask (computed in Node.js) at session {i+1}"
 
 
 class TestIsolationForestActivation:
@@ -222,19 +199,20 @@ class TestHistoryAndReset:
             client.post('/score', json=valid_payload(child_id, f'{child_id}-S{i}'))
         res = client.get(f'/history/{child_id}')
         body = res.get_json()
-        assert body['z_score_active'] is False
+        assert body['z_score_active'] is False  # Z-score now in Node.js
         assert body['if_score_active'] is False
 
         for i in range(2, 7):
             client.post('/score', json=valid_payload(child_id, f'{child_id}-S{i}'))
         res = client.get(f'/history/{child_id}')
         body = res.get_json()
-        assert body['z_score_active'] is True
+        assert body['z_score_active'] is False  # Z-score now in Node.js
         assert body['if_score_active'] is False
 
         client.post('/score', json=valid_payload(child_id, f'{child_id}-S7'))
         res = client.get(f'/history/{child_id}')
         body = res.get_json()
+        assert body['z_score_active'] is False  # Z-score now in Node.js
         assert body['if_score_active'] is True
 
     def test_reset_clears_history(self, client):
