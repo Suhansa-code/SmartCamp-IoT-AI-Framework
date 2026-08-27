@@ -25,8 +25,10 @@ services:
     # domain reads a permanently dead uplink rather than the real one.
     cap_add:
       - NET_RAW
-    ports:
-      - "3001:3001"
+    # No published port: nginx is the only public entrypoint. Uncomment to
+    # expose the API directly for debugging (also needs the SG rule back).
+    expose:
+      - "3001"
     volumes:
       # alerts.db is SQLite on disk and *.db is gitignored — without this the
       # education domain's synced alerts vanish on every recreate.
@@ -42,11 +44,25 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
         # Falls back to NEXT_PUBLIC_API_URL inside the Dockerfile when unset.
         NEXT_PUBLIC_DISASTER_API_BASE_URL: ${NEXT_PUBLIC_DISASTER_API_BASE_URL:-}
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     restart: unless-stopped
     depends_on:
       - backend
+
+  # Single public entrypoint on :80 so visitors never type a port number, and
+  # so the frontend and API share an origin — which is what lets
+  # NEXT_PUBLIC_API_URL drop the :3001 suffix and makes CORS irrelevant.
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
 
 volumes:
   backend-data:
