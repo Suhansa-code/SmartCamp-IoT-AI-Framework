@@ -1,0 +1,52 @@
+# SmartCamp cloud stack (AWS EC2, x86-64).
+#
+# Build the frontend on a workstation and ship the image; `next build` spawns a
+# worker per CPU and will not survive a 1 GB t3.micro. The backend is small
+# enough to build in place.
+#
+#   docker compose build
+#   docker compose up -d
+services:
+  backend:
+    build:
+      # Context is the cloud-platform root so the image can reach
+      # prediction-models/models — see backend/Dockerfile.
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: backend/.env
+    environment:
+      # Postgres runs on the EC2 host, not in this network. `localhost` inside
+      # the container is the container, so DB_HOST from .env must be overridden
+      # here (environment: wins over env_file:).
+      DB_HOST: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # `ping` needs raw sockets. Without NET_RAW the exec fails and the network
+    # domain reads a permanently dead uplink rather than the real one.
+    cap_add:
+      - NET_RAW
+    ports:
+      - "3001:3001"
+    volumes:
+      # alerts.db is SQLite on disk and *.db is gitignored — without this the
+      # education domain's synced alerts vanish on every recreate.
+      - backend-data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the client bundle at build time. Point it at the public
+        # address the *browser* will use, never at localhost or a private IP.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+        # Falls back to NEXT_PUBLIC_API_URL inside the Dockerfile when unset.
+        NEXT_PUBLIC_DISASTER_API_BASE_URL: ${NEXT_PUBLIC_DISASTER_API_BASE_URL:-}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+volumes:
+  backend-data:

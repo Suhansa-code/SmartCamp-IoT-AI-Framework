@@ -1,0 +1,17 @@
+# Context root for the backend image (context: cloud-platform/).
+# frontend/ alone is 1.3 GB on disk; prediction-models/.venv another 1.1 GB.
+**/node_modules
+**/.next
+**/.venv
+**/__pycache__
+**/*.pyc
+frontend
+ml-service
+prediction-models/data
+prediction-models/notebooks
+prediction-models/scripts
+**/.env
+!**/.env.example
+**/*.db
+**/tests
+.git
