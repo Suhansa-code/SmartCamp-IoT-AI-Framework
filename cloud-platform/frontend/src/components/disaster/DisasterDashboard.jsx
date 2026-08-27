@@ -424,7 +424,7 @@ export default function DisasterDashboard() {
                 {/* Right side panel — Active Camps + Selected Camp */}
                 <aside className="right-panel">
                   {/* Active camps (critical only) */}
-                  <div className="right-section" style={{ flex: '1 1 46%' }}>
+                  <div className="right-section" style={{ flex: '1 1 42%' }}>
                     <div className="right-head">
                        <button
                         onClick={() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -518,10 +518,10 @@ export default function DisasterDashboard() {
 
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                             {[
-                              { label: 'Displaced', value: selectedCamp.displaced.toLocaleString(), accent: '#D97706', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.08), rgba(217,119,6,0.02))', barPct: Math.min((selectedCamp.displaced / selectedCamp.capacity) * 100, 100) },
-                              { label: 'Capacity', value: selectedCamp.capacity.toLocaleString(), accent: '#0F172A', gradient: 'linear-gradient(135deg, rgba(15,23,42,0.08), rgba(15,23,42,0.02))', barPct: 100 },
-                              { label: 'Aid', value: `${selectedCamp.aid}%`, accent: '#16A34A', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.08), rgba(22,163,74,0.02))', barPct: selectedCamp.aid },
-                              { label: 'Occupancy', value: `${selOccupancy}%`, accent: '#D97706', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.08), rgba(217,119,6,0.02))', barPct: selOccupancy },
+                              { label: 'Displaced', value: selectedCamp.displaced.toLocaleString()},
+                              { label: 'Capacity', value: selectedCamp.capacity.toLocaleString() },
+                              { label: 'Aid', value: `${selectedCamp.aid}%`, accent: '#0F172A'},
+                              { label: 'Occupancy', value: `${selOccupancy}%`, accent: '#0F172A' },
                             ].map((s) => (
                               <div key={s.label} style={{ padding: '0.75rem 0.85rem', borderRadius: 14, background: s.gradient, border: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -529,9 +529,7 @@ export default function DisasterDashboard() {
                                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.accent, opacity: 0.6 }} />
                                 </div>
                                 <div style={{ fontSize: '1.15rem', fontWeight: 800, color: s.accent, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{s.value}</div>
-                                <div style={{ height: 3, borderRadius: 2, background: `${T.border}`, marginTop: 8, overflow: 'hidden' }}>
-                                  <div style={{ height: '100%', width: `${s.barPct}%`, borderRadius: 2, background: s.accent, opacity: 0.7, transition: 'width 0.4s ease' }} />
-                                </div>
+
                               </div>
                             ))}
                           </div>

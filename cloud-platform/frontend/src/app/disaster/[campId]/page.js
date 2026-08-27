@@ -556,11 +556,12 @@ export default function DisasterCampDetailPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <Button variant="outline" circleIcon={false} onClick={refreshCamp} disabled={refreshing} icon={<RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />} style={{ opacity: refreshing ? 0.55 : 1 }}>
-                  Refresh
-                </Button>
+
                 <Button variant="outline" circleIcon={false} onClick={() => router.push('/disaster')} icon={<ArrowLeft size={13} />}>
                   Overview
+                </Button>
+                <Button variant="circleRefresh" circleIcon={false} onClick={refreshCamp} disabled={refreshing} icon={<RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />} style={{ opacity: refreshing ? 0.55 : 1 }}>
+                 
                 </Button>
               </div>
             </div>
@@ -797,11 +798,6 @@ export default function DisasterCampDetailPage() {
                 </DashboardCard>
               </div>
             )}
-
-            {/* ── Footer ── */}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', paddingTop: 8, paddingBottom: 8 }}>
-              <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>Back to Overview</Button>
-            </div>
           </div>
         </main>
       </div>
