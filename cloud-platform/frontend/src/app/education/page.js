@@ -29,6 +29,10 @@ import {
   Radio,
   Search,
   HeartPulse,
+  Target,
+  Timer,
+  Zap,
+  BarChart3,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
@@ -931,7 +935,7 @@ function OverviewView({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gridTemplateColumns: "repeat(4, 1fr)",
                   gap: 8,
                   marginTop: "0.9rem",
                   paddingTop: "0.9rem",
@@ -983,6 +987,23 @@ function OverviewView({
                     }}
                   >
                     Avg Score
+                  </div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: (camp.avg_accuracy || 0) >= 70 ? T.green : (camp.avg_accuracy || 0) >= 50 ? T.amber : T.muted }}>
+                    {camp.avg_accuracy != null ? `${camp.avg_accuracy}%` : '—'}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 3,
+                      fontSize: "0.62rem",
+                      color: T.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    Accuracy
                   </div>
                 </div>
               </div>
@@ -1279,8 +1300,89 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
         </div>
       </DashboardCard>
 
+      {/* ── Behavioral Insights ── */}
+      {detail.behavioral && detail.behavioral.signal_count > 0 && (
+        <div className="edu-charts">
+          <DashboardCard
+            title="Behavioral Insights"
+            subtitle={`Aggregated from ${detail.behavioral.signal_count} signals`}
+            right={<Zap size={16} color={T.amber} />}
+            bodyStyle={{ height: 240 }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', height: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Avg Accuracy</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: detail.behavioral.avg_accuracy >= 70 ? T.green : detail.behavioral.avg_accuracy >= 50 ? T.amber : T.red }}>{detail.behavioral.avg_accuracy ?? '—'}%</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 99, background: T.border, marginTop: 6, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, detail.behavioral.avg_accuracy || 0)}%`, height: '100%', borderRadius: 99, background: detail.behavioral.avg_accuracy >= 70 ? T.green : detail.behavioral.avg_accuracy >= 50 ? T.amber : T.red }} />
+                  </div>
+                </div>
+                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Avg Reaction</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: T.teal }}>{detail.behavioral.avg_reaction_ms ?? '—'}</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: T.muted }}>ms</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Completion Rate</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: T.purple }}>{detail.behavioral.avg_completion != null ? `${Math.round(detail.behavioral.avg_completion * 100)}%` : '—'}</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 99, background: T.border, marginTop: 6, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, Math.round((detail.behavioral.avg_completion || 0) * 100))}%`, height: '100%', borderRadius: 99, background: T.purple }} />
+                  </div>
+                </div>
+                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>False Tap Rate</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: detail.behavioral.avg_false_tap > 0.15 ? T.red : T.green }}>{detail.behavioral.avg_false_tap != null ? `${Math.round(detail.behavioral.avg_false_tap * 100)}%` : '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DashboardCard>
+
+          <DashboardCard
+            title="Content Accuracy"
+            subtitle={`From ${detail.content?.total_responses || 0} responses`}
+            right={<Target size={16} color={T.teal} />}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+              <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                <div style={{ fontSize: '2.2rem', fontWeight: 800, color: (detail.content?.accuracy_pct || 0) >= 70 ? T.green : (detail.content?.accuracy_pct || 0) >= 50 ? T.amber : T.red }}>
+                  {detail.content?.accuracy_pct != null ? `${detail.content.accuracy_pct}%` : '—'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 700 }}>Correct Responses</div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: T.green }}>
+                  <CheckCircle2 size={13} /> {detail.content?.correct || 0} correct
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: T.red }}>
+                  <AlertTriangle size={13} /> {(detail.content?.total_responses || 0) - (detail.content?.correct || 0)} wrong
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 99, background: T.border, overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, detail.content?.accuracy_pct || 0)}%`, height: '100%', borderRadius: 99, background: (detail.content?.accuracy_pct || 0) >= 70 ? T.green : (detail.content?.accuracy_pct || 0) >= 50 ? T.amber : T.red, transition: 'width 0.6s ease' }} />
+              </div>
+              {detail.gate_decisions > 0 && (
+                <div style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 600, textAlign: 'center' }}>
+                  {detail.gate_decisions} gate decisions recorded
+                </div>
+              )}
+            </div>
+          </DashboardCard>
+        </div>
+      )}
+
       {/* ── Camp alerts ── */}
-      {/* <DashboardCard
+      <DashboardCard
         title="Camp Alerts"
         subtitle="Triggered welfare alerts for this camp"
         right={chip("pending", detail.pending_alerts, detail.pending_alerts > 0 ? T.red : T.green)}
@@ -1307,13 +1409,12 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: "0.82rem", fontWeight: 800, color: T.ink }}>
-                  {alert.child_id} · {alert.alert_type.replace(/_/g, " ")}
+                  {alert.child_id} · {alert.alert_type?.replace(/_/g, " ") || 'alert'}
                 </div>
                 <div style={{ fontSize: "0.72rem", color: T.muted, marginTop: 2 }}>
                   {alert.triggered_at
                     ? new Date(alert.triggered_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
                     : "—"}
-                  {alert.trigger_detail?.recent_scores ? ` · recent: ${alert.trigger_detail.recent_scores.join(" → ")}` : ""}
                 </div>
               </div>
               <Tag color={alert.status === "pending" ? T.red : T.green}>{alert.status}</Tag>
@@ -1325,7 +1426,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
             <p style={{ fontSize: "0.85rem", fontWeight: 700 }}>No alerts for this camp</p>
           </div>
         )}
-      </DashboardCard> */}
+      </DashboardCard>
 
 
     </>

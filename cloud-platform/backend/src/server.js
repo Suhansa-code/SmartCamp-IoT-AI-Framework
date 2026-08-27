@@ -22,13 +22,16 @@ async function startServer() {
     }
 
     await mqttService.connect();
-    console.log('[MQTT] Connected to broker');
 
-    alertSyncService.start();
-    console.log('[AlertSync] Alert sync service started');
+    try {
+      alertSyncService.start();
+      console.log('[AlertSync] Alert sync service started');
+    } catch {}
 
-    await startCampDataService();
-    console.log('[Camp Data] Camp data service started');
+    try {
+      await startCampDataService();
+      console.log('[Camp Data] Camp data service started');
+    } catch {}
 
     if (env.db.enabled) {
       startSyncReceiver();
