@@ -41,7 +41,7 @@ export default function ResourcesPage() {
             <HeaderShell>
               <PageHeader
                 title="Resource Management"
-                subtitle="Live inventory, usage analytics, and flood predictions from Cloud DB"
+                subtitle="Inventory, usage analytics, and flood predictions — toggle Mock/Live data source"
                 search={{
                   value: search,
                   onChange: setSearch,
