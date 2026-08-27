@@ -53,6 +53,7 @@ export default function DisasterDashboard() {
   const [campQuery, setCampQuery] = useState('')
   const [showMockupData, setShowMockupData] = useState(false)
   const isFirstRender = useRef(true)
+  const tableRef = useRef(null)
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -376,15 +377,9 @@ export default function DisasterDashboard() {
                     <div style={{ fontSize: '0.78rem', fontWeight: 700, color: T.red }}>Cloud backend unavailable</div>
                     <div style={{ fontSize: '0.68rem', color: T.muted, marginTop: 1 }}>{error} · Showing empty state or enable mock data toggle.</div>
                   </div>
-                  <button
-                    onClick={() => { setShowMockupData(true); setError('') }}
-                    style={{
-                      background: T.red, color: '#fff', border: 'none', borderRadius: 8,
-                      padding: '5px 12px', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                    }}
-                  >
+                  <Button variant="danger" circleIcon={false} onClick={() => { setShowMockupData(true); setError('') }} style={{ fontSize: '0.68rem', padding: '5px 12px', whiteSpace: 'nowrap' }}>
                     Use Mock Data
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -399,15 +394,9 @@ export default function DisasterDashboard() {
                   <div style={{ fontSize: '0.75rem', color: T.muted, marginBottom: 12, maxWidth: 400, margin: '0 auto 12px' }}>
                     The disaster CAMPS table is empty. Seed the database with camp records or enable mock data to preview the dashboard.
                   </div>
-                  <button
-                    onClick={() => setShowMockupData(true)}
-                    style={{
-                      background: T.teal, color: '#fff', border: 'none', borderRadius: 8,
-                      padding: '8px 20px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >
+                  <Button variant="teal" circleIcon={false} onClick={() => setShowMockupData(true)} style={{ fontSize: '0.78rem', padding: '8px 20px' }}>
                     Load Mock Data
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -436,9 +425,9 @@ export default function DisasterDashboard() {
                   <div className="right-section" style={{ flex: '1 1 46%' }}>
                     <div className="right-head">
                        <button
-                        onClick={() => setShowAllCamps(true)}
-                        aria-label="Show all camps"
-                        title="Show all camps"
+                        onClick={() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                        aria-label="Scroll to camp table"
+                        title="View all camps"
                         suppressHydrationWarning
                         style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                       >
@@ -551,9 +540,14 @@ export default function DisasterDashboard() {
                             ))}
                           </div>
 
-                          <Button href={`/disaster/${selectedCamp.id}`} icon={<ChevronRight size={15} />} style={{ width: '100%', justifyContent: 'center', marginTop: 2 }}>
-                            View Full Detail
-                          </Button>
+                          <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                            <Button href={`/disaster/${selectedCamp.id}`} icon={<ChevronRight size={15} />} style={{ flex: 1, justifyContent: 'center' }}>
+                              View Full Detail
+                            </Button>
+                            <Button variant="outline" onClick={() => setSelected(null)} style={{ flex: 1, justifyContent: 'center' }}>
+                              Deselect
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -667,7 +661,9 @@ export default function DisasterDashboard() {
               </div>
 
               {/* ── Camp Data Table ──────────────────────────────────── */}
-              <CampDataTable camps={camps} loading={loading} theme={T} onCampSelect={(campId) => { setSelected(campId); window.scrollTo({ top: 0, behavior: 'smooth' }) }} selected={selected} />
+              <div ref={tableRef}>
+                <CampDataTable camps={camps} loading={loading} theme={T} onCampSelect={(campId) => { setSelected(campId); window.scrollTo({ top: 0, behavior: 'smooth' }) }} selected={selected} />
+              </div>
             </div>
           </main>
         </div>

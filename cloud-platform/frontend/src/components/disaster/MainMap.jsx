@@ -229,13 +229,8 @@ function CampMarkers({ camps, selected, onSelect }) {
     if (!camp) return
 
     const data = elevData[camp.id] || {}
-    const elev = data.elevation
-    const slope = data.slope
+    const elev = data.elevation ?? camp.elev ?? null
     const statusColor = STATUS_COLOR[camp.status] || '#64748B'
-
-    const slopeLabel = slope !== null && slope !== undefined
-      ? `${slope}° — ${slope < 5 ? 'Flat' : slope < 15 ? 'Gentle' : slope < 25 ? 'Moderate' : slope < 35 ? 'Steep' : 'Very steep'}`
-      : 'Unavailable'
 
     const popup = new MapLibreGL.Popup({
       offset: 20,
@@ -269,14 +264,8 @@ function CampMarkers({ camps, selected, onSelect }) {
             </div>
             <div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid #e5e7eb;padding-top:4px;margin-top:4px">
               <span style="font-weight:600">Elevation</span>
-              <span style="font-weight:700;color:${elev !== null && elev !== undefined ? '#0891b2' : '#9ca3af'};font-family:monospace">
-                ${elev !== null && elev !== undefined ? `${elev} m AMSL` : 'Unavailable'}
-              </span>
-            </div>
-            <div style="display:flex;justify-content:space-between;gap:12px">
-              <span style="font-weight:600">Slope</span>
-              <span style="font-weight:700;color:${slope !== null && slope !== undefined ? '#0891b2' : '#9ca3af'};font-family:monospace">
-                ${slopeLabel}
+              <span style="font-weight:700;color:${elev !== null ? '#0891b2' : '#9ca3af'};font-family:monospace">
+                ${elev !== null ? `${elev} m AMSL` : 'Unavailable'}
               </span>
             </div>
             <div style="display:flex;justify-content:space-between;gap:12px">
@@ -362,19 +351,19 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
   const hudCardBg = dark ? 'rgba(4,10,17,0.72)' : 'rgba(255,255,255,0.85)'
   const hudCardBorder = dark ? 'rgba(255,255,255,0.1)' : 'rgba(60,110,150,0.18)'
 
-  const mockCamps = useMemo(() => {
-    if (!showMockupData || !camps?.length) return []
+  const allValidCamps = useMemo(() => {
+    if (!camps?.length) return []
     return camps.filter((c) => typeof c.lat === 'number' && typeof c.lng === 'number')
-  }, [camps, showMockupData])
+  }, [camps])
 
   const arcData = useMemo(() => {
-    if (!mockCamps.length) return []
-    return mockCamps.map((camp) => ({
+    if (!allValidCamps.length) return []
+    return allValidCamps.map((camp) => ({
       id: `camp-${camp.id}-colombo`,
       from: [camp.lng, camp.lat],
       to: [COLOMBO_HUB.lng, COLOMBO_HUB.lat],
     }))
-  }, [mockCamps])
+  }, [allValidCamps])
 
   const cycleMode = useCallback(() => {
     setViewMode((prev) => {
@@ -416,7 +405,7 @@ export default function MainMap({ camps, selected, onSelect, statusCounts, error
         <ElevationProvider camps={camps} viewMode={viewMode}>
           <CampMarkers camps={camps} selected={selected} onSelect={onSelect} />
         </ElevationProvider>
-        {showMockupData && <ColomboHubMarker />}
+        <ColomboHubMarker />
       </Map>
 
       {/* Map-local display control. The label deliberately stays stable in both modes. */}

@@ -10,6 +10,7 @@ function mapCamp(row) {
     id: row.id, code: row.code, name: row.name, lat: Number(row.lat), lng: Number(row.lng), status: row.status,
     displaced: Number(row.displaced || 0), capacity: Number(row.capacity || 0), aid: Number(row.aid || 0),
     type: row.type, workers: Number(row.workers || 0),
+    elev: row.elev == null ? null : Number(row.elev),
     last_aggregation_at: row.last_aggregation_at || null,
     created_at: row.created_at || null,
     updated_at: row.updated_at || null,
