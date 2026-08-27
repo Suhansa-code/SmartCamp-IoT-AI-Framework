@@ -16,6 +16,7 @@ import { useTheme } from '@/components/common/ThemeProvider'
 import { Map, MapControls, useMap } from '@/components/ui/map'
 import KpiCard from '@/components/dashboard/KpiCard'
 import DashboardCard from '@/components/dashboard/DashboardCard'
+import { GaugingChart, WaterLevelBarChart } from '@/components/disaster/DisasterVisuals'
 
 const PAGE_PAD = 'clamp(1rem, 2vw, 1.75rem)'
 
@@ -403,6 +404,8 @@ export default function DisasterCampDetailPage() {
 
   const [predResult, setPredResult] = useState(null)
   const [predLoading, setPredLoading] = useState(false)
+  const [waterHistory, setWaterHistory] = useState([])
+  const [waterHistoryLoading, setWaterHistoryLoading] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -428,6 +431,32 @@ export default function DisasterCampDetailPage() {
     loadPrediction()
     return () => { active = false }
   }, [camp, campId])
+
+  // Fetch water level history for gauging chart
+  useEffect(() => {
+    let active = true
+    async function loadWaterHistory() {
+      if (!camp || !detail?.station) return
+      setWaterHistoryLoading(true)
+      try {
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}/water-level-history?hours=8`)
+        if (!active) return
+        if (res.ok) {
+          const body = await res.json()
+          setWaterHistory(body.points || [])
+        } else {
+          setWaterHistory([])
+        }
+      } catch {
+        if (!active) return
+        setWaterHistory([])
+      } finally {
+        if (active) setWaterHistoryLoading(false)
+      }
+    }
+    loadWaterHistory()
+    return () => { active = false }
+  }, [camp, campId, detail?.station])
 
   const refreshCamp = useCallback(async () => {
     if (!campId) return
@@ -743,9 +772,43 @@ export default function DisasterCampDetailPage() {
                   {detail?.minorL != null && <DataRow label="Minor flood" value={`${detail.minorL} m`} />}
                   {detail?.majorL != null && <DataRow label="Major flood" value={`${detail.majorL} m`} tone={T.red} />}
                   {detail?.gauLat != null && <DataRow label="Gauge coords" value={`${detail.gauLat.toFixed(4)}°, ${detail.gauLng.toFixed(4)}°`} />}
+                  {detail?.stDist != null && <DataRow label="Station dist." value={`${(detail.stDist / 1000).toFixed(1)} km`} />}
                 </div>
               </DashboardCard>
             </div>
+
+            {/* ── Water Level Gauging Charts ── */}
+            {(detail?.wl != null || waterHistory.length > 0) && (
+              <div className="cd-two">
+                {/* Water Level Bar Chart */}
+                <DashboardCard title="Water Level Status" subtitle="Current level vs. alert thresholds">
+                  <WaterLevelBarChart
+                    currentWl={detail?.wl}
+                    alertL={detail?.alertL}
+                    minorL={detail?.minorL}
+                    majorL={detail?.majorL}
+                    station={detail?.station}
+                    theme={T}
+                  />
+                </DashboardCard>
+
+                {/* Gauging History Chart */}
+                <DashboardCard
+                  title="Gauging History"
+                  subtitle={waterHistoryLoading ? 'Loading station data…' : `8-hour trend from ${detail?.station || 'nearest station'}`}
+                  right={waterHistoryLoading ? <RefreshCw size={12} className="animate-spin" style={{ color: T.muted }} /> : null}
+                >
+                  <GaugingChart
+                    points={waterHistory}
+                    alertL={detail?.alertL}
+                    minorL={detail?.minorL}
+                    majorL={detail?.majorL}
+                    station={detail?.station}
+                    theme={T}
+                  />
+                </DashboardCard>
+              </div>
+            )}
 
             {/* ── Footer ── */}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', paddingTop: 8, paddingBottom: 8 }}>
