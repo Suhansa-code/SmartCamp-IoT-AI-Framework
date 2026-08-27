@@ -3,6 +3,10 @@ import * as gpsService from '../../services/disaster/gps.js';
 import { getLatestWeather, getWeatherStorageStatus } from '../../services/disaster/weather-storage.js';
 import { getLatestRainfall, getRainfallStorageStatus, fetchAndSaveRainfall } from '../../services/disaster/rainfall-storage.js';
 import { getLatestDht11, getDht11StorageStatus, fetchAndSaveDht11 } from '../../services/disaster/dht11-storage.js';
+import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, fetchAndSaveWaterLevel } from '../../services/disaster/water-level-storage.js';
+import { getLatestSensorStatus, getSensorStatusStorageStatus, fetchAndSaveSensorStatus } from '../../services/disaster/sensor-status-storage.js';
+import { getLatestHydrospatial, getHydrospatialHistory, getHydrospatialStorageStatus, fetchAndSaveHydrospatial } from '../../services/disaster/hydrospatial-storage.js';
+import { getFloodPrediction } from '../../services/disaster/prediction-service.js';
 import { disasterDb } from '../../config/database.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
@@ -149,5 +153,128 @@ export async function triggerDht11Save(req, res) {
     res.json({ saved, message: saved ? 'DHT11 data saved to DB' : 'No data saved (sensor inactive or fetch failed)' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+}
+
+export function getLatestWaterLevelData(req, res) {
+  try {
+    const wl = getLatestWaterLevel();
+    if (!wl) {
+      return res.json({ available: false, message: 'No water level data available yet' });
+    }
+    res.json({ available: true, ...wl });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch water level data' });
+  }
+}
+
+export function getWaterLevelHistoryData(req, res) {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const history = getWaterLevelHistory(limit);
+    res.json({ readings: history });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch water level history' });
+  }
+}
+
+export function getWaterLevelStatus(req, res) {
+  try {
+    const status = getWaterLevelStorageStatus();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch water level status' });
+  }
+}
+
+export async function triggerWaterLevelSave(req, res) {
+  try {
+    const saved = await fetchAndSaveWaterLevel();
+    res.json({ saved, message: saved ? 'Water level data saved to DB' : 'No data saved (GPS unavailable or fetch failed)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export function getLatestSensorStatusData(req, res) {
+  try {
+    const status = getLatestSensorStatus();
+    if (!status) {
+      return res.json({ available: false, message: 'No sensor status data available yet' });
+    }
+    res.json({ available: true, ...status });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch sensor status data' });
+  }
+}
+
+export function getSensorStatus(req, res) {
+  try {
+    const status = getSensorStatusStorageStatus();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch sensor status' });
+  }
+}
+
+export async function triggerSensorStatusSave(req, res) {
+  try {
+    const saved = await fetchAndSaveSensorStatus();
+    res.json({ saved, message: saved ? 'Sensor status saved to DB' : 'No data saved (gateway unreachable)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// ── Hydrospatial ────────────────────────────────────────────────────────
+
+export function getLatestHydrospatialData(req, res) {
+  try {
+    const data = getLatestHydrospatial();
+    if (!data) {
+      return res.json({ available: false, message: 'No hydrospatial data available yet' });
+    }
+    res.json({ available: true, ...data });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch hydrospatial data' });
+  }
+}
+
+export function getHydrospatialHistoryData(req, res) {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const history = getHydrospatialHistory(limit);
+    res.json({ readings: history });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch hydrospatial history' });
+  }
+}
+
+export function getHydrospatialStatus(req, res) {
+  try {
+    const status = getHydrospatialStorageStatus();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch hydrospatial status' });
+  }
+}
+
+export async function triggerHydrospatialSave(req, res) {
+  try {
+    const saved = await fetchAndSaveHydrospatial();
+    res.json({ saved, message: saved ? 'Hydrospatial data saved to DB' : 'No data saved (GPS unavailable or fetch failed)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// ── Flood Prediction ─────────────────────────────────────────────────
+
+export async function getFloodPredictionData(req, res) {
+  try {
+    const result = await getFloodPrediction();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
   }
 }

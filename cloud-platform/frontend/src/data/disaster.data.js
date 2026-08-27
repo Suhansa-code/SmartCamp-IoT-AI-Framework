@@ -11,7 +11,7 @@ export const STATUS_META = {
   recovery: { label: 'RECOVERY' },
 }
 
-export const STATUS_COLOR = { critical: P.red, high: '#D97706', medium: P.amber, stable: '#2563EB', recovery: P.green }
+export const STATUS_COLOR = { critical: P.red, high: '#D97706', medium: P.amber, stable: P.green, recovery: P.green }
 export const STATUS_TEXT = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', stable: 'STABLE', recovery: 'RECOVERY' }
 
 // White "nitec" theme mapped to the shape the detail sections expect.

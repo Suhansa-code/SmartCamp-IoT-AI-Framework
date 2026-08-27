@@ -29,17 +29,16 @@ describe('cloud syncReceiver — exports (cloud module)', () => {
     expect(['ok', 'error', 'duplicate']).toContain(ack.status);
   });
 
-  it('entity handler mapping covers all 23 entities', () => {
+  it('entity handler mapping covers all entities', () => {
     const entities = [
       'persons', 'checkins', 'wristbands', 'distributions',
       'resources', 'resource-usage', 'audit-logs',
       'children', 'sessions', 'behavioral-signals',
       'gate-decisions', 'alerts', 'content-responses',
-      'disaster-events', 'sensor-readings', 'environmental-data',
-      'water-level-readings', 'gps-readings', 'weather-data',
-      'hydrospatial-data', 'flood-predictions', 'disaster-alerts',
-      'prediction-requests',
+      'disaster-events', 'water-level-readings', 'gps-readings',
+      'weather-data', 'hydrospatial-data', 'flood-predictions',
+      'disaster-alerts', 'prediction-requests',
     ];
-    expect(entities.length).toBe(23);
+    expect(entities.length).toBe(21);
   });
 });

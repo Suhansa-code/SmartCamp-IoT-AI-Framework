@@ -41,6 +41,10 @@ const QOS_TABLE = [
   { priority: 'LOW',      tone: 'neutral', stable: { qos: 0, buf: false }, degraded: { qos: 1, buf: false }, critical: { qos: 0, buf: true  } },
 ];
 
+const PRIORITY_TONE = {
+  CRITICAL: 'danger', HIGH: 'warning', MEDIUM: 'info', LOW: 'neutral',
+};
+
 function metricTone(value, warn, crit, invert = false) {
   const n = parseFloat(value);
   if (isNaN(n)) return 'neutral';
@@ -137,6 +141,8 @@ export default function NetworkScreen() {
   const t        = TONE[tone];
   const m        = status?.metrics   || {};
   const buffered = status?.buffered_messages ?? 0;
+  const bufferRows = status?.buffer_by_priority ?? [];
+  const bufferMsgs = status?.buffer_messages ?? [];
   const updatedAt = status?.updated_at
     ? new Date(status.updated_at).toLocaleTimeString()
     : '—';
@@ -208,7 +214,7 @@ export default function NetworkScreen() {
                 { label: 'RTT Max',      val: m.rtt_max,     unit: ' ms',   warn: 400,  crit: 999  },
                 { label: 'Packet Loss',  val: m.packet_loss, unit: '%',     warn: 5,    crit: 15   },
                 { label: 'Jitter',       val: m.jitter,      unit: ' ms',   warn: 30,   crit: 80   },
-                { label: 'Bandwidth',    val: m.bandwidth,   unit: ' Mbps', warn: 5,    crit: 1,   invert: true },
+                { label: 'Broker RTT',   val: m.broker_rtt,  unit: ' ms',   warn: 300,  crit: 1000 },
                 { label: 'Queue Depth',  val: m.queue_depth, unit: '',      warn: 50,   crit: 100  },
               ].map(({ label, val, unit, warn, crit, invert }) => {
                 const mTone = val !== undefined ? metricTone(val, warn, crit, invert) : 'neutral';
@@ -314,6 +320,86 @@ export default function NetworkScreen() {
                 <p className="text-[11px] font-mono" style={{ color: COLORS.muted }}>buffered</p>
               </div>
             </div>
+
+            {/* Flush order. The total alone hides the point — that a CRITICAL
+                message leaves before a MEDIUM one no matter which arrived
+                first. Rows stay visible at zero so the ordering is legible
+                even when the buffer is empty. */}
+            {bufferRows.length > 0 && (
+              <div className="mt-5 pt-4 border-t space-y-2" style={{ borderColor: COLORS.hairline }}>
+                {bufferRows.map(({ priority, flush_position, count, oldest_at }) => {
+                  const t = TONE[PRIORITY_TONE[priority] || 'neutral'];
+                  const share = buffered > 0 ? count / buffered : 0;
+                  return (
+                    <div key={priority} className="flex items-center gap-3">
+                      <span className="text-[11px] font-mono w-5 shrink-0" style={{ color: COLORS.muted }}>
+                        {flush_position}
+                      </span>
+                      <span className="text-[12px] font-semibold font-mono w-[68px] shrink-0" style={{ color: t.color }}>
+                        {priority}
+                      </span>
+                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: COLORS.hairline }}>
+                        <div className="h-full rounded-full transition-all duration-500"
+                             style={{ width: `${Math.round(share * 100)}%`, backgroundColor: t.color }} />
+                      </div>
+                      <span className="text-[12px] font-mono w-8 text-right shrink-0"
+                            style={{ color: count > 0 ? t.color : COLORS.muted }}>
+                        {count}
+                      </span>
+                      <span className="text-[10.5px] font-mono w-[62px] text-right shrink-0 hidden sm:block"
+                            style={{ color: COLORS.muted }}>
+                        {count > 0 && oldest_at ? `${Math.max(0, Math.round((Date.now() - new Date(oldest_at.replace(' ', 'T') + 'Z')) / 1000))}s` : ''}
+                      </span>
+                    </div>
+                  );
+                })}
+                <p className="text-[11px] pt-1" style={{ color: COLORS.muted }}>
+                  Numbered in flush order · rightmost column is the oldest held message
+                </p>
+              </div>
+            )}
+
+            {/* The individual held messages, in the exact order they will be
+                sent. Payloads are deliberately not exposed — they carry names
+                and medical notes — so this shows topic and priority only. */}
+            {bufferMsgs.length > 0 && (
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
+                <SectionHeader icon={Layers} title="Messages waiting, in send order" />
+                <div className="space-y-1.5 mt-1">
+                  {bufferMsgs.map((msg, i) => {
+                    const t = TONE[PRIORITY_TONE[msg.priority] || 'neutral'];
+                    return (
+                      <div key={msg.id} className="flex items-center gap-3 py-1.5 px-2 rounded-md"
+                           style={{ backgroundColor: i % 2 ? 'transparent' : COLORS.hairline + '55' }}>
+                        <span className="text-[11px] font-mono w-6 shrink-0" style={{ color: COLORS.muted }}>
+                          {i + 1}
+                        </span>
+                        <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0 w-[74px] text-center"
+                              style={{ color: t.color, backgroundColor: t.bg, border: `1px solid ${t.border}` }}>
+                          {msg.priority}
+                        </span>
+                        <span className="text-[12px] font-mono truncate flex-1" style={{ color: COLORS.body }}>
+                          {msg.topic}
+                        </span>
+                        <span className="text-[10.5px] font-mono shrink-0 hidden sm:block" style={{ color: COLORS.muted }}>
+                          QoS {msg.qos}
+                        </span>
+                        <span className="text-[10.5px] font-mono w-[56px] text-right shrink-0" style={{ color: COLORS.muted }}>
+                          {msg.created_at
+                            ? `${Math.max(0, Math.round((Date.now() - new Date(msg.created_at.replace(' ', 'T') + 'Z')) / 1000))}s`
+                            : ''}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {buffered > bufferMsgs.length && (
+                  <p className="text-[11px] pt-2" style={{ color: COLORS.muted }}>
+                    Showing the first {bufferMsgs.length} of {buffered}
+                  </p>
+                )}
+              </div>
+            )}
           </Card>
         </motion.div>
 

@@ -39,18 +39,18 @@ describe('sync-notify', () => {
   });
 
   describe('TABLE_PK', () => {
-    it('maps all 23 syncable tables', () => {
+    it('maps all syncable tables', () => {
       const expected = [
         'persons', 'camp_checkins', 'wristbands', 'distributions',
         'resources', 'resource_usage', 'audit_logs',
         'pages_children', 'pages_sessions', 'pages_behavioral_signals',
         'pages_gate_decisions', 'pages_alerts', 'pages_content_responses',
-        'disaster_events', 'sensor_readings', 'environmental_data',
+        'disaster_events',
         'water_level_readings', 'gps_readings', 'weather_data',
         'hydrospatial_data', 'flood_predictions', 'disaster_alerts',
         'prediction_requests',
       ];
-      expect(Object.keys(TABLE_PK).length).toBe(23);
+      expect(Object.keys(TABLE_PK).length).toBe(21);
       for (const table of expected) {
         expect(TABLE_PK[table]).toBeDefined();
       }

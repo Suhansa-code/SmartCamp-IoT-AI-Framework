@@ -27,7 +27,7 @@ export function NotificationsProvider({ children }) {
         const data = await res.json()
         const transformed = data.alerts.map((a) => ({
           id: a.alert_id,
-          childId: a.child_id.replace(/TEST-CHILD-/, '').replace(/CHILD-/, ''),
+          childId: a.child_id?.replace(/TEST-CHILD-/, '').replace(/CHILD-/, '') ?? '—',
           campId: a.camp_id?.toLowerCase() ?? 'unknown',
           campName: a.camp_id ?? 'Unknown Camp',
           alertType: a.alert_type ?? 'Unknown Alert',
@@ -37,7 +37,7 @@ export function NotificationsProvider({ children }) {
               : a.alert_type?.includes('High') || a.alert_type?.includes('high')
                 ? 'high'
                 : 'medium',
-          status: a.status === 'pending' ? 'pending' : 'resolved',
+          status: a.status === 'escalated' ? 'escalated' : a.status === 'resolved' ? 'resolved' : 'pending',
           triggeredAt: new Date(a.triggered_at).getTime(),
           scores: (a.recent_scores || []).map((score, idx) => ({ session: idx + 1, score })),
         }))

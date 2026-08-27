@@ -1,7 +1,5 @@
 import { createApp } from './app.js';
 import { MqttService } from './services/network/mqtt.service.js';
-import { NetworkMonitor } from './services/network/networkMonitor.service.js';
-import { SimulationService } from './services/network/simulation.service.js';
 import { startCampDataService } from './services/resources/campData.service.js';
 import { AlertSyncService } from './services/education/alertSync.service.js';
 import { startSyncReceiver, stopSyncReceiver } from './services/sync/syncReceiver.service.js';
@@ -9,11 +7,9 @@ import { env } from './config/env.js';
 import { initSchema, testConnection, closeDatabase } from './config/database.js';
 
 const mqttService = new MqttService();
-const networkMonitor = new NetworkMonitor(mqttService);
-const simulationService = new SimulationService(networkMonitor);
 const alertSyncService = new AlertSyncService(mqttService);
 
-const app = createApp({ monitor: networkMonitor });
+const app = createApp();
 
 async function startServer() {
   try {
@@ -25,22 +21,17 @@ async function startServer() {
       console.log('[DB] PostgreSQL disabled - using in-memory repository');
     }
 
-    if (env.enableSimulation) {
-      await simulationService.start();
-      console.log('[Simulation] Started - generating mock network data');
-    } else {
-      await mqttService.connect();
-      console.log('[MQTT] Connected to broker');
+    await mqttService.connect();
 
+    try {
       alertSyncService.start();
       console.log('[AlertSync] Alert sync service started');
-    }
+    } catch {}
 
-    networkMonitor.start();
-    console.log('[Monitor] Network monitoring started');
-
-    await startCampDataService();
-    console.log('[Camp Data] Camp data service started');
+    try {
+      await startCampDataService();
+      console.log('[Camp Data] Camp data service started');
+    } catch {}
 
     if (env.db.enabled) {
       startSyncReceiver();
@@ -59,7 +50,6 @@ async function startServer() {
 
 process.on('SIGTERM', async () => {
   console.log('[Server] Shutting down...');
-  simulationService.stop();
   alertSyncService.stop();
   stopSyncReceiver();
   mqttService.disconnect();

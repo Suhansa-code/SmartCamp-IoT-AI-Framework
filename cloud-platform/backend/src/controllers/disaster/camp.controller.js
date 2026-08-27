@@ -6,13 +6,19 @@ import {
   getDisasterCampSummaries,
   getDisasterDashboardSummary,
   getDisasterMapNodes,
+  getDisasterOperationalData,
 } from '../../data/disaster/camp.repository.js';
 import { predictFloodForCamp } from '../../services/disaster/floodPrediction.service.js';
 import { getWaterLevelHistoryForCamp } from '../../services/disaster/waterLevelHistory.service.js';
+import { listDisasterAlerts, updateDisasterAlertStatus } from '../../data/disaster/alert.repository.js';
+import { aggregateCampImmediate, aggregateAllCamps, getAggregationStatus } from '../../services/disaster/campsAggregation.service.js';
+import { env } from '../../config/env.js';
 
 export async function getOverview(_req, res, next) {
   try {
-    res.json(await getDisasterDashboardSummary());
+    const overview = await getDisasterDashboardSummary();
+    const alerts = await listDisasterAlerts({ status: 'ACTIVE' });
+    res.json({ ...overview, alerts, alert_summary: { critical: alerts.filter((alert) => alert.severity === 'CRITICAL').length, high: alerts.filter((alert) => alert.severity === 'HIGH').length } });
   } catch (err) {
     next(err);
   }
@@ -50,6 +56,21 @@ export async function getCampById(req, res, next) {
   }
 
   try {
+    const operational = await getDisasterOperationalData(camp.id);
+    const detail = {
+      ...camp.detail,
+      ...(operational.hydrospatial ? {
+        elev: operational.hydrospatial.elevation ?? camp.detail?.elev,
+        river: operational.hydrospatial.river_name ?? camp.detail?.river,
+        station: operational.hydrospatial.station_name ?? camp.detail?.station,
+        stDist: operational.hydrospatial.gauge_distance ?? camp.detail?.stDist,
+      } : {}),
+      ...(operational.water_level ? { wl: operational.water_level.water_level } : {}),
+    };
+    if (operational.prediction || operational.alerts.length) {
+      return res.json({ ...camp, detail, prediction: operational.prediction, operational });
+    }
+    if (env.db.enabled) return res.json({ ...camp, detail, prediction: null, operational });
     const prediction = predictFloodForCamp(camp);
     return res.json({ ...camp, prediction });
   } catch (error) {
@@ -111,5 +132,53 @@ export async function getCampWaterLevelHistory(req, res, next) {
       error: error instanceof Error ? error.message : 'Failed to load water-level history',
       campId: req.params.campId,
     });
+  }
+}
+
+export async function getDisasterAlerts(req, res, next) {
+  try {
+    res.json({ alerts: await listDisasterAlerts({ campId: req.query.camp, status: req.query.status }) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateAlertStatus(req, res, next) {
+  const status = String(req.body?.status || '').toUpperCase();
+  if (!['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED'].includes(status)) return res.status(400).json({ error: 'Invalid alert status' });
+  try {
+    const alert = await updateDisasterAlertStatus(req.params.alertId, status);
+    if (!alert) return res.status(404).json({ error: 'Disaster alert not found' });
+    res.json({ alert });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Aggregation endpoints ────────────────────────────────────────────
+
+export async function getAggregationOverview(_req, res, next) {
+  try {
+    res.json(getAggregationStatus());
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function triggerCampAggregation(req, res, next) {
+  try {
+    const result = await aggregateCampImmediate(req.params.campId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function triggerAllCampAggregations(_req, res, next) {
+  try {
+    const result = await aggregateAllCamps();
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
 }

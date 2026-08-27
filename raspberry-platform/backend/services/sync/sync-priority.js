@@ -102,14 +102,10 @@ export function classifyRowPriority(tableName, row) {
       return classifyDisasterAlert(row);
     case 'flood_predictions':
       return classifyFloodPrediction(row);
-    case 'sensor_readings':
-      return classifySensorReading(row);
     case 'water_level_readings':
       return classifyWaterLevel(row);
     case 'disaster_events':
       return classifyDisasterEvent(row);
-    case 'environmental_data':
-      return md('environmental_data');
     case 'weather_data':
       return md('weather_data');
     case 'gps_readings':
@@ -156,25 +152,22 @@ function classifyGateDecision(row) {
 }
 
 function classifyPerson(row) {
-  // Pregnant or chronic illness → CRITICAL (vulnerable person)
+  // Registration is CRITICAL regardless of who the person is. It is the only
+  // record that cannot be rebuilt from later traffic — a check-in or a
+  // distribution referencing a person the cloud has never seen is orphaned.
+  // Vulnerability flags are kept only as the stated reason.
   if (row.is_pregnant) return crit('person_pregnant');
   if (row.has_chronic_illness) return crit('person_chronic');
-  // Child (age < 18) → HIGH
-  if (row.age != null && row.age < 18) return hi('person_child');
-  // Normal adult registration → HIGH
-  return hi('person_adult');
+  if (row.age != null && row.age < 18) return crit('person_child');
+  return crit('person_registration');
 }
 
 function classifyDistribution(row) {
-  const type = (row.resource_type || '').toLowerCase();
-  // Medicine distribution → CRITICAL
-  if (type === 'medicine' || type === 'paracetamol' || type === 'medical') {
-    return crit('distribution_medicine');
-  }
-  // Water in disaster context → HIGH
-  if (type === 'water') return hi('distribution_water');
-  // Food distributions → HIGH
-  return hi('distribution_food');
+  // Deliberately uniform: distribution is routine operational data whatever
+  // was handed out. The medicine/water/food split used to promote a medicine
+  // hand-out to CRITICAL, which put it ahead of registration in the flush
+  // queue and let it publish during an outage. One rule, nothing hidden.
+  return md('distribution');
 }
 
 function classifyResource(row) {
@@ -289,6 +282,8 @@ export function priorityIndex(priority) {
 export function getTableDefaultPriority(tableName) {
   // These tables always have the same default priority
   const TABLE_DEFAULTS = {
+    persons:               PRIORITY.CRITICAL,
+    distributions:         PRIORITY.MEDIUM,
     camp_checkins:         PRIORITY.HIGH,
     wristbands:            PRIORITY.HIGH,
     audit_logs:            PRIORITY.LOW,
@@ -296,10 +291,8 @@ export function getTableDefaultPriority(tableName) {
     pages_content_responses:  PRIORITY.LOW,
     disaster_alerts:       PRIORITY.CRITICAL,
     flood_predictions:     PRIORITY.CRITICAL,
-    sensor_readings:       PRIORITY.HIGH,
     water_level_readings:  PRIORITY.HIGH,
     disaster_events:       PRIORITY.HIGH,
-    environmental_data:    PRIORITY.MEDIUM,
     weather_data:          PRIORITY.MEDIUM,
     gps_readings:          PRIORITY.MEDIUM,
     hydrospatial_data:     PRIORITY.MEDIUM,

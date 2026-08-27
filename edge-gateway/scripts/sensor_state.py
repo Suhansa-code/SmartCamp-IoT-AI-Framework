@@ -31,6 +31,10 @@ CONSECUTIVE_FAILURES = 3
 # How many seconds of no successful read before considering stale
 STALE_SECONDS = 30
 
+# Wireless rainfall sensor timeout (seconds)
+# If no data received for this duration, sensor is considered disconnected
+WIRELESS_RAIN_TIMEOUT = int(os.environ.get("RAINFALL_WIRELESS_TIMEOUT_SECONDS", "30"))
+
 # How often the background reader attempts a read (seconds)
 POLL_INTERVAL = 3
 
@@ -85,13 +89,14 @@ def _reverse_geocode(lat: float, lng: float) -> tuple[str | None, str | None]:
 class SensorState:
     """Thread-safe per-sensor connectivity tracker."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, stale_seconds: int = STALE_SECONDS):
         self.name = name
         self._lock = threading.Lock()
         self.connected = False
         self.consecutive_failures = 0
         self.last_success_at: float = 0.0
         self.last_value: dict | None = None
+        self.stale_seconds = stale_seconds
 
     def record_success(self, value: dict):
         with self._lock:
@@ -111,7 +116,7 @@ class SensorState:
             now = time.time()
             seconds_since = now - self.last_success_at if self.last_success_at > 0 else None
 
-            if self.connected and seconds_since is not None and seconds_since > STALE_SECONDS:
+            if self.connected and seconds_since is not None and seconds_since > self.stale_seconds:
                 self.connected = False
 
             return {
@@ -126,7 +131,7 @@ class SensorState:
 
 gps_state = SensorState("gps")
 dht11_state = SensorState("dht11")
-rain_state = SensorState("rainfall")
+rain_state = SensorState("rainfall", stale_seconds=WIRELESS_RAIN_TIMEOUT)
 
 # ── DHT11 parsing ──────────────────────────────────────────────────────────
 
@@ -344,3 +349,47 @@ def get_rain_data() -> dict | None:
     if status["connected"] and status["last_value"]:
         return status["last_value"]
     return None
+
+
+def update_rain_state_wireless(data: dict) -> None:
+    """
+    Update rain_state with data from wireless ESP32.
+    
+    Called by POST /api/rainfall endpoint when ESP32 sends data over Wi-Fi.
+    
+    Args:
+        data: Dictionary containing:
+            - device_id: Device identifier (e.g., "RAIN-001")
+            - rain_analog: Analog sensor reading
+            - rain_digital: Digital sensor reading (0 or 1)
+            - rain_status: Rain status string
+            - flood_risk: Flood risk level
+            - timestamp: Optional timestamp string
+    """
+    # Map wetness level based on analog value
+    rain_analog = data.get("rain_analog", 0)
+    rain_digital = data.get("rain_digital", 1)
+    rain_status = data.get("rain_status", "NO RAIN")
+    
+    # Determine wetness level from analog value (matching ESP32 logic)
+    if rain_digital == 1 and rain_analog > 3500:
+        wetness_level = "DRY"
+    elif rain_analog > 2500:
+        wetness_level = "LIGHT"
+    elif rain_analog > 1500:
+        wetness_level = "MODERATE"
+    else:
+        wetness_level = "HEAVY"
+    
+    # Create the value dict matching the serial parser format
+    value = {
+        "rain_analog": rain_analog,
+        "rain_digital": rain_digital,
+        "rain_status": rain_status,
+        "wetness_level": wetness_level,
+        "wetness_value": WETNESS_LEVELS.get(wetness_level, 0),
+        "device_id": data.get("device_id", "unknown"),
+        "source": "wireless",
+    }
+    
+    rain_state.record_success(value)

@@ -14,8 +14,8 @@ import SideNav from '@/components/common/SideNav'
 import Button from '@/components/common/Button'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { Map, MapControls, useMap } from '@/components/ui/map'
-import KpiCard from '@/components/dashboard/KpiCard'
 import DashboardCard from '@/components/dashboard/DashboardCard'
+import { GaugingChart, WaterLevelBarChart } from '@/components/disaster/DisasterVisuals'
 
 const PAGE_PAD = 'clamp(1rem, 2vw, 1.75rem)'
 
@@ -68,6 +68,22 @@ function SkeletonCard({ children, delay = 0 }) {
   )
 }
 
+function CampMapSkeletonOverlay() {
+  const { isLoaded } = useMap()
+  if (isLoaded) return null
+  return (
+    <div aria-label="Loading camp disaster map" className="absolute inset-0 z-[20] flex items-center justify-center p-6 pointer-events-none" style={{ background: 'rgba(226,232,240,0.72)', backdropFilter: 'blur(2px)' }}>
+      <div className="flex w-full max-w-[340px] flex-col gap-3 rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(148,163,184,0.35)', boxShadow: '0 14px 32px rgba(15,23,42,0.12)' }}>
+        <div className="map-detail-skeleton-line" style={{ width: '42%', height: 12 }} />
+        <div className="map-detail-skeleton-line" style={{ width: '78%', height: 9 }} />
+        <div className="map-detail-skeleton-grid">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="map-detail-skeleton-line" style={{ height: 38 }} />)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CampSkeleton() {
   const { T } = useTheme()
   return (
@@ -75,6 +91,8 @@ function CampSkeleton() {
       <SideNav />
       <style>{`
         @keyframes skeletonShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .map-detail-skeleton-line { border-radius: 5px; background: linear-gradient(90deg, ${T.cardSoft} 25%, ${T.border} 50%, ${T.cardSoft} 75%); background-size: 200% 100%; animation: skeletonShimmer 1.5s ease-in-out infinite; }
+        .map-detail-skeleton-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       `}</style>
       <div style={{ minHeight: '100vh', background: T.outer, fontFamily: "'Inter',sans-serif", color: T.ink }}>
         <main style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -385,6 +403,8 @@ export default function DisasterCampDetailPage() {
 
   const [predResult, setPredResult] = useState(null)
   const [predLoading, setPredLoading] = useState(false)
+  const [waterHistory, setWaterHistory] = useState([])
+  const [waterHistoryLoading, setWaterHistoryLoading] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -410,6 +430,32 @@ export default function DisasterCampDetailPage() {
     loadPrediction()
     return () => { active = false }
   }, [camp, campId])
+
+  // Fetch water level history for gauging chart
+  useEffect(() => {
+    let active = true
+    async function loadWaterHistory() {
+      if (!camp || !detail?.station) return
+      setWaterHistoryLoading(true)
+      try {
+        const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}/water-level-history?hours=8`)
+        if (!active) return
+        if (res.ok) {
+          const body = await res.json()
+          setWaterHistory(body.points || [])
+        } else {
+          setWaterHistory([])
+        }
+      } catch {
+        if (!active) return
+        setWaterHistory([])
+      } finally {
+        if (active) setWaterHistoryLoading(false)
+      }
+    }
+    loadWaterHistory()
+    return () => { active = false }
+  }, [camp, campId, detail?.station])
 
   const refreshCamp = useCallback(async () => {
     if (!campId) return
@@ -470,16 +516,13 @@ export default function DisasterCampDetailPage() {
         ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 9999px; }
         .camp-detail-popup .maplibregl-popup-content { border-radius: 12px !important; padding: 0 !important; box-shadow: 0 12px 32px rgba(0,0,0,0.2) !important; border: 1px solid ${T.border} !important; background: ${T.card} !important; }
         .camp-detail-popup .maplibregl-popup-tip { border-top-color: ${T.card} !important; }
-        .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
         .cd-two { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1rem; align-items: start; }
         .cd-three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .cd-water { display: grid; grid-template-columns: 0.35fr 0.65fr; gap: 1rem; align-items: start; }
         .cd-crumb-btn { background: none; border: none; color: inherit; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; font-size: 12px; transition: color 0.15s ease; }
         .cd-crumb-btn:hover { color: ${T.teal}; }
-        .cd-toolbtn { display: flex; align-items: center; gap: 6px; padding: 0 16px; height: 38px; border-radius: 999px; border: 1px solid ${T.border}; background: ${T.card}; color: ${T.ink}; font-size: 12px; font-weight: 700; cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease; }
-        .cd-toolbtn:hover { border-color: ${T.teal}66; }
-        .cd-toolbtn:active { transform: scale(0.97); }
-        @media (max-width: 1100px) { .cd-grid { grid-template-columns: repeat(2, 1fr); } .cd-two { grid-template-columns: 1fr; } }
-        @media (max-width: 700px) { .cd-grid { grid-template-columns: 1fr; } .cd-three { grid-template-columns: 1fr; } }
+        @media (max-width: 1100px) { .cd-two { grid-template-columns: 1fr; } .cd-water { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) { .cd-three { grid-template-columns: 1fr; } }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: T.panel, fontFamily: "'Inter',sans-serif", color: T.ink }}>
@@ -489,11 +532,11 @@ export default function DisasterCampDetailPage() {
           <div style={{ padding: `1.25rem ${PAGE_PAD} 0`, display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* breadcrumb */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: T.muted }}>
-              <button className="cd-crumb-btn" onClick={() => router.push('/disaster')}>
+              <Button variant="ghost" circleIcon={false} onClick={() => router.push('/disaster')} style={{ fontSize: 12, padding: 0, gap: 4 }}>
                 <ArrowLeft size={12} /> Disaster Operations
-              </button>
+              </Button>
               <span style={{ opacity: 0.35 }}>/</span>
-              <button className="cd-crumb-btn" onClick={() => router.push('/disaster')}>Camps</button>
+              <Button variant="ghost" circleIcon={false} onClick={() => router.push('/disaster')} style={{ fontSize: 12, padding: 0 }}>Camps</Button>
               <span style={{ opacity: 0.35 }}>/</span>
               <span style={{ color: T.ink, fontWeight: 700 }}>{camp.name}</span>
             </div>
@@ -513,12 +556,13 @@ export default function DisasterCampDetailPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="cd-toolbtn" onClick={refreshCamp} disabled={refreshing} style={{ opacity: refreshing ? 0.55 : 1 }}>
-                  <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Refresh
-                </button>
-                <button className="cd-toolbtn" onClick={() => router.push('/disaster')}>
-                  <ArrowLeft size={13} /> Overview
-                </button>
+
+                <Button variant="outline" circleIcon={false} onClick={() => router.push('/disaster')} icon={<ArrowLeft size={13} />}>
+                  Overview
+                </Button>
+                <Button variant="circleRefresh" circleIcon={false} onClick={refreshCamp} disabled={refreshing} icon={<RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />} style={{ opacity: refreshing ? 0.55 : 1 }}>
+                 
+                </Button>
               </div>
             </div>
           </div>
@@ -538,6 +582,7 @@ export default function DisasterCampDetailPage() {
                 className="absolute inset-0"
                 theme={dark ? 'dark' : 'light'}
               >
+                <CampMapSkeletonOverlay />
                 <MapControls showZoom showLocate showCompass />
                 <MapViewController viewMode={viewMode} />
                 <CampDetailTerrain viewMode={viewMode} />
@@ -582,14 +627,6 @@ export default function DisasterCampDetailPage() {
 
           {/* ── Content grid ─────────────────────────────────────── */}
           <div style={{ padding: `0 ${PAGE_PAD} ${PAGE_PAD}`, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-            {/* ── Key Stats ── */}
-            <div className="cd-grid">
-              <KpiCard label="Displaced" value={camp.displaced.toLocaleString()} icon={<Users size={16} />} color={T.coral} delta={`${occupancy}% occupancy`} pct={occupancy} />
-              <KpiCard label="Capacity" value={camp.capacity.toLocaleString()} icon={<MapPin size={16} />} color={T.blue} delta="Maximum" pct={100} />
-              <KpiCard label="Aid Coverage" value={`${camp.aid}%`} icon={<HeartHandshake size={16} />} color={T.green} delta="Active aid" pct={camp.aid} />
-              <KpiCard label="Workers" value={String(camp.workers)} icon={<Shield size={16} />} color={T.purple} delta="Deployed" pct={100} />
-            </div>
 
             {/* ── Two-column: Prediction + Location ── */}
             <div className="cd-two">
@@ -724,14 +761,43 @@ export default function DisasterCampDetailPage() {
                   {detail?.minorL != null && <DataRow label="Minor flood" value={`${detail.minorL} m`} />}
                   {detail?.majorL != null && <DataRow label="Major flood" value={`${detail.majorL} m`} tone={T.red} />}
                   {detail?.gauLat != null && <DataRow label="Gauge coords" value={`${detail.gauLat.toFixed(4)}°, ${detail.gauLng.toFixed(4)}°`} />}
+                  {detail?.stDist != null && <DataRow label="Station dist." value={`${(detail.stDist / 1000).toFixed(1)} km`} />}
                 </div>
               </DashboardCard>
             </div>
 
-            {/* ── Footer ── */}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', paddingTop: 8, paddingBottom: 8 }}>
-              <Button onClick={() => router.push('/disaster')} icon={<ArrowLeft size={15} />}>Back to Overview</Button>
-            </div>
+            {/* ── Water Level Gauging Charts ── */}
+            {(detail?.wl != null || waterHistory.length > 0) && (
+              <div className="cd-water">
+                {/* Water Level Bar Chart */}
+                <DashboardCard title="Water Level Status" subtitle="Current level vs. thresholds">
+                  <WaterLevelBarChart
+                    currentWl={detail?.wl}
+                    alertL={detail?.alertL}
+                    minorL={detail?.minorL}
+                    majorL={detail?.majorL}
+                    station={detail?.station}
+                    theme={T}
+                  />
+                </DashboardCard>
+
+                {/* Gauging History Chart */}
+                <DashboardCard
+                  title="Gauging History"
+                  subtitle={waterHistoryLoading ? 'Loading station data…' : `8-hour trend from ${detail?.station || 'nearest station'}`}
+                  right={waterHistoryLoading ? <RefreshCw size={12} className="animate-spin" style={{ color: T.muted }} /> : null}
+                >
+                  <GaugingChart
+                    points={waterHistory}
+                    alertL={detail?.alertL}
+                    minorL={detail?.minorL}
+                    majorL={detail?.majorL}
+                    station={detail?.station}
+                    theme={T}
+                  />
+                </DashboardCard>
+              </div>
+            )}
           </div>
         </main>
       </div>

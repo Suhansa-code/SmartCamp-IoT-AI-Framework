@@ -38,7 +38,7 @@ export default function KpiCard({ label, value, icon, color, delta, pct = 100, s
         </svg>
       )}
       <div style={{ marginTop: 10, height: 4, borderRadius: 99, background: T.bar, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${accent}88, ${accent})`, transition: 'width 0.6s ease' }} />
+        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: accent, transition: 'width 0.6s ease' }} />
       </div>
     </div>
   )

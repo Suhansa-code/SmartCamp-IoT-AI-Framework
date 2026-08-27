@@ -161,3 +161,238 @@ export function ThemeToggle({ mode, onToggle, theme }) {
     </button>
   )
 }
+
+/**
+ * GaugingChart — Line chart with area fill showing water level history
+ * from the nearest gauging station. Includes alert threshold lines.
+ *
+ * Props:
+ *   points  - Array of { water_level, timestamp } objects
+ *   alertL  - Alert water level threshold
+ *   minorL  - Minor flood threshold
+ *   majorL  - Major flood threshold
+ *   theme   - Current theme object
+ *   station - Station name (displayed in header)
+ */
+export function GaugingChart({ points = [], alertL, minorL, majorL, theme, station }) {
+  const width = 520
+  const height = 200
+  const padding = { top: 20, right: 16, bottom: 32, left: 42 }
+  const chartW = width - padding.left - padding.right
+  const chartH = height - padding.top - padding.bottom
+
+  if (points.length === 0) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180, color: theme.muted, fontSize: 12, fontWeight: 600 }}>
+        No gauging data available
+      </div>
+    )
+  }
+
+  const values = points.map((p) => p.water_level)
+  const allThresholds = [alertL, minorL, majorL].filter((v) => v != null)
+  const minVal = Math.min(...values, ...allThresholds, 0)
+  const maxVal = Math.max(...values, ...allThresholds)
+  const range = maxVal - minVal || 1
+
+  const x = (i) => padding.left + (i / (points.length - 1)) * chartW
+  const y = (v) => padding.top + chartH - ((v - minVal) / range) * chartH
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(p.water_level)}`).join(' ')
+  const areaPath = `${linePath} L${x(points.length - 1)},${padding.top + chartH} L${x(0)},${padding.top + chartH} Z`
+
+  const thresholdLines = [
+    { val: majorL, color: theme.red, label: 'Major', dash: '6,3' },
+    { val: minorL, color: theme.amber, label: 'Minor', dash: '4,3' },
+    { val: alertL, color: '#D97706', label: 'Alert', dash: '3,3' },
+  ].filter((t) => t.val != null)
+
+  return (
+    <div style={{ width: '100%' }}>
+      {station && (
+        <div style={{ fontSize: 10, fontWeight: 700, color: theme.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+          {station} Station — Water Level History
+        </div>
+      )}
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 200 }}>
+        <defs>
+          <linearGradient id="gaugeGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={theme.teal} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={theme.teal} stopOpacity="0.02" />
+          </linearGradient>
+          <clipPath id="gaugeClip">
+            <rect x={padding.left} y={padding.top} width={chartW} height={chartH} />
+          </clipPath>
+        </defs>
+
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
+          const val = minVal + range * pct
+          const yPos = y(val)
+          return (
+            <g key={pct}>
+              <line x1={padding.left} y1={yPos} x2={padding.left + chartW} y2={yPos} stroke={theme.border} strokeWidth="0.5" />
+              <text x={padding.left - 6} y={yPos + 3} textAnchor="end" fontSize="8" fill={theme.muted} fontFamily="Inter, sans-serif">{val.toFixed(1)}</text>
+            </g>
+          )
+        })}
+
+        {/* Vertical column lines at each data point */}
+        {points.map((p, i) => (
+          <line key={`col-${i}`} x1={x(i)} y1={padding.top} x2={x(i)} y2={padding.top + chartH} stroke={theme.border} strokeWidth="0.5" strokeDasharray="2,2" opacity="0.4" />
+        ))}
+
+        {/* Threshold lines */}
+        {thresholdLines.map((t) => (
+          <g key={t.label}>
+            <line x1={padding.left} y1={y(t.val)} x2={padding.left + chartW} y2={y(t.val)} stroke={t.color} strokeWidth="1" strokeDasharray={t.dash} opacity="0.7" />
+            <rect x={padding.left + chartW - 38} y={y(t.val) - 8} width={36} height={14} rx={3} fill={t.color} opacity="0.85" />
+            <text x={padding.left + chartW - 20} y={y(t.val) + 2} textAnchor="middle" fontSize="7" fill="#fff" fontWeight="700" fontFamily="Inter, sans-serif">{t.label}</text>
+          </g>
+        ))}
+
+        {/* Area fill */}
+        <path d={areaPath} fill="url(#gaugeGrad)" clipPath="url(#gaugeClip)" />
+
+        {/* Line */}
+        <path d={linePath} fill="none" stroke={theme.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${theme.teal}50)` }} clipPath="url(#gaugeClip)" />
+
+        {/* Data points with value labels */}
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle cx={x(i)} cy={y(p.water_level)} r="2.5" fill={theme.teal} stroke={theme.card} strokeWidth="1" />
+            <text x={x(i)} y={y(p.water_level) - 6} textAnchor="middle" fontSize="6.5" fill={theme.teal} fontWeight="700" fontFamily="Inter, sans-serif">
+              {p.water_level.toFixed(1)}
+            </text>
+          </g>
+        ))}
+
+        {/* Last point highlight */}
+        <circle cx={x(points.length - 1)} cy={y(points[points.length - 1].water_level)} r="4" fill={theme.teal} stroke="#fff" strokeWidth="1.5" style={{ filter: `drop-shadow(0 0 4px ${theme.teal}80)` }} />
+
+        {/* Time labels */}
+        {points.filter((_, i) => i % Math.max(1, Math.floor(points.length / 5)) === 0 || i === points.length - 1).map((p, idx) => (
+          <text key={idx} x={x(points.indexOf(p))} y={height - 8} textAnchor="middle" fontSize="7" fill={theme.muted} fontFamily="Inter, sans-serif">
+            {new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </text>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
+/**
+ * WaterLevelBarChart — Modern bar chart with line overlay showing
+ * current water level relative to alert thresholds.
+ *
+ * Props:
+ *   currentWl - Current water level value
+ *   alertL    - Alert threshold
+ *   minorL    - Minor flood threshold
+ *   majorL    - Major flood threshold
+ *   station   - Station name
+ *   theme     - Current theme object
+ */
+export function WaterLevelBarChart({ currentWl, alertL, minorL, majorL, station, theme }) {
+  const width = 520
+  const height = 200
+  const padding = { top: 24, right: 20, bottom: 32, left: 48 }
+  const chartW = width - padding.left - padding.right
+  const chartH = height - padding.top - padding.bottom
+
+  if (currentWl == null) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: height, color: theme.muted, fontSize: 12, fontWeight: 600 }}>
+        No water level data
+      </div>
+    )
+  }
+
+  const wl = Number(currentWl)
+  const thresholds = [alertL, minorL, majorL].filter((v) => v != null).map(Number)
+  const maxVal = Math.max(wl, ...thresholds, 1) * 1.15
+  const minVal = Math.min(0, wl, ...thresholds) - 0.5
+  const range = maxVal - minVal || 1
+
+  const y = (v) => padding.top + chartH - ((v - minVal) / range) * chartH
+  const barWidth = 48
+  const barX = padding.left + chartW / 2 - barWidth / 2
+  const barTop = y(wl)
+  const barBottom = y(0)
+  const barH = barBottom - barTop
+
+  const wlColor = wl >= (majorL || 999) ? theme.red : wl >= (minorL || 999) ? theme.amber : wl >= (alertL || 999) ? '#D97706' : theme.teal
+
+  const thresholdLines = [
+    { val: majorL, color: theme.red, label: 'Major', dash: '6,3' },
+    { val: minorL, color: theme.amber, label: 'Minor', dash: '4,3' },
+    { val: alertL, color: '#D97706', label: 'Alert', dash: '3,3' },
+  ].filter((t) => t.val != null)
+
+  return (
+    <div style={{ width: '100%' }}>
+      {station && (
+        <div style={{ fontSize: 10, fontWeight: 700, color: theme.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+          {station} — Current Water Level
+        </div>
+      )}
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height }}>
+        <defs>
+          <linearGradient id="wlBarGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={wlColor} stopOpacity="0.9" />
+            <stop offset="100%" stopColor={wlColor} stopOpacity="0.5" />
+          </linearGradient>
+          <filter id="wlGlow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
+          const val = minVal + range * pct
+          const yPos = y(val)
+          return (
+            <g key={pct}>
+              <line x1={padding.left} y1={yPos} x2={padding.left + chartW} y2={yPos} stroke={theme.border} strokeWidth="0.5" />
+              <text x={padding.left - 6} y={yPos + 3} textAnchor="end" fontSize="8" fill={theme.muted} fontFamily="Inter, sans-serif">{val.toFixed(1)}m</text>
+            </g>
+          )
+        })}
+
+        {/* Zero line */}
+        <line x1={padding.left} y1={y(0)} x2={padding.left + chartW} y2={y(0)} stroke={theme.muted} strokeWidth="1" opacity="0.4" />
+
+        {/* Threshold lines */}
+        {thresholdLines.map((t) => (
+          <g key={t.label}>
+            <line x1={padding.left} y1={y(t.val)} x2={padding.left + chartW} y2={y(t.val)} stroke={t.color} strokeWidth="1.2" strokeDasharray={t.dash} opacity="0.7" />
+            <rect x={padding.left + chartW - 40} y={y(t.val) - 8} width={38} height={14} rx={3} fill={t.color} opacity="0.9" />
+            <text x={padding.left + chartW - 21} y={y(t.val) + 2} textAnchor="middle" fontSize="7" fill="#fff" fontWeight="700" fontFamily="Inter, sans-serif">{t.label} {t.val}m</text>
+          </g>
+        ))}
+
+        {/* Bar background track */}
+        <rect x={barX} y={padding.top} width={barWidth} height={chartH} rx={6} fill={theme.cardSoft} stroke={theme.border} strokeWidth="0.5" />
+
+        {/* Water level bar */}
+        <rect x={barX} y={barTop} width={barWidth} height={Math.max(barH, 2)} rx={6} fill="url(#wlBarGrad)" filter="url(#wlGlow)" />
+
+        {/* Water level line overlay */}
+        <line x1={barX - 16} y1={barTop} x2={barX + barWidth + 16} y2={barTop} stroke={wlColor} strokeWidth="2" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 4px ${wlColor}80)` }} />
+
+        {/* Current value label */}
+        <rect x={barX + barWidth + 8} y={barTop - 10} width={44} height={20} rx={6} fill={wlColor} />
+        <text x={barX + barWidth + 30} y={barTop + 4} textAnchor="middle" fontSize="9" fill="#fff" fontWeight="800" fontFamily="Inter, sans-serif">{wl.toFixed(2)}m</text>
+
+        {/* Side indicator dots for thresholds */}
+        {thresholdLines.map((t) => (
+          <circle key={t.label} cx={barX - 10} cy={y(t.val)} r="3" fill={t.color} stroke={theme.card} strokeWidth="1" />
+        ))}
+      </svg>
+    </div>
+  )
+}

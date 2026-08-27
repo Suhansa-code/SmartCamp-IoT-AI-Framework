@@ -5,14 +5,14 @@ import { STATUS_META, STATUS_COLOR } from '@/data/disaster.data'
 import Button from '@/components/common/Button'
 import { useTheme } from '@/components/common/ThemeProvider'
 
-function Mini({ label, value, color, icon, T }) {
+function StatCard({ label, value, accent, gradient, T }) {
   return (
-    <div style={{ flex: 1, minWidth: 0, background: T.cardSoft, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.6rem 0.75rem' }}>
-      <div style={{ fontSize: '0.6rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 4 }}>
-        {icon && <span style={{ fontSize: 11, flexShrink: 0 }}>{icon}</span>}
-        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+    <div style={{ padding: '0.75rem 0.85rem', borderRadius: 14, background: gradient, border: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: '0.58rem', fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, opacity: 0.6 }} />
       </div>
-      <div style={{ fontSize: '1.05rem', fontWeight: 800, color, lineHeight: 1.1, marginTop: 4 }}>{value}</div>
+      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: accent, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{value}</div>
     </div>
   )
 }
@@ -35,10 +35,10 @@ export function DisasterCampSummaryPanel({ camp, detail }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '0.55rem' }}>
-        <Mini label="Displaced" value={camp.displaced.toLocaleString()} color="#D97706" icon={<Droplets size={11} />} T={T} />
-        <Mini label="Capacity" value={camp.capacity.toLocaleString()} color={T.ink} icon={<MapPin size={11} />} T={T} />
-        <Mini label="Aid" value={`${camp.aid}%`} color={T.green} icon={<Droplets size={11} />} T={T} />
-        <Mini label="Occupancy" value={`${occupancy}%`} color={T.amber} icon={<MapPin size={11} />} T={T} />
+        <StatCard label="Displaced" value={camp.displaced.toLocaleString()} accent="#0F172A"  T={T} />
+        <StatCard label="Capacity" value={camp.capacity.toLocaleString()} accent="#0F172A"  T={T} />
+        <StatCard label="Aid" value={`${camp.aid}%`} accent="#0F172A"   T={T} />
+        <StatCard label="Occupancy" value={`${occupancy}%`} accent="#0F172A"   T={T} />
       </div>
 
       <div style={{ display: 'grid', gap: 5 }}>

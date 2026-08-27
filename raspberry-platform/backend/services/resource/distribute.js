@@ -50,15 +50,13 @@ export async function distributeResource(barcode, resourceType) {
     barcode, resource_type: resourceType, quantity: quantities[resourceType], timestamp: new Date().toISOString(),
   };
 
-  let mqttResult;
-  if (person.mqtt_client_id && person.mqtt_password) {
-    mqttResult = await saamp.publishAsClient(
-      'smartcamp/distribution/log', payload,
-      person.mqtt_client_id, person.mqtt_password, 'wristband_scanner', 'distribution'
-    );
-  } else {
-    mqttResult = saamp.publish('smartcamp/distribution/log', payload, 'wristband_scanner', 'distribution');
-  }
+  // One shared broker connection for everything the Pi publishes. Per-person
+  // clients cost a TLS handshake per message and an 8s timeout whenever the
+  // account is missing, and they buy no isolation: the Pi holds every person's
+  // password, so it can publish as anyone regardless. Attribution stays in the
+  // payload, where person_id and person_name already carry it.
+  const mqttResult = await saamp.publish(
+    'smartcamp/distribution/log', payload, 'wristband_scanner', 'distribution');
 
   return {
     today_distributions: {

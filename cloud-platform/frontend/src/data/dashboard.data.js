@@ -64,5 +64,5 @@ export const DIS_STATUS = {
   high:     { label: 'High',     color: '#D97706' },
   medium:   { label: 'Medium',   color: '#F59E0B' },
   stable:   { label: 'Stable',   color: '#16A34A' },
-  recovery: { label: 'Recovery', color: '#2563EB' },
+  recovery: { label: 'Recovery', color: '#16A34A' },
 }
