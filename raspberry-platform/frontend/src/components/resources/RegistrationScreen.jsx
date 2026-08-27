@@ -360,10 +360,26 @@ function Field({ label, required, children, hint }) {
 /*  NEW PERSON FORM                                                     */
 /* ------------------------------------------------------------------ */
 
+/**
+ * A blank intake form. Kept at module scope so `reset()` can hand the desk a
+ * genuinely empty form between arrivals — carrying the previous person's name,
+ * age or wristband into the next registration is how duplicate records happen.
+ */
+const EMPTY_PERSON_FORM = {
+  full_name: "", age: "", gender: "M", person_type: "refugee",
+  family_size: 1, is_pregnant: 0, has_chronic_illness: 0, medical_notes: "",
+  wristband_qr: "", grade: 3, school_going: 1,
+};
+
 function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error }) {
   const [errors, setErrors] = useState({});
   const [scanningQr, setScanningQr] = useState(false);
   const [qrChecking, setQrChecking] = useState(false);
+
+  // ── Wristband code pulled from the printed pool ──
+  const [poolLoading, setPoolLoading] = useState(false);
+  const [poolLeft, setPoolLeft] = useState(null);
+  const [autoAssigned, setAutoAssigned] = useState(false);
 
   const update = (field, value) => {
     setForm((f) => {
@@ -381,6 +397,52 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
     });
     setErrors((e) => ({ ...e, [field]: undefined }));
   };
+
+  /**
+   * Take the next unassigned code off the printed pool and drop it into the form.
+   *
+   * Nothing is reserved server-side, so two desks can pull the same code; the
+   * registration POST is the point of truth and answers 409 if it lost the race
+   * (the screen then clears the field and this runs again). `skip` avoids handing
+   * back the code the desk just rejected.
+   */
+  const fetchNextWristband = useCallback(async ({ skip } = {}) => {
+    setPoolLoading(true);
+    setErrors((e) => ({ ...e, wristband_qr: undefined }));
+    try {
+      const res = await fetch(`${API}/api/wristbands/available`);
+      const data = await res.json();
+      const rows = data.wristbands || [];
+      setPoolLeft(rows.length);
+
+      const codeOf = (w) => w.qr_identifier || w.wristband_id || w.barcode || "";
+      const next = rows.map(codeOf).find((c) => c && c !== skip);
+
+      if (!next) {
+        setForm((f) => ({ ...f, wristband_qr: "" }));
+        setAutoAssigned(false);
+        return null;
+      }
+      setForm((f) => ({ ...f, wristband_qr: next }));
+      setAutoAssigned(true);
+      return next;
+    } catch {
+      setPoolLeft(null);
+      setAutoAssigned(false);
+      setErrors((e) => ({ ...e, wristband_qr: "Could not reach the wristband pool — enter or scan a code" }));
+      return null;
+    } finally {
+      setPoolLoading(false);
+    }
+  }, [setForm]);
+
+  // Pull a code as the form opens, unless the desk already scanned a printed card.
+  const autoFetchedRef = useRef(false);
+  useEffect(() => {
+    if (autoFetchedRef.current) return;
+    autoFetchedRef.current = true;
+    if (!form.wristband_qr) fetchNextWristband();
+  }, [form.wristband_qr, fetchNextWristband]);
 
   const validate = () => {
     const e = {};
@@ -403,6 +465,7 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
       const res = await fetch(`${API}/api/qr/${encodeURIComponent(code)}/lookup`);
       const data = await res.json();
       if (data.state === "available") {
+        setAutoAssigned(false);
         update("wristband_qr", code);
       } else if (data.state === "assigned") {
         setErrors((e) => ({ ...e, wristband_qr: `Wristband already assigned to ${data.person?.full_name || "someone"}` }));
@@ -435,7 +498,10 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
           <div className="col-span-2">
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg border text-[12.5px] font-medium" style={{ color: TONE.brand.color, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>
               <QrCode className="w-4 h-4 shrink-0" />
-              Wristband <span className="font-mono font-semibold">{form.wristband_qr}</span> is empty — it will be activated for this person on registration.
+              <span className="flex-1">
+                Wristband <span className="font-mono font-semibold">{form.wristband_qr}</span>
+                {autoAssigned ? " was pulled from the printed pool" : " is empty"} — it will be activated for this person on registration.
+              </span>
             </div>
           </div>
         )}
@@ -444,8 +510,10 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
           <Field
             label="Printed Wristband QR"
             hint={form.wristband_qr
-              ? `Will assign wristband ${form.wristband_qr} on registration`
-              : "Optional — scan the printed card, or skip to auto-issue a new wristband"}
+              ? `Will assign wristband ${form.wristband_qr} on registration${autoAssigned && poolLeft != null ? ` · ${poolLeft} in the pool` : ""}`
+              : poolLeft === 0
+                ? "Printed pool is empty — a new wristband will be issued automatically on registration"
+                : "Auto-filled from the printed pool — or scan the card, type a code, or leave blank to auto-issue"}
           >
             {scanningQr ? (
               <QRScanner
@@ -455,18 +523,29 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
             ) : (
               <div className="flex gap-2">
                 <input
-                  placeholder="e.g. CAMP-WB-0001"
+                  placeholder={poolLoading ? "Fetching next code…" : "e.g. CAMP-WB-0001"}
                   value={form.wristband_qr || ""}
-                  onChange={(e) => update("wristband_qr", e.target.value)}
+                  onChange={(e) => { setAutoAssigned(false); update("wristband_qr", e.target.value); }}
                   className={inputClassBase}
                 />
+                <button
+                  type="button"
+                  onClick={() => fetchNextWristband({ skip: form.wristband_qr || undefined })}
+                  disabled={poolLoading || qrChecking}
+                  aria-label="Fetch next available wristband code"
+                  title="Fetch next available wristband code"
+                  className="shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center disabled:opacity-40"
+                  style={{ borderColor: COLORS.line, color: COLORS.brand }}
+                >
+                  <RefreshCw className={`w-4 h-4 ${poolLoading ? "animate-spin" : ""}`} />
+                </button>
                 <Button type="button" variant="secondary" onClick={() => { setErrors((e) => ({ ...e, wristband_qr: undefined })); setScanningQr(true); }} className="shrink-0 px-3" aria-label="Scan QR">
                   <Camera className="w-4 h-4" />
                 </Button>
                 {form.wristband_qr && (
                   <button
                     type="button"
-                    onClick={() => { update("wristband_qr", ""); setErrors((e) => ({ ...e, wristband_qr: undefined })); }}
+                    onClick={() => { setAutoAssigned(false); update("wristband_qr", ""); setErrors((e) => ({ ...e, wristband_qr: undefined })); }}
                     aria-label="Clear QR"
                     className="shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center"
                     style={{ borderColor: COLORS.line, color: COLORS.muted }}
@@ -777,11 +856,7 @@ function RegistrationScreen() {
   const [searchError, setSearchError] = useState("");
   const [returningPerson, setReturningPerson] = useState(null);
 
-  const [newPersonForm, setNewPersonForm] = useState({
-    full_name: "", age: "", gender: "M", person_type: "refugee",
-    family_size: 1, is_pregnant: 0, has_chronic_illness: 0, medical_notes: "",
-    wristband_qr: "", grade: 3, school_going: 1,
-  });
+  const [newPersonForm, setNewPersonForm] = useState(EMPTY_PERSON_FORM);
 
   const [persons, setPersons] = useState([]);
   const [personsLoading, setPersonsLoading] = useState(true);
@@ -844,10 +919,16 @@ function RegistrationScreen() {
   }, []);
 
   const finishEnroll = useCallback((data) => {
+    const context = enrollContextRef.current;
+
+    // A cancel, a clear or a skip drops the context. The sensor still reports the
+    // aborted capture a moment later, and without this guard that late frame
+    // repaints a red "enrollment failed" over a screen that has already moved on.
+    if (context == null) return;
+
     setEnrolling(false);
     setEnrollStep(null);
     setEnrollSlot(null);
-    const context = enrollContextRef.current;
     enrollContextRef.current = null;
 
     if (!data.success) {
@@ -944,13 +1025,26 @@ function RegistrationScreen() {
     }
   };
 
-  const cancelEnroll = async () => {
+  /**
+   * Put the sensor and the screen back to a clean "ready to capture" state.
+   *
+   * Local state is dropped up front rather than waiting on the SSE reply: when
+   * the stream is down or the firmware never answers a cancel, waiting leaves the
+   * desk stuck on a spinner it cannot dismiss.
+   */
+  const clearEnroll = useCallback(async ({ silent = false } = {}) => {
+    enrollContextRef.current = null;
+    setEnrolling(false);
+    setEnrollStep(null);
+    setEnrollSlot(null);
+    setEnrollNotice(null);
+    if (!silent) setStatusMessage("Sensor cleared — ready to capture again");
     try {
       await fetch(`${API}/api/fingerprint/enroll/cancel`, { method: "POST" });
     } catch {
-      // The SSE enroll-result still clears local state.
+      // Best effort: the sensor times out on its own, and the screen is already clear.
     }
-  };
+  }, []);
 
   /**
    * Finish a registration without a template. Some arrivals genuinely cannot be
@@ -958,10 +1052,7 @@ function RegistrationScreen() {
    * blocked. The roster flags them so staff can come back to it.
    */
   const skipEnrollment = async () => {
-    if (enrolling) await cancelEnroll();
-    setEnrolling(false);
-    setEnrollStep(null);
-    enrollContextRef.current = null;
+    await clearEnroll({ silent: true });
     setEnrollNotice({
       tone: "warning",
       text: "Registered without a fingerprint — enrol later from the person's profile",
@@ -970,8 +1061,10 @@ function RegistrationScreen() {
     setScanState("success");
   };
 
-  const retryEnrollment = () => {
+  /** Clear whatever the sensor is holding, then start a fresh capture for this person. */
+  const retryEnrollment = async () => {
     if (!profile) return;
+    await clearEnroll({ silent: true });
     startEnroll(profile.id, "register");
   };
 
@@ -1059,7 +1152,7 @@ function RegistrationScreen() {
         setScanState("found");
         setStatusMessage(`Profile loaded: ${data.person.full_name}`);
       } else if (data.state === "available") {
-        setNewPersonForm((f) => ({ ...f, wristband_qr: code }));
+        setNewPersonForm({ ...EMPTY_PERSON_FORM, wristband_qr: code });
         setScanState("not_found");
         setNotFoundView("new");
         setStatusMessage("This wristband is empty — register the person to activate it");
@@ -1128,6 +1221,11 @@ function RegistrationScreen() {
         if (data.fields) setRegError(Object.values(data.fields).join(". "));
         else setRegError(msg);
         addToast(msg, "error");
+        // Another desk took this band between the auto-fetch and the submit.
+        // Drop it so the form pulls a fresh code instead of failing forever.
+        if (res.status === 409 && /wristband/i.test(msg)) {
+          setNewPersonForm((f) => ({ ...f, wristband_qr: "" }));
+        }
         return;
       }
       setProfile(data.person);
@@ -1173,6 +1271,7 @@ function RegistrationScreen() {
     setQrBound(false);
     setQrCode("");
     setQrData(null);
+    setNewPersonForm(EMPTY_PERSON_FORM);
     setEnrolling(false);
     setEnrollStep(null);
     setEnrollSlot(null);
@@ -1217,17 +1316,30 @@ function RegistrationScreen() {
               {enrolling && scanState !== "enrolling" && (
                 <div className="mt-6 w-full space-y-2">
                   <EnrollProgress step={enrollStep} slot={enrollSlot} />
-                  <Button variant="secondary" size="sm" onClick={cancelEnroll} className="w-full">
-                    <X className="w-3.5 h-3.5" /> Cancel enrollment
+                  <Button variant="secondary" size="sm" onClick={() => clearEnroll()} className="w-full">
+                    <X className="w-3.5 h-3.5" /> Clear sensor
                   </Button>
                 </div>
               )}
 
               {!enrolling && scanState !== "enrolling" && enrollNotice && (
-                <div className="mt-6 w-full">
+                <div className="mt-6 w-full space-y-2">
                   <InlineBanner tone={enrollNotice.tone} icon={enrollNotice.icon || AlertTriangle}>
                     {enrollNotice.text}
                   </InlineBanner>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="secondary" size="sm"
+                      onClick={() => profile && startEnroll(profile.id, "profile")}
+                      disabled={!profile}
+                      className="w-full"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> Retry
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => clearEnroll()} className="w-full">
+                      <X className="w-3.5 h-3.5" /> Clear
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -1435,15 +1547,31 @@ function RegistrationScreen() {
                     )}
 
                     <div className="grid gap-2">
-                      {!enrolling && (
-                        <Button onClick={retryEnrollment} className="w-full">
-                          <RefreshCw className="w-4 h-4" /> {enrollNotice?.tone === "danger" ? "Try Again" : "Start Capture"}
-                        </Button>
-                      )}
-                      {enrolling && (
-                        <Button variant="secondary" onClick={confirmEnrollManually} className="w-full">
-                          <Link2 className="w-4 h-4" /> Sensor captured — link slot{enrollSlot != null ? ` #${enrollSlot}` : ""} now
-                        </Button>
+                      {enrolling ? (
+                        <>
+                          <Button variant="secondary" onClick={confirmEnrollManually} className="w-full">
+                            <Link2 className="w-4 h-4" /> Sensor captured — link slot{enrollSlot != null ? ` #${enrollSlot}` : ""} now
+                          </Button>
+                          {/* Clear is deliberately its own action: it abandons the capture
+                              in flight and leaves the sensor idle, without restarting it. */}
+                          <Button variant="secondary" onClick={() => clearEnroll()} className="w-full">
+                            <X className="w-4 h-4" /> Clear — stop this capture
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          <Button onClick={retryEnrollment} className="w-full">
+                            <RefreshCw className="w-4 h-4" /> {enrollNotice?.tone === "danger" ? "Retry Capture" : "Start Capture"}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => clearEnroll()}
+                            disabled={!enrollNotice && enrollStep == null && enrollSlot == null}
+                            className="px-4"
+                          >
+                            <X className="w-4 h-4" /> Clear
+                          </Button>
+                        </div>
                       )}
                       <Button variant="secondary" onClick={skipEnrollment} className="w-full">
                         Skip for now — issue wristband

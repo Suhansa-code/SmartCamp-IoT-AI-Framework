@@ -1,0 +1,7 @@
+# Context root for the frontend image (context: cloud-platform/frontend/).
+node_modules
+.next
+.env
+.env.local
+!.env.example
+README.md
