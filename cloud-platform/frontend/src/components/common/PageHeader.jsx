@@ -117,7 +117,7 @@ function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
           No {isWarning ? "warnings" : "notifications"}
         </div>
       ) : (
-        filtered.slice(0, 8).map((item) => (
+        filtered.map((item) => (
           <div
             key={item.id}
             style={{
