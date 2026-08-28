@@ -55,6 +55,7 @@ def main() -> None:
                 'future_forecast': prediction.future_forecast,
                 'probability': prediction.probability,
                 'source': prediction.source,
+                'roc_auc': model.metrics_.get('roc_auc') if model._is_trained else None,
                 'input': payload,
             }
         )

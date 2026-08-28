@@ -20,7 +20,7 @@ import {
   upsertWaterLevelReading, upsertGpsReading, upsertWeatherData,
   upsertHydrospatialData, upsertFloodPrediction, upsertDisasterAlert,
   upsertPredictionRequest,
-  upsertDevice, getDeviceCampId,
+  upsertDevice, getDeviceCampId, getBehavioralSignals,
 } from '../../data/sync/sync.postgres.repository.js';
 import { applySyncedPerson, applySyncedWristband } from '../resources/campData.service.js';
 
@@ -130,12 +130,30 @@ function publishAck(envelope, status, error) {
 
 /**
  * Trigger IF scoring on the ML service after a session is synced.
+ * Looks up raw behavioral signals from pages_behavioral_signals to pass
+ * the correct 8-feature vector to the IF model.
  * This is async and non-blocking — failures are logged but don't affect the sync.
  */
 async function triggerIfScoring(payload) {
   if (!payload?.session_id || !payload?.child_id) return;
 
   try {
+    const signals = await getBehavioralSignals(payload.session_id);
+
+    const taskMetrics = signals ? {
+      accuracyRate: signals.accuracy_rate,
+      falseTapRate: signals.false_tap_rate,
+      avgReactionTime: signals.avg_reaction_time,
+      reactionVariance: signals.reaction_variance,
+    } : {};
+
+    const passiveSignals = signals ? {
+      idleTimeRatio: signals.idle_time_ratio,
+      rapidClickCount: signals.rapid_click_count,
+      timeToFirstMs: signals.time_to_first_ms,
+      completionRatio: signals.completion_ratio,
+    } : {};
+
     const res = await fetch(`${ML_SERVICE_URL}/trigger-if`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -145,6 +163,8 @@ async function triggerIfScoring(payload) {
         composite_score: payload.composite_score,
         task_score: payload.task_score,
         passive_score: payload.passive_score,
+        taskMetrics,
+        passiveSignals,
       }),
       signal: AbortSignal.timeout(10000),
     });

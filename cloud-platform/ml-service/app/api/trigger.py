@@ -14,7 +14,8 @@ bp = Blueprint('trigger', __name__)
 def trigger_if():
     """
     Called by cloud sync receiver after a session is synced.
-    Expects: { child_id, session_id, composite_score, task_score, passive_score }
+    Expects: { child_id, session_id, composite_score, task_score, passive_score,
+               taskMetrics, passiveSignals }
     Trains IF model if session 8+, computes anomaly score, saves insight.
     """
     config = current_app.extensions['config']
@@ -30,6 +31,8 @@ def trigger_if():
     composite_score = data.get('composite_score')
     task_score = data.get('task_score')
     passive_score = data.get('passive_score')
+    task_metrics = data.get('taskMetrics', {})
+    passive_signals = data.get('passiveSignals', {})
 
     if not all([child_id, session_id, composite_score is not None]):
         return jsonify({'error': 'child_id, session_id, composite_score required'}), 400
@@ -51,8 +54,7 @@ def trigger_if():
 
     # Compute IF score
     if_score = if_service.compute_if_score(
-        child_id, float(composite_score),
-        float(task_score or 0), float(passive_score or 0),
+        child_id, task_metrics, passive_signals,
         history.session_history, config, engine,
     )
 

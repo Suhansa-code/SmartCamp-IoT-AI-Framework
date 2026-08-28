@@ -42,9 +42,8 @@ export async function getGpsLocation(req, res) {
 
 export function getCampIdentity(req, res) {
   const dynamicCampId = gpsService.getDynamicCampId();
-  const suffix = gpsService.getCampSuffix();
   const identity = disasterService.getCampIdentity(dynamicCampId);
-  res.json({ camp_id: dynamicCampId, suffix, ...identity });
+  res.json({ camp_id: dynamicCampId, ...identity });
 }
 
 export function getLatestGpsLocation(req, res) {

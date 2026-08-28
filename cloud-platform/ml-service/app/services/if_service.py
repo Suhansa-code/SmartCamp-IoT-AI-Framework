@@ -110,19 +110,32 @@ def load_model_from_db(engine, child_id: str):
 
 def compute_if_score(
     child_id: str,
-    current_composite: float,
-    current_task: float,
-    current_passive: float,
+    task_metrics: dict,
+    passive_signals: dict,
     history: dict,
     config,
     engine,
 ) -> float | None:
-    """Isolation Forest anomaly score; active from session IF_MIN_SESSIONS onward."""
+    """Isolation Forest anomaly score; active from session IF_MIN_SESSIONS onward.
+
+    Uses the same 8 raw behavioral features as training:
+    [accuracyRate, falseTapRate, avgReactionTime, reactionVariance,
+     idleTimeRatio, rapidClickCount, timeToFirstMs, completionRatio]
+    """
     total_sessions_after_current = len(history.get(child_id, [])) + 1
     if total_sessions_after_current < config.IF_MIN_SESSIONS:
         return None
 
-    current_feature = [float(current_composite), float(current_task), float(current_passive)]
+    current_feature = session_to_feature_vector({
+        'accuracyRate': task_metrics.get('accuracyRate', 0),
+        'falseTapRate': task_metrics.get('falseTapRate', 0),
+        'avgReactionTime': task_metrics.get('avgReactionTime', 0),
+        'reactionVariance': task_metrics.get('reactionVariance', 0),
+        'idleTimeRatio': passive_signals.get('idleTimeRatio', 0),
+        'rapidClickCount': passive_signals.get('rapidClickCount', 0),
+        'timeToFirstMs': passive_signals.get('timeToFirstMs', 0),
+        'completionRatio': passive_signals.get('completionRatio', 0),
+    })
     model = None
 
     # Try to train/update model
