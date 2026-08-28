@@ -6,6 +6,13 @@ import { sqliteRetrieve } from '../../config/database.js';
 
 const ZSCORE_MIN_SESSIONS = 3;
 
+export async function checkFlaskHealth() {
+  try {
+    const res = await axios.get(`${C.CLOUD_ML_URL}/health`, { timeout: 3000 });
+    return res.data?.status === 'ok';
+  } catch { return false; }
+}
+
 export async function computeLocalZScore(childId, compositeScore) {
   try {
     const rows = sqliteRetrieve(

@@ -56,8 +56,8 @@ export function validateSessionComplete(req, res, next) {
   if (cognitiveScore === undefined || isNaN(Number(cognitiveScore))) {
     return next(createError(400, 'cognitiveScore must be a number'));
   }
-  if (!Array.isArray(contentResponses) || contentResponses.length === 0) {
-    return next(createError(400, 'contentResponses must be a non-empty array'));
+  if (!Array.isArray(contentResponses)) {
+    return next(createError(400, 'contentResponses must be an array'));
   }
   for (const r of contentResponses) {
     if (!r.taskId) return next(createError(400, 'Each response requires taskId'));
