@@ -38,6 +38,12 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_child ON sessions (child_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions (created_at);
 
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS task_score REAL;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS passive_score REAL;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS gate_decision TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS z_score REAL;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS if_score REAL;
+
 CREATE TABLE IF NOT EXISTS alerts (
   alert_id        TEXT PRIMARY KEY,
   child_id        TEXT NOT NULL REFERENCES children (child_id),
