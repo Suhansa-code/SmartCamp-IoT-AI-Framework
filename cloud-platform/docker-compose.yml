@@ -14,11 +14,10 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     env_file: backend/.env
-    environment:
-      # Postgres runs on the EC2 host, not in this network. `localhost` inside
-      # the container is the container, so DB_HOST from .env must be overridden
-      # here (environment: wins over env_file:).
-      DB_HOST: host.docker.internal
+    # No DB_HOST override here: whatever backend/.env sets now wins. With a
+    # managed database (Neon et al.) set DATABASE_URL in .env — config/env.js
+    # prefers it over the DB_* values and database.js uses it verbatim, so the
+    # host-gateway entry below simply goes unused.
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # `ping` needs raw sockets. Without NET_RAW the exec fails and the network

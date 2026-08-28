@@ -13,6 +13,13 @@ services:
     env_file: .env
     ports:
       - "5000:5000"
+    # camp.db / pages.db / disaster.db live here. WITHOUT this bind mount they
+    # are written inside the container, so `up -d --build` silently discards
+    # every registration, distribution and buffered SAAMP message. The schema
+    # .sql files ship in the same directory and are re-applied idempotently at
+    # boot, so a fresh clone starts empty and correct.
+    volumes:
+      - ./db:/usr/src/app/db
     # Hand the ESP32 + R503 fingerprint scanner through to the container.
     # Override the host path with FINGERPRINT_SERIAL_PORT if it enumerates
     # differently (ttyACM1, ttyUSB0, ...). Comment this block out when no
@@ -66,7 +73,10 @@ services:
       context: ../frontend
       dockerfile: dockerfile
       args:
-        VITE_API_URL: http://localhost:5000
+        # Baked into the JS bundle at build time. Left as localhost, every
+        # tablet on the camp network calls ITS OWN localhost and the UI is
+        # dead on arrival. Set PI_HOST in .env to the Pi's LAN address.
+        VITE_API_URL: http://${PI_HOST:-localhost}:5000
     ports:
       - "5173:80"
     restart: unless-stopped
