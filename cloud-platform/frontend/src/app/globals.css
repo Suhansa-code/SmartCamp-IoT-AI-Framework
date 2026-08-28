@@ -19,10 +19,10 @@
   --color-border: #334155;        /* dark chrome border */
   --color-line: #1E3A5F;          /* panel inner border */
 
-  /* Brand accents — professional blue primary */
-  --color-teal: #2563EB;
-  --color-teal-mid: #3B82F6;
-  --color-teal-light: #DBEAFE;
+  /* Brand accents — green primary */
+  --color-teal: #16A34A;
+  --color-teal-mid: #22C55E;
+  --color-teal-light: #DCFCE7;
   --color-coral: #475569;
   --color-coral-light: #E2E8F0;
 
@@ -35,7 +35,7 @@
   --color-red: #DC2626;
   --color-danger: #DC2626;
   --color-offline: #DC2626;
-  --color-purple: #2563EB;
+  --color-purple: #16A34A;
   --color-blue: #0891B2;
   --color-weak: #D97706;
   --color-poor: #DC2626;
@@ -52,8 +52,8 @@
 :root {
   --background: #ffffff;
   --foreground: #0F172A;
-  --teal:    #2563EB;
-  --teal-light: #DBEAFE;
+  --teal:    #16A34A;
+  --teal-light: #DCFCE7;
   --sky-bg:  #F8FAFC;
   --coral:   #475569;
   --coral-light: #E2E8F0;
@@ -62,15 +62,15 @@
   --white:   #FFFFFF;
   --gray-soft: #E2E8F0;
 
-  --eli-teal:       #2563EB;
-  --eli-teal-mid:   #3B82F6;
-  --eli-teal-light: #DBEAFE;
+  --eli-teal:       #16A34A;
+  --eli-teal-mid:   #22C55E;
+  --eli-teal-light: #DCFCE7;
   --eli-sky:        #EFF6FF;
   --eli-coral:      #475569;
   --eli-coral-soft: #CBD5E1;
   --eli-yellow:     #F59E0B;
-  --eli-purple:     #2563EB;
-  --eli-purple-soft:#DBEAFE;
+  --eli-purple:     #16A34A;
+  --eli-purple-soft:#DCFCE7;
   --eli-pink:       #DC2626;
   --eli-green:      #16A34A;
   --eli-navy:       #1E3A5F;

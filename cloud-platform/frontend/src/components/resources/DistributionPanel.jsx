@@ -6,6 +6,7 @@ import {
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts'
 import { timeAgo } from '@/components/common/utils'
+import Button from '@/components/common/Button'
 
 // Cloud-side distribution planner.
 // Food and drinking water only — shelter and medical staffing are out of scope
@@ -371,10 +372,7 @@ export default function DistributionPanel() {
     return (
       <div style={{ padding: 48, textAlign: 'center' }}>
         <div style={{ fontWeight: 700, color: T.danger, marginBottom: 6 }}>{error}</div>
-        <button onClick={fetchAll} style={{
-          marginTop: 12, padding: '8px 20px', borderRadius: 8,
-          background: T.food, border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer',
-        }}>Retry</button>
+        <Button variant="teal" circleIcon={false} onClick={fetchAll} style={{ marginTop: 12 }}>Retry</Button>
       </div>
     )
   }
@@ -563,10 +561,9 @@ export default function DistributionPanel() {
             : `${assumptions.length} of ${provenance.rates.length} still an assumption`}>
             Where these numbers come from
           </SectionTitle>
-          <button onClick={() => setShowRates((s) => !s)} style={{
-            background: T.surface, border: `1px solid ${T.line}`, borderRadius: 7,
-            color: T.inkSoft, fontSize: 11.5, fontWeight: 700, padding: '6px 13px', cursor: 'pointer',
-          }}>{showRates ? 'Hide' : 'Show'} rate table</button>
+          <Button variant="outline" circleIcon={false} onClick={() => setShowRates((s) => !s)} style={{ fontSize: 11.5, padding: '6px 13px' }}>
+            {showRates ? 'Hide' : 'Show'} rate table
+          </Button>
         </div>
         {showRates ? <RateTable provenance={provenance} /> : (
           <div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.65 }}>

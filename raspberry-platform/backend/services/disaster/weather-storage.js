@@ -171,9 +171,7 @@ function extractWeatherSummary(gatewayResponse) {
     wind_direction: avg(windDirs),
     weather_code: weatherCode,
     condition: weatherCodeToCondition(weatherCode),
-    forecast_time: gatewayResponse?.forecast_location
-      ? `${gatewayResponse.forecast_location.timezone || 'UTC'}`
-      : null,
+    forecast_time: new Date().toISOString(),
   };
 }
 

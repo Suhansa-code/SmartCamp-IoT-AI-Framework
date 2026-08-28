@@ -406,6 +406,20 @@ try {
 
   try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN source TEXT DEFAULT 'GPS_SENSOR'"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE disaster_events ADD COLUMN synced INTEGER NOT NULL DEFAULT 0"); } catch (_) {}
+  const disasterAlertColumns = {
+    alert_id: 'TEXT', event_id: 'TEXT', camp_id: 'TEXT', camp_name: 'TEXT', priority: "TEXT NOT NULL DEFAULT 'NORMAL'",
+    flood_probability: 'REAL', flood_probability_percent: 'REAL', risk_category: 'TEXT', forecast_hours: 'INTEGER',
+    rainfall: 'REAL', camp_elevation: 'REAL', river_distance_km: 'REAL', water_level: 'REAL', station_id: 'TEXT',
+    station_name: 'TEXT', gauge_elevation: 'REAL', elevation_difference: 'REAL', gauge_distance_km: 'REAL',
+    gauge_latitude: 'REAL', gauge_longitude: 'REAL', river_name: 'TEXT', camp_latitude: 'REAL', camp_longitude: 'REAL',
+    source: 'TEXT', prediction_timestamp: 'TEXT', expires_at: 'TEXT', schema_version: "TEXT NOT NULL DEFAULT '1.0'",
+    mqtt_status: "TEXT NOT NULL DEFAULT 'PENDING'", cloud_sync_status: "TEXT NOT NULL DEFAULT 'PENDING'",
+  };
+  for (const [column, definition] of Object.entries(disasterAlertColumns)) {
+    try { disasterDb.exec(`ALTER TABLE disaster_alerts ADD COLUMN ${column} ${definition}`); } catch (_) {}
+  }
+  try { disasterDb.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_disaster_alerts_alert_id ON disaster_alerts(alert_id) WHERE alert_id IS NOT NULL'); } catch (_) {}
+  try { disasterDb.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_disaster_alerts_event_id ON disaster_alerts(event_id) WHERE event_id IS NOT NULL'); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN device_id TEXT"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN humidity REAL"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE weather_data ADD COLUMN wind_direction REAL"); } catch (_) {}
@@ -415,6 +429,26 @@ try {
   try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN location_name TEXT"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE gps_readings ADD COLUMN location_district TEXT"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE gps_readings RENAME COLUMN location_province TO location_district"); } catch (_) {}
+
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN device_id TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN river_name TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN station_name TEXT"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN distance_km REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN alert_level REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN minor_flood_level REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN major_flood_level REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN rainfall REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_latitude REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_longitude REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN updated_at TEXT"); } catch (_) {}
+
+  // ── Hydrospatial data extensions ──
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_elevation REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN elevation_difference REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_distance REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_latitude REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_longitude REAL"); } catch (_) {}
+  try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN station_name TEXT"); } catch (_) {}
 
   logger.info(`[DISASTER DB] Connected: ${C.DISASTER_DB_PATH}`);
 } catch (err) {

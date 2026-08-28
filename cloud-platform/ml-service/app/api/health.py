@@ -6,7 +6,17 @@ bp = Blueprint('health', __name__)
 @bp.route('/health', methods=['GET'])
 def health():
     """Health check — called by Node.js to confirm the ML service is alive."""
-    from ..services import scoring_service
+    try:
+        import numpy
+        numpy_available = True
+    except ImportError:
+        numpy_available = False
+
+    try:
+        import sklearn
+        sklearn_available = True
+    except ImportError:
+        sklearn_available = False
 
     history = _get_history()
     history_count = sum(len(v) for v in history.session_history.values())
@@ -16,8 +26,8 @@ def health():
         'service': 'PAGES ML Scoring Service',
         'children_tracked': len(history.session_history),
         'total_sessions': history_count,
-        'numpy': scoring_service.NUMPY_AVAILABLE,
-        'sklearn': scoring_service.SKLEARN_AVAILABLE,
+        'numpy': numpy_available,
+        'sklearn': sklearn_available,
         'time': _now_text(),
     })
 

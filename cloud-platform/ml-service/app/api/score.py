@@ -2,7 +2,7 @@ import traceback
 
 from flask import Blueprint, current_app, jsonify, request
 
-from ..services import scoring_service
+from ..services import scoring_service, if_service
 
 bp = Blueprint('score', __name__)
 
@@ -15,6 +15,7 @@ def score():
     """
     config = current_app.extensions['config']
     history = current_app.extensions['history']
+    engine = current_app.extensions['engine']
 
     data = request.get_json(silent=True)
     if not data:
@@ -77,8 +78,26 @@ def score():
         traceback.print_exc()
         return jsonify({'error': 'Failed to persist scoring result'}), 500
 
-    # 7. Update in-memory cache after persistence succeeds
-    new_baseline = history.update_history(child_id, session_id, composite, task_score, passive_score)
+    # 7. Save IF insight if score computed
+    if if_score is not None:
+        try:
+            feature_vector = scoring_service.session_to_feature_vector({
+                'composite': composite, 'task': task_score, 'passive': passive_score
+            })
+            contributions = {
+                'composite': round(composite * 0.50, 2),
+                'task': round(task_score * 0.30, 2),
+                'passive': round(passive_score * 0.20, 2),
+            }
+            if_service.save_if_insight(
+                engine, child_id, session_id, if_score, anomaly_by_if,
+                composite, task_score, passive_score, contributions,
+            )
+        except Exception as e:
+            print(f'[DB] Could not persist IF insight for child={child_id}: {e}')
+
+    # 8. Update in-memory cache after persistence succeeds
+    new_baseline = history.update_history(child_id,session_id, composite, task_score, passive_score)
 
     print(
         f'[SCORE] child={child_id} composite={composite} task={task_score} passive={passive_score} '

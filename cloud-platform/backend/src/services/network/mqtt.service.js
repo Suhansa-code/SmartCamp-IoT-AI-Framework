@@ -18,28 +18,40 @@ export class MqttService extends EventEmitter {
       connectTimeout: 10000,
     };
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.client = mqtt.connect(env.mqtt.brokerUrl, options);
 
+      const done = () => { try { clearTimeout(timeout); } catch {} };
+
+      const timeout = setTimeout(() => {
+        done();
+        console.warn('[MQTT] Connection timed out — continuing without MQTT');
+        try { this.client.end(true); } catch {}
+        resolve();
+      }, 12000);
+
       this.client.on('connect', () => {
+        done();
         this.connected = true;
         console.log('[MQTT] Connected to broker');
-        this.emit('connected');
         resolve();
       });
 
       this.client.on('error', (error) => {
-        console.error('[MQTT] Error:', error.message);
-        this.emit('error', error);
+        done();
+        console.warn('[MQTT] Connection failed:', error.message);
+        try { this.client.end(true); } catch {}
+        resolve();
       });
 
       this.client.on('close', () => {
         this.connected = false;
-        this.emit('disconnected');
       });
 
       this.client.on('message', (topic, payload) => {
-        this.emit('message', topic, JSON.parse(payload.toString()));
+        try {
+          this.emit('message', topic, JSON.parse(payload.toString()));
+        } catch {}
       });
 
       this.client.on('reconnect', () => {

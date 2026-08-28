@@ -28,10 +28,10 @@ describe('scanFingerprint', () => {
     expect(mockGet).toHaveBeenCalled();
   });
 
-  it('returns matched false when random draw is above threshold', () => {
+  it('returns matched false with source when random draw is above threshold', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.9);
     const result = fingerprint.scanFingerprint();
-    expect(result).toEqual({ matched: false });
+    expect(result).toEqual({ matched: false, source: 'simulation' });
     expect(mockGet).not.toHaveBeenCalled();
   });
 
@@ -126,20 +126,20 @@ describe('linkFingerprint', () => {
     }
   });
 
-  it('binds a fresh fingerprint id to the person', () => {
-    const result = fingerprint.linkFingerprint(5);
+  it('binds a fresh fingerprint slot to the person', () => {
+    const result = fingerprint.linkFingerprint(5, 3);
     expect(result.full_name).toBe('Ravi Jayasuriya');
-    expect(result.fingerprint_id).toMatch(/^FP_\d+_[a-z0-9]+$/);
+    expect(result.fingerprint_slot).toBe(3);
 
     const sqlCalls = mockDb.prepare.mock.calls.map(c => c[0]);
-    const updateSql = sqlCalls.find(s => s.includes('UPDATE persons SET fingerprint_id'));
+    const updateSql = sqlCalls.find(s => s.includes('UPDATE persons SET fingerprint_slot'));
     expect(updateSql).toBeDefined();
-    expect(mockRun).toHaveBeenCalledWith(expect.stringMatching(/^FP_/), 5);
+    expect(mockRun).toHaveBeenCalledWith(3, 5);
   });
 
   it('preserves other person fields', () => {
     mockGet.mockReturnValue({ id: 5, full_name: 'Ravi', age: 30, gender: 'M' });
-    const result = fingerprint.linkFingerprint(5);
+    const result = fingerprint.linkFingerprint(5, 3);
     expect(result.age).toBe(30);
     expect(result.gender).toBe('M');
   });

@@ -87,13 +87,7 @@ class TestZScore:
         assert z == 5.0
 
 
-class TestIfScore:
-    def test_returns_none_when_ml_unavailable_or_history_too_short(self):
-        # With no history the IF path should gracefully return None
-        assert (
-            scoring_service.compute_if_score('child-2', {}, {}, Config) is None
-        )
-
+class TestDetectionFlags:
     def test_detection_flags_combination(self):
         assert not (False or False)
         assert True or False

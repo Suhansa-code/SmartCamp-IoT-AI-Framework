@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save, getLatestWaterLevelData, getWaterLevelHistoryData, getWaterLevelStatus, triggerWaterLevelSave, getLatestSensorStatusData, getSensorStatus, triggerSensorStatusSave, getLatestHydrospatialData, getHydrospatialHistoryData, getHydrospatialStatus, triggerHydrospatialSave, getFloodPredictionData } from '../../controllers/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 
 const router = express.Router();
@@ -26,18 +26,7 @@ router.get('/live-payload', async (req, res) => {
   }
 });
 
-router.get('/predict', async (req, res) => {
-  const { lat, lon, alt } = req.query;
-  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
-  try {
-    const response = await fetch(`${EDGE_API}/hydrospatial/predict?lat=${lat}&lon=${lon}&alt=${alt || 10}`);
-    if (!response.ok) throw new Error(`Edge gateway returned ${response.status}`);
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    res.status(502).json({ error: err.message });
-  }
-});
+router.get('/predict', getFloodPredictionData);
 
 router.get('/device-status', async (_req, res) => {
   try {
@@ -76,5 +65,45 @@ router.post('/rainfall/save', triggerRainfallSave);
 router.get('/dht11/latest', getLatestDht11Data);
 router.get('/dht11/status', getDht11Status);
 router.post('/dht11/save', triggerDht11Save);
+
+router.get('/water-level/latest', getLatestWaterLevelData);
+router.get('/water-level/history', getWaterLevelHistoryData);
+router.get('/water-level/status', getWaterLevelStatus);
+router.post('/water-level/save', triggerWaterLevelSave);
+
+router.get('/sensor-status/latest', getLatestSensorStatusData);
+router.get('/sensor-status/status', getSensorStatus);
+router.post('/sensor-status/save', triggerSensorStatusSave);
+
+router.get('/hydrospatial/latest', getLatestHydrospatialData);
+router.get('/hydrospatial/history', getHydrospatialHistoryData);
+router.get('/hydrospatial/status', getHydrospatialStatus);
+router.post('/hydrospatial/save', triggerHydrospatialSave);
+
+router.get('/elevation', async (req, res) => {
+  const { lat, lon } = req.query;
+  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
+  try {
+    const response = await fetch(`${EDGE_API}/hydrospatial/elevation?lat=${lat}&lon=${lon}`, { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error(`Edge gateway returned ${response.status}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+router.get('/analysis', async (req, res) => {
+  const { lat, lon, alt } = req.query;
+  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
+  try {
+    const response = await fetch(`${EDGE_API}/hydrospatial/analysis?lat=${lat}&lon=${lon}&alt=${alt || 10}`, { signal: AbortSignal.timeout(60000) });
+    if (!response.ok) throw new Error(`Edge gateway returned ${response.status}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
 
 export default router;

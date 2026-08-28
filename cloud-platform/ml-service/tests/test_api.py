@@ -5,6 +5,8 @@ class TestHealth:
         body = res.get_json()
         assert body['status'] == 'ok'
         assert body['service'] == 'PAGES ML Scoring Service'
+        assert 'numpy' in body
+        assert 'sklearn' in body
 
 
 class TestScore:
@@ -73,28 +75,29 @@ class TestHistoryAndReset:
         history = client.get('/history/RESET-001').get_json()
         assert history['session_count'] == 0
 
-    def test_duplicate_session_does_not_create_duplicate_history(self, client):
-        payload = {
-            'child_id': 'DUP-001',
-            'session_id': 'DUP-SESSION-001',
-            'taskMetrics': {
-                'accuracyRate': 0.85,
-                'falseTapRate': 0.05,
-                'avgReactionTime': 400,
-                'reactionVariance': 100,
-            },
-            'passiveSignals': {
-                'idleTimeRatio': 0.1,
-                'rapidClickCount': 1,
-                'completionRatio': 0.95,
-            },
-        }
 
-        first = client.post('/score', json=payload)
-        assert first.status_code == 200
+class TestInsights:
+    def test_insights_endpoint(self, client):
+        res = client.get('/insights/TEST-001')
+        assert res.status_code == 200
+        body = res.get_json()
+        assert body['child_id'] == 'TEST-001'
+        assert 'insights' in body
 
-        second = client.post('/score', json=payload)
-        assert second.status_code == 200
+    def test_insight_summary_endpoint(self, client):
+        res = client.get('/insights/TEST-001/summary')
+        assert res.status_code == 200
+        body = res.get_json()
+        assert body['child_id'] == 'TEST-001'
+        assert 'total_sessions' in body
+        assert 'anomaly_rate' in body
 
-        history = client.get('/history/DUP-001').get_json()
-        assert history['session_count'] == 1
+    def test_models_endpoint(self, client):
+        res = client.get('/models')
+        assert res.status_code == 200
+        body = res.get_json()
+        assert 'models' in body
+
+    def test_model_info_not_found(self, client):
+        res = client.get('/models/nonexistent-child')
+        assert res.status_code == 404

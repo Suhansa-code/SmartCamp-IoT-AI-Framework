@@ -1,5 +1,6 @@
 import { pagesDb, sqliteInsert, sqliteUpdate, sqliteRetrieve, sqliteGetLastChildId, campDb } from '../../config/database.js';
 import C from '../../config/constants.js';
+import { getCampId } from '../../config/camp-id.js';
 import logger from '../../utils/logger.js';
 import { newId, todayDate, nowTime, nowISO } from '../../utils/helpers.js';
 import { createError } from '../../middleware/error-handler.js';
@@ -10,7 +11,7 @@ import { enqueueSync } from '../../services/sync/sync-notify.js';
 
 function randomId() {
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return `${C.CAMP_ID}-${suffix}`;
+  return `${getCampId()}-${suffix}`;
 }
 
 function resolveChildFromPersonId(personId) {
