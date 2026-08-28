@@ -27,6 +27,11 @@ import { triggerAggregation } from '../disaster/campsAggregation.service.js';
 const { host, port, username, password, caCertPath } = env.emqx;
 
 /**
+ * ML service URL for IF auto-trigger after session sync.
+ */
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';
+
+/**
  * Entity name → upsert function mapping.
  */
 const ENTITY_HANDLERS = {
@@ -112,6 +117,38 @@ function publishAck(envelope, status, error) {
 }
 
 /**
+ * Trigger IF scoring on the ML service after a session is synced.
+ * This is async and non-blocking — failures are logged but don't affect the sync.
+ */
+async function triggerIfScoring(payload) {
+  if (!payload?.session_id || !payload?.child_id) return;
+
+  try {
+    const res = await fetch(`${ML_SERVICE_URL}/trigger-if`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        child_id: payload.child_id,
+        session_id: payload.session_id,
+        composite_score: payload.composite_score,
+        task_score: payload.task_score,
+        passive_score: payload.passive_score,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      console.log(`[Sync Receiver] IF triggered for child=${payload.child_id} session=${payload.session_id} if=${result.if_score}`);
+    } else {
+      console.warn(`[Sync Receiver] IF trigger returned ${res.status}`);
+    }
+  } catch (err) {
+    console.warn(`[Sync Receiver] IF trigger failed: ${err.message}`);
+  }
+}
+
+/**
  * Handle a single sync message.
  * 1. Parse the envelope.
  * 2. Check idempotency (sync_id already processed?).
@@ -167,6 +204,11 @@ async function handleSyncMessage(topic, buffer) {
     await logSync(sync_id, entity, local_id, camp_id, operation, device_id);
     processedCount++;
     console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} device=${device_id || 'n/a'} (QoS ${envelope.priority})`);
+
+    // Trigger IF scoring for session syncs (auto-trains at session 8+)
+    if (entity === 'sessions' && payload.child_id && payload.composite_score) {
+      triggerIfScoring(payload).catch(() => {});
+    }
 
     // Trigger CAMPS aggregation for disaster-domain entities
     if (CAMP_AGGREGATION_ENTITIES.has(entity)) {

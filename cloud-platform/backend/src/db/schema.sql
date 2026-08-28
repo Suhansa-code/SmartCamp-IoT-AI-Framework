@@ -25,6 +25,11 @@ CREATE TABLE IF NOT EXISTS sessions (
   session_id      TEXT PRIMARY KEY,
   child_id        TEXT NOT NULL REFERENCES children (child_id),
   composite_score REAL,
+  task_score      REAL,
+  passive_score   REAL,
+  gate_decision   TEXT,
+  z_score         REAL,
+  if_score        REAL,
   anomaly_flagged SMALLINT DEFAULT 0,
   alert_triggered SMALLINT DEFAULT 0,
   created_at      TIMESTAMPTZ

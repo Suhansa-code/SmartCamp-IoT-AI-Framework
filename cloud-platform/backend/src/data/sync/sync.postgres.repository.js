@@ -169,13 +169,18 @@ export async function upsertChild(r, ctx = {}) {
 export async function upsertSession(r) {
   const pool = getPool();
   await pool.query(
-    `INSERT INTO sessions (session_id,child_id,composite_score,anomaly_flagged,alert_triggered,created_at)
-     VALUES ($1,$2,$3,$4,$5,$6)
+    `INSERT INTO sessions (session_id,child_id,composite_score,task_score,passive_score,
+       gate_decision,z_score,if_score,anomaly_flagged,alert_triggered,created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
      ON CONFLICT (session_id) DO UPDATE SET child_id=EXCLUDED.child_id,
-       composite_score=EXCLUDED.composite_score,anomaly_flagged=EXCLUDED.anomaly_flagged,
-       alert_triggered=EXCLUDED.alert_triggered,created_at=EXCLUDED.created_at`,
-    [r.session_id,r.child_id,r.composite_score||null,r.anomaly_flagged||0,
-     r.alert_triggered||0,r.created_at||null]
+       composite_score=EXCLUDED.composite_score,task_score=EXCLUDED.task_score,
+       passive_score=EXCLUDED.passive_score,gate_decision=EXCLUDED.gate_decision,
+       z_score=EXCLUDED.z_score,if_score=EXCLUDED.if_score,
+       anomaly_flagged=EXCLUDED.anomaly_flagged,alert_triggered=EXCLUDED.alert_triggered,
+       created_at=EXCLUDED.created_at`,
+    [r.session_id,r.child_id,r.composite_score||null,r.task_score||null,
+     r.passive_score||null,r.gate_decision||null,r.z_score||null,r.if_score||null,
+     r.anomaly_flagged||0,r.alert_triggered||0,r.created_at||null]
   );
 }
 
