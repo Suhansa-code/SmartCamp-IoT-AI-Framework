@@ -185,12 +185,3 @@ def compute_z_score(child_id: str, composite: float, history, config) -> float |
 
     z = (composite - mean) / std
     return round(z, 4)
-
-
-def session_to_feature_vector(session: dict) -> list:
-    """Map a saved session into the Isolation Forest feature vector format."""
-    return [
-        float(session.get('composite', 0)),
-        float(session.get('task', 0)),
-        float(session.get('passive', 0)),
-    ]

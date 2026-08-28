@@ -54,7 +54,21 @@ class HistoryService:
                         pages_sessions.c.composite_score,
                         pages_sessions.c.task_score,
                         pages_sessions.c.passive_score,
+                        pages_behavioral_signals.c.accuracy_rate,
+                        pages_behavioral_signals.c.false_tap_rate,
+                        pages_behavioral_signals.c.avg_reaction_time,
+                        pages_behavioral_signals.c.reaction_variance,
+                        pages_behavioral_signals.c.idle_time_ratio,
+                        pages_behavioral_signals.c.rapid_click_count,
+                        pages_behavioral_signals.c.time_to_first_ms,
+                        pages_behavioral_signals.c.completion_ratio,
                         pages_sessions.c.created_at,
+                    )
+                    .select_from(
+                        pages_sessions.outerjoin(
+                            pages_behavioral_signals,
+                            pages_sessions.c.session_id == pages_behavioral_signals.c.session_id,
+                        )
                     )
                     .where(pages_sessions.c.composite_score.is_not(None))
                     .order_by(pages_sessions.c.child_id, pages_sessions.c.created_at)
@@ -66,6 +80,14 @@ class HistoryService:
                         'composite': float(row['composite_score'] or 0),
                         'task': float(row['task_score'] or 0),
                         'passive': float(row['passive_score'] or 0),
+                        'accuracyRate': float(row['accuracy_rate'] or 0),
+                        'falseTapRate': float(row['false_tap_rate'] or 0),
+                        'avgReactionTime': float(row['avg_reaction_time'] or 0),
+                        'reactionVariance': float(row['reaction_variance'] or 0),
+                        'idleTimeRatio': float(row['idle_time_ratio'] or 0),
+                        'rapidClickCount': float(row['rapid_click_count'] or 0),
+                        'timeToFirstMs': float(row['time_to_first_ms'] or 0),
+                        'completionRatio': float(row['completion_ratio'] or 0),
                         'ts': row['created_at'] or _now_text(),
                     })
         except Exception as e:
@@ -281,6 +303,8 @@ class HistoryService:
         composite: float,
         task: float,
         passive: float,
+        task_metrics: dict | None = None,
+        passive_signals: dict | None = None,
         ) -> float:
         """Add a session result to child history and update the rolling baseline."""
 
@@ -301,6 +325,14 @@ class HistoryService:
                 'composite': composite,
                 'task': task,
                 'passive': passive,
+                'accuracyRate': float((task_metrics or {}).get('accuracyRate', 0)),
+                'falseTapRate': float((task_metrics or {}).get('falseTapRate', 0)),
+                'avgReactionTime': float((task_metrics or {}).get('avgReactionTime', 0)),
+                'reactionVariance': float((task_metrics or {}).get('reactionVariance', 0)),
+                'idleTimeRatio': float((passive_signals or {}).get('idleTimeRatio', 0)),
+                'rapidClickCount': float((passive_signals or {}).get('rapidClickCount', 0)),
+                'timeToFirstMs': float((passive_signals or {}).get('timeToFirstMs', 0)),
+                'completionRatio': float((passive_signals or {}).get('completionRatio', 0)),
                 'ts': datetime.now(timezone.utc).isoformat(),
             })
         else:
@@ -309,6 +341,14 @@ class HistoryService:
                 'composite': composite,
                 'task': task,
                 'passive': passive,
+                'accuracyRate': float((task_metrics or {}).get('accuracyRate', 0)),
+                'falseTapRate': float((task_metrics or {}).get('falseTapRate', 0)),
+                'avgReactionTime': float((task_metrics or {}).get('avgReactionTime', 0)),
+                'reactionVariance': float((task_metrics or {}).get('reactionVariance', 0)),
+                'idleTimeRatio': float((passive_signals or {}).get('idleTimeRatio', 0)),
+                'rapidClickCount': float((passive_signals or {}).get('rapidClickCount', 0)),
+                'timeToFirstMs': float((passive_signals or {}).get('timeToFirstMs', 0)),
+                'completionRatio': float((passive_signals or {}).get('completionRatio', 0)),
                 'ts': datetime.now(timezone.utc).isoformat(),
             })
             # Keep last 50 sessions in memory

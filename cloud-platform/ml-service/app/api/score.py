@@ -40,13 +40,14 @@ def score():
 
     # 3. Isolation Forest score (from session 8 onwards)
     current_session = {**task_metrics, **passive_signals}
-    if_score = scoring_service.compute_if_score(
+    if_result = scoring_service.compute_if_score(
         child_id, current_session, history.session_history, config
     )
+    if_score = if_result['raw_score'] if if_result is not None else None
 
     # 4. Anomaly detection
     anomaly_by_z = z_score is not None and z_score < config.ZSCORE_THRESHOLD
-    anomaly_by_if = if_score is not None and if_score < config.IF_SCORE_THRESHOLD
+    anomaly_by_if = if_result is not None and if_result['is_anomaly']
     anomaly_flagged = anomaly_by_z or anomaly_by_if
 
     # 5. Gate decision
@@ -81,9 +82,6 @@ def score():
     # 7. Save IF insight if score computed
     if if_score is not None:
         try:
-            feature_vector = scoring_service.session_to_feature_vector({
-                'composite': composite, 'task': task_score, 'passive': passive_score
-            })
             contributions = {
                 'composite': round(composite * 0.50, 2),
                 'task': round(task_score * 0.30, 2),
@@ -97,7 +95,15 @@ def score():
             print(f'[DB] Could not persist IF insight for child={child_id}: {e}')
 
     # 8. Update in-memory cache after persistence succeeds
-    new_baseline = history.update_history(child_id,session_id, composite, task_score, passive_score)
+    new_baseline = history.update_history(
+        child_id,
+        session_id,
+        composite,
+        task_score,
+        passive_score,
+        task_metrics,
+        passive_signals,
+    )
 
     print(
         f'[SCORE] child={child_id} composite={composite} task={task_score} passive={passive_score} '
