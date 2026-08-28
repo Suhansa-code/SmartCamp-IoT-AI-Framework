@@ -121,6 +121,29 @@ function packetConfidence(packet) {
   return Number.isInteger(n) ? n : null;
 }
 
+// ── Sensor ring colour ──────────────────────────────────────
+/**
+ * The pad's own verdict cannot express what the desk needs: the sensor knows
+ * only "template matched", never whether that template belongs to a registered
+ * person. So the desk picks the colour and the firmware obeys, falling back to
+ * its local guess if we stay quiet.
+ *
+ *   GREEN — matched and linked to a person (access granted)
+ *   RED   — recognised but not linked, or the capture failed (rejected)
+ *   BLUE  — no template on the sensor at all (a new person to enroll)
+ */
+const LED = { GRANTED: 'GREEN', REJECTED: 'RED', NEW_PERSON: 'BLUE' };
+
+function setSensorLed(color) {
+  if (!hardware || !hardware.connected) return;
+  try {
+    hardware.send({ command: 'LED', color });
+  } catch (err) {
+    // Colour is cosmetic — never let it break a scan.
+    logger.warn(`[FP] Could not set sensor LED: ${err.message}`);
+  }
+}
+
 // ── Inbound device events ───────────────────────────────────
 async function handleDeviceEvent(packet) {
   // Always surface the raw frame — it is the only window onto unknown firmware.
@@ -132,12 +155,14 @@ async function handleDeviceEvent(packet) {
   if (MATCH_EVENTS.has(event)) {
     const confidence = packetConfidence(packet);
     const result = resolveSlot(slot);
+    setSensorLed(result.matched ? LED.GRANTED : LED.REJECTED);
     broadcast('scan-result', { ...result, confidence, source: 'hardware' });
     if (result.matched) await publishVerification(result.person, confidence);
     return;
   }
 
   if (NO_MATCH_EVENTS.has(event)) {
+    setSensorLed(LED.NEW_PERSON);
     broadcast('scan-result', {
       matched: false, slot: null, source: 'hardware',
       message: 'No matching fingerprint on the sensor',
@@ -153,12 +178,15 @@ async function handleDeviceEvent(packet) {
   }
 
   if (ENROLLED_EVENTS.has(event)) {
-    completeEnrollment(slot ?? pendingEnrollment?.slot ?? null);
+    const outcome = completeEnrollment(slot ?? pendingEnrollment?.slot ?? null);
+    setSensorLed(outcome.success ? LED.GRANTED : LED.REJECTED);
     return;
   }
 
   if (ENROLL_FAIL_EVENTS.has(event) || event === 'ERROR') {
     const message = packet.message || packet.error || event;
+    // A scan window closing with no finger is not a rejection — leave the pad dark.
+    if (message !== 'SCAN_TIMEOUT') setSensorLed(LED.REJECTED);
     if (pendingEnrollment) {
       broadcast('enroll-result', { success: false, slot: pendingEnrollment.slot, error: message });
       clearEnrollment();

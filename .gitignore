@@ -81,7 +81,6 @@ lerna-debug.log*
 # ML Models & Artifacts
 # ==========================================
 *.h5
-*.pkl
 *.joblib
 *.pt
 *.pth
@@ -91,7 +90,6 @@ lerna-debug.log*
 *.ckpt
 *.safetensors
 models/*.h5
-models/*.pkl
 models/*.joblib
 models/*.pt
 models/*.onnx
@@ -99,8 +97,7 @@ models/*.onnx
 # ==========================================
 # Data Files
 # ==========================================
-data/raw/*.csv
-data/network_logs/*.csv
+
 *.parquet
 *.feather
 

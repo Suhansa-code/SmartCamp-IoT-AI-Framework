@@ -143,11 +143,22 @@ export async function getCampEducation(campId) {
     langMap.set(l, (langMap.get(l) || 0) + 1);
   });
 
+  // Pre-build sessions-by-child map to avoid O(C×S) nested filter
+  const sessionsByChild = new Map();
+  for (const session of sessionsResult.rows) {
+    const list = sessionsByChild.get(session.child_id);
+    if (list) {
+      list.push(session);
+    } else {
+      sessionsByChild.set(session.child_id, [session]);
+    }
+  }
+
   return {
     id: campId, children_count: childrenResult.rows.length, sessions_count: sessionsResult.rows.length,
     avg_composite: scores.length ? Math.round(scores.reduce((sum, score) => sum + Number(score), 0) / scores.length) : 0,
     pending_alerts: alertsResult.rows.filter((alert) => alert.status === 'pending').length,
-    children: childrenResult.rows.map((child) => ({ ...child, recent_scores: sessionsResult.rows.filter((session) => session.child_id === child.child_id).slice(0, 5) })),
+    children: childrenResult.rows.map((child) => ({ ...child, recent_scores: (sessionsByChild.get(child.child_id) || []).slice(0, 5) })),
     sessions: sessionsResult.rows,
     alerts: alertsResult.rows,
     behavioral_signals: signals,

@@ -7,13 +7,9 @@
  *
  * When GPS is unavailable, returns null coordinates with source=UNAVAILABLE.
  * No mock data is ever returned.
- *
- * When Edge Gateway does not provide a usable location_name, this service
- * performs reverse geocoding via the geocode service (with its own cache)
- * and derives a location-based camp ID.
  */
 import logger from '../../utils/logger.js';
-import { updateCampIdFromGps, getCampId } from '../../config/camp-id.js';
+import { getCampId } from '../../config/camp-id.js';
 import { reverseGeocode } from './geocode.js';
 
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
@@ -23,16 +19,11 @@ let lastFix = null;
 let lastFetch = 0;
 
 /* ------------------------------------------------------------------ */
-/*  CAMP ID — derived from GPS location                                 */
+/*  CAMP ID                                                            */
 /* ------------------------------------------------------------------ */
 
 export function getDynamicCampId() {
   return getCampId();
-}
-
-export function getCampSuffix() {
-  const campId = getCampId();
-  return campId.replace('CAMP-', '') || 'B';
 }
 
 /* ------------------------------------------------------------------ */
@@ -92,10 +83,6 @@ export async function getGpsLocation() {
     // If still no name or looks like coords, use Edge Gateway fallback then coordinates
     if (!locationName || looksLikeCoords) {
       locationName = `${data.latitude}, ${data.longitude}`;
-    }
-
-    if (locationName && !looksLikeCoords) {
-      updateCampIdFromGps(locationName);
     }
 
     lastFix = {

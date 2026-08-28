@@ -20,9 +20,21 @@ import {
   upsertWaterLevelReading, upsertGpsReading, upsertWeatherData,
   upsertHydrospatialData, upsertFloodPrediction, upsertDisasterAlert,
   upsertPredictionRequest,
-  upsertDevice, getDeviceCampId,
+  upsertDevice, getDeviceCampId, getBehavioralSignals,
 } from '../../data/sync/sync.postgres.repository.js';
-import { triggerAggregation } from '../disaster/campsAggregation.service.js';
+import { applySyncedPerson, applySyncedWristband } from '../resources/campData.service.js';
+
+/**
+ * Entities whose rows also live in the resources roster held in memory.
+ *
+ * Persisting is not enough: /api/resources reads that roster, and it is only
+ * populated by hydrateFromDb() at boot. Without this, a registration synced
+ * from the Pi is invisible to every resource prediction until a restart.
+ */
+const LIVE_STORE_HANDLERS = {
+  persons:    applySyncedPerson,
+  wristbands: applySyncedWristband,
+};
 
 const { host, port, username, password, caCertPath } = env.emqx;
 
@@ -118,12 +130,30 @@ function publishAck(envelope, status, error) {
 
 /**
  * Trigger IF scoring on the ML service after a session is synced.
+ * Looks up raw behavioral signals from pages_behavioral_signals to pass
+ * the correct 8-feature vector to the IF model.
  * This is async and non-blocking — failures are logged but don't affect the sync.
  */
 async function triggerIfScoring(payload) {
   if (!payload?.session_id || !payload?.child_id) return;
 
   try {
+    const signals = await getBehavioralSignals(payload.session_id);
+
+    const taskMetrics = signals ? {
+      accuracyRate: signals.accuracy_rate,
+      falseTapRate: signals.false_tap_rate,
+      avgReactionTime: signals.avg_reaction_time,
+      reactionVariance: signals.reaction_variance,
+    } : {};
+
+    const passiveSignals = signals ? {
+      idleTimeRatio: signals.idle_time_ratio,
+      rapidClickCount: signals.rapid_click_count,
+      timeToFirstMs: signals.time_to_first_ms,
+      completionRatio: signals.completion_ratio,
+    } : {};
+
     const res = await fetch(`${ML_SERVICE_URL}/trigger-if`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -133,6 +163,8 @@ async function triggerIfScoring(payload) {
         composite_score: payload.composite_score,
         task_score: payload.task_score,
         passive_score: payload.passive_score,
+        taskMetrics,
+        passiveSignals,
       }),
       signal: AbortSignal.timeout(10000),
     });
@@ -199,9 +231,20 @@ async function handleSyncMessage(topic, buffer) {
   }
 
   try {
-    const ctx = { device_id: device_id || null };
-    await handler(payload, ctx);
-    await logSync(sync_id, entity, local_id, camp_id, operation, device_id);
+    await handler(payload);
+
+    // Keep the in-memory roster in step with what was just written. Guarded
+    // so a roster bug can never fail a sync that already committed to Postgres.
+    const applyLive = LIVE_STORE_HANDLERS[entity];
+    if (applyLive) {
+      try {
+        applyLive(payload);
+      } catch (liveErr) {
+        console.error(`[Sync Receiver] Live roster update failed for ${entity} id=${local_id}: ${liveErr.message}`);
+      }
+    }
+
+    await logSync(sync_id, entity, local_id, camp_id, operation);
     processedCount++;
     console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} device=${device_id || 'n/a'} (QoS ${envelope.priority})`);
 

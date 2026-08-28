@@ -314,6 +314,68 @@ export async function startCampDataService() {
 }
 
 export const _store = store;
+
+// ── Live bridge from the sync receiver ─────────────────────────────────────
+//
+// syncReceiver writes straight to Postgres, while everything the resources API
+// serves reads this in-memory roster. The roster is filled once, by
+// hydrateFromDb() at boot — so before this bridge existed, a person registered
+// on the Pi landed in the database and stayed invisible to /api/resources until
+// somebody restarted the process. Population read 0, and every prediction
+// downstream divided by it and returned zeros.
+//
+// These take the persons/wristbands row shape (the sync payload), not the
+// {person, wristband_barcode} envelope that onRegistration() handles.
+
+/** Mirror a synced persons row into the live roster. */
+export function applySyncedPerson(row) {
+  if (!row?.id) return;
+
+  // is_active is 0/1 from SQLite on the Pi; loadPersons() filters on it, so the
+  // roster has to honour a deactivation too, not just additions.
+  if (Number(row.is_active ?? 1) !== 1) {
+    const gone = store.persons.get(row.id);
+    if (gone?.wristband_barcode) store.wristbandPerson.delete(gone.wristband_barcode);
+    store.persons.delete(row.id);
+    return;
+  }
+
+  const existing = store.persons.get(row.id) || {};
+  const merged = {
+    ...existing,
+    ...row,
+    is_pregnant: !!Number(row.is_pregnant),
+    has_chronic_illness: !!Number(row.has_chronic_illness),
+    // A wristband may sync before or after its person; never let the person
+    // row blank out a barcode already recorded.
+    wristband_barcode: existing.wristband_barcode,
+  };
+
+  store.persons.set(row.id, merged);
+  if (merged.wristband_barcode) store.wristbandPerson.set(merged.wristband_barcode, merged);
+}
+
+/** Attach a synced wristbands row to its person in the live roster. */
+export function applySyncedWristband(row) {
+  if (!row?.barcode || !row.person_id) return;
+
+  if (Number(row.is_active ?? 1) !== 1) {
+    store.wristbandPerson.delete(row.barcode);
+    const holder = store.persons.get(row.person_id);
+    if (holder?.wristband_barcode === row.barcode) {
+      store.persons.set(row.person_id, { ...holder, wristband_barcode: undefined });
+    }
+    return;
+  }
+
+  // The person may not have arrived yet — record the barcode so the person
+  // handler above can pick it up when it does.
+  const person = store.persons.get(row.person_id) || { id: row.person_id };
+  const merged = { ...person, wristband_barcode: row.barcode };
+  store.persons.set(row.person_id, merged);
+  store.wristbandPerson.set(row.barcode, merged);
+}
+
 // ── Accessors for the Distribution domain ──────────────────────────────────
 
 /** Live person records, for cohort derivation. */

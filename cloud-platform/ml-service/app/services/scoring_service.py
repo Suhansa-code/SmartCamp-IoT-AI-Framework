@@ -114,15 +114,11 @@ def compute_if_score(child_id: str, current_session: dict, history, config) -> d
         decision_score = float(
             model.decision_function(feature_vector)[0]
         )
-        prediction = int(
-            model.predict(feature_vector)[0]
-        )
-        is_anomaly = prediction == -1
+        is_anomaly = decision_score < 0
 
         return {
             'raw_score': round(raw_score, 4),
             'decision_score': round(decision_score, 4),
-            'prediction': prediction,
             'is_anomaly': is_anomaly
         }
     except Exception as e:
@@ -165,9 +161,13 @@ def compute_passive_score(passive_signals: dict, config) -> float:
     return round(min(max(score, 0), 100), 2)
 
 
-def compute_composite(task_score: float, passive_score: float, baseline: float, config) -> float:
-    """Composite = task×0.50 + passive×0.30 + baseline×0.20 (proposal §3.2.3)."""
-    score = task_score * 0.50 + passive_score * 0.30 + baseline * 0.20
+def compute_composite(task_score, passive_score, baseline, config):
+    score = (
+        task_score * config.COMPOSITE_TASK_W
+        + passive_score * config.COMPOSITE_PASSIVE_W
+        + baseline * config.COMPOSITE_BASELINE_W
+    )
+
     return round(min(max(score, 0.0), 100.0), 2)
 
 
@@ -175,7 +175,9 @@ def compute_z_score(child_id: str, composite: float, history, config) -> float |
     """Z-score against the child's own history; active from session 3 onward."""
     prev_scores = [s['composite'] for s in history.get(child_id, [])]
 
-    if len(prev_scores) < 2:
+    required_previous_sessions = config.ZSCORE_MIN_SESSIONS - 1
+
+    if len(prev_scores) < required_previous_sessions:
         return None
 
     n = len(prev_scores)

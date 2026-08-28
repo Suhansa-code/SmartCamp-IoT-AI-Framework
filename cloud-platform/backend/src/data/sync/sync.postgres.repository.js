@@ -46,6 +46,15 @@ export async function getDeviceCampId(deviceId) {
   return result.rows[0]?.camp_id || null;
 }
 
+export async function getBehavioralSignals(sessionId) {
+  const pool = getPool();
+  const result = await pool.query(
+    'SELECT accuracy_rate, false_tap_rate, avg_reaction_time, reaction_variance, idle_time_ratio, rapid_click_count, time_to_first_ms, completion_ratio FROM pages_behavioral_signals WHERE session_id = $1 LIMIT 1',
+    [sessionId]
+  );
+  return result.rows[0] || null;
+}
+
 // ── Resource domain ──────────────────────────────────────────────────────
 
 export async function upsertPerson(r, ctx = {}) {
