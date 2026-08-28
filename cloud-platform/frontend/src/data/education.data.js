@@ -2,6 +2,7 @@
 // demo fallback summaries shown when the cloud backend is unreachable.
 
 export const CAMP_META = {
+  "CAMP-B": { name: "Camp B", location: "Education Programme", code: "B" },
   "CAMP-B-HOMAGAMA": { name: "Homagama Relief", location: "Colombo", code: "HMG" },
   "CAMP-B-GALLE": { name: "Galle Seafront", location: "Galle", code: "GAL" },
   "CAMP-B-RATHNAPURA": { name: "Rathnapura Valley", location: "Sabaragamuwa", code: "RTP" },

@@ -32,7 +32,7 @@ import {
   BarChart3,
 } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
 
 function campMeta(id) {
   if (CAMP_META[id]) return CAMP_META[id];
@@ -79,19 +79,22 @@ const scoreTone = (T, v) => (v == null ? T.muted : v >= 70 ? T.green : v >= 50 ?
 function ChildScoreDots({ scores }) {
   return (
     <div style={{ display: "flex", gap: 3 }}>
-      {scores.map((s, i) => (
+      {scores.map((s, i) => {
+        const score = s.composite_score ?? s.score;
+        return (
         <span
           key={i}
-          title={`${s.score}`}
+          title={`${score}`}
           style={{
             width: 8,
             height: 8,
             borderRadius: "50%",
-            background: s.score >= 70 ? "#16A34A" : s.score >= 50 ? "#B45309" : "#DC2626",
+            background: score >= 70 ? "#16A34A" : score >= 50 ? "#B45309" : "#DC2626",
             opacity: 0.9,
           }}
         />
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -193,14 +196,17 @@ export default function EducationPage() {
     else setLoadingCamps(true);
     setLoadError("");
     try {
-      const res = await fetch(`${API_BASE}/api/alerts/education/camps`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(`${API_BASE}/api/alerts/education/camps`, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) throw new Error(`Cloud Backend returned ${res.status}`);
       const payload = await res.json();
       const list = Array.isArray(payload?.camps) ? payload.camps : [];
       setCamps(list);
     } catch (error) {
       setCamps([]);
-      setLoadError(error instanceof Error ? error.message : "Failed to load education data");
+      setLoadError(error?.name === "AbortError" ? "Cloud backend timed out. Check the database connection." : error instanceof Error ? error.message : "Failed to load education data");
     } finally {
       if (isRefresh) setRefreshing(false);
       else setLoadingCamps(false);
@@ -264,7 +270,9 @@ export default function EducationPage() {
   }, [detail]);
 
   const childAvg = (child) =>
-    child.recent_scores?.length ? Math.round(child.recent_scores.reduce((s, x) => s + x.score, 0) / child.recent_scores.length) : null;
+    child.recent_scores?.length
+      ? Math.round(child.recent_scores.reduce((sum, session) => sum + Number(session.composite_score ?? session.score ?? 0), 0) / child.recent_scores.length)
+      : null;
 
   const ranked = useMemo(() => {
     if (!detail) return { atRisk: [], top: [] };
@@ -459,6 +467,20 @@ export default function EducationPage() {
                   </div>
                 ) : detail ? (
                   <DetailView detail={detail} meta={meta} trend={trend} ranked={ranked} childAvg={childAvg} onBack={goOverview} />
+                ) : loadError ? (
+                  <div
+                    style={{
+                      background: "#FFF7ED",
+                      border: "1px solid #FDBA74",
+                      borderRadius: "1rem",
+                      padding: "2rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    <AlertTriangle size={36} color="#C2410C" style={{ margin: "0 auto 0.75rem" }} />
+                    <p style={{ color: "#9A3412", fontWeight: 800, margin: 0 }}>{loadError}</p>
+                    <Button onClick={() => loadCamps(true)} style={{ marginTop: "1rem" }}>Retry</Button>
+                  </div>
                 ) : camps.length ? (
                   <OverviewView
                     list={list}
@@ -985,13 +1007,21 @@ function OverviewView({
 function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
   const { T } = useTheme();
   const flaggedRate = detail.sessions_count ? Math.round((detail.flagged_sessions / detail.sessions_count) * 100) : 0;
+  const ifScoreBySession = new Map((detail.sessions || []).map((session) => [session.session_id, session.if_score]));
+  const gateDecisionsWithIfScore = (detail.gate_decisions_list || []).map((decision) => ({
+    ...decision,
+    if_score: ifScoreBySession.get(decision.session_id) ?? null,
+  }));
 
   // Psycho-social risk bands over time — derive from each child's recent scores.
   const psychoSeries = useMemo(() => {
     const children = detail.children || [];
     if (!children.length) return [];
     const dayOf = (iso) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : null);
-    const scoresByChild = children.map((c) => (c.recent_scores || []).map((s) => ({ day: dayOf(s.date), score: s.score })));
+    const scoresByChild = children.map((c) => (c.recent_scores || []).map((s) => ({
+      day: dayOf(s.created_at || s.date),
+      score: s.composite_score ?? s.score,
+    })));
     const days = [...new Set(scoresByChild.flat().map((s) => s.day).filter(Boolean))].slice(-14);
     return days.map((day) => {
       let stable = 0, watch = 0, atRisk = 0;
@@ -1351,29 +1381,8 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
         )}
       </DashboardCard>
 
-      {/* ── Behavioral Signals DataTable ── */}
-      {(detail.behavioral_signals || []).length > 0 && (
-        <DataTable
-          columns={[
-            { key: "child_id", label: "Child", sortable: true },
-            { key: "accuracy_rate", label: "Accuracy", sortable: true, numeric: true, render: (v) => v != null ? `${(v * 100).toFixed(1)}%` : "—" },
-            { key: "false_tap_rate", label: "False Tap", sortable: true, numeric: true, render: (v) => v != null ? `${(v * 100).toFixed(1)}%` : "—" },
-            { key: "avg_reaction_time", label: "Reaction", sortable: true, numeric: true, render: (v) => v != null ? `${v.toFixed(0)}ms` : "—" },
-            { key: "idle_time_ratio", label: "Idle", sortable: true, numeric: true, render: (v) => v != null ? `${(v * 100).toFixed(1)}%` : "—" },
-            { key: "completion_ratio", label: "Completion", sortable: true, numeric: true, render: (v) => v != null ? `${(v * 100).toFixed(1)}%` : "—" },
-          ]}
-          data={detail.behavioral_signals}
-          title="Behavioral Signals"
-          subtitle={`${detail.behavioral?.signal_count || 0} signals collected`}
-          searchKeys={["child_id"]}
-          searchPlaceholder="Search signals…"
-          rowKey="signal_id"
-          pageSize={8}
-        />
-      )}
-
       {/* ── Gate Decisions DataTable ── */}
-      {(detail.gate_decisions_list || []).length > 0 && (
+      {gateDecisionsWithIfScore.length > 0 && (
         <DataTable
           columns={[
             { key: "child_id", label: "Child", sortable: true },
@@ -1385,9 +1394,12 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
               return <span style={{ color, fontWeight: 600, fontSize: "0.7rem" }}>{v || "—"}</span>;
             }},
             { key: "attempt_number", label: "Attempt", sortable: true, numeric: true },
+            { key: "if_score", label: "IF Score", sortable: true, numeric: true, render: (v) => (
+              <span style={{ color: v != null ? T.ink : T.muted, fontWeight: 600 }}>{v != null ? v.toFixed(4) : "—"}</span>
+            )},
             { key: "decided_at", label: "Date", sortable: true, render: (v) => v ? new Date(v).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—" },
           ]}
-          data={detail.gate_decisions_list}
+          data={gateDecisionsWithIfScore}
           title="Gate Decisions"
           subtitle={`${detail.gate_decisions} decisions recorded`}
           searchKeys={["child_id"]}

@@ -141,12 +141,14 @@ export async function taskComplete(req, res, next) {
       passive_score: passiveScore, gate_decision: gateDecision,
       anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
       z_score: zScore ?? null, if_score: ifScore ?? null,
+      synced: 0,
     };
     if (attemptNumber >= 2) {
       sessionUpdate.second_gate_score = compositeScore;
     }
 
     sqliteUpdate('pages_sessions', sessionUpdate, 'session_id = ?', [session_id]);
+    enqueueSync('pages_sessions', session_id);
 
     sqliteInsert('pages_gate_decisions', {
       decision_id: decisionId, session_id, child_id,
@@ -211,7 +213,9 @@ export async function secondGate(req, res, next) {
       passive_score: passiveScore, second_gate_score: compositeScore,
       gate_decision: gateDecision, anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
       z_score: zScore ?? null, if_score: ifScore ?? null,
+      synced: 0,
     }, 'session_id = ?', [session_id]);
+    enqueueSync('pages_sessions', session_id);
 
     sqliteInsert('pages_gate_decisions', {
       decision_id: decisionId, session_id, child_id, attempt_number: 2,
@@ -269,7 +273,9 @@ export async function completeSession(req, res, next) {
     sqliteUpdate('pages_sessions', {
       cognitive_score: Number(cognitiveScore), content_session_id: contentSessionId, session_complete: shouldMarkComplete ? 1 : 0,
       anomaly_flagged: session.anomaly_flagged,
+      synced: 0,
     }, 'session_id = ?', [session_id]);
+    enqueueSync('pages_sessions', session_id);
 
     sqliteUpdate('pages_children', {
       baseline_score: newBaseline, total_sessions: child.total_sessions + 1,
