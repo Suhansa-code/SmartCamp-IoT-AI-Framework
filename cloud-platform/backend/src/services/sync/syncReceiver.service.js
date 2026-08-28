@@ -22,7 +22,19 @@ import {
   upsertPredictionRequest,
   upsertDevice, getDeviceCampId,
 } from '../../data/sync/sync.postgres.repository.js';
-import { triggerAggregation } from '../disaster/campsAggregation.service.js';
+import { applySyncedPerson, applySyncedWristband } from '../resources/campData.service.js';
+
+/**
+ * Entities whose rows also live in the resources roster held in memory.
+ *
+ * Persisting is not enough: /api/resources reads that roster, and it is only
+ * populated by hydrateFromDb() at boot. Without this, a registration synced
+ * from the Pi is invisible to every resource prediction until a restart.
+ */
+const LIVE_STORE_HANDLERS = {
+  persons:    applySyncedPerson,
+  wristbands: applySyncedWristband,
+};
 
 const { host, port, username, password, caCertPath } = env.emqx;
 
@@ -199,9 +211,20 @@ async function handleSyncMessage(topic, buffer) {
   }
 
   try {
-    const ctx = { device_id: device_id || null };
-    await handler(payload, ctx);
-    await logSync(sync_id, entity, local_id, camp_id, operation, device_id);
+    await handler(payload);
+
+    // Keep the in-memory roster in step with what was just written. Guarded
+    // so a roster bug can never fail a sync that already committed to Postgres.
+    const applyLive = LIVE_STORE_HANDLERS[entity];
+    if (applyLive) {
+      try {
+        applyLive(payload);
+      } catch (liveErr) {
+        console.error(`[Sync Receiver] Live roster update failed for ${entity} id=${local_id}: ${liveErr.message}`);
+      }
+    }
+
+    await logSync(sync_id, entity, local_id, camp_id, operation);
     processedCount++;
     console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} device=${device_id || 'n/a'} (QoS ${envelope.priority})`);
 

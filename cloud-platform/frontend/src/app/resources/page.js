@@ -3,7 +3,10 @@
 import { useState } from "react";
 import SideNav from "@/components/common/SideNav";
 import PageHeader, { HeaderShell } from "@/components/common/PageHeader";
-import ResourcePanel from "@/components/resources/ResourcePanel";
+import PageTitle from "@/components/common/PageTitle";
+import Button from "@/components/common/Button";
+import OverviewPanel from "@/components/resources/OverviewPanel";
+import DistributionPanel from "@/components/resources/DistributionPanel";
 import { useTheme } from "@/components/common/ThemeProvider";
 
 // Cloud-side resources page — live data from Cloud DB (resources, resource_usage, flood_predictions).
@@ -60,6 +63,17 @@ export default function ResourcesPage() {
                 }}
               >
                 <ResourcePanel />
+              </div>
+
+              {/* ── 7-day food/water distribution forecast (Sri Lanka rate table model) ── */}
+              <div
+                style={{
+                  background: T.panel,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <DistributionPanel />
               </div>
             </div>
           </main>

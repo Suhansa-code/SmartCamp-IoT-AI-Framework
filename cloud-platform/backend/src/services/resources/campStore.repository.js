@@ -64,12 +64,36 @@ export async function savePerson(person) {
   }
 }
 
-/** Every stored person, for rehydrating the in-memory roster on boot. */
+/**
+ * Every stored person, for rehydrating the in-memory roster on boot.
+ *
+ * Reads `persons` — the table the Pi's durable sync writes — rather than
+ * `camp_persons`, which only the fire-and-forget smartcamp/registration/new
+ * mirror fills. Both wristbands.person_id and camp_checkins.person_id are
+ * declared REFERENCES persons(id), so `persons` is the roster the rest of the
+ * schema is already keyed to; reading camp_persons left the forecaster with an
+ * empty roster while the synced records sat one table over.
+ *
+ * is_active = 0 marks someone who has left the camp. camp_persons had no way
+ * to express that, so departures used to inflate every cohort.
+ *
+ * wristband_barcode is the one field camp_persons had that persons lacks; it
+ * lives in wristbands, joined here so the shape callers receive is unchanged.
+ */
 export async function loadPersons() {
   const db = pool();
   if (!db) return [];
   try {
-    const { rows } = await db.query('SELECT * FROM camp_persons');
+    const { rows } = await db.query(`
+      SELECT p.id, p.full_name, p.age, p.gender, p.family_unit_id,
+             p.family_size, p.is_pregnant, p.has_chronic_illness,
+             p.person_type, p.created_at,
+             w.barcode AS wristband_barcode
+        FROM persons p
+        LEFT JOIN wristbands w
+               ON w.person_id = p.id AND w.is_active = 1
+       WHERE COALESCE(p.is_active, 1) = 1
+    `);
     return rows;
   } catch (err) {
     console.error('[Camp Store] loadPersons failed:', err.message);
@@ -141,8 +165,9 @@ export async function loadPopulationHistory() {
   try {
     const { rows: dated } = await db.query(`
       SELECT to_char(created_at::date, 'YYYY-MM-DD') AS date, COUNT(*)::int AS arrivals
-      FROM camp_persons
+      FROM persons
       WHERE created_at IS NOT NULL
+        AND COALESCE(is_active, 1) = 1
       GROUP BY created_at::date
       ORDER BY created_at::date
     `);
@@ -150,7 +175,8 @@ export async function loadPopulationHistory() {
     if (!dated.length) return [];
 
     const { rows } = await db.query(
-      'SELECT COUNT(*)::int AS undated FROM camp_persons WHERE created_at IS NULL',
+      `SELECT COUNT(*)::int AS undated FROM persons
+        WHERE created_at IS NULL AND COALESCE(is_active, 1) = 1`,
     );
 
     let running = rows[0]?.undated || 0;
