@@ -48,8 +48,6 @@ def train_if_model(child_id: str, history, config):
     if len(features) < config.IF_MIN_SESSIONS:
         return None
 
-    features = features[-50:]
-
     try:
         X = np.array(features)
         model = IsolationForest(contamination=0.1, random_state=42, n_estimators=100)
