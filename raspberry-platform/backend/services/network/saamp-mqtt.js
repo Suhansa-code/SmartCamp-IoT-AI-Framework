@@ -97,6 +97,7 @@ export function classifyMessage(source, action) {
     'fingerprint_scanner|verification': { priority: 'HIGH', qos: 1 },
     'wristband_scanner|distribution': { priority: 'MEDIUM', qos: 1 },
     'prediction_model|daily_forecast': { priority: 'HIGH', qos: 1 },
+    'alert|disaster-alert': { priority: 'CRITICAL', qos: 2 },
     'sync|education': { priority: 'HIGH', qos: 1 },
     'sync|resources': { priority: 'HIGH', qos: 1 },
     'sync|disaster': { priority: 'CRITICAL', qos: 2 },

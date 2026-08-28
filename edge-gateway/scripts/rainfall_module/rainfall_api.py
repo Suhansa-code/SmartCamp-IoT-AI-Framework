@@ -1,18 +1,31 @@
 """
-rainfall_api.py — FastAPI router exposing GET /api/rainfall.
+rainfall_api.py — FastAPI router exposing GET/POST /api/rainfall.
 
-Returns rain sensor data from the YL-83/FC-37 rainfall sensor.
+GET  /api/rainfall — Returns rain sensor data from cached sensor state.
+POST /api/rainfall — Receives rainfall data from wireless ESP32.
+
+Supports both serial (Sensor_Bridge) and wireless (Rainfall_Sensor) communication.
 Reads from the shared in-memory cache maintained by sensor_state.py.
-The serial port is never opened here — only the background reader owns COM5.
 """
 from datetime import datetime, timezone
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
-from sensor_state import rain_state
+from sensor_state import rain_state, update_rain_state_wireless
 
 router = APIRouter()
+
+
+class RainfallData(BaseModel):
+    """Schema for wireless ESP32 rainfall data."""
+    device_id: str = Field(..., min_length=1, max_length=50)
+    rain_analog: int = Field(..., ge=0, le=4095)
+    rain_digital: int = Field(..., ge=0, le=1)
+    rain_status: str = Field(..., min_length=1, max_length=50)
+    flood_risk: str = Field(default="LOW", min_length=1, max_length=50)
+    timestamp: str = Field(default=None)
 
 
 @router.get("/rainfall")
@@ -51,3 +64,28 @@ def get_rainfall():
             "timestamp": now,
         },
     )
+
+
+@router.post("/rainfall")
+def receive_rainfall(data: RainfallData):
+    """
+    Receive rainfall data from wireless ESP32.
+    
+    Updates the shared rain_state with data from the wireless sensor.
+    Returns 200 on success, 400 on invalid data.
+    """
+    try:
+        update_rain_state_wireless(data.model_dump())
+        return {
+            "status": "received",
+            "device_id": data.device_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": "error",
+                "error": str(e),
+            },
+        )

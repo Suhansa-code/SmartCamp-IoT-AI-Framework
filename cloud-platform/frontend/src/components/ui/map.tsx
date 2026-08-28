@@ -1617,7 +1617,7 @@ const ARC_HIT_MIN_WIDTH = 12;
 const ARC_HIT_PADDING = 6;
 
 const DEFAULT_ARC_PAINT: MapArcLinePaint = {
-  "line-color": "#4285F4",
+  "line-color": "#16A34A",
   "line-width": 2,
   "line-opacity": 0.85,
 };

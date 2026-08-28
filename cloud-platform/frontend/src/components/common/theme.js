@@ -18,11 +18,11 @@ export const C = {
   border:      '#334155',   // dark chrome border
   line:        '#1E3A5F',   // panel inner border
 
-  // brand accents — professional blue primary
-  teal:        '#2563EB',   // primary accent (blue)
-  tealMid:     '#3B82F6',   // mid blue
-  tealLight:   '#DBEAFE',   // light blue tint
-  tealDim:     '#1D4ED8',   // deep blue
+  // brand accents — green primary
+  teal:        '#16A34A',
+  tealMid:     '#22C55E',
+  tealLight:   '#DCFCE7',
+  tealDim:     '#15803D',
   coral:       '#475569',   // secondary accent (slate)
   coralLight:  '#E2E8F0',   // light slate tint
 
@@ -35,7 +35,7 @@ export const C = {
   red:         '#DC2626',   // danger red
   danger:      '#DC2626',
   offline:     '#DC2626',
-  purple:      '#2563EB',   // info blue (replaces purple)
+  purple:      '#16A34A',
   blue:        '#0891B2',   // info cyan
   weak:        '#D97706',
   poor:        '#DC2626',
@@ -110,14 +110,14 @@ export const LIGHT = {
   muted:     '#475569',
   dim:       '#64748B',
   slate:     '#64748B',
-  teal:      '#2563EB', tealMid: '#3B82F6', tealLight: '#DBEAFE', tealDim: '#1D4ED8',
+  teal:      '#16A34A', tealMid: '#22C55E', tealLight: '#DCFCE7', tealDim: '#15803D',
   coral:     '#475569', coralLight: '#E2E8F0',
   amber:     '#D97706', warn: '#D97706', yellow: '#F59E0B',
   green:     '#16A34A', good: '#16A34A',
   orange:    '#D97706',
   lime:      '#16A34A',
   red:       '#DC2626', danger: '#DC2626', offline: '#DC2626',
-  purple:    '#2563EB', blue: '#0891B2',
+  purple:    '#16A34A', blue: '#0891B2',
   weak:      '#D97706', poor: '#DC2626', routine: '#475569',
   navy:      '#F8FAFC', navyDeep: '#FFFFFF', navyCard: '#FFFFFF', navyLight: '#F8FAFC',
   sky: '#F8FAFC', surface: '#FFFFFF',

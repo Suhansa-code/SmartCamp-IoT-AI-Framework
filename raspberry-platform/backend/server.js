@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { Server as SocketServer } from 'socket.io';
 import C from './config/constants.js';
+import { getCampId } from './config/camp-id.js';
 import logger from './utils/logger.js';
 import { initializeCampDb } from './config/database.js';
 import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
@@ -17,6 +18,9 @@ import { startGpsStorage } from './services/disaster/gps-storage.js';
 import { startWeatherStorage } from './services/disaster/weather-storage.js';
 import { startRainfallStorage } from './services/disaster/rainfall-storage.js';
 import { startDht11Storage } from './services/disaster/dht11-storage.js';
+import { startWaterLevelStorage } from './services/disaster/water-level-storage.js';
+import { startSensorStatusStorage } from './services/disaster/sensor-status-storage.js';
+import { startHydrospatialStorage } from './services/disaster/hydrospatial-storage.js';
 import { notFound, errorHandler } from './middleware/error-handler.js';
 
 // Camp routes
@@ -38,6 +42,7 @@ import personsRoute from './routes/resource/persons.js';
 import childRoute from './routes/education/child.js';
 import sessionRoute from './routes/education/session.js';
 import dashboardRoute from './routes/education/dashboard.js';
+import educationInsightsRoute from './routes/education/insights.js';
 
 // CORS
 const isLocalhost = (hostname) => hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
@@ -120,12 +125,21 @@ startRainfallStorage();
 
 // Start periodic DHT11 sensor storage from Edge Gateway
 startDht11Storage();
+
+// Start periodic water level storage from Edge Gateway
+startWaterLevelStorage();
+
+// Start periodic sensor status storage from Edge Gateway
+startSensorStatusStorage();
+
+// Start periodic hydrospatial analysis storage from Edge Gateway
+startHydrospatialStorage();
 // Bring up the fingerprint scanner (no-op when disabled or unplugged)
 initFingerprintHardware().catch(err => logger.error(`[FP] Init failed: ${err.message}`));
 
 // ── Unified Health Check ─────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'smartcamp-backend', device: C.DEVICE_ID, camp: C.CAMP_ID });
+  res.json({ status: 'ok', service: 'smartcamp-backend', device: C.DEVICE_ID, camp: getCampId() });
 });
 
 // ── Camp Operations Routes ───────────────────────────────────
@@ -147,6 +161,7 @@ app.use('/api/persons', personsRoute);
 app.use('/api/child', childRoute);
 app.use('/api/session', sessionRoute);
 app.use('/api', dashboardRoute);
+app.use('/api/education', educationInsightsRoute);
 
 // ── Error Handling ──────────────────────────────────────────
 app.use(notFound);
@@ -157,7 +172,7 @@ server.listen(PORT, '0.0.0.0', () => {
   logger.info('════════════════════════════════════════════');
   logger.info('  SmartCamp Unified Backend');
   logger.info(`  Device:  ${C.DEVICE_ID}`);
-  logger.info(`  Camp:    ${C.CAMP_ID}`);
+  logger.info(`  Camp:    ${getCampId()}`);
   logger.info(`  Port:    ${PORT}`);
   logger.info(`  Env:     ${C.NODE_ENV}`);
   logger.info('════════════════════════════════════════════');

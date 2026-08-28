@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react'
 import Button from '@/components/common/Button'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import { useTheme } from '@/components/common/ThemeProvider'
-import { BLUE } from '@/data/network.data'
 import { timeAgo } from '@/components/common/utils'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
+
+const BLUE = '#2563EB'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

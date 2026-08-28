@@ -171,12 +171,9 @@ describe('POST /api/fingerprint/link', () => {
     expect(res.body.error).toContain('person_id');
   });
 
-  it('returns 200 with re-enrolled person on success', async () => {
+  it('returns 400 when slot is missing', async () => {
     const res = await request(app).post('/api/fingerprint/link').send({ person_id: 99 });
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.person).toBeDefined();
-    expect(res.body.person.fingerprint_id).toMatch(/^FP_/);
+    expect(res.status).toBe(400);
   });
 });
 

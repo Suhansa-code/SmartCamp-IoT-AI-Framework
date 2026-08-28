@@ -6,16 +6,123 @@
 // Alerts are picked from a dropdown and inspected in the detail card.
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ArrowUpRight, Radio, Users, Flame, ListChecks } from "lucide-react";
+import { ArrowUpRight, Radio, Users, Flame, ListChecks, AlertTriangle } from "lucide-react";
 import SideNav from "@/components/common/SideNav";
 import PageHeader from "@/components/common/PageHeader";
+import DataTable from "@/components/common/DataTable/DataTable";
 import { useTheme } from "@/components/common/ThemeProvider";
-import { SEVERITY_RANK } from "@/data/theme.data";
+import { SEVERITY_RANK, SEVERITY_COLOR, STATUS_COLOR } from "@/data/theme.data";
 import { MOCK_CAMPS, mockAlerts } from "@/data/alerts.data";
 import AlertCard from "@/components/alert/AlertCard";
 import ArrowChip from "@/components/alert/ArrowChip";
 import Button from "@/components/common/Button";
 import { daysSince } from "@/components/common/utils";
+
+// ── Alert table columns ─────────────────────────────────────────────────────
+const ALERT_COLUMNS = [
+  {
+    key: "childId",
+    label: "Child ID",
+    sortable: true,
+    render: (v) => (
+      <span style={{ fontWeight: 700, color: "#0F172A" }}>{v || "—"}</span>
+    ),
+  },
+  {
+    key: "alertType",
+    label: "Alert Type",
+    sortable: true,
+    render: (v) => (
+      <span style={{ fontWeight: 600, fontSize: "0.78rem" }}>{v}</span>
+    ),
+  },
+  {
+    key: "severity",
+    label: "Severity",
+    sortable: true,
+    render: (v) => {
+      const color = SEVERITY_COLOR[v] || "#64748B";
+      return (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "2px 8px",
+            borderRadius: 999,
+            fontSize: "0.58rem",
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            background: `${color}14`,
+            border: `1px solid ${color}44`,
+            color,
+          }}
+        >
+          {v}
+        </span>
+      );
+    },
+  },
+  {
+    key: "campName",
+    label: "Camp",
+    sortable: true,
+    render: (v) => (
+      <span style={{ fontWeight: 600, color: "#16A34A" }}>{v || "—"}</span>
+    ),
+  },
+  {
+    key: "status",
+    label: "Status",
+    sortable: true,
+    render: (v) => {
+      const meta = {
+        pending: { color: "#D97706", label: "Pending" },
+        escalated: { color: "#8B5CF6", label: "Escalated" },
+        resolved: { color: "#16A34A", label: "Resolved" },
+      }[v] || { color: "#64748B", label: v };
+      return (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "2px 8px",
+            borderRadius: 999,
+            fontSize: "0.58rem",
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            background: `${meta.color}14`,
+            border: `1px solid ${meta.color}44`,
+            color: meta.color,
+          }}
+        >
+          {meta.label}
+        </span>
+      );
+    },
+  },
+  {
+    key: "triggeredAt",
+    label: "Triggered",
+    sortable: true,
+    numeric: true,
+    render: (v) => {
+      if (!v) return "—";
+      const d = new Date(v);
+      return (
+        <div style={{ fontSize: "0.72rem" }}>
+          <div style={{ fontWeight: 600 }}>{d.toLocaleDateString()}</div>
+          <div style={{ color: "#64748B", fontSize: "0.65rem" }}>
+            {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </div>
+        </div>
+      );
+    },
+  },
+];
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AlertsPage() {
@@ -45,7 +152,7 @@ export default function AlertsPage() {
               : a.alert_type?.includes("High") || a.alert_type?.includes("high")
                 ? "high"
                 : "medium",
-          status: a.status === "pending" ? "pending" : "resolved",
+          status: a.status === "escalated" ? "escalated" : a.status === "resolved" ? "resolved" : "pending",
           triggeredAt: new Date(a.triggered_at).getTime(),
           scores: (a.recent_scores || []).map((score, idx) => ({ session: idx + 1, score })),
         }));
@@ -412,11 +519,12 @@ export default function AlertsPage() {
                   onClick={() => mostCritical && viewAlert(mostCritical.id)}
                   style={{
                     background: T.mode === 'dark'
-                      ? `linear-gradient(155deg, #F8FAFC 0%, #E2E8F0 100%)`
-                      : `linear-gradient(155deg, #0F172A 0%, #1E293B 100%)`,
+                      ? `linear-gradient(155deg, #0F172A 0%, #1E293B 100%)`
+                      : `linear-gradient(155deg, #F8FAFC 0%, #E2E8F0 100%)`,
                     borderRadius: "1.25rem",
                     padding: "1.1rem 1.25rem",
-                    color: T.mode === 'dark' ? '#0F172A' : '#fff',
+                    border: T.mode === 'dark' ? 'none' : `1px solid ${T.border}`,
+                    color: T.mode === 'dark' ? '#fff' : '#0F172A',
                     cursor: mostCritical ? "pointer" : "default",
                     display: "flex",
                     flexDirection: "column",
@@ -424,13 +532,13 @@ export default function AlertsPage() {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: T.mode === 'dark' ? '#475569' : "rgba(255,255,255,0.65)" }}>Most Critical</p>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 700, color: T.mode === 'dark' ? "rgba(255,255,255,0.65)" : '#475569' }}>Most Critical</p>
                     <ArrowChip dark={T.mode === 'light'} />
                   </div>
                   {mostCritical ? (
                     <>
                       <p style={{ fontSize: "1.15rem", fontWeight: 800 }}>{mostCritical.childId}</p>
-                      <p style={{ fontSize: "0.76rem", color: T.mode === 'dark' ? '#64748B' : "rgba(255,255,255,0.7)" }}>{mostCritical.alertType}</p>
+                      <p style={{ fontSize: "0.76rem", color: T.mode === 'dark' ? "rgba(255,255,255,0.7)" : '#64748B' }}>{mostCritical.alertType}</p>
                     </>
                   ) : (
                     <p style={{ fontSize: "0.95rem", fontWeight: 700 }}>No Recodes</p>
@@ -643,6 +751,30 @@ export default function AlertsPage() {
                   <p style={{ fontSize: "0.9rem", color: T.muted, fontWeight: 600 }}>No alerts yet</p>
                 )}
               </div>
+            </div>
+
+            {/* ── Alert Records Table ─────────────────────────── */}
+            <div style={{ marginTop: "0.5rem" }}>
+              <DataTable
+                columns={ALERT_COLUMNS}
+                data={dropdownAlerts}
+                title="Alert Records"
+                subtitle={`${dropdownAlerts.length} alerts · ${selectedCamp === "all" ? "All camps" : selectedCamp.toUpperCase()}`}
+                filterOptions={[
+                  { key: "all", label: "All" },
+                  { key: "pending", label: "Pending" },
+                  { key: "escalated", label: "Escalated" },
+                  { key: "resolved", label: "Resolved" },
+                ]}
+                filterKey="status"
+                searchKeys={["childId", "campName", "alertType"]}
+                searchPlaceholder="Search by child ID, camp, or alert type…"
+                loading={loading}
+                emptyMessage={alerts.length === 0 ? "No alerts found" : "No alerts match your filters"}
+                rowKey="id"
+                onRowClick={(row) => viewAlert(row.id)}
+                selectedRow={selectedAlert?.id}
+              />
             </div>
           </div>
         </main>

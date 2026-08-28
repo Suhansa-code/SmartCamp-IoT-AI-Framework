@@ -127,6 +127,36 @@ pages_sync_log = Table(
     Column('synced_at', Text, nullable=False),
 )
 
+# Isolation Forest model storage (per-child)
+pages_if_models = Table(
+    'pages_if_models',
+    metadata,
+    Column('child_id', String, primary_key=True),
+    Column('model_blob', String, nullable=False),  # base64-encoded pickle
+    Column('feature_count', Integer, nullable=False),
+    Column('session_count', Integer, nullable=False),
+    Column('trained_at', Text, nullable=False),
+    Column('updated_at', Text, nullable=False),
+)
+
+# IF prediction insights for cloud dashboard
+pages_if_insights = Table(
+    'pages_if_insights',
+    metadata,
+    Column('insight_id', String, primary_key=True),
+    Column('child_id', String, ForeignKey('pages_children.child_id'), nullable=False),
+    Column('session_id', String, ForeignKey('pages_sessions.session_id'), nullable=False),
+    Column('if_score', Float, nullable=False),
+    Column('anomaly_flagged', Integer, nullable=False, server_default=text('0')),
+    Column('composite_score', Float, nullable=False),
+    Column('task_score', Float, nullable=False),
+    Column('passive_score', Float, nullable=False),
+    Column('contribution_composite', Float, nullable=False),
+    Column('contribution_task', Float, nullable=False),
+    Column('contribution_passive', Float, nullable=False),
+    Column('created_at', Text, nullable=False),
+)
+
 
 def create_engine_for(database_url: str):
     """Create a SQLAlchemy engine with DB-appropriate connection options."""

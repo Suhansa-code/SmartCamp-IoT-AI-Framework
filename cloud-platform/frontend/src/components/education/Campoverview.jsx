@@ -18,7 +18,7 @@ export default function CampOverview({ camp, onCampClick, darkMode = false }) {
   const sc = statusConfig[status]
 
   const textColor = darkMode ? '#E2E8F0' : '#1E3A5F'
-  const subColor  = darkMode ? '#94A3B8' : '#2563EB'
+  const subColor  = darkMode ? '#94A3B8' : '#16A34A'
   const cardBg    = darkMode ? '#1E293B' : '#F0F4F8'
   const mutedColor = darkMode ? 'rgba(226,232,240,0.5)' : 'rgba(30,58,95,0.5)'
 

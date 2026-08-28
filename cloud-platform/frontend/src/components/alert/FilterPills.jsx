@@ -11,6 +11,7 @@ export default function FilterPills({ options, active, onSelect, counts = {} }) 
         return (
           <button
             key={f.key}
+            suppressHydrationWarning
             onClick={() => onSelect(f.key)}
             style={{
               background: isActive ? T.textPrimary : T.card, color: isActive ? T.bg : T.textSoft,

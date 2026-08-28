@@ -201,6 +201,16 @@ def find_upstream_gauging_station(
     river_geometry = nearest_river.geometry
     distance_to_river_meters = float(round(user_point.distance(river_geometry), 2))
 
+    # Get river name from shapefile if Overpass failed
+    if named_river is None and "name" in nearest_river.index and nearest_river["name"]:
+        river_name_from_shapefile = str(nearest_river["name"]).strip()
+        if river_name_from_shapefile and river_name_from_shapefile.lower() != "nan":
+            nearest_river_name = river_name_from_shapefile
+        else:
+            nearest_river_name = None
+    else:
+        nearest_river_name = nearest_river.get("name") if "name" in nearest_river.index else None
+
 
     # Snap user to river
     snapped_user_point = snap_point_to_line(
@@ -269,12 +279,15 @@ def find_upstream_gauging_station(
             "distance_meters": float(round(nearest_upstream_distance, 2)),
             "distance_to_station_meters": distance_to_station_meters,
             "distance_to_river_meters": distance_to_river_meters,
-            "nearest_river_name": nearest_river.get("name"),
+            "nearest_river_name": nearest_river_name,
             "alert_level": float(nearest_upstream_station.get("alert_level"))
             if pd.notnull(nearest_upstream_station.get("alert_level"))
             else None,
             "minor_flood_level": nearest_upstream_station.get("minor_flood_level") or nearest_upstream_station.get("minor_flood"),
             "major_flood_level": nearest_upstream_station.get("major_flood_level") or nearest_upstream_station.get("major_flood"),
+            "gauge_latitude": float(nearest_upstream_station.get("Latitude")) if pd.notnull(nearest_upstream_station.get("Latitude")) else None,
+            "gauge_longitude": float(nearest_upstream_station.get("Longitude")) if pd.notnull(nearest_upstream_station.get("Longitude")) else None,
+            "ref": nearest_upstream_station.get("ref"),
         }
 
 
@@ -297,10 +310,13 @@ def find_upstream_gauging_station(
         "distance_meters": distance_to_station_meters,
         "distance_to_station_meters": distance_to_station_meters,
         "distance_to_river_meters": distance_to_river_meters,
-        "nearest_river_name": nearest_river.get("name"),
+        "nearest_river_name": nearest_river_name,
         "alert_level": nearest_station.get("alert_level"),
         "minor_flood_level": nearest_station.get("minor_flood"),
         "major_flood_level": nearest_station.get("major_flood"),
+        "gauge_latitude": float(nearest_station.get("Latitude")) if pd.notnull(nearest_station.get("Latitude")) else None,
+        "gauge_longitude": float(nearest_station.get("Longitude")) if pd.notnull(nearest_station.get("Longitude")) else None,
+        "ref": nearest_station.get("ref"),
     }
 
 

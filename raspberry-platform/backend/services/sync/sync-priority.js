@@ -14,6 +14,9 @@
  * Within same priority: oldest record first (by created_at / timestamp)
  */
 
+// TEMPORARY: Boost PAGES priority for testing. Revert after testing.
+const PAGES_BOOST = true; // Set to false to revert to original priorities
+
 const PRIORITY = {
   CRITICAL: 'CRITICAL',
   HIGH: 'HIGH',
@@ -89,27 +92,23 @@ export function classifyRowPriority(tableName, row) {
     case 'pages_children':
       return classifyChild(row);
 
-    // ── pages_behavioral_signals — session metrics, always LOW ─────
+    // ── pages_behavioral_signals — session metrics, TEMPORARY boost for testing ─────
     case 'pages_behavioral_signals':
-      return lo('behavioral_signal');
+      return PAGES_BOOST ? hi('behavioral_signal_boosted') : lo('behavioral_signal');
 
-    // ── pages_content_responses — per-task answers, always LOW ─────
+    // ── pages_content_responses — per-task answers, TEMPORARY boost for testing ─────
     case 'pages_content_responses':
-      return lo('content_response');
+      return PAGES_BOOST ? hi('content_response_boosted') : lo('content_response');
 
     // ── Disaster tables ───────────────────────────────────────────
     case 'disaster_alerts':
       return classifyDisasterAlert(row);
     case 'flood_predictions':
       return classifyFloodPrediction(row);
-    case 'sensor_readings':
-      return classifySensorReading(row);
     case 'water_level_readings':
       return classifyWaterLevel(row);
     case 'disaster_events':
       return classifyDisasterEvent(row);
-    case 'environmental_data':
-      return md('environmental_data');
     case 'weather_data':
       return md('weather_data');
     case 'gps_readings':
@@ -139,6 +138,8 @@ function classifyAlert(row) {
 }
 
 function classifySession(row) {
+  // TEMPORARY: Boost PAGES priority for testing
+  if (PAGES_BOOST) return hi('session_boosted');
   // Anomaly flagged = potential learning difficulty → HIGH
   if (row.anomaly_flagged) return hi('session_anomaly');
   // FAIL_CONFIRMED gate = needs attention → HIGH
@@ -150,6 +151,8 @@ function classifySession(row) {
 }
 
 function classifyGateDecision(row) {
+  // TEMPORARY: Boost PAGES priority for testing
+  if (PAGES_BOOST) return hi('gate_boosted');
   if (row.decision === 'FAIL_CONFIRMED') return hi('gate_fail_confirmed');
   if (row.decision === 'FAIL_FIRST') return md('gate_fail_first');
   return lo('gate_pass');
@@ -184,6 +187,8 @@ function classifyResource(row) {
 }
 
 function classifyChild(row) {
+  // TEMPORARY: Boost PAGES priority for testing
+  if (PAGES_BOOST) return hi('child_boosted');
   // Very low baseline → HIGH (needs attention)
   if (row.baseline_score != null && row.baseline_score < 40) return hi('child_low_baseline');
   // Active alerts → HIGH
@@ -291,14 +296,17 @@ export function getTableDefaultPriority(tableName) {
     camp_checkins:         PRIORITY.HIGH,
     wristbands:            PRIORITY.HIGH,
     audit_logs:            PRIORITY.LOW,
-    pages_behavioral_signals: PRIORITY.LOW,
-    pages_content_responses:  PRIORITY.LOW,
+    // TEMPORARY: Boost PAGES tables for testing
+    pages_children:        PAGES_BOOST ? PRIORITY.HIGH : PRIORITY.LOW,
+    pages_sessions:        PAGES_BOOST ? PRIORITY.HIGH : PRIORITY.LOW,
+    pages_behavioral_signals: PAGES_BOOST ? PRIORITY.HIGH : PRIORITY.LOW,
+    pages_content_responses:  PAGES_BOOST ? PRIORITY.HIGH : PRIORITY.LOW,
+    pages_gate_decisions:  PAGES_BOOST ? PRIORITY.HIGH : PRIORITY.LOW,
+    pages_alerts:          PAGES_BOOST ? PRIORITY.HIGH : PRIORITY.LOW,
     disaster_alerts:       PRIORITY.CRITICAL,
     flood_predictions:     PRIORITY.CRITICAL,
-    sensor_readings:       PRIORITY.HIGH,
     water_level_readings:  PRIORITY.HIGH,
     disaster_events:       PRIORITY.HIGH,
-    environmental_data:    PRIORITY.MEDIUM,
     weather_data:          PRIORITY.MEDIUM,
     gps_readings:          PRIORITY.MEDIUM,
     hydrospatial_data:     PRIORITY.MEDIUM,

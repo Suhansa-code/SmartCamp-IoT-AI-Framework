@@ -13,7 +13,7 @@
  * and derives a location-based camp ID.
  */
 import logger from '../../utils/logger.js';
-import C from '../../config/constants.js';
+import { updateCampIdFromGps, getCampId } from '../../config/camp-id.js';
 import { reverseGeocode } from './geocode.js';
 
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
@@ -26,20 +26,13 @@ let lastFetch = 0;
 /*  CAMP ID — derived from GPS location                                 */
 /* ------------------------------------------------------------------ */
 
-let _dynamicCampId = null;
-
-function deriveCampId(locationName) {
-  if (!locationName) return null;
-  const cleaned = locationName.trim().replace(/\s+/g, '-');
-  return `CAMP-${cleaned}`;
-}
-
 export function getDynamicCampId() {
-  return _dynamicCampId || C.CAMP_ID;
+  return getCampId();
 }
 
 export function getCampSuffix() {
-  return C.CAMP_SUFFIX || 'B';
+  const campId = getCampId();
+  return campId.replace('CAMP-', '') || 'B';
 }
 
 /* ------------------------------------------------------------------ */
@@ -102,8 +95,7 @@ export async function getGpsLocation() {
     }
 
     if (locationName && !looksLikeCoords) {
-      const derived = deriveCampId(locationName);
-      if (derived) _dynamicCampId = derived;
+      updateCampIdFromGps(locationName);
     }
 
     lastFix = {
