@@ -40,7 +40,7 @@ class Config:
     DATA_DIR = Path(os.getenv('DATA_DIR', './data'))
     MODELS_DIR = Path(os.getenv('MODELS_DIR', './models'))
     SQLITE_PATH = Path(os.getenv('SQLITE_PATH', './data/pages.db'))
-    CAMP_ID = os.getenv('CAMP_ID', 'CAMP-UNKNOWN')
+    CAMP_ID = os.getenv('CAMP_ID', os.getenv('DEVICE_ID', 'CAMP-UNKNOWN'))
 
     # ── Database ───────────────────────────────────────────────────
     POSTGRES_URL = os.getenv('POSTGRES_URL') or None
