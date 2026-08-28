@@ -86,6 +86,8 @@ export async function getCampEducation(campId) {
     children: childrenResult.rows.map((child) => ({ ...child, recent_scores: sessionsResult.rows.filter((session) => session.child_id === child.child_id).slice(0, 5) })),
     sessions: sessionsResult.rows,
     alerts: alertsResult.rows,
+    behavioral_signals: signals,
+    gate_decisions_list: decisions,
     grade_distribution: Array.from(gradeMap.entries()).map(([grade, count]) => ({ grade, count })),
     language_distribution: Array.from(langMap.entries()).map(([language, count]) => ({ language, count })),
     behavioral: { avg_accuracy: avgAccuracy, avg_reaction_ms: avgReaction, avg_completion: avgCompletion, avg_false_tap: avgFalseTap, total_rapid_clicks: totalRapidClicks, signal_count: signals.length },

@@ -31,6 +31,7 @@ export default {
 
   FLASK_URL: process.env.FLASK_URL || 'http://localhost:5001',
   FLASK_TIMEOUT_MS: 8000,
+  CLOUD_ML_URL: process.env.CLOUD_ML_URL || 'http://localhost:5001',
 
   JWT_SECRET: process.env.JWT_SECRET || 'CHANGE_THIS_SECRET',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
