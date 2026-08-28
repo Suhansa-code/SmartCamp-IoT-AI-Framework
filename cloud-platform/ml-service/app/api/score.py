@@ -38,7 +38,7 @@ def score():
 
     # 3. Isolation Forest score (from session 8 onwards)
     if_score = if_service.compute_if_score(
-        child_id, composite, task_score, passive_score, history.session_history, config, engine
+        child_id, task_metrics, passive_signals, history.session_history, config, engine
     )
 
     # 4. Anomaly detection
@@ -78,7 +78,7 @@ def score():
     if if_score is not None:
         try:
             feature_vector = scoring_service.session_to_feature_vector({
-                'composite': composite, 'task': task_score, 'passive': passive_score
+                **task_metrics, **passive_signals,
             })
             contributions = {
                 'composite': round(composite * 0.50, 2),

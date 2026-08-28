@@ -58,7 +58,10 @@ class TestComputeIfScore:
     def test_returns_none_insufficient_history(self):
         history = {'child-1': [{'composite': 60, 'task': 50, 'passive': 70}]}
         result = if_service.compute_if_score(
-            'child-1', 60.0, 50.0, 70.0, history, Config, None
+            'child-1',
+            {'accuracyRate': 0.8, 'falseTapRate': 0.1, 'avgReactionTime': 300, 'reactionVariance': 100},
+            {'idleTimeRatio': 0.1, 'rapidClickCount': 2, 'timeToFirstMs': 450, 'completionRatio': 0.9},
+            history, Config, None
         )
         assert result is None
 
