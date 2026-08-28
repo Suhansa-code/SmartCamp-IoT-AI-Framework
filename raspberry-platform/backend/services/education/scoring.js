@@ -4,9 +4,14 @@ import logger from '../../utils/logger.js';
 import { round } from '../../utils/helpers.js';
 import { sqliteRetrieve } from '../../config/database.js';
 
-const flaskUrl = C.FLASK_URL;
-
 const ZSCORE_MIN_SESSIONS = 3;
+
+export async function checkFlaskHealth() {
+  try {
+    const res = await axios.get(`${C.CLOUD_ML_URL}/health`, { timeout: 3000 });
+    return res.data?.status === 'ok';
+  } catch { return false; }
+}
 
 export async function computeLocalZScore(childId, compositeScore) {
   try {
@@ -28,54 +33,47 @@ export async function computeLocalZScore(childId, compositeScore) {
     const stdDev = varianceScore > 0 ? Math.sqrt(varianceScore) : 1;
     const z = (compositeScore - meanScore) / stdDev;
 
-    return round(z < 0 ? Math.max(z, -5) : z, 4);
+    return round(z, 4);
   } catch (err) {
     logger.warn(`[SCORING] Local z-score computation failed for child ${childId}: ${err.message}`);
     return null;
   }
 }
 
-export async function checkFlaskHealth() {
-  try {
-    const res = await axios.get(`${flaskUrl}/health`, { timeout: 3000 });
-    return res.data?.status === 'ok';
-  } catch { return false; }
-}
-
 export async function getScore(childId, sessionId, taskMetrics, passiveSignals, baselineOverride = null) {
   const body = { child_id: childId, session_id: sessionId, taskMetrics, passiveSignals };
 
+  // 1. Try cloud ML service first (IF + composite)
   try {
-    const res = await axios.post(`${flaskUrl}/score`, body, {
+    const res = await axios.post(`${C.CLOUD_ML_URL}/score`, body, {
       timeout: C.FLASK_TIMEOUT_MS,
       headers: { 'Content-Type': 'application/json' },
     });
     const d = res.data;
     const localZScore = await computeLocalZScore(childId, d.compositeScore);
-    const ifScore = d.ifScore ?? null;
-    const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
-    const anomalyByIF = ifScore !== null && ifScore < C.IF_SCORE_THRESHOLD;
     return {
       compositeScore: round(d.compositeScore, 2),
       taskScore: round(d.taskScore, 2),
       passiveScore: round(d.passiveScore, 2),
       baselineScore: d.baselineScore || null,
       zScore: localZScore,
-      ifScore,
-      anomalyFlagged: anomalyByZ || anomalyByIF,
+      ifScore: d.ifScore ?? null,
+      anomalyFlagged: d.anomalyFlagged ?? false,
       gateDecision: d.gateDecision,
     };
   } catch (err) {
-    logger.warn(`[SCORING] Flask unreachable — using fallback scoring: ${err.message}`);
-    const fallback = fallbackScore(taskMetrics, passiveSignals, baselineOverride);
-    const localZScore = await computeLocalZScore(childId, fallback.compositeScore);
-    const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
-    return {
-      ...fallback,
-      zScore: localZScore,
-      anomalyFlagged: anomalyByZ,
-    };
+    logger.warn(`[SCORING] Cloud ML unreachable — using fallback scoring: ${err.message}`);
   }
+
+  // 2. Fallback: local scoring (no IF)
+  const fallback = fallbackScore(taskMetrics, passiveSignals, baselineOverride);
+  const localZScore = await computeLocalZScore(childId, fallback.compositeScore);
+  const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
+  return {
+    ...fallback,
+    zScore: localZScore,
+    anomalyFlagged: anomalyByZ,
+  };
 }
 
 export function fallbackScore(taskMetrics, passiveSignals, baselineOverride = null) {
