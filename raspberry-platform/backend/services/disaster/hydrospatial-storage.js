@@ -12,6 +12,7 @@ import { disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { nowISO } from '../../utils/helpers.js';
+import { gpsChangeEmitter } from './gps-storage.js';
 
 const DEVICE_ID = C.DEVICE_ID;
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
@@ -161,6 +162,16 @@ export function startHydrospatialStorage() {
     }
     scheduleNextTick();
   }, 15_000); // 15s delay to allow other services to start first
+
+  // Listen for GPS changes → immediate re-fetch
+  gpsChangeEmitter.on('gps-changed', async (gps) => {
+    logger.info(`[HYDROSPATIAL] GPS changed to ${gps.latitude}, ${gps.longitude} — triggering immediate re-fetch`);
+    try {
+      await fetchAndSaveHydrospatial();
+    } catch (err) {
+      logger.error(`[HYDROSPATIAL] GPS-change re-fetch error: ${err.message}`);
+    }
+  });
 
   logger.info('[HYDROSPATIAL] Started (interval: 30 min)');
 }

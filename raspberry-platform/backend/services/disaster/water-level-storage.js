@@ -1,17 +1,21 @@
 /**
  * water-level-storage.js — Persists water level readings into disaster.db.
  *
- * Every 15 minutes:
- *   1. Get latest GPS from DB
- *   2. Call Edge Gateway /hydrospatial/live-payload
- *   3. Save result into water_level_readings
+ * On startup:
+ *   1. Resolve station name from GPS (cached)
+ *   2. Backfill gap from ArcGIS historical readings (gap-aware)
+ *   3. Fetch current reading from Edge Gateway live-payload
  *
- * Frontend reads from /api/disaster/water-level/latest.
+ * Every 15 minutes:
+ *   4. Fetch current reading from Edge Gateway live-payload
+ *
+ * Frontend reads from /api/disaster/water-level/latest and /water-level/history.
  */
 import { disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { nowISO } from '../../utils/helpers.js';
+import { gpsChangeEmitter } from './gps-storage.js';
 
 const DEVICE_ID = C.DEVICE_ID;
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
@@ -22,6 +26,11 @@ let timer = null;
 let lastSaveTime = null;
 
 let insertStmt = null;
+
+// ── Station name cache ──────────────────────────────────────────────────
+let cachedStationName = null;
+let cachedStationGps = null;
+const STATION_CACHE_DISTANCE_M = 100;
 
 function ensureStatements() {
   if (insertStmt) return;
@@ -47,6 +56,56 @@ function getLatestPersistedGps() {
     }
   } catch (_) {}
   return null;
+}
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function resolveStationName(gps) {
+  if (cachedStationName && cachedStationGps) {
+    const dist = haversineDistance(
+      gps.latitude, gps.longitude,
+      cachedStationGps.latitude, cachedStationGps.longitude
+    );
+    if (dist < STATION_CACHE_DISTANCE_M) return cachedStationName;
+  }
+
+  try {
+    const url = `${EDGE_API}/hydrospatial/nearest-river-gauging-station?lat=${gps.latitude}&lon=${gps.longitude}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return cachedStationName;
+    const data = await res.json();
+    const name = data.gauging_station?.station_name || null;
+    if (name) {
+      cachedStationName = name;
+      cachedStationGps = { latitude: gps.latitude, longitude: gps.longitude };
+    }
+    return name;
+  } catch (err) {
+    logger.warn(`[WATER_LEVEL] Station resolve failed: ${err.message}`);
+    return cachedStationName;
+  }
+}
+
+function getLastRecordedAt() {
+  try {
+    const row = disasterDb
+      .prepare('SELECT recorded_at FROM water_level_readings ORDER BY id DESC LIMIT 1')
+      .get();
+    return row?.recorded_at || null;
+  } catch (_) {
+    return null;
+  }
 }
 
 async function fetchLivePayload(lat, lon, alt) {
@@ -136,6 +195,69 @@ export async function fetchAndSaveWaterLevel() {
   }
 }
 
+// ── ArcGIS history backfill ─────────────────────────────────────────────
+
+export async function fetchAndSaveWaterLevelHistory(stationName, hours = 24) {
+  ensureStatements();
+
+  const gps = getLatestPersistedGps();
+  if (!gps) {
+    logger.warn('[WATER_LEVEL] No GPS — skipping history backfill');
+    return 0;
+  }
+
+  try {
+    const url = `${EDGE_API}/hydrospatial/water-level-history?station=${encodeURIComponent(stationName)}&hours=${hours}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+    if (!res.ok) {
+      logger.warn(`[WATER_LEVEL] History fetch failed: ${res.status}`);
+      return 0;
+    }
+    const data = await res.json();
+
+    let inserted = 0;
+    const now = nowISO();
+
+    for (const r of data.readings || []) {
+      try {
+        insertStmt.run(
+          DEVICE_ID,
+          stationName,
+          r.water_level,
+          'm',
+          gps.latitude,
+          gps.longitude,
+          null,
+          stationName,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          'ARCGIS_HISTORY',
+          r.timestamp,
+          r.timestamp,
+        );
+        inserted++;
+      } catch (err) {
+        if (!err.message?.includes('UNIQUE constraint')) {
+          logger.warn(`[WATER_LEVEL] History insert failed: ${err.message}`);
+        }
+      }
+    }
+
+    if (inserted > 0) {
+      logger.info(`[WATER_LEVEL] Backfilled ${inserted} readings from ArcGIS (${hours}h)`);
+    }
+    return inserted;
+  } catch (err) {
+    logger.error(`[WATER_LEVEL] History backfill failed: ${err.message}`);
+    return 0;
+  }
+}
+
 // ── Periodic timer ──────────────────────────────────────────────────────
 
 function scheduleNextTick() {
@@ -162,17 +284,61 @@ export function startWaterLevelStorage() {
   ensureStatements();
 
   setTimeout(async () => {
-    logger.info('[WATER_LEVEL] Initial tick');
+    logger.info('[WATER_LEVEL] Starting up — resolving station and backfilling history');
+
+    const gps = getLatestPersistedGps();
+    if (!gps) {
+      logger.warn('[WATER_LEVEL] No GPS on startup — skipping backfill, will retry on timer');
+      scheduleNextTick();
+      return;
+    }
+
+    const stationName = await resolveStationName(gps);
+    if (!stationName) {
+      logger.warn('[WATER_LEVEL] No station found — skipping backfill');
+      scheduleNextTick();
+      return;
+    }
+
+    // Gap-aware backfill
+    const lastRecorded = getLastRecordedAt();
+    let hoursToBackfill = 24;
+    if (lastRecorded) {
+      const gapMs = Date.now() - new Date(lastRecorded).getTime();
+      const gapHours = Math.ceil(gapMs / (1000 * 60 * 60));
+      hoursToBackfill = Math.max(1, Math.min(gapHours, 168));
+    }
+
+    logger.info(`[WATER_LEVEL] Backfilling ${hoursToBackfill}h from ArcGIS for station: ${stationName}`);
+    try {
+      const inserted = await fetchAndSaveWaterLevelHistory(stationName, hoursToBackfill);
+      logger.info(`[WATER_LEVEL] Backfill complete: ${inserted} new readings`);
+    } catch (err) {
+      logger.error(`[WATER_LEVEL] Backfill error: ${err.message}`);
+    }
+
+    // Then fetch current reading
     try {
       const saved = await fetchAndSaveWaterLevel();
-      logger.info(`[WATER_LEVEL] Initial tick result: ${saved ? 'saved' : 'no save'}`);
+      logger.info(`[WATER_LEVEL] Live fetch: ${saved ? 'saved' : 'no save'}`);
     } catch (err) {
-      logger.error(`[WATER_LEVEL] Initial tick error: ${err.message}`);
+      logger.error(`[WATER_LEVEL] Live fetch error: ${err.message}`);
     }
+
     scheduleNextTick();
   }, 10_000);
 
-  logger.info('[WATER_LEVEL] Started (interval: 15 min)');
+  // Listen for GPS changes → immediate re-fetch
+  gpsChangeEmitter.on('gps-changed', async (gps) => {
+    logger.info(`[WATER_LEVEL] GPS changed to ${gps.latitude}, ${gps.longitude} — triggering immediate re-fetch`);
+    try {
+      await fetchAndSaveWaterLevel();
+    } catch (err) {
+      logger.error(`[WATER_LEVEL] GPS-change re-fetch error: ${err.message}`);
+    }
+  });
+
+  logger.info('[WATER_LEVEL] Started (interval: 15 min, gap-aware backfill on startup)');
 }
 
 export function stopWaterLevelStorage() {

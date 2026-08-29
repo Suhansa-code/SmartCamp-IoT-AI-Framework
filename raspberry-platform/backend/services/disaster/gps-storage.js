@@ -25,8 +25,15 @@ import { reverseGeocode } from './geocode.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { nowISO } from '../../utils/helpers.js';
+import { EventEmitter } from 'events';
 
 const DEVICE_ID = C.DEVICE_ID;
+
+// ── GPS change event emitter ────────────────────────────────────────────
+// Other services (water-level, hydrospatial, weather) can listen for
+// 'gps-changed' to trigger immediate re-fetch when GPS moves significantly.
+export const gpsChangeEmitter = new EventEmitter();
+gpsChangeEmitter.setMaxListeners(10);
 
 // ── Config ──────────────────────────────────────────────────────────────
 
@@ -93,6 +100,10 @@ function insertGpsRecord(lat, lng, altitude, accuracy, source, locationName, loc
   lastStoredLng = roundedLng;
   lastSaveTime = Date.now();
   logger.info(`[GPS-STORAGE] Stored reading: ${roundedLat.toFixed(4)}, ${roundedLng.toFixed(4)} @ ${now} — name="${locationName}", district="${locationDistrict}"`);
+
+  // Emit GPS change event so other services can re-fetch immediately
+  gpsChangeEmitter.emit('gps-changed', { latitude: roundedLat, longitude: roundedLng, altitude, accuracy, locationName, locationDistrict });
+
   return true;
 }
 

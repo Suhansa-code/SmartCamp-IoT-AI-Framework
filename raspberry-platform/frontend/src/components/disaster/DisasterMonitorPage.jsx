@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Droplets, Wind, MapPin, RefreshCw, Radar, Navigation, Satellite,
   CloudRain, Bell, Download, Mountain, Waves, Gauge as GaugeIcon, ArrowRight,
@@ -166,39 +166,51 @@ export default function DisasterMonitorPage() {
   const [now, setNow] = useState(new Date())
   const [refreshing, setRefreshing] = useState(false)
   const [latestGps, setLatestGps] = useState(null)
+  const [gpsLoading, setGpsLoading] = useState(true)
   const [weather, setWeather] = useState(null)
+  const [weatherLoading, setWeatherLoading] = useState(true)
   const [waterLevel, setWaterLevel] = useState(null)
+  const [waterLevelLoading, setWaterLevelLoading] = useState(true)
   const [waterHistory, setWaterHistory] = useState([])
   const [hydrospatial, setHydrospatial] = useState(null)
+  const [hydroLoading, setHydroLoading] = useState(true)
   const [prediction, setPrediction] = useState(null)
   const [predLoading, setPredLoading] = useState(true)
   const [predError, setPredError] = useState(null)
+
+  // Track last GPS coordinates to detect changes
+  const lastGpsRef = useRef(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(t)
   }, [])
 
-  useEffect(() => {
-    fetch(`${API}/api/disaster/latest-gps`)
-      .then((r) => r.json())
-      .then((data) => setLatestGps(data))
-      .catch(() => {})
+  // ── Fetch all disaster data for current GPS ──────────────────────────
+  const fetchAllDisasterData = useCallback(() => {
+    setWeatherLoading(true)
+    setWaterLevelLoading(true)
+    setHydroLoading(true)
+    setPredLoading(true)
+    setPredError(null)
+
     fetch(`${API}/api/disaster/weather/latest`)
       .then((r) => r.json())
       .then((data) => { if (data.available) setWeather(data) })
       .catch(() => {})
+      .finally(() => setWeatherLoading(false))
+
     fetch(`${API}/api/disaster/water-level/latest`)
       .then((r) => r.json())
       .then((data) => { if (data.available) setWaterLevel(data) })
       .catch(() => {})
+      .finally(() => setWaterLevelLoading(false))
+
     fetch(`${API}/api/disaster/water-level/history?limit=20`)
       .then((r) => r.json())
       .then((data) => {
         if (data.readings?.length) {
-          const last = data.readings[data.readings.length - 1]
-          const timeLabel = new Date(last.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          const mapped = data.readings.map((r, i) => {
+          const mapped = data.readings.map((r) => {
             const t = new Date(r.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             return { t, level: r.water_level }
           })
@@ -207,10 +219,13 @@ export default function DisasterMonitorPage() {
         }
       })
       .catch(() => {})
+
     fetch(`${API}/api/disaster/hydrospatial/latest`)
       .then((r) => r.json())
       .then((data) => { if (data.available) setHydrospatial(data) })
       .catch(() => {})
+      .finally(() => setHydroLoading(false))
+
     fetch(`${API}/api/disaster/predict`)
       .then((r) => r.json())
       .then((data) => {
@@ -224,8 +239,48 @@ export default function DisasterMonitorPage() {
       .finally(() => setPredLoading(false))
   }, [])
 
+  // ── GPS polling: detect changes and re-fetch all data ────────────────
+  useEffect(() => {
+    const pollGps = () => {
+      fetch(`${API}/api/disaster/latest-gps`)
+        .then((r) => r.json())
+        .then((data) => {
+          setLatestGps(data)
+          setGpsLoading(false)
+
+          const newLat = data?.latitude
+          const newLng = data?.longitude
+
+          if (newLat != null && newLng != null) {
+            const prev = lastGpsRef.current
+            // First load or GPS changed significantly (>50m)
+            if (!prev || Math.abs(prev.lat - newLat) > 0.0005 || Math.abs(prev.lng - newLng) > 0.0005) {
+              lastGpsRef.current = { lat: newLat, lng: newLng }
+              // GPS changed — clear stale data and re-fetch
+              setWeather(null)
+              setWaterLevel(null)
+              setWaterHistory([])
+              setHydrospatial(null)
+              setPrediction(null)
+              setPredError(null)
+              fetchAllDisasterData()
+            }
+          }
+        })
+        .catch(() => setGpsLoading(false))
+    }
+
+    pollGps() // initial fetch
+    const gpsInterval = setInterval(pollGps, 5000) // poll every 5s
+    return () => clearInterval(gpsInterval)
+  }, [fetchAllDisasterData])
+
   const handleRefresh = () => {
     setRefreshing(true)
+    fetch(`${API}/api/disaster/latest-gps`)
+      .then((r) => r.json())
+      .then((data) => setLatestGps(data))
+      .catch(() => {})
     fetch(`${API}/api/disaster/water-level/latest`)
       .then((r) => r.json())
       .then((data) => { if (data.available) setWaterLevel(data) })
@@ -242,6 +297,14 @@ export default function DisasterMonitorPage() {
           setWaterHistory(computeTrend(mapped))
         }
       })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/weather/latest`)
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setWeather(data) })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/hydrospatial/latest`)
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setHydrospatial(data) })
       .catch(() => {})
     fetch(`${API}/api/disaster/predict`)
       .then((r) => r.json())
