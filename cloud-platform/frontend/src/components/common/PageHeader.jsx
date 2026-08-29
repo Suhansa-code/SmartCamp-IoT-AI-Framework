@@ -22,6 +22,7 @@ const LIME = "#16A34A";
 
 function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
   const ref = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
@@ -44,8 +45,8 @@ function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
   const isWarning = type === "warning";
   const accent = isWarning ? T.purple : T.amber;
   const filtered = isWarning
-    ? items.filter((a) => a.status === "escalated")
-    : items.filter((a) => a.status === "pending");
+    ? items.filter((a) => a.status === "escalated" || (a.source === "disaster" && a.status === "pending"))
+    : items.filter((a) => a.status === "pending" && a.source !== "disaster");
 
   return (
     <div
@@ -129,6 +130,12 @@ function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
               transition: "background 0.15s",
               cursor: "pointer",
             }}
+            onClick={() => {
+              if (item.source === "disaster") {
+                router.push("/disaster");
+                onClose();
+              }
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = T.cardSoft;
             }}
@@ -138,7 +145,7 @@ function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <span style={{ fontSize: "0.78rem", fontWeight: 800, color: T.textPrimary }}>
-                {item.childId}
+                {item.source === "disaster" ? item.campName : item.childId}
               </span>
               <span
                 style={{
@@ -159,7 +166,7 @@ function NotificationDropdown({ open, onClose, items, type, T, onAction }) {
               <span style={{ fontSize: "0.66rem", color: T.dim, fontWeight: 600 }}>
                 {item.campName} · {daysSince(item.triggeredAt)}
               </span>
-              {item.status !== "resolved" && (
+              {item.status !== "resolved" && item.source !== "disaster" && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

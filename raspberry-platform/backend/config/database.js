@@ -419,6 +419,7 @@ try {
     gauge_latitude: 'REAL', gauge_longitude: 'REAL', river_name: 'TEXT', camp_latitude: 'REAL', camp_longitude: 'REAL',
     source: 'TEXT', prediction_timestamp: 'TEXT', expires_at: 'TEXT', schema_version: "TEXT NOT NULL DEFAULT '1.0'",
     mqtt_status: "TEXT NOT NULL DEFAULT 'PENDING'", cloud_sync_status: "TEXT NOT NULL DEFAULT 'PENDING'",
+    temperature: 'REAL', humidity: 'REAL',
   };
   for (const [column, definition] of Object.entries(disasterAlertColumns)) {
     try { disasterDb.exec(`ALTER TABLE disaster_alerts ADD COLUMN ${column} ${definition}`); } catch (_) {}
