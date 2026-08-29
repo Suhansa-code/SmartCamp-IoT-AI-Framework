@@ -9,7 +9,6 @@
     "dev": "node --watch server.js",
     "db:seed-tasks": "node db/seed/tasks.js",
     "db:seed-children": "node db/seed/children.js",
-    "python:start": "cd python && python app.py",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
