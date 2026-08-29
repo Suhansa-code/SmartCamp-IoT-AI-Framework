@@ -23,7 +23,7 @@ const DISCONNECTED_TONE = 'danger';
 /*  POLLING CONFIG                                                      */
 /* ------------------------------------------------------------------ */
 
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_MS = 10000;
 
 /* ------------------------------------------------------------------ */
 /*  LOCAL PRIMITIVES                                                    */

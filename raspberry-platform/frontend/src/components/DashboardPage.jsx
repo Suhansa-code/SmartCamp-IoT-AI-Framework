@@ -23,8 +23,7 @@ import LoadingState from "./ui/feedback/LoadingState";
 import ErrorState from "./ui/feedback/ErrorState";
 import { COLORS, SHADOW_CARD } from "../lib/tokens";
 import StatCard from "./ui/base/StatCard";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API } from "./ui/config";
 
 /* ------------------------------------------------------------------ */
 /*  SEMANTIC COLOUR MAP                                                 */
@@ -410,7 +409,7 @@ export default function DashboardPage() {
     };
 
     pollGps();
-    const gpsInterval = setInterval(pollGps, 5000);
+    const gpsInterval = setInterval(pollGps, 10000);
     return () => clearInterval(gpsInterval);
   }, [fetchDisasterData]);
 

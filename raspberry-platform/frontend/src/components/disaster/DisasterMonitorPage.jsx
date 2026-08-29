@@ -9,12 +9,21 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { COLORS, SHADOW_CARD } from '../../lib/tokens'
+import { API } from '../ui/config'
 
 const RISK = {
   safe:     { label: 'Stable',   color: COLORS.brand },
   caution:  { label: 'Caution',  color: '#D97706' },
   warning:  { label: 'Warning',  color: '#EA580C' },
   critical: { label: 'Critical', color: '#DC2626' },
+}
+
+const STATUS_META = {
+  critical: { label: 'CRITICAL', color: '#DC2626' },
+  high:     { label: 'HIGH',     color: '#D97706' },
+  medium:   { label: 'MEDIUM',   color: '#F59E0B' },
+  stable:   { label: 'STABLE',   color: '#16A34A' },
+  recovery: { label: 'RECOVERY', color: '#16A34A' },
 }
 
 function getRisk(wl, majorFlood, minorFlood, alertLevel) {
@@ -160,8 +169,6 @@ function FieldBox({ label, value, icon: Icon }) {
 /*  PAGE                                                                */
 /* ------------------------------------------------------------------ */
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 export default function DisasterMonitorPage() {
   const [now, setNow] = useState(new Date())
   const [refreshing, setRefreshing] = useState(false)
@@ -177,6 +184,10 @@ export default function DisasterMonitorPage() {
   const [prediction, setPrediction] = useState(null)
   const [predLoading, setPredLoading] = useState(true)
   const [predError, setPredError] = useState(null)
+  const [campData, setCampData] = useState(null)
+  const [campLoading, setCampLoading] = useState(true)
+  const [overview, setOverview] = useState(null)
+  const [overviewLoading, setOverviewLoading] = useState(true)
 
   // Track last GPS coordinates to detect changes
   const lastGpsRef = useRef(null)
@@ -193,6 +204,29 @@ export default function DisasterMonitorPage() {
     setHydroLoading(true)
     setPredLoading(true)
     setPredError(null)
+    setCampLoading(true)
+    setOverviewLoading(true)
+
+    fetch(`${API}/api/disaster/camp-identity`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.camp_id) {
+          fetch(`${API}/api/disaster/camps/${data.camp_id}`)
+            .then((r) => r.json())
+            .then((camp) => { if (camp) setCampData(camp) })
+            .catch(() => {})
+            .finally(() => setCampLoading(false))
+        } else {
+          setCampLoading(false)
+        }
+      })
+      .catch(() => setCampLoading(false))
+
+    fetch(`${API}/api/disaster/overview`)
+      .then((r) => r.json())
+      .then((data) => { if (data) setOverview(data) })
+      .catch(() => {})
+      .finally(() => setOverviewLoading(false))
 
     fetch(`${API}/api/disaster/weather/latest`)
       .then((r) => r.json())
@@ -271,7 +305,7 @@ export default function DisasterMonitorPage() {
     }
 
     pollGps() // initial fetch
-    const gpsInterval = setInterval(pollGps, 5000) // poll every 5s
+    const gpsInterval = setInterval(pollGps, 10000) // poll every 10s
     return () => clearInterval(gpsInterval)
   }, [fetchAllDisasterData])
 
@@ -316,6 +350,21 @@ export default function DisasterMonitorPage() {
       })
       .catch(() => {})
       .finally(() => setTimeout(() => setRefreshing(false), 700))
+    fetch(`${API}/api/disaster/camp-identity`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.camp_id) {
+          fetch(`${API}/api/disaster/camps/${data.camp_id}`)
+            .then((r) => r.json())
+            .then((camp) => { if (camp) setCampData(camp) })
+            .catch(() => {})
+        }
+      })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/overview`)
+      .then((r) => r.json())
+      .then((data) => { if (data) setOverview(data) })
+      .catch(() => {})
   }
 
   const wl = waterLevel?.water_level ?? 0
@@ -371,6 +420,108 @@ export default function DisasterMonitorPage() {
           <div className="flex items-center gap-2 text-[13px]">
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: risk.color }} />
             <span className="font-semibold" style={{ color: risk.color }}>{risk.label}</span>
+          </div>
+        </div>
+
+        {/* ================= CAMP STATUS + OVERVIEW STATS ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 pb-4 sm:pb-6">
+          {/* Camp Status Badge */}
+          <div className="lg:col-span-4 rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
+            <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Camp Status</p>
+            {campLoading ? (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-[12px]" style={{ color: COLORS.muted }}>Loading...</p>
+              </div>
+            ) : campData?.status ? (
+              <div className="mt-3">
+                <span
+                  className="inline-flex items-center px-3 py-1.5 rounded-full text-[13px] font-semibold"
+                  style={{
+                    backgroundColor: `${STATUS_META[campData.status]?.color}15`,
+                    color: STATUS_META[campData.status]?.color,
+                    border: `1px solid ${STATUS_META[campData.status]?.color}30`
+                  }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full mr-2"
+                    style={{ backgroundColor: STATUS_META[campData.status]?.color }}
+                  />
+                  {STATUS_META[campData.status]?.label || campData.status.toUpperCase()}
+                </span>
+                <p className="text-[12.5px] mt-3" style={{ color: COLORS.body }}>
+                  {campData.name || 'Camp'} — {campData.type || 'General'}
+                </p>
+                {campData.code && (
+                  <p className="text-[11px] font-mono mt-1" style={{ color: COLORS.muted }}>Code: {campData.code}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-[12px] mt-3" style={{ color: COLORS.muted }}>No camp data available</p>
+            )}
+          </div>
+
+          {/* Camp Overview Stats */}
+          <div className="lg:col-span-8 rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
+            <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Camp Overview</p>
+            {overviewLoading ? (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-[12px]" style={{ color: COLORS.muted }}>Loading...</p>
+              </div>
+            ) : overview ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.hairline }}>
+                  <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Displaced</p>
+                  <p className="text-[20px] sm:text-[22px] font-bold font-mono mt-1" style={{ color: COLORS.ink }}>
+                    {overview.total_displaced?.toLocaleString() ?? '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.hairline }}>
+                  <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Capacity</p>
+                  <p className="text-[20px] sm:text-[22px] font-bold font-mono mt-1" style={{ color: COLORS.ink }}>
+                    {overview.total_capacity?.toLocaleString() ?? '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.hairline }}>
+                  <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Occupancy</p>
+                  <p className="text-[20px] sm:text-[22px] font-bold font-mono mt-1" style={{ color: COLORS.brand }}>
+                    {overview.occupancy_pct != null ? `${overview.occupancy_pct.toFixed(1)}%` : '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.hairline }}>
+                  <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Aid Coverage</p>
+                  <p className="text-[20px] sm:text-[22px] font-bold font-mono mt-1" style={{ color: COLORS.brand }}>
+                    {overview.avg_aid_coverage != null ? `${overview.avg_aid_coverage.toFixed(1)}%` : '—'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[12px] mt-3" style={{ color: COLORS.muted }}>No overview data available</p>
+            )}
+
+            {/* Status Distribution */}
+            {!overviewLoading && overview && (
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
+                <p className="text-[10.5px] uppercase tracking-wider font-mono mb-2" style={{ color: COLORS.muted }}>Status Distribution</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {[
+                    { key: 'critical_count', label: 'Critical', color: STATUS_META.critical.color },
+                    { key: 'high_count', label: 'High', color: STATUS_META.high.color },
+                    { key: 'medium_count', label: 'Medium', color: STATUS_META.medium.color },
+                    { key: 'stable_count', label: 'Stable', color: STATUS_META.stable.color },
+                    { key: 'recovery_count', label: 'Recovery', color: STATUS_META.recovery.color },
+                  ].map((s) => (
+                    <div key={s.key} className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span className="text-[11px] font-mono" style={{ color: COLORS.body }}>
+                        {s.label}: <span className="font-semibold">{overview[s.key] ?? 0}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -18,8 +18,7 @@ import {
   Cpu,
 } from "lucide-react";
 import { COLORS, SHADOW_CARD } from "../../../lib/tokens";
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { API } from "../config";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", path: "/", icon: LayoutDashboard },

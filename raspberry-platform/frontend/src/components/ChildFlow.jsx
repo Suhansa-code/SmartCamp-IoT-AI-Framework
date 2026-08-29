@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { LanguageProvider } from './psychoedu/context/LanguageContext'
-import ChildWelcomePage from '../app/page.jsx'
+import ChildWelcomePage from './childEducation/ChildWelcomePage'
 import AnimalGame from './psychoedu/child/AnimalGame'
 import CognitiveSession from './psychoedu/cognitive/CognitiveSession'
 import BreathingCircle from './psychoedu/child/BreathingCircle'
