@@ -25,6 +25,9 @@ beforeAll(async () => {
 describe('checkAndCreateAlert', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGet.mockReset();
+    mockRun.mockReset();
+    mockAll.mockReset();
     mockRun.mockReturnValue({});
     mockAll.mockReturnValue([]);
   });
@@ -36,8 +39,16 @@ describe('checkAndCreateAlert', () => {
     expect(sqlCalls.some(s => s.includes('INSERT INTO pages_alerts'))).toBe(false);
   });
 
-  it('creates 3_consecutive_flagged alert when consecutive_low >= 3', () => {
-    mockGet.mockReturnValue({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 3 });
+  it('creates 3_consecutive_flagged alert when latest 3 sessions are flagged', () => {
+    mockGet
+      .mockReturnValueOnce({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 })
+      .mockReturnValueOnce(undefined)
+      .mockReturnValueOnce(undefined);
+    mockAll.mockReturnValue([
+      { session_id: 's3', anomaly_flagged: 1 },
+      { session_id: 's2', anomaly_flagged: 1 },
+      { session_id: 's1', anomaly_flagged: 1 },
+    ]);
 
     alert.checkAndCreateAlert('B-001', 'sess-1');
 
@@ -45,18 +56,32 @@ describe('checkAndCreateAlert', () => {
     expect(sqlCalls.some(s => s.includes('INSERT INTO pages_alerts'))).toBe(true);
   });
 
-  it('resets consecutive_low after creating consecutive alert', () => {
-    mockGet.mockReturnValue({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 3 });
+  it('does not create duplicate pending 3_consecutive_flagged alert', () => {
+    mockGet
+      .mockReturnValueOnce({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 })
+      .mockReturnValueOnce({ exists_flag: 1 });
+    mockAll.mockReturnValue([
+      { session_id: 's3', anomaly_flagged: 1 },
+      { session_id: 's2', anomaly_flagged: 1 },
+      { session_id: 's1', anomaly_flagged: 1 },
+    ]);
 
     alert.checkAndCreateAlert('B-001', 'sess-1');
 
     const sqlCalls = mockPagesDb.prepare.mock.calls.map(c => c[0]);
-    expect(sqlCalls.some(s => s.includes('consecutive_low = 0'))).toBe(true);
+    const insertCount = sqlCalls.filter(s => s.includes('INSERT INTO pages_alerts')).length;
+    expect(insertCount).toBe(0);
   });
 
-  it('does not create alert when consecutive_low < 3 and few sessions', () => {
-    mockGet.mockReturnValue({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 2 });
-    mockAll.mockReturnValue([{ anomaly_flagged: 1 }]);
+  it('does not create alert when latest 3 sessions are not all flagged', () => {
+    mockGet
+      .mockReturnValueOnce({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 })
+      .mockReturnValueOnce(undefined);
+    mockAll.mockReturnValue([
+      { session_id: 's3', anomaly_flagged: 1 },
+      { session_id: 's2', anomaly_flagged: 0 },
+      { session_id: 's1', anomaly_flagged: 1 },
+    ]);
 
     alert.checkAndCreateAlert('B-001', 'sess-1');
 
@@ -65,10 +90,13 @@ describe('checkAndCreateAlert', () => {
   });
 
   it('creates 3_of_5_flagged alert when 3+ of last 5 are flagged', () => {
-    mockGet.mockReturnValue({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 });
+    mockGet
+      .mockReturnValueOnce({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 })
+      .mockReturnValueOnce(undefined)
+      .mockReturnValueOnce(undefined);
     mockAll.mockReturnValue([
-      { anomaly_flagged: 1 }, { anomaly_flagged: 1 }, { anomaly_flagged: 1 },
-      { anomaly_flagged: 0 }, { anomaly_flagged: 0 },
+      { session_id: 's5', anomaly_flagged: 1 }, { session_id: 's4', anomaly_flagged: 1 }, { session_id: 's3', anomaly_flagged: 1 },
+      { session_id: 's2', anomaly_flagged: 0 }, { session_id: 's1', anomaly_flagged: 0 },
     ]);
 
     alert.checkAndCreateAlert('B-001', 'sess-1');
@@ -78,10 +106,13 @@ describe('checkAndCreateAlert', () => {
   });
 
   it('does not create 3_of_5 alert when fewer than 3 flagged', () => {
-    mockGet.mockReturnValue({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 });
+    mockGet
+      .mockReturnValueOnce({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 })
+      .mockReturnValueOnce(undefined)
+      .mockReturnValueOnce(undefined);
     mockAll.mockReturnValue([
-      { anomaly_flagged: 1 }, { anomaly_flagged: 1 },
-      { anomaly_flagged: 0 }, { anomaly_flagged: 0 }, { anomaly_flagged: 0 },
+      { session_id: 's5', anomaly_flagged: 1 }, { session_id: 's4', anomaly_flagged: 1 },
+      { session_id: 's3', anomaly_flagged: 0 }, { session_id: 's2', anomaly_flagged: 0 }, { session_id: 's1', anomaly_flagged: 0 },
     ]);
 
     alert.checkAndCreateAlert('B-001', 'sess-1');
@@ -91,13 +122,34 @@ describe('checkAndCreateAlert', () => {
   });
 
   it('does not check 3_of_5 when fewer than 5 sessions', () => {
-    mockGet.mockReturnValue({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 });
-    mockAll.mockReturnValue([{ anomaly_flagged: 1 }]);
+    mockGet
+      .mockReturnValueOnce({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 })
+      .mockReturnValueOnce(undefined);
+    mockAll.mockReturnValue([{ session_id: 's1', anomaly_flagged: 1 }]);
 
     alert.checkAndCreateAlert('B-001', 'sess-1');
 
     const sqlCalls = mockPagesDb.prepare.mock.calls.map(c => c[0]);
     expect(sqlCalls.some(s => s.includes('INSERT INTO pages_alerts'))).toBe(false);
+  });
+
+  it('does not create duplicate pending 3_of_5_flagged alert', () => {
+    mockGet
+      .mockReturnValueOnce({ child_id: 'B-001', camp_id: 'CAMP', res_id: 'R1', consecutive_low: 0 })
+      .mockReturnValueOnce({ exists_flag: 1 });
+    mockAll.mockReturnValue([
+      { session_id: 's5', anomaly_flagged: 1 },
+      { session_id: 's4', anomaly_flagged: 0 },
+      { session_id: 's3', anomaly_flagged: 1 },
+      { session_id: 's2', anomaly_flagged: 1 },
+      { session_id: 's1', anomaly_flagged: 0 },
+    ]);
+
+    alert.checkAndCreateAlert('B-001', 'sess-1');
+
+    const sqlCalls = mockPagesDb.prepare.mock.calls.map(c => c[0]);
+    const insertCount = sqlCalls.filter(s => s.includes('INSERT INTO pages_alerts')).length;
+    expect(insertCount).toBe(0);
   });
 });
 
@@ -148,6 +200,9 @@ describe('getAlerts', () => {
 describe('resolveAlert', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGet.mockReset();
+    mockRun.mockReset();
+    mockAll.mockReset();
     mockRun.mockReturnValue({});
   });
 

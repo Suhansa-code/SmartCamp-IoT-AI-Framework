@@ -21,6 +21,7 @@ const STRINGS = {
   'welcome.cancel':         { si: 'අවලංගු කරන්න',                   ta: 'ரத்து செய்',                              en: 'Cancel' },
   'welcome.err_denied':     { si: 'කැමරා අවසරය ප්‍රතික්ෂේප විය. Settings වලින් අවසර දෙන්න.', ta: 'கேமரா அனுமதி மறுக்கப்பட்டது. அமைப்புகளில் அனுமதி கொடுங்கள்.', en: 'Camera access denied. Please allow camera in Settings.' },
   'welcome.err_unavailable':{ si: 'කැමරාව ලබා ගත නොහැක.',           ta: 'கேமரா கிடைக்கவில்லை.',                    en: 'Camera not available.' },
+  'welcome.err_invalid_qr': { si: 'වලංගු QR කේතයක් ස්කෑන් කරන්න.', ta: 'சரியான QR குறியீட்டை ஸ்கேன் செய்யவும்.', en: 'Invalid QR code. Please scan a valid child QR code.' },
 
   // ── Game (Go/No-Go)
   'game.instruction_main':    { si: 'සත්තු බලන්න - සත්තු අල්ලන්න!',                          ta: 'பார்த்தால் — தட்டவும்!',             en: 'See it — Tap it!' },

@@ -1,3 +1,5 @@
+import traceback
+
 from flask import Blueprint, current_app, jsonify, request
 
 from ..services import scoring_service, if_service
@@ -37,13 +39,15 @@ def score():
     z_score = scoring_service.compute_z_score(child_id, composite, history.session_history, config)
 
     # 3. Isolation Forest score (from session 8 onwards)
-    if_score = if_service.compute_if_score(
-        child_id, task_metrics, passive_signals, history.session_history, config, engine
+    current_session = {**task_metrics, **passive_signals}
+    if_result = scoring_service.compute_if_score(
+        child_id, current_session, history.session_history, config
     )
+    if_score = if_result['raw_score'] if if_result is not None else None
 
     # 4. Anomaly detection
     anomaly_by_z = z_score is not None and z_score < config.ZSCORE_THRESHOLD
-    anomaly_by_if = if_score is not None and if_score < config.IF_SCORE_THRESHOLD
+    anomaly_by_if = if_result is not None and if_result['is_anomaly']
     anomaly_flagged = anomaly_by_z or anomaly_by_if
 
     # 5. Gate decision
@@ -72,14 +76,12 @@ def score():
         )
     except Exception as e:
         print(f'[DB] Could not persist score for child={child_id} session={session_id}: {e}')
+        traceback.print_exc()
         return jsonify({'error': 'Failed to persist scoring result'}), 500
 
     # 7. Save IF insight if score computed
     if if_score is not None:
         try:
-            feature_vector = scoring_service.session_to_feature_vector({
-                **task_metrics, **passive_signals,
-            })
             contributions = {
                 'composite': round(composite * 0.50, 2),
                 'task': round(task_score * 0.30, 2),
@@ -93,7 +95,15 @@ def score():
             print(f'[DB] Could not persist IF insight for child={child_id}: {e}')
 
     # 8. Update in-memory cache after persistence succeeds
-    new_baseline = history.update_history(child_id, composite, task_score, passive_score)
+    new_baseline = history.update_history(
+        child_id,
+        session_id,
+        composite,
+        task_score,
+        passive_score,
+        task_metrics,
+        passive_signals,
+    )
 
     print(
         f'[SCORE] child={child_id} composite={composite} task={task_score} passive={passive_score} '

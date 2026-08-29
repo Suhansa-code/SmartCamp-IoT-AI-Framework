@@ -216,45 +216,49 @@ export default function ChildWelcomePage({ onNavigate }) {
 async function handleQR(childId, selectedLang = lang) {
   stopCamera();
   setCamState('idle');
-  setScreen('loading');
 
-  let sid = 'offline';
-  let resolvedChildId = '';
-
-  const effectiveChildId = (childId || '').trim();
-  if (!effectiveChildId) {
-    setSessionId(sid);
-    if (typeof onNavigate === 'function') {
-      onNavigate({ session: sid, lang: selectedLang });
+  let effectiveChildId = (childId || '').trim();
+  try {
+    const qrPayload = JSON.parse(effectiveChildId);
+    if (qrPayload?.type === 'child' && typeof qrPayload.child_id === 'string') {
+      effectiveChildId = qrPayload.child_id.trim();
     }
+  } catch {
+    // Some printed codes contain the child ID directly.
+  }
+
+  if (!effectiveChildId) {
+    setErrorMsg(t('welcome.err_invalid_qr', selectedLang));
+    setScreen('welcome');
     return;
   }
 
   try {
+    setErrorMsg('');
+    setScreen('loading');
     const payload = await startSession(effectiveChildId);
-    sid = payload?.sessionId ?? payload?.session_id ?? 'offline';
-    resolvedChildId = payload?.child_id || '';
-  } catch (err) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DEV] Session creation failed, using offline mode:', err?.message);
+    const sid = payload?.sessionId ?? payload?.session_id;
+    const resolvedChildId = payload?.child_id || '';
+    if (!sid || !resolvedChildId) {
+      throw new Error(t('welcome.err_invalid_qr', selectedLang));
     }
-    sid = 'offline';
-  }
 
-  const childToStore = resolvedChildId || effectiveChildId;
-  if (typeof window !== 'undefined' && childToStore) {
-    sessionStorage.setItem('selectedChildId', childToStore);
-    localStorage.setItem('selectedChildId', childToStore);
-  }
+    const childToStore = resolvedChildId || effectiveChildId;
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('selectedChildId', childToStore);
+      localStorage.setItem('selectedChildId', childToStore);
+      localStorage.setItem('preferredLanguage', selectedLang);
+    }
 
-  setSessionId(sid);
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('preferredLanguage', selectedLang);
-  }
-
-  if (typeof onNavigate === 'function') {
-    onNavigate({ session: sid, child: childToStore, lang: selectedLang });
+    setSessionId(sid);
+    if (typeof onNavigate === 'function') {
+      onNavigate({ session: sid, child: childToStore, lang: selectedLang });
+    }
+  } catch (err) {
+    console.error('[QR] Validation failed:', err);
+    setErrorMsg(err?.message || t('welcome.err_invalid_qr', selectedLang));
+    setScreen('welcome');
+    return;
   }
 }
 

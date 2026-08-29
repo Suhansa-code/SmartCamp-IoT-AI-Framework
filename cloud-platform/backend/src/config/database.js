@@ -25,6 +25,12 @@ export function getPool() {
     ? { connectionString: db.connectionString }
     : { host: db.host, port: db.port, database: db.name, user: db.user, password: db.password };
 
+  config.connectionTimeoutMillis = 5000;
+  config.query_timeout = 10000;
+  config.statement_timeout = 10000;
+  config.max = 20;
+  config.idleTimeoutMillis = 30000;
+
   if (db.ssl) config.ssl = { rejectUnauthorized: false };
 
   pool = new Pool(config);

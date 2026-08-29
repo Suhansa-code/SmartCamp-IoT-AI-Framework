@@ -395,6 +395,11 @@ try {
   disasterDb.pragma('synchronous = NORMAL');
   disasterDb.pragma('busy_timeout = 30000');
 
+  // Older disaster databases may predate columns referenced by schema indexes.
+  for (const [column, definition] of [['camp_id', 'TEXT'], ['risk_category', 'TEXT'], ['event_id', 'TEXT']]) {
+    try { disasterDb.exec(`ALTER TABLE disaster_alerts ADD COLUMN ${column} ${definition}`); } catch (_) {}
+  }
+
   const disasterSchemaPath = path.resolve(rootDir, 'db/disaster-schema.sql');
   if (fs.existsSync(disasterSchemaPath)) {
     const disasterSchema = fs.readFileSync(disasterSchemaPath, 'utf8');

@@ -5,6 +5,10 @@
  * MQTT deliveries. The sync_log table tracks received sync_ids.
  */
 import { getPool } from '../../config/database.js';
+import { randomUUID } from 'crypto';
+
+const EDUCATION_ALERT_CONSECUTIVE = 3;
+const EDUCATION_ALERT_OF_FIVE = 3;
 
 export async function isSyncProcessed(syncId) {
   const pool = getPool();
@@ -177,6 +181,7 @@ export async function upsertChild(r, ctx = {}) {
 
 export async function upsertSession(r) {
   const pool = getPool();
+  const createdAt = r.created_at || new Date().toISOString();
   await pool.query(
     `INSERT INTO sessions (session_id,child_id,composite_score,task_score,passive_score,
        gate_decision,z_score,if_score,anomaly_flagged,alert_triggered,created_at)
@@ -191,6 +196,92 @@ export async function upsertSession(r) {
      r.passive_score||null,r.gate_decision||null,r.z_score||null,r.if_score||null,
      r.anomaly_flagged||0,r.alert_triggered||0,r.created_at||null]
   );
+
+  await maybeGenerateEducationAlerts(pool, r.child_id, r.session_id);
+}
+
+async function maybeGenerateEducationAlerts(pool, childId, sessionId) {
+  if (!childId) return;
+
+  const childRes = await pool.query(
+    'SELECT child_id, res_id, camp_id FROM children WHERE child_id = $1',
+    [childId]
+  );
+  const child = childRes.rows[0];
+  if (!child) return;
+
+  const recentRes = await pool.query(
+    `SELECT session_id, anomaly_flagged
+     FROM sessions
+     WHERE child_id = $1 AND composite_score IS NOT NULL
+     ORDER BY created_at DESC NULLS LAST
+     LIMIT 5`,
+    [childId]
+  );
+
+  const recent = recentRes.rows;
+  if (recent.length === 0) return;
+
+  const flags = recent.map((s) => Number(s.anomaly_flagged) === 1);
+  const latestWindow = flags.slice(0, EDUCATION_ALERT_CONSECUTIVE);
+  const hasConsecutive =
+    latestWindow.length >= EDUCATION_ALERT_CONSECUTIVE && latestWindow.every(Boolean);
+
+  let createdAny = false;
+
+  if (hasConsecutive) {
+    const created = await createPendingAlertIfMissing(pool, {
+      childId,
+      resId: child.res_id,
+      campId: child.camp_id,
+      alertType: '3_consecutive_flagged',
+      triggerDetail: {
+        session_id: sessionId,
+        message: `${EDUCATION_ALERT_CONSECUTIVE} consecutive anomaly-flagged sessions`,
+      },
+    });
+    createdAny = createdAny || created;
+  }
+
+  if (recent.length >= 5) {
+    const flaggedCount = flags.filter(Boolean).length;
+    if (flaggedCount >= EDUCATION_ALERT_OF_FIVE) {
+      const created = await createPendingAlertIfMissing(pool, {
+        childId,
+        resId: child.res_id,
+        campId: child.camp_id,
+        alertType: '3_of_5_flagged',
+        triggerDetail: {
+          session_id: sessionId,
+          message: `${flaggedCount}/5 recent sessions flagged`,
+        },
+      });
+      createdAny = createdAny || created;
+    }
+  }
+
+  if (createdAny) {
+    await pool.query('UPDATE sessions SET alert_triggered = 1 WHERE session_id = $1', [sessionId]);
+    await pool.query("UPDATE children SET alert_status = 'active' WHERE child_id = $1", [childId]);
+  }
+}
+
+async function createPendingAlertIfMissing(pool, { childId, resId, campId, alertType, triggerDetail }) {
+  const existing = await pool.query(
+    `SELECT 1 FROM alerts
+     WHERE child_id = $1 AND alert_type = $2 AND status = 'pending'
+     LIMIT 1`,
+    [childId, alertType]
+  );
+  if (existing.rowCount > 0) return false;
+
+  await pool.query(
+    `INSERT INTO alerts (alert_id, child_id, res_id, camp_id, alert_type, trigger_detail, triggered_at, status)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, NOW(), 'pending')`,
+    [randomUUID(), childId, resId || null, campId, alertType, JSON.stringify(triggerDetail || {})]
+  );
+
+  return true;
 }
 
 export async function upsertBehavioralSignal(r) {
