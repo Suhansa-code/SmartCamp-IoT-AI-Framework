@@ -32,17 +32,17 @@ function Chip({ children, color = '#64748B', style }) {
 
 function MapViewController({ viewMode }) {
   const { map, isLoaded } = useMap()
-  const is3D = viewMode !== '2d'
 
   useEffect(() => {
     if (!map || !isLoaded) return
+    const is3D = viewMode === '3d'
     map.easeTo({
       pitch: is3D ? 55 : 0,
       bearing: is3D ? 25 : 0,
       duration: 800,
       easing: (t) => t * (2 - t),
     })
-  }, [map, isLoaded, is3D])
+  }, [map, isLoaded, viewMode])
 
   return null
 }
@@ -66,8 +66,8 @@ function MapSkeletonOverlay() {
 
 function TerrainSetup({ viewMode, onTerrainReady }) {
   const { map, isLoaded } = useMap()
-  const enableTerrain = viewMode !== '2d'
-  const enableHillshade = viewMode === 'terrain' || viewMode === 'slope'
+  const enableTerrain = viewMode === 'terrain' || viewMode === 'slope'
+  const enableHillshade = enableTerrain
 
   useEffect(() => {
     if (!map || !isLoaded) return

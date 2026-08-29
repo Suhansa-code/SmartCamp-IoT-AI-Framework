@@ -18,8 +18,7 @@ import {
   Cpu,
 } from "lucide-react";
 import { COLORS, SHADOW_CARD } from "../../../lib/tokens";
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { API } from "../config";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -103,16 +102,19 @@ export default function Navbar() {
       const data = await res.json();
       const device = data.device || {};
       const sensors = data.sensors || {};
-      const allConnected = [
+      const connected = [
         device.status === 'connected',
         !!sensors.gps?.connected,
         !!sensors.temperature?.connected,
         !!sensors.humidity?.connected,
-      ].filter(Boolean).length;
-      const total = 4;
+        !!sensors.rainfall?.connected,
+        !!sensors.fingerprint?.connected,
+      ];
+      const total = connected.length;
+      const allConnected = connected.filter(Boolean).length;
       setDisconnectedCount(total - allConnected);
     } catch {
-      setDisconnectedCount(4);
+      setDisconnectedCount(6);
     }
   }, [API]);
 
@@ -222,10 +224,17 @@ export default function Navbar() {
               <Link
                 to="/devices"
                 aria-label="View connected devices"
-                className="flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
+                className="relative flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
                 style={{ borderColor: COLORS.line, color: COLORS.body }}
               >
                 <Cpu className="w-4 h-4" strokeWidth={1.8} />
+                {disconnectedCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-1.5 z-20 min-w-[18px] h-[18px] px-0.5 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold border-2 border-white pointer-events-none">
+                    {disconnectedCount}
+                  </span>
+                ) : (
+                  <span className="absolute top-1 right-1 z-20 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white pointer-events-none" />
+                )}
               </Link>
               <button
                 onClick={() => setMobileOpen((o) => !o)}

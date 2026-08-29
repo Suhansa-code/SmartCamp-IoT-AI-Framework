@@ -13,6 +13,8 @@ import { getWaterLevelHistoryForCamp } from '../../services/disaster/waterLevelH
 import { listDisasterAlerts, updateDisasterAlertStatus } from '../../data/disaster/alert.repository.js';
 import { aggregateCampImmediate, aggregateAllCamps, getAggregationStatus } from '../../services/disaster/campsAggregation.service.js';
 import { env } from '../../config/env.js';
+import { mqttService } from '../../services/network/mqtt.service.js';
+import { getPool } from '../../config/database.js';
 
 export async function getOverview(_req, res, next) {
   try {
@@ -178,6 +180,40 @@ export async function triggerAllCampAggregations(_req, res, next) {
   try {
     const result = await aggregateAllCamps();
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+const VALID_CAMPS_STATUSES = ['stable', 'medium', 'high', 'critical', 'recovery'];
+
+export async function updateCampStatus(req, res, next) {
+  const { campId } = req.params;
+  const { status } = req.body;
+
+  if (!VALID_CAMPS_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_CAMPS_STATUSES.join(', ')}` });
+  }
+
+  try {
+    if (env.db.enabled) {
+      const pool = getPool();
+      await pool.query(
+        `UPDATE "CAMPS" SET status = $1, updated_at = NOW() WHERE id = $2`,
+        [status, campId]
+      );
+    }
+
+    // Publish status change to RPi via MQTT
+    mqttService.publish(`smartcamp/camps/${campId}/status`, {
+      camp_id: campId,
+      status,
+      updated_at: new Date().toISOString(),
+      source: 'cloud_admin',
+    });
+
+    console.log(`[Camp] Status updated: ${campId} → ${status}`);
+    res.json({ campId, status, updated_at: new Date().toISOString() });
   } catch (err) {
     next(err);
   }

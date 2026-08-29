@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -14,7 +14,7 @@ from sklearn.metrics import (
     roc_auc_score,
     roc_curve,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 DATASET_PATH = (
     Path(__file__).resolve().parents[1]
@@ -22,13 +22,25 @@ DATASET_PATH = (
     / "sri_lanka_flood_risk_dataset_25000.csv"
 )
 
-MODEL_FEATURES = [
+# ── Feature sets ─────────────────────────────────────────────────────────
+# Original 5 features used by the legacy model
+BASE_FEATURES = [
     "rainfall_7d_mm",
     "longitude",
     "latitude",
     "elevation_m",
     "distance_to_river_m",
 ]
+
+# Extended feature set (8 features) — adds 3 derived features
+EXTENDED_FEATURES = BASE_FEATURES + [
+    "water_level_m",
+    "elevation_ratio",
+    "river_proximity_score",
+]
+
+# Active feature set — change this to switch between base and extended
+MODEL_FEATURES = EXTENDED_FEATURES
 
 MODELS_DIR = Path(__file__).resolve().parent / "models"
 MODELS_DIR.mkdir(exist_ok=True)
@@ -41,6 +53,7 @@ class FloodPrediction:
     future_forecast: Dict[str, object]
     probability: float
     source: str
+    shap_values: Optional[Dict[str, float]] = field(default_factory=dict)
 
 
 class BaseFloodModel(ABC):
@@ -71,6 +84,103 @@ class BaseFloodModel(ABC):
     def _extract_feature_importance(self, estimator) -> Optional[Dict[str, float]]:
         return None
 
+    # ── Cross-validation ──────────────────────────────────────────────────
+
+    def cross_validate(self, dataset_path: Optional[Path] = None, n_folds: int = 5) -> Dict[str, object]:
+        """Run stratified K-fold cross-validation and return aggregated metrics."""
+        data = pd.read_csv(dataset_path or DATASET_PATH)
+        target = data["flood_occurrence_current_event"].map({"Yes": 1, "No": 0})
+        if target.isna().any():
+            raise ValueError("Target column contains unexpected values.")
+
+        features = data[MODEL_FEATURES].copy()
+        features = features.fillna(features.median(numeric_only=True))
+        y = target.astype(int)
+
+        skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        fold_metrics = []
+
+        for fold_idx, (train_idx, val_idx) in enumerate(skf.split(features, y)):
+            x_train, x_val = features.iloc[train_idx], features.iloc[val_idx]
+            y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+
+            estimator = self._build_estimator()
+            self._fit(estimator, x_train, y_train)
+
+            probs = self._predict_proba(estimator, x_val)
+            preds = (probs >= 0.5).astype(int)
+
+            fold_metrics.append({
+                "fold": fold_idx + 1,
+                "roc_auc": float(roc_auc_score(y_val, probs)),
+                "accuracy": float((preds == y_val).mean()),
+                "precision": float((preds[y_val == 1] == 1).sum() / max((preds == 1).sum(), 1)),
+                "recall": float((preds[y_val == 1] == 1).sum() / max((y_val == 1).sum(), 1)),
+                "f1": float(2 * (preds[y_val == 1] == 1).sum() / max((preds == 1).sum() + (y_val == 1).sum(), 1)),
+                "train_size": len(x_train),
+                "val_size": len(x_val),
+            })
+
+        # Aggregate across folds
+        agg = {}
+        for metric in ["roc_auc", "accuracy", "precision", "recall", "f1"]:
+            values = [f[metric] for f in fold_metrics]
+            agg[metric] = {
+                "mean": float(np.mean(values)),
+                "std": float(np.std(values)),
+                "min": float(np.min(values)),
+                "max": float(np.max(values)),
+                "folds": [f[metric] for f in fold_metrics],
+            }
+
+        self.metrics_["cross_validation"] = {
+            "n_folds": n_folds,
+            "fold_metrics": fold_metrics,
+            "aggregated": agg,
+        }
+        return self.metrics_["cross_validation"]
+
+    # ── SHAP explainability ───────────────────────────────────────────────
+
+    def explain_prediction(self, rainfall_mm: float, longitude: float, latitude: float,
+                           altitude_m: float, dem_elevation_m: Optional[float],
+                           nearest_river_m: float, water_level_m: float = 0.0,
+                           elevation_ratio: float = 1.0,
+                           river_proximity_score: float = 0.0) -> Dict[str, float]:
+        """Return SHAP values for a single prediction (feature importance)."""
+        self._require_trained()
+        try:
+            import shap
+        except ImportError:
+            return {}
+
+        effective_elevation = dem_elevation_m if dem_elevation_m is not None else altitude_m
+        row = pd.DataFrame([{
+            "rainfall_7d_mm": rainfall_mm,
+            "longitude": longitude,
+            "latitude": latitude,
+            "elevation_m": effective_elevation,
+            "distance_to_river_m": nearest_river_m,
+            "water_level_m": water_level_m,
+            "elevation_ratio": elevation_ratio,
+            "river_proximity_score": river_proximity_score,
+        }])
+
+        explainer = shap.TreeExplainer(self._estimator)
+        shap_values = explainer.shap_values(row)
+        # For binary classification, shap_values may be a list [neg, pos]
+        if isinstance(shap_values, list):
+            vals = shap_values[1][0]
+        else:
+            vals = shap_values[0]
+
+        return {
+            feature: float(val)
+            for feature, val in zip(MODEL_FEATURES, vals)
+        }
+
+    # ── Training ──────────────────────────────────────────────────────────
+
     def train(self, dataset_path: Optional[Path] = None, test_size: float = 0.2) -> Dict[str, object]:
         data = pd.read_csv(dataset_path or DATASET_PATH)
 
@@ -100,6 +210,7 @@ class BaseFloodModel(ABC):
             "train_size": int(len(x_train)),
             "test_size": int(len(x_test)),
             "charts_output_dir": str(self._charts_dir),
+            "features_used": MODEL_FEATURES,
         }
 
         importance = self._extract_feature_importance(self._estimator)
@@ -178,8 +289,13 @@ class BaseFloodModel(ABC):
         return "Low"
 
     @staticmethod
-    def _adjust_probability(base_probability: float, gauging_station_current_water_level_m: float) -> float:
-        correction = np.clip((gauging_station_current_water_level_m - 2.0) * 0.05, -0.12, 0.25)
+    def _adjust_probability(base_probability: float, water_level_m: float,
+                            gauge_alert_level: float = 2.0) -> float:
+        """Adjust probability based on water level relative to station alert threshold.
+
+        Uses the station's alert level as baseline instead of a fixed 2.0m.
+        """
+        correction = np.clip((water_level_m - gauge_alert_level) * 0.05, -0.12, 0.25)
         return float(np.clip(base_probability + correction, 0.0, 1.0))
 
     def predict_one(
@@ -190,25 +306,62 @@ class BaseFloodModel(ABC):
         altitude_m: float,
         dem_elevation_m: Optional[float],
         nearest_river_m: float,
-        gauging_station_current_water_level_m: float,
-        is_forecast: bool,
+        water_level_m: float = 0.0,
+        is_forecast: bool = False,
+        gauge_alert_level: float = 2.0,
+        gauge_minor_level: float = 3.0,
+        gauge_major_level: float = 5.0,
+        return_shap: bool = False,
     ) -> FloodPrediction:
         self._require_trained()
 
         effective_elevation = dem_elevation_m if dem_elevation_m is not None else altitude_m
+
+        # Compute derived features
+        elevation_ratio = (
+            effective_elevation / gauge_minor_level
+            if gauge_minor_level > 0 else 1.0
+        )
+        # River proximity score: inverse distance weighted (closer = higher score)
+        river_proximity_score = (
+            1000.0 / max(nearest_river_m, 1.0)
+            if nearest_river_m > 0 else 0.0
+        )
+
         row = pd.DataFrame([{
             "rainfall_7d_mm": rainfall_mm,
             "longitude": longitude,
             "latitude": latitude,
             "elevation_m": effective_elevation,
             "distance_to_river_m": nearest_river_m,
+            "water_level_m": water_level_m,
+            "elevation_ratio": elevation_ratio,
+            "river_proximity_score": river_proximity_score,
         }])
 
         base_probability = float(self._predict_proba(self._estimator, row)[0])
-        adjusted_probability = self._adjust_probability(base_probability, gauging_station_current_water_level_m)
-        forecast_probability = (
-            float(np.clip(adjusted_probability * 1.10 + 0.03, 0.0, 1.0)) if is_forecast else adjusted_probability
+        adjusted_probability = self._adjust_probability(
+            base_probability, water_level_m, gauge_alert_level,
         )
+        forecast_probability = (
+            float(np.clip(adjusted_probability * 1.10 + 0.03, 0.0, 1.0))
+            if is_forecast else adjusted_probability
+        )
+
+        # SHAP explanation
+        shap_values = {}
+        if return_shap:
+            shap_values = self.explain_prediction(
+                rainfall_mm=rainfall_mm,
+                longitude=longitude,
+                latitude=latitude,
+                altitude_m=altitude_m,
+                dem_elevation_m=dem_elevation_m,
+                nearest_river_m=nearest_river_m,
+                water_level_m=water_level_m,
+                elevation_ratio=elevation_ratio,
+                river_proximity_score=river_proximity_score,
+            )
 
         return FloodPrediction(
             flood_possibility="Likely" if adjusted_probability >= 0.50 else "Unlikely",
@@ -220,6 +373,7 @@ class BaseFloodModel(ABC):
             },
             probability=adjusted_probability,
             source=self._source,
+            shap_values=shap_values,
         )
 
     def predict_batch(self, inputs: List[Dict[str, object]]) -> List[Dict[str, object]]:
@@ -232,8 +386,12 @@ class BaseFloodModel(ABC):
                 altitude_m=float(item["altitude_m"]),
                 dem_elevation_m=None if item.get("dem_elevation_m") is None else float(item["dem_elevation_m"]),
                 nearest_river_m=float(item["nearest_river_m"]),
-                gauging_station_current_water_level_m=float(item["gauging_station_current_water_level_m"]),
-                is_forecast=bool(item["is_forecast"]),
+                water_level_m=float(item.get("water_level_m", 0.0)),
+                is_forecast=bool(item.get("is_forecast", False)),
+                gauge_alert_level=float(item.get("gauge_alert_level", 2.0)),
+                gauge_minor_level=float(item.get("gauge_minor_level", 3.0)),
+                gauge_major_level=float(item.get("gauge_major_level", 5.0)),
+                return_shap=bool(item.get("return_shap", False)),
             )
             results.append({
                 "input": item,
@@ -242,5 +400,6 @@ class BaseFloodModel(ABC):
                 "future_forecast": pred.future_forecast,
                 "probability": pred.probability,
                 "source": pred.source,
+                "shap_values": pred.shap_values,
             })
         return results

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { QrReader } from 'react-qr-reader';
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export default function QRScanner({ onComplete }) {
   const [child, setChild] = useState(null);
 
@@ -8,7 +10,7 @@ export default function QRScanner({ onComplete }) {
     if (result?.text) {
       console.log("Scanned:", result.text);
       try {
-        const res = await fetch(`/api/child/${result.text}`);
+        const res = await fetch(`${API}/api/child/${result.text}`);
         const data = await res.json();
         if (data.success) {
           setChild(data.child);
