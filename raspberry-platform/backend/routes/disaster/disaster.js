@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save, getLatestWaterLevelData, getWaterLevelHistoryData, getWaterLevelStatus, triggerWaterLevelSave, triggerWaterLevelHistoryFetch, getLatestSensorStatusData, getSensorStatus, triggerSensorStatusSave, getLatestHydrospatialData, getHydrospatialHistoryData, getHydrospatialStatus, triggerHydrospatialSave, getFloodPredictionData, getSimulatedPrediction } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save, getLatestWaterLevelData, getWaterLevelHistoryData, getWaterLevelStatus, triggerWaterLevelSave, triggerWaterLevelHistoryFetch, clearWaterLevelReadings, refreshWaterLevelReadings, getLatestSensorStatusData, getSensorStatus, triggerSensorStatusSave, getLatestHydrospatialData, getHydrospatialHistoryData, getHydrospatialStatus, triggerHydrospatialSave, getFloodPredictionData, getSimulatedPrediction } from '../../controllers/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 
 const router = express.Router();
@@ -72,6 +72,8 @@ router.get('/water-level/history', getWaterLevelHistoryData);
 router.get('/water-level/status', getWaterLevelStatus);
 router.post('/water-level/save', triggerWaterLevelSave);
 router.post('/water-level/history/fetch', triggerWaterLevelHistoryFetch);
+router.post('/water-level/clear', clearWaterLevelReadings);
+router.post('/water-level/refresh', refreshWaterLevelReadings);
 
 router.get('/sensor-status/latest', getLatestSensorStatusData);
 router.get('/sensor-status/status', getSensorStatus);

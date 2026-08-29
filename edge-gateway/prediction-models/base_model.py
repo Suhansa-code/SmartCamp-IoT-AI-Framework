@@ -42,6 +42,9 @@ EXTENDED_FEATURES = BASE_FEATURES + [
 # Active feature set — change this to switch between base and extended
 MODEL_FEATURES = EXTENDED_FEATURES
 
+# Improved model path
+IMPROVED_MODEL_PATH = Path(__file__).resolve().parent / "models" / "xgboost_model_improved.pkl"
+
 MODELS_DIR = Path(__file__).resolve().parent / "models"
 MODELS_DIR.mkdir(exist_ok=True)
 
@@ -281,7 +284,7 @@ class BaseFloodModel(ABC):
             raise RuntimeError("Model is not trained. Call train() before prediction.")
 
     @staticmethod
-    def _category_from_probability(probability: float) -> str:
+    def _category_from_probability(probability: float, threshold: float = 0.50) -> str:
         if probability >= 0.70:
             return "High"
         if probability >= 0.40:
@@ -290,11 +293,15 @@ class BaseFloodModel(ABC):
 
     @staticmethod
     def _adjust_probability(base_probability: float, water_level_m: float,
-                            gauge_alert_level: float = 2.0) -> float:
+                            gauge_alert_level: float = 2.0,
+                            use_heuristic: bool = False) -> float:
         """Adjust probability based on water level relative to station alert threshold.
 
-        Uses the station's alert level as baseline instead of a fixed 2.0m.
+        The heuristic is disabled by default in the improved model.
+        Set use_heuristic=True to enable the legacy behavior.
         """
+        if not use_heuristic:
+            return float(np.clip(base_probability, 0.0, 1.0))
         correction = np.clip((water_level_m - gauge_alert_level) * 0.05, -0.12, 0.25)
         return float(np.clip(base_probability + correction, 0.0, 1.0))
 
@@ -312,6 +319,7 @@ class BaseFloodModel(ABC):
         gauge_minor_level: float = 3.0,
         gauge_major_level: float = 5.0,
         return_shap: bool = False,
+        use_heuristic: bool = False,
     ) -> FloodPrediction:
         self._require_trained()
 
@@ -339,14 +347,39 @@ class BaseFloodModel(ABC):
             "river_proximity_score": river_proximity_score,
         }])
 
-        base_probability = float(self._predict_proba(self._estimator, row)[0])
+        # Try to load improved model artifact first
+        if IMPROVED_MODEL_PATH.exists():
+            try:
+                artifact = joblib.load(IMPROVED_MODEL_PATH)
+                estimator = artifact["estimator"]
+                threshold = artifact.get("threshold", 0.50)
+                features = artifact.get("features", MODEL_FEATURES)
+
+                # Ensure correct column order
+                row_aligned = row[features]
+
+                if hasattr(estimator, "predict_proba"):
+                    base_probability = float(estimator.predict_proba(row_aligned)[0, 1])
+                else:
+                    base_probability = float(estimator.decision_function(row_aligned)[0])
+            except Exception:
+                # Fallback to legacy model
+                base_probability = float(self._predict_proba(self._estimator, row)[0])
+                threshold = 0.50
+        else:
+            base_probability = float(self._predict_proba(self._estimator, row)[0])
+            threshold = 0.50
+
         adjusted_probability = self._adjust_probability(
-            base_probability, water_level_m, gauge_alert_level,
+            base_probability, water_level_m, gauge_alert_level, use_heuristic,
         )
         forecast_probability = (
             float(np.clip(adjusted_probability * 1.10 + 0.03, 0.0, 1.0))
             if is_forecast else adjusted_probability
         )
+
+        # Determine flood possibility using the threshold
+        flood_possibility = "Likely" if adjusted_probability >= threshold else "Unlikely"
 
         # SHAP explanation
         shap_values = {}
@@ -364,12 +397,12 @@ class BaseFloodModel(ABC):
             )
 
         return FloodPrediction(
-            flood_possibility="Likely" if adjusted_probability >= 0.50 else "Unlikely",
-            category=self._category_from_probability(adjusted_probability),
+            flood_possibility=flood_possibility,
+            category=self._category_from_probability(adjusted_probability, threshold),
             future_forecast={
                 "enabled": bool(is_forecast),
                 "probability": forecast_probability,
-                "category": self._category_from_probability(forecast_probability),
+                "category": self._category_from_probability(forecast_probability, threshold),
             },
             probability=adjusted_probability,
             source=self._source,

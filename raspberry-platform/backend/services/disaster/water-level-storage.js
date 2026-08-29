@@ -408,3 +408,54 @@ export function getWaterLevelHistory(limit = 20) {
     return [];
   }
 }
+
+/**
+ * Clear all water level readings from the database.
+ */
+export function clearWaterLevelData() {
+  try {
+    const result = disasterDb.prepare('DELETE FROM water_level_readings').run();
+    logger.info(`[WATER_LEVEL] Cleared ${result.changes} readings`);
+    return { cleared: result.changes };
+  } catch (err) {
+    logger.error(`[WATER_LEVEL] Clear failed: ${err.message}`);
+    return { cleared: 0, error: err.message };
+  }
+}
+
+/**
+ * Clear and re-fetch water level history from ArcGIS.
+ */
+export async function refreshWaterLevelData(stationName, hours = 24) {
+  ensureStatements();
+
+  const gps = getLatestPersistedGps();
+  if (!gps) {
+    logger.warn('[WATER_LEVEL] No GPS — cannot refresh');
+    return { cleared: 0, inserted: 0, error: 'No GPS location available' };
+  }
+
+  const station = stationName || cachedStationName;
+  if (!station) {
+    const resolved = await resolveStationName(gps);
+    if (!resolved) {
+      return { cleared: 0, inserted: 0, error: 'No gauging station found' };
+    }
+    return refreshWaterLevelData(resolved, hours);
+  }
+
+  const clearResult = clearWaterLevelData();
+  const inserted = await fetchAndSaveWaterLevelHistory(station, hours);
+
+  let liveSaved = false;
+  try {
+    liveSaved = await fetchAndSaveWaterLevel();
+  } catch (_) {}
+
+  return {
+    cleared: clearResult.cleared,
+    inserted,
+    live_saved: liveSaved,
+    station,
+  };
+}

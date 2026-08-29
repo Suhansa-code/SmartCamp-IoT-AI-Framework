@@ -180,6 +180,7 @@ export default function DisasterMonitorPage() {
   const [waterLevel, setWaterLevel] = useState(null)
   const [waterLevelLoading, setWaterLevelLoading] = useState(true)
   const [waterHistory, setWaterHistory] = useState([])
+  const [waterRefreshing, setWaterRefreshing] = useState(false)
   const [hydrospatial, setHydrospatial] = useState(null)
   const [hydroLoading, setHydroLoading] = useState(true)
   const [prediction, setPrediction] = useState(null)
@@ -375,6 +376,34 @@ export default function DisasterMonitorPage() {
       .then((r) => r.json())
       .then((data) => { if (data) setOverview(data) })
       .catch(() => {})
+  }
+
+  const handleRefreshWaterLevel = () => {
+    setWaterRefreshing(true)
+    fetch(`${API}/api/disaster/water-level/refresh`, { method: 'POST' })
+      .then((r) => r.json())
+      .then(() => {
+        return fetch(`${API}/api/disaster/water-level/latest`)
+      })
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setWaterLevel(data) })
+      .catch(() => {})
+      .finally(() => {
+        fetch(`${API}/api/disaster/water-level/history?limit=20`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.readings?.length) {
+              const mapped = data.readings.map((r) => {
+                const t = new Date(r.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                return { t, level: r.water_level }
+              })
+              mapped[mapped.length - 1].t = 'Now'
+              setWaterHistory(computeTrend(mapped))
+            }
+          })
+          .catch(() => {})
+          .finally(() => setTimeout(() => setWaterRefreshing(false), 700))
+      })
   }
 
   const wl = waterLevel?.water_level ?? 0
@@ -609,13 +638,24 @@ export default function DisasterMonitorPage() {
                 {stationName && <p className="text-[10.5px] sm:text-[11px] mt-0.5" style={{ color: COLORS.muted }}>{stationName}{distanceKm != null ? ` · ${distanceKm} km away` : ''}</p>}
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-[11px] sm:text-[11.5px] font-mono" style={{ color: COLORS.muted }}>Last 6 hours</span>
-              {waterLevel?.recorded_at && (
-                <p className="text-[10px] font-mono mt-0.5" style={{ color: COLORS.muted }}>
-                  Updated: {new Date(waterLevel.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              )}
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <span className="text-[11px] sm:text-[11.5px] font-mono" style={{ color: COLORS.muted }}>Last 6 hours</span>
+                {waterLevel?.recorded_at && (
+                  <p className="text-[10px] font-mono mt-0.5" style={{ color: COLORS.muted }}>
+                    Updated: {new Date(waterLevel.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleRefreshWaterLevel}
+                disabled={waterRefreshing}
+                className="p-1.5 rounded-lg border transition-colors hover:bg-gray-50"
+                style={{ borderColor: COLORS.line }}
+                title="Refresh water level data from ArcGIS"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${waterRefreshing ? 'animate-spin' : ''}`} style={{ color: COLORS.muted }} />
+              </button>
             </div>
           </div>
 
