@@ -25,7 +25,7 @@ export const COLORS = {
   chip: readVar('--color-chip', '#D4D8D5'),
   brand: readVar('--color-brand', '#059669'),
   brandSoft: readVar('--color-brand-soft', '#ECFDF5'),
-  trend: readVar('--color-trend', '#00acf0'),
+  trend: readVar('--color-trend', '#84CC16'),
 }
 
 export const SHADOW_CARD = readVar('--shadow-card', '0 8px 24px rgba(15, 23, 20, 0.08)')
