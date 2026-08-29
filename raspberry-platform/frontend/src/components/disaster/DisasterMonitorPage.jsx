@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Droplets, Wind, MapPin, RefreshCw, Radar, Navigation, Satellite,
   CloudRain, Bell, Download, Mountain, Waves, Gauge as GaugeIcon, ArrowRight,
-  TrendingUp, TrendingDown, Minus, Activity, Zap, Clock,
+  TrendingUp, TrendingDown, Minus, Activity, Zap, Clock, FlaskConical,
 } from 'lucide-react'
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -10,6 +10,7 @@ import {
 } from 'recharts'
 import { COLORS, SHADOW_CARD } from '../../lib/tokens'
 import { API } from '../ui/config'
+import SimulationModal from './SimulationModal'
 
 const RISK = {
   safe:     { label: 'Stable',   color: COLORS.brand },
@@ -189,6 +190,11 @@ export default function DisasterMonitorPage() {
   const [overview, setOverview] = useState(null)
   const [overviewLoading, setOverviewLoading] = useState(true)
 
+  // ── Simulation state ──────────────────────────────────────────────
+  const [showSimModal, setShowSimModal] = useState(false)
+  const [isSimulating, setIsSimulating] = useState(false)
+  const [simPrediction, setSimPrediction] = useState(null)
+
   // Track last GPS coordinates to detect changes
   const lastGpsRef = useRef(null)
 
@@ -340,16 +346,20 @@ export default function DisasterMonitorPage() {
       .then((r) => r.json())
       .then((data) => { if (data.available) setHydrospatial(data) })
       .catch(() => {})
-    fetch(`${API}/api/disaster/predict`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.status === 'success' && data.prediction) {
-          setPrediction(data)
-          setPredError(null)
-        }
-      })
-      .catch(() => {})
-      .finally(() => setTimeout(() => setRefreshing(false), 700))
+    if (!isSimulating) {
+      fetch(`${API}/api/disaster/predict`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.status === 'success' && data.prediction) {
+            setPrediction(data)
+            setPredError(null)
+          }
+        })
+        .catch(() => {})
+        .finally(() => setTimeout(() => setRefreshing(false), 700))
+    } else {
+      setTimeout(() => setRefreshing(false), 700)
+    }
     fetch(`${API}/api/disaster/camp-identity`)
       .then((r) => r.json())
       .then((data) => {
@@ -420,6 +430,11 @@ export default function DisasterMonitorPage() {
           <div className="flex items-center gap-2 text-[13px]">
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: risk.color }} />
             <span className="font-semibold" style={{ color: risk.color }}>{risk.label}</span>
+            {isSimulating && (
+              <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                <FlaskConical className="w-3 h-3" /> SIMULATION
+              </span>
+            )}
           </div>
         </div>
 
@@ -636,7 +651,19 @@ export default function DisasterMonitorPage() {
             </div>
             <div className="flex items-center gap-2">
               {prediction?.mode === 'simulation' && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-100 text-amber-700">SIMULATION</span>
+                <>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-100 text-amber-700">SIMULATION</span>
+                  <button
+                    onClick={() => {
+                      setIsSimulating(false)
+                      setSimPrediction(null)
+                      fetchAllDisasterData()
+                    }}
+                    className="px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 transition-colors"
+                  >
+                    Return to Live
+                  </button>
+                </>
               )}
               {prediction?.mode === 'live' && (
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-600">LIVE</span>
@@ -804,6 +831,35 @@ export default function DisasterMonitorPage() {
           </div>
         </div>
       </div>
+
+      {/* ================= FLOATING SIMULATION BUTTON ================= */}
+      <button
+        onClick={() => setShowSimModal(true)}
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-[13px] font-semibold text-white transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+        style={{ backgroundColor: isSimulating ? '#D97706' : COLORS.brand }}
+        title="Open prediction simulation"
+      >
+        <FlaskConical className="w-4 h-4" />
+        {isSimulating ? 'Simulating' : 'Simulate'}
+      </button>
+
+      {/* ================= SIMULATION MODAL ================= */}
+      <SimulationModal
+        open={showSimModal}
+        onClose={() => setShowSimModal(false)}
+        onSimulate={(data) => {
+          setSimPrediction(data)
+          setIsSimulating(true)
+          setPrediction(data)
+        }}
+        onExitSimulation={() => {
+          setIsSimulating(false)
+          setSimPrediction(null)
+          fetchAllDisasterData()
+        }}
+        isSimulating={isSimulating}
+        simResult={simPrediction}
+      />
     </div>
   )
 }

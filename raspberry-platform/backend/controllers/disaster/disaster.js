@@ -291,3 +291,107 @@ export async function getFloodPredictionData(req, res) {
     res.status(500).json({ status: 'error', error: err.message });
   }
 }
+
+// ── Prediction Simulation (for panel demo) ─────────────────────────────
+// Accepts manual model inputs, sends them directly to Edge Gateway,
+// returns the prediction without touching real sensor data.
+
+const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
+
+export async function getSimulatedPrediction(req, res) {
+  try {
+    const {
+      rainfall_mm = 0,
+      latitude = 0,
+      longitude = 0,
+      elevation_m = 10,
+      river_distance_km = 1,
+      water_level_m = 0,
+      gauge_alert_level = 2.0,
+      gauge_minor_level = 3.0,
+      gauge_major_level = 5.0,
+    } = req.body || {};
+
+    // Validate required fields
+    if (latitude === 0 && longitude === 0) {
+      return res.status(400).json({ status: 'error', error: 'latitude and longitude are required' });
+    }
+
+    // Map user-friendly inputs to Edge Gateway format
+    const edgeInputs = {
+      rainfall_mm: Number(rainfall_mm),
+      longitude: Number(longitude),
+      latitude: Number(latitude),
+      altitude_m: Number(elevation_m),
+      dem_elevation_m: Number(elevation_m),
+      nearest_river_m: Number(river_distance_km) * 1000,
+      water_level_m: Number(water_level_m),
+      is_forecast: true,
+      gauge_alert_level: Number(gauge_alert_level),
+      gauge_minor_level: Number(gauge_minor_level),
+      gauge_major_level: Number(gauge_major_level),
+      return_shap: true,
+    };
+
+    // Call Edge Gateway prediction
+    const params = new URLSearchParams({
+      lat: String(edgeInputs.latitude),
+      lon: String(edgeInputs.longitude),
+      alt: String(edgeInputs.altitude_m),
+    });
+
+    const url = `${EDGE_API}/hydrospatial/predict?${params}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Edge Gateway returned ${response.status}: ${body.substring(0, 200)}`);
+    }
+
+    const edgeResult = await response.json();
+    const pred = edgeResult.prediction || edgeResult;
+
+    const completedAt = new Date().toISOString();
+
+    const result = {
+      status: 'success',
+      mode: 'simulation',
+      simulation: {
+        overridden_fields: Object.keys(req.body || {}).filter(k => req.body[k] !== undefined),
+      },
+      prediction: {
+        flood_probability: pred.probability ?? 0,
+        flood_probability_percent: Math.round((pred.probability ?? 0) * 100),
+        occurrence: pred.flood_possibility ?? 'Unknown',
+        risk_category: pred.category ?? 'Unknown',
+        forecast_hours: pred.future_forecast?.enabled ? 6 : 0,
+        future_forecast: pred.future_forecast ?? null,
+        source: pred.source ?? 'xgboost',
+        shap_values: pred.shap_values ?? null,
+      },
+      inputs: {
+        rainfall_mm: Number(rainfall_mm),
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        elevation_m: Number(elevation_m),
+        river_distance_km: Number(river_distance_km),
+        water_level_m: Number(water_level_m),
+      },
+      hydrospatial: edgeResult.source_data || null,
+      data_quality: {
+        missing_fields: [],
+        stale: false,
+        data_timestamp: completedAt,
+        validation_errors: [],
+      },
+      prediction_timestamp: completedAt,
+      prediction_duration_ms: 0,
+      alert_evaluation: null,
+      error: null,
+    };
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
+  }
+}
