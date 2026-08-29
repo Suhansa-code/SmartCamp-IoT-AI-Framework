@@ -42,9 +42,13 @@ const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || "http
 
 const TERRAIN_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 const TERRAIN_SOURCE = "camp-detail-dem";
+const HILLSHADE_SOURCE = "camp-detail-hillshade-dem";
 const TERRAIN_EXAGGERATION = 1.5;
 const HILLSHADE_LAYER = "camp-detail-hillshade";
-const SKY_LAYER = "camp-detail-sky";
+
+const WATERWAY_LAYER_RIVER = "camp-waterway-river";
+const WATERWAY_LAYER_STREAM = "camp-waterway-stream";
+const WATERWAY_LAYER_CANAL = "camp-waterway-canal";
 
 const VIEW_MODES = ["2d", "3d", "terrain", "slope"];
 
@@ -307,12 +311,21 @@ function CampDetailTerrain({ viewMode }) {
       map.setTerrain({ source: TERRAIN_SOURCE, exaggeration: isSlope ? 1.0 : 1.5 });
 
       if (enableHillshade) {
+        if (!map.getSource(HILLSHADE_SOURCE)) {
+          map.addSource(HILLSHADE_SOURCE, {
+            type: "raster-dem",
+            tiles: [TERRAIN_TILES],
+            tileSize: 256,
+            encoding: "terrarium",
+            maxzoom: 12,
+          });
+        }
         if (map.getLayer(HILLSHADE_LAYER)) map.removeLayer(HILLSHADE_LAYER);
         map.addLayer(
           {
             id: HILLSHADE_LAYER,
             type: "hillshade",
-            source: TERRAIN_SOURCE,
+            source: HILLSHADE_SOURCE,
             paint: {
               "hillshade-exaggeration": isSlope ? 1.0 : 0.8,
               "hillshade-illumination-direction": 315,
@@ -326,24 +339,110 @@ function CampDetailTerrain({ viewMode }) {
       } else {
         if (map.getLayer(HILLSHADE_LAYER)) map.removeLayer(HILLSHADE_LAYER);
       }
-
-      if (!map.getLayer(SKY_LAYER)) {
-        map.addLayer({
-          id: SKY_LAYER,
-          type: "sky",
-          paint: {
-            "sky-type": "atmosphere",
-            "sky-azimuthal-direction": 180,
-            "sky-blend": "screen",
-          },
-        });
-      }
     } else {
       map.setTerrain(null);
       if (map.getLayer(HILLSHADE_LAYER)) map.removeLayer(HILLSHADE_LAYER);
-      if (map.getLayer(SKY_LAYER)) map.removeLayer(SKY_LAYER);
     }
   }, [map, isLoaded, enableTerrain, enableHillshade, isSlope, viewMode]);
+
+  return null;
+}
+
+function CampWaterways({ viewMode, dark }) {
+  const { map, isLoaded } = useMap();
+  const show = viewMode === "terrain" || viewMode === "slope";
+
+  useEffect(() => {
+    if (!map || !isLoaded) return;
+
+    if (show) {
+      let vectorSource = null;
+      const sources = map.getStyle().sources;
+      for (const [id, src] of Object.entries(sources)) {
+        if (src.type === "vector" && src.tiles && src.tiles.some((t) => t.includes("openmaptiles") || t.includes("cartocdn"))) {
+          vectorSource = id;
+          break;
+        }
+      }
+      if (!vectorSource) {
+        for (const [id, src] of Object.entries(sources)) {
+          if (src.type === "vector" && src.tiles) {
+            vectorSource = id;
+            break;
+          }
+        }
+      }
+
+      if (!vectorSource) return;
+
+      const beforeLayer = map.getLayer("water")
+        ? "water"
+        : map.getLayer("building")
+          ? "building"
+          : undefined;
+
+      if (!map.getLayer(WATERWAY_LAYER_RIVER)) {
+        map.addLayer(
+          {
+            id: WATERWAY_LAYER_RIVER,
+            type: "line",
+            source: vectorSource,
+            "source-layer": "waterway",
+            filter: ["==", "class", "river"],
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: {
+              "line-color": dark ? "#1e40af" : "#2563eb",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.5, 14, 6],
+              "line-opacity": 0.85,
+            },
+          },
+          beforeLayer,
+        );
+      }
+
+      if (!map.getLayer(WATERWAY_LAYER_STREAM)) {
+        map.addLayer(
+          {
+            id: WATERWAY_LAYER_STREAM,
+            type: "line",
+            source: vectorSource,
+            "source-layer": "waterway",
+            filter: ["==", "class", "stream"],
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: {
+              "line-color": dark ? "#3b82f6" : "#60a5fa",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 14, 3],
+              "line-opacity": 0.75,
+            },
+          },
+          beforeLayer,
+        );
+      }
+
+      if (!map.getLayer(WATERWAY_LAYER_CANAL)) {
+        map.addLayer(
+          {
+            id: WATERWAY_LAYER_CANAL,
+            type: "line",
+            source: vectorSource,
+            "source-layer": "waterway",
+            filter: ["==", "class", "canal"],
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: {
+              "line-color": dark ? "#60a5fa" : "#93c5fd",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 14, 2],
+              "line-opacity": 0.7,
+            },
+          },
+          beforeLayer,
+        );
+      }
+    } else {
+      [WATERWAY_LAYER_RIVER, WATERWAY_LAYER_STREAM, WATERWAY_LAYER_CANAL].forEach((id) => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
+    }
+  }, [map, isLoaded, show, dark, viewMode]);
 
   return null;
 }
@@ -829,6 +928,7 @@ export default function DisasterCampDetailPage() {
                     <MapControls showZoom showLocate showCompass />
                     <MapViewController viewMode={viewMode} />
                     <CampDetailTerrain viewMode={viewMode} />
+                    <CampWaterways viewMode={viewMode} dark={dark} />
                     <CampMapView camp={camp} dark={dark} viewMode={viewMode} />
                   </Map>
 

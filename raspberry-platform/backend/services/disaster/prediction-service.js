@@ -26,9 +26,11 @@ const SIM_RIVER_DISTANCE = process.env.FLOOD_SIMULATION_RIVER_DISTANCE_KM;
 const SIM_WATER_LEVEL = process.env.FLOOD_SIMULATION_WATER_LEVEL;
 
 // ── XGBoost model feature set (must match base_model.py exactly) ──────
-// Model features: rainfall_7d_mm, longitude, latitude, elevation_m, distance_to_river_m
+// Extended features (8): rainfall_7d_mm, longitude, latitude, elevation_m,
+//   distance_to_river_m, water_level_m, elevation_ratio, river_proximity_score
 // Model inputs:   rainfall_mm, longitude, latitude, altitude_m, dem_elevation_m,
-//                 nearest_river_m, gauging_station_current_water_level_m, is_forecast
+//                 nearest_river_m, water_level_m, is_forecast,
+//                 gauge_alert_level, gauge_minor_level, gauge_major_level, return_shap
 
 // ── Data freshness threshold ───────────────────────────────────────────
 const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -184,8 +186,12 @@ function buildPredictionInputs(data) {
     altitude_m: altitude,
     dem_elevation_m: elevation,
     nearest_river_m: riverDistanceM,
-    gauging_station_current_water_level_m: waterLevelM,
+    water_level_m: waterLevelM,
     is_forecast: true,
+    gauge_alert_level: waterLevel?.alert_level ?? 2.0,
+    gauge_minor_level: waterLevel?.minor_flood_level ?? 3.0,
+    gauge_major_level: waterLevel?.major_flood_level ?? 5.0,
+    return_shap: true,
   };
 }
 
@@ -217,7 +223,7 @@ function applySimulationOverrides(inputs, data) {
     overridden.push('river_distance');
   }
   if (SIM_WATER_LEVEL !== undefined && SIM_WATER_LEVEL !== '') {
-    inputs.gauging_station_current_water_level_m = toNumber(SIM_WATER_LEVEL, inputs.gauging_station_current_water_level_m);
+    inputs.water_level_m = toNumber(SIM_WATER_LEVEL, inputs.water_level_m);
     overridden.push('water_level');
   }
 
@@ -302,6 +308,7 @@ export async function getFloodPrediction() {
       forecast_hours: pred.future_forecast?.enabled ? 6 : 0,
       future_forecast: pred.future_forecast ?? null,
       source: pred.source ?? 'xgboost',
+      shap_values: pred.shap_values ?? null,
     };
   } catch (err) {
     predictionError = err.message;
@@ -342,7 +349,7 @@ export async function getFloodPrediction() {
       longitude: inputs.longitude,
       elevation_m: inputs.dem_elevation_m,
       river_distance_km: inputs.nearest_river_m / 1000,
-      water_level_m: inputs.gauging_station_current_water_level_m,
+      water_level_m: inputs.water_level_m,
     }, hydrospatial: data.hydrospatial, predictionId, predictionTimestamp: completedAt })
     : null;
 
@@ -367,7 +374,7 @@ export async function getFloodPrediction() {
       longitude: inputs.longitude,
       elevation_m: inputs.dem_elevation_m,
       river_distance_km: inputs.nearest_river_m / 1000,
-      water_level_m: inputs.gauging_station_current_water_level_m,
+      water_level_m: inputs.water_level_m,
     },
     hydrospatial: data.hydrospatial ? {
       gauge_elevation: data.hydrospatial.gauge_elevation,

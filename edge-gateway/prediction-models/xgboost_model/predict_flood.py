@@ -43,8 +43,12 @@ def main() -> None:
         altitude_m=to_float(payload, 'altitude_m'),
         dem_elevation_m=None if payload.get('dem_elevation_m') is None else to_float(payload, 'dem_elevation_m'),
         nearest_river_m=to_float(payload, 'nearest_river_m'),
-        gauging_station_current_water_level_m=to_float(payload, 'gauging_station_current_water_level_m'),
+        water_level_m=to_float(payload, 'water_level_m'),
         is_forecast=bool(payload.get('is_forecast', True)),
+        gauge_alert_level=to_float(payload, 'gauge_alert_level', 2.0),
+        gauge_minor_level=to_float(payload, 'gauge_minor_level', 3.0),
+        gauge_major_level=to_float(payload, 'gauge_major_level', 5.0),
+        return_shap=bool(payload.get('return_shap', False)),
     )
 
     print(
@@ -56,6 +60,8 @@ def main() -> None:
                 'probability': prediction.probability,
                 'source': prediction.source,
                 'roc_auc': model.metrics_.get('roc_auc') if model._is_trained else None,
+                'shap_values': prediction.shap_values,
+                'features_used': model.metrics_.get('features_used', []),
                 'input': payload,
             }
         )

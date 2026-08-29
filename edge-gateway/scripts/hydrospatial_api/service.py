@@ -182,8 +182,12 @@ def build_live_prediction(latitude: float, longitude: float, altitude: float = 1
         "altitude_m": altitude,
         "dem_elevation_m": dem_elevation,
         "nearest_river_m": nearest_river_m,
-        "gauging_station_current_water_level_m": gauge.get("water_level") or 0.0,
+        "water_level_m": gauge.get("water_level") or 0.0,
         "is_forecast": True,
+        "gauge_alert_level": gauge.get("alert_level") or station.get("alert_level") or 2.0,
+        "gauge_minor_level": gauge.get("minor_flood_level") or station.get("minor_level") or 3.0,
+        "gauge_major_level": gauge.get("major_flood_level") or station.get("major_level") or 5.0,
+        "return_shap": True,
     }
 
     try:
