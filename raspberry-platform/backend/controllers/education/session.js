@@ -34,6 +34,23 @@ function resolveChildFromPersonId(personId) {
   return null;
 }
 
+function isFiniteNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num);
+}
+
+function shouldFlagSessionAnomaly(sessionNumber, zScore, ifScore) {
+  if (sessionNumber >= 3 && sessionNumber <= 7) {
+    return isFiniteNumber(zScore) && Number(zScore) < C.ZSCORE_THRESHOLD;
+  }
+
+  if (sessionNumber >= 8) {
+    return isFiniteNumber(ifScore) && Number(ifScore) < C.IF_SCORE_THRESHOLD;
+  }
+
+  return false;
+}
+
 export async function startSession(req, res, next) {
   try {
     const { person_id, condition_label = 'A' } = req.body;
@@ -68,21 +85,27 @@ export async function startSession(req, res, next) {
 export async function taskComplete(req, res, next) {
   try {
     const { child_id, session_id, attempt = 1, taskMetrics, passiveSignals } = req.body;
+    const attemptNumber = parseInt(attempt, 10) || 1;
 
     const sessionRows = sqliteRetrieve('pages_sessions', 'session_id, child_id, baseline_score_used', 'session_id = ?', [session_id]);
     const session = sessionRows[0];
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
 
-    const scoring = await scoringService.getScore(child_id, session_id, taskMetrics, passiveSignals);
-    const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
+    const childRows = sqliteRetrieve('pages_children', 'child_id, total_sessions, baseline_score, consecutive_low', 'child_id = ?', [child_id]);
+    const child = childRows[0];
+    if (!child) return next(createError(404, `Child not found: ${child_id}`));
 
-    let gateDecision, sessionAnomalyFlag;
-    if (parseInt(attempt, 10) >= 2) {
+    const sessionNumber = (Number(child.total_sessions) || 0) + 1;
+
+    const scoring = await scoringService.getScore(child_id, session_id, taskMetrics, passiveSignals, null, sessionNumber);
+    const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
+    const sessionAnomalyFlag = shouldFlagSessionAnomaly(sessionNumber, zScore, ifScore);
+
+    let gateDecision;
+    if (attemptNumber >= 2) {
       gateDecision = applySecondGate(compositeScore);
-      sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
     } else {
       gateDecision = applyFirstGate(compositeScore);
-      sessionAnomalyFlag = gateDecision === C.GATE.FAIL_FIRST;
     }
 
     const signalId = newId();
@@ -113,39 +136,38 @@ export async function taskComplete(req, res, next) {
 
     enqueueSync('pages_behavioral_signals', signalId);
 
-    sqliteUpdate('pages_sessions', {
+    const sessionUpdate = {
       composite_score: compositeScore, task_score: taskScore,
       passive_score: passiveScore, gate_decision: gateDecision,
       anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
-      z_score: zScore || null, if_score: ifScore || null,
-    }, 'session_id = ?', [session_id]);
+      z_score: zScore ?? null, if_score: ifScore ?? null,
+      synced: 0,
+    };
+    if (attemptNumber >= 2) {
+      sessionUpdate.second_gate_score = compositeScore;
+    }
+
+    sqliteUpdate('pages_sessions', sessionUpdate, 'session_id = ?', [session_id]);
+    enqueueSync('pages_sessions', session_id);
 
     sqliteInsert('pages_gate_decisions', {
       decision_id: decisionId, session_id, child_id,
-      attempt_number: parseInt(attempt, 10) || 1,
+      attempt_number: attemptNumber,
       composite_score: compositeScore, decision: gateDecision,
     });
 
     enqueueSync('pages_gate_decisions', decisionId);
 
-    if (parseInt(attempt, 10) >= 2 && gateDecision === C.GATE.FAIL_CONFIRMED) {
-      const childRows = sqliteRetrieve('pages_children', 'baseline_score, total_sessions, consecutive_low', 'child_id = ?', [child_id]);
-      const currentChild = childRows[0];
-      const newConsecutiveLow = (Number(currentChild?.consecutive_low) || 0) + 1;
-      const newBaseline = updateBaseline(currentChild?.baseline_score || 60.0, compositeScore);
+    if (attemptNumber >= 2 && gateDecision === C.GATE.FAIL_CONFIRMED) {
+      const newConsecutiveLow = (Number(child?.consecutive_low) || 0) + 1;
+      const newBaseline = updateBaseline(child?.baseline_score || 60.0, compositeScore);
 
       sqliteUpdate('pages_children', {
         consecutive_low: newConsecutiveLow,
         baseline_score: newBaseline,
-        total_sessions: (currentChild?.total_sessions || 0) + 1,
+        total_sessions: (child?.total_sessions || 0) + 1,
       }, 'child_id = ?', [child_id]);
       enqueueSync('pages_children', child_id);
-
-      sqliteUpdate('pages_sessions', {
-        session_complete: 1,
-        anomaly_flagged: 1,
-      }, 'session_id = ?', [session_id]);
-      enqueueSync('pages_sessions', session_id);
     }
 
     if (sessionAnomalyFlag) checkAndCreateAlert(child_id, session_id);
@@ -162,7 +184,7 @@ export async function secondGate(req, res, next) {
 
     const sessionRows = sqliteRetrieve('pages_sessions', 'session_id, gate_decision', 'session_id = ?', [session_id]);
     const session = sessionRows[0];
-    const childRows = sqliteRetrieve('pages_children', 'child_id, baseline_score, consecutive_low', 'child_id = ?', [child_id]);
+    const childRows = sqliteRetrieve('pages_children', 'child_id, baseline_score, consecutive_low, total_sessions', 'child_id = ?', [child_id]);
     const child = childRows[0];
 
     if (!session) return next(createError(404, `Session not found: ${session_id}`));
@@ -171,10 +193,19 @@ export async function secondGate(req, res, next) {
     }
     if (!child) return next(createError(404, `Child not found: ${child_id}`));
 
-    const scoring = await scoringService.getScore(child_id, session_id, taskMetrics, passiveSignals, child.baseline_score || 60.0);
+    const sessionNumber = (Number(child.total_sessions) || 0) + 1;
+
+    const scoring = await scoringService.getScore(
+      child_id,
+      session_id,
+      taskMetrics,
+      passiveSignals,
+      child.baseline_score || 60.0,
+      sessionNumber,
+    );
     const { compositeScore, taskScore, passiveScore, zScore, ifScore } = scoring;
     const gateDecision = applySecondGate(compositeScore);
-    const sessionAnomalyFlag = gateDecision === C.GATE.FAIL_CONFIRMED;
+    const sessionAnomalyFlag = shouldFlagSessionAnomaly(sessionNumber, zScore, ifScore);
     const decisionId = newId();
 
     sqliteUpdate('pages_sessions', {
@@ -182,7 +213,9 @@ export async function secondGate(req, res, next) {
       passive_score: passiveScore, second_gate_score: compositeScore,
       gate_decision: gateDecision, anomaly_flagged: sessionAnomalyFlag ? 1 : 0,
       z_score: zScore ?? null, if_score: ifScore ?? null,
+      synced: 0,
     }, 'session_id = ?', [session_id]);
+    enqueueSync('pages_sessions', session_id);
 
     sqliteInsert('pages_gate_decisions', {
       decision_id: decisionId, session_id, child_id, attempt_number: 2,
@@ -201,15 +234,9 @@ export async function secondGate(req, res, next) {
         total_sessions: (child?.total_sessions || 0) + 1,
       }, 'child_id = ?', [child_id]);
       enqueueSync('pages_children', child_id);
-
-      sqliteUpdate('pages_sessions', {
-        session_complete: 1,
-        anomaly_flagged: 1,
-      }, 'session_id = ?', [session_id]);
-      enqueueSync('pages_sessions', session_id);
-
-      checkAndCreateAlert(child_id, session_id);
     }
+
+    if (sessionAnomalyFlag) checkAndCreateAlert(child_id, session_id);
 
     return res.json({ success: true, gate_decision: gateDecision, composite_score: compositeScore });
   } catch (err) { next(err); }
@@ -241,21 +268,21 @@ export async function completeSession(req, res, next) {
       enqueueSync('pages_content_responses', responseId);
     }
 
+    const shouldMarkComplete = ![C.GATE.PASS_RECOVERED, C.GATE.FAIL_CONFIRMED].includes(session.gate_decision);
+
     sqliteUpdate('pages_sessions', {
-      cognitive_score: Number(cognitiveScore), content_session_id: contentSessionId, session_complete: 1,
+      cognitive_score: Number(cognitiveScore), content_session_id: contentSessionId, session_complete: shouldMarkComplete ? 1 : 0,
       anomaly_flagged: session.anomaly_flagged,
+      synced: 0,
     }, 'session_id = ?', [session_id]);
+    enqueueSync('pages_sessions', session_id);
 
     sqliteUpdate('pages_children', {
       baseline_score: newBaseline, total_sessions: child.total_sessions + 1,
       consecutive_low: compositeScore >= C.GATE_THRESHOLD ? 0 : child.consecutive_low,
     }, 'child_id = ?', [child_id]);
 
-    const updatedSessionRows = sqliteRetrieve('pages_sessions', 'anomaly_flagged', 'session_id = ?', [session_id]);
-    const updatedSession = updatedSessionRows[0];
-    if (updatedSession && updatedSession.anomaly_flagged === 1) {
-      checkAndCreateAlert(child_id, session_id);
-    }
+    checkAndCreateAlert(child_id, session_id);
 
     return res.json({ success: true, message: 'Session saved', new_baseline: newBaseline });
   } catch (err) { next(err); }

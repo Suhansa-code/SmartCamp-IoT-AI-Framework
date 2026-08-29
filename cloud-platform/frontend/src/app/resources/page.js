@@ -3,6 +3,10 @@
 import { useState } from "react";
 import SideNav from "@/components/common/SideNav";
 import PageHeader, { HeaderShell } from "@/components/common/PageHeader";
+import PageTitle from "@/components/common/PageTitle";
+import Button from "@/components/common/Button";
+import ResourcePanel from "@/components/resources/ResourcePanel";
+import DistributionPanel from "@/components/resources/DistributionPanel";
 import ResourcePanel from "@/components/resources/ResourcePanel";
 import { useTheme } from "@/components/common/ThemeProvider";
 
@@ -60,6 +64,17 @@ export default function ResourcesPage() {
                 }}
               >
                 <ResourcePanel />
+              </div>
+
+              {/* ── 7-day food/water distribution forecast (Sri Lanka rate table model) ── */}
+              <div
+                style={{
+                  background: T.panel,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <DistributionPanel />
               </div>
             </div>
           </main>

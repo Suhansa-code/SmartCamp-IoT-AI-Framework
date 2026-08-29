@@ -5,6 +5,10 @@
  * MQTT deliveries. The sync_log table tracks received sync_ids.
  */
 import { getPool } from '../../config/database.js';
+import { randomUUID } from 'crypto';
+
+const EDUCATION_ALERT_CONSECUTIVE = 3;
+const EDUCATION_ALERT_OF_FIVE = 3;
 
 export async function isSyncProcessed(syncId) {
   const pool = getPool();
@@ -40,6 +44,15 @@ export async function getDeviceCampId(deviceId) {
   const pool = getPool();
   const result = await pool.query('SELECT camp_id FROM devices WHERE device_id = $1', [deviceId]);
   return result.rows[0]?.camp_id || null;
+}
+
+export async function getBehavioralSignals(sessionId) {
+  const pool = getPool();
+  const result = await pool.query(
+    'SELECT accuracy_rate, false_tap_rate, avg_reaction_time, reaction_variance, idle_time_ratio, rapid_click_count, time_to_first_ms, completion_ratio FROM pages_behavioral_signals WHERE session_id = $1 LIMIT 1',
+    [sessionId]
+  );
+  return result.rows[0] || null;
 }
 
 // ── Resource domain ──────────────────────────────────────────────────────
@@ -168,15 +181,107 @@ export async function upsertChild(r, ctx = {}) {
 
 export async function upsertSession(r) {
   const pool = getPool();
+  const createdAt = r.created_at || new Date().toISOString();
   await pool.query(
-    `INSERT INTO sessions (session_id,child_id,composite_score,anomaly_flagged,alert_triggered,created_at)
-     VALUES ($1,$2,$3,$4,$5,$6)
+    `INSERT INTO sessions (session_id,child_id,composite_score,task_score,passive_score,
+       gate_decision,z_score,if_score,anomaly_flagged,alert_triggered,created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
      ON CONFLICT (session_id) DO UPDATE SET child_id=EXCLUDED.child_id,
-       composite_score=EXCLUDED.composite_score,anomaly_flagged=EXCLUDED.anomaly_flagged,
-       alert_triggered=EXCLUDED.alert_triggered,created_at=EXCLUDED.created_at`,
-    [r.session_id,r.child_id,r.composite_score||null,r.anomaly_flagged||0,
-     r.alert_triggered||0,r.created_at||null]
+       composite_score=EXCLUDED.composite_score,task_score=EXCLUDED.task_score,
+       passive_score=EXCLUDED.passive_score,gate_decision=EXCLUDED.gate_decision,
+       z_score=EXCLUDED.z_score,if_score=EXCLUDED.if_score,
+       anomaly_flagged=EXCLUDED.anomaly_flagged,alert_triggered=EXCLUDED.alert_triggered,
+       created_at=EXCLUDED.created_at`,
+    [r.session_id,r.child_id,r.composite_score||null,r.task_score||null,
+     r.passive_score||null,r.gate_decision||null,r.z_score||null,r.if_score||null,
+     r.anomaly_flagged||0,r.alert_triggered||0,r.created_at||null]
   );
+
+  await maybeGenerateEducationAlerts(pool, r.child_id, r.session_id);
+}
+
+async function maybeGenerateEducationAlerts(pool, childId, sessionId) {
+  if (!childId) return;
+
+  const childRes = await pool.query(
+    'SELECT child_id, res_id, camp_id FROM children WHERE child_id = $1',
+    [childId]
+  );
+  const child = childRes.rows[0];
+  if (!child) return;
+
+  const recentRes = await pool.query(
+    `SELECT session_id, anomaly_flagged
+     FROM sessions
+     WHERE child_id = $1 AND composite_score IS NOT NULL
+     ORDER BY created_at DESC NULLS LAST
+     LIMIT 5`,
+    [childId]
+  );
+
+  const recent = recentRes.rows;
+  if (recent.length === 0) return;
+
+  const flags = recent.map((s) => Number(s.anomaly_flagged) === 1);
+  const latestWindow = flags.slice(0, EDUCATION_ALERT_CONSECUTIVE);
+  const hasConsecutive =
+    latestWindow.length >= EDUCATION_ALERT_CONSECUTIVE && latestWindow.every(Boolean);
+
+  let createdAny = false;
+
+  if (hasConsecutive) {
+    const created = await createPendingAlertIfMissing(pool, {
+      childId,
+      resId: child.res_id,
+      campId: child.camp_id,
+      alertType: '3_consecutive_flagged',
+      triggerDetail: {
+        session_id: sessionId,
+        message: `${EDUCATION_ALERT_CONSECUTIVE} consecutive anomaly-flagged sessions`,
+      },
+    });
+    createdAny = createdAny || created;
+  }
+
+  if (recent.length >= 5) {
+    const flaggedCount = flags.filter(Boolean).length;
+    if (flaggedCount >= EDUCATION_ALERT_OF_FIVE) {
+      const created = await createPendingAlertIfMissing(pool, {
+        childId,
+        resId: child.res_id,
+        campId: child.camp_id,
+        alertType: '3_of_5_flagged',
+        triggerDetail: {
+          session_id: sessionId,
+          message: `${flaggedCount}/5 recent sessions flagged`,
+        },
+      });
+      createdAny = createdAny || created;
+    }
+  }
+
+  if (createdAny) {
+    await pool.query('UPDATE sessions SET alert_triggered = 1 WHERE session_id = $1', [sessionId]);
+    await pool.query("UPDATE children SET alert_status = 'active' WHERE child_id = $1", [childId]);
+  }
+}
+
+async function createPendingAlertIfMissing(pool, { childId, resId, campId, alertType, triggerDetail }) {
+  const existing = await pool.query(
+    `SELECT 1 FROM alerts
+     WHERE child_id = $1 AND alert_type = $2 AND status = 'pending'
+     LIMIT 1`,
+    [childId, alertType]
+  );
+  if (existing.rowCount > 0) return false;
+
+  await pool.query(
+    `INSERT INTO alerts (alert_id, child_id, res_id, camp_id, alert_type, trigger_detail, triggered_at, status)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, NOW(), 'pending')`,
+    [randomUUID(), childId, resId || null, campId, alertType, JSON.stringify(triggerDetail || {})]
+  );
+
+  return true;
 }
 
 export async function upsertBehavioralSignal(r) {
@@ -375,8 +480,8 @@ export async function upsertDisasterAlert(r, ctx = {}) {
     `INSERT INTO disaster_alerts (id,alert_id,event_id,camp_id,camp_name,alert_type,severity,priority,title,message,latitude,longitude,
        prediction_id,flood_probability,flood_probability_percent,risk_category,forecast_hours,rainfall,camp_elevation,river_distance_km,water_level,
        station_id,station_name,gauge_elevation,elevation_difference,gauge_distance_km,gauge_latitude,gauge_longitude,river_name,camp_latitude,camp_longitude,
-       source,prediction_timestamp,expires_at,schema_version,status,created_at,acknowledged_at,mqtt_status,cloud_sync_status,device_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41)
+       source,prediction_timestamp,expires_at,schema_version,status,created_at,acknowledged_at,mqtt_status,cloud_sync_status,device_id,temperature,humidity)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43)
     ON CONFLICT (id) DO UPDATE SET alert_id=EXCLUDED.alert_id,event_id=EXCLUDED.event_id,camp_id=EXCLUDED.camp_id,camp_name=EXCLUDED.camp_name,
        alert_type=EXCLUDED.alert_type,severity=EXCLUDED.severity,priority=EXCLUDED.priority,title=EXCLUDED.title,message=EXCLUDED.message,
        latitude=EXCLUDED.latitude,longitude=EXCLUDED.longitude,prediction_id=EXCLUDED.prediction_id,flood_probability=EXCLUDED.flood_probability,
@@ -386,13 +491,13 @@ export async function upsertDisasterAlert(r, ctx = {}) {
        gauge_distance_km=EXCLUDED.gauge_distance_km,gauge_latitude=EXCLUDED.gauge_latitude,gauge_longitude=EXCLUDED.gauge_longitude,river_name=EXCLUDED.river_name,
        camp_latitude=EXCLUDED.camp_latitude,camp_longitude=EXCLUDED.camp_longitude,source=EXCLUDED.source,prediction_timestamp=EXCLUDED.prediction_timestamp,
        expires_at=EXCLUDED.expires_at,schema_version=EXCLUDED.schema_version,status=EXCLUDED.status,created_at=EXCLUDED.created_at,acknowledged_at=EXCLUDED.acknowledged_at,
-       mqtt_status=EXCLUDED.mqtt_status,cloud_sync_status='SYNCED',device_id=EXCLUDED.device_id`,
+       mqtt_status=EXCLUDED.mqtt_status,cloud_sync_status='SYNCED',device_id=EXCLUDED.device_id,temperature=EXCLUDED.temperature,humidity=EXCLUDED.humidity`,
     [r.id,r.alert_id||null,r.event_id||null,r.camp_id||null,r.camp_name||null,r.alert_type,r.severity,r.priority||'NORMAL',r.title||null,r.message||null,
      r.latitude??null,r.longitude??null,r.prediction_id||null,r.flood_probability??null,r.flood_probability_percent??null,r.risk_category||null,r.forecast_hours??null,
      r.rainfall??null,r.camp_elevation??null,r.river_distance_km??null,r.water_level??null,r.station_id||null,r.station_name||null,r.gauge_elevation??null,
      r.elevation_difference??null,r.gauge_distance_km??null,r.gauge_latitude??null,r.gauge_longitude??null,r.river_name||null,r.camp_latitude??null,r.camp_longitude??null,
      r.source||null,r.prediction_timestamp||null,r.expires_at||null,r.schema_version||'1.0',r.status||'ACTIVE',r.created_at||null,r.acknowledged_at||null,r.mqtt_status||'DELIVERED',r.cloud_sync_status||'SYNCED',
-     ctx.device_id||r.device_id||null]
+     ctx.device_id||r.device_id||null,r.temperature??null,r.humidity??null]
   );
 }
 

@@ -14,7 +14,7 @@ export default {
   PORT: parseInt(process.env.PORT, 10) || 5000,
   NODE_ENV: process.env.NODE_ENV || 'development',
   DEVICE_ID: process.env.DEVICE_ID || 'SCB-UNIT-01',
-  // CAMP_ID is now derived from GPS location via camp-id.js (not from env)
+  // CAMP_ID equals DEVICE_ID — see camp-id.js
   FLOOD_ALERT_HIGH_THRESHOLD: process.env.FLOOD_ALERT_HIGH_THRESHOLD ? parseFloat(process.env.FLOOD_ALERT_HIGH_THRESHOLD) : null,
   FLOOD_ALERT_CRITICAL_THRESHOLD: process.env.FLOOD_ALERT_CRITICAL_THRESHOLD ? parseFloat(process.env.FLOOD_ALERT_CRITICAL_THRESHOLD) : null,
 
@@ -31,6 +31,7 @@ export default {
 
   FLASK_URL: process.env.FLASK_URL || 'http://localhost:5001',
   FLASK_TIMEOUT_MS: 8000,
+  CLOUD_ML_URL: process.env.CLOUD_ML_URL || 'http://localhost:5001',
 
   JWT_SECRET: process.env.JWT_SECRET || 'CHANGE_THIS_SECRET',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
@@ -80,6 +81,8 @@ export default {
   RAINFALL_STORAGE_INTERVAL_MINUTES: parseInt(process.env.RAINFALL_STORAGE_INTERVAL_MINUTES, 10) || 15,
 
   DHT11_STORAGE_INTERVAL_MINUTES: parseInt(process.env.DHT11_STORAGE_INTERVAL_MINUTES, 10) || 5,
+  DHT11_TEMP_HIGH_THRESHOLD: parseFloat(process.env.DHT11_TEMP_HIGH_THRESHOLD) || 35,
+  DHT11_HUMIDITY_HIGH_THRESHOLD: parseFloat(process.env.DHT11_HUMIDITY_HIGH_THRESHOLD) || 85,
 
   HYDROSPATIAL_STORAGE_INTERVAL_MINUTES: parseInt(process.env.HYDROSPATIAL_STORAGE_INTERVAL_MINUTES, 10) || 30,
 

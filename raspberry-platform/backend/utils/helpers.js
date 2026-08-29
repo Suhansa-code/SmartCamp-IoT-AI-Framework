@@ -44,7 +44,7 @@ export function campPrefix(campId) {
 }
 
 export function nextChildId(campId) {
-  const prefix = campPrefix(campId);
+  const prefix = 'CHILD';
   const startPos = prefix.length + 2;
   const row = pagesDb.prepare(`
     SELECT CAST(SUBSTR(child_id, ?) AS INTEGER) AS num

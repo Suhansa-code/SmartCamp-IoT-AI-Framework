@@ -3,7 +3,7 @@ import * as gpsService from '../../services/disaster/gps.js';
 import { getLatestWeather, getWeatherStorageStatus } from '../../services/disaster/weather-storage.js';
 import { getLatestRainfall, getRainfallStorageStatus, fetchAndSaveRainfall } from '../../services/disaster/rainfall-storage.js';
 import { getLatestDht11, getDht11StorageStatus, fetchAndSaveDht11 } from '../../services/disaster/dht11-storage.js';
-import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, fetchAndSaveWaterLevel } from '../../services/disaster/water-level-storage.js';
+import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, fetchAndSaveWaterLevel, fetchAndSaveWaterLevelHistory, clearWaterLevelData, refreshWaterLevelData } from '../../services/disaster/water-level-storage.js';
 import { getLatestSensorStatus, getSensorStatusStorageStatus, fetchAndSaveSensorStatus } from '../../services/disaster/sensor-status-storage.js';
 import { getLatestHydrospatial, getHydrospatialHistory, getHydrospatialStorageStatus, fetchAndSaveHydrospatial } from '../../services/disaster/hydrospatial-storage.js';
 import { getFloodPrediction } from '../../services/disaster/prediction-service.js';
@@ -42,9 +42,8 @@ export async function getGpsLocation(req, res) {
 
 export function getCampIdentity(req, res) {
   const dynamicCampId = gpsService.getDynamicCampId();
-  const suffix = gpsService.getCampSuffix();
   const identity = disasterService.getCampIdentity(dynamicCampId);
-  res.json({ camp_id: dynamicCampId, suffix, ...identity });
+  res.json({ camp_id: dynamicCampId, ...identity });
 }
 
 export function getLatestGpsLocation(req, res) {
@@ -196,6 +195,48 @@ export async function triggerWaterLevelSave(req, res) {
   }
 }
 
+export async function triggerWaterLevelHistoryFetch(req, res) {
+  try {
+    const station = req.query.station;
+    const hours = parseInt(req.query.hours, 10) || 24;
+    if (!station) {
+      return res.status(400).json({ error: 'station parameter is required' });
+    }
+    const inserted = await fetchAndSaveWaterLevelHistory(station, hours);
+    res.json({ inserted, message: `Backfilled ${inserted} readings from ArcGIS (${hours}h)` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export function clearWaterLevelReadings(req, res) {
+  try {
+    const result = clearWaterLevelData();
+    res.json({ cleared: result.cleared, message: `Cleared ${result.cleared} water level readings` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function refreshWaterLevelReadings(req, res) {
+  try {
+    const station = req.query.station || null;
+    const hours = parseInt(req.query.hours, 10) || 24;
+    const result = await refreshWaterLevelData(station, hours);
+    res.json({
+      cleared: result.cleared,
+      inserted: result.inserted,
+      live_saved: result.live_saved,
+      station: result.station,
+      message: result.error
+        ? `Refresh failed: ${result.error}`
+        : `Cleared ${result.cleared} old readings, inserted ${result.inserted} from ArcGIS, live: ${result.live_saved}`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 export function getLatestSensorStatusData(req, res) {
   try {
     const status = getLatestSensorStatus();
@@ -273,6 +314,110 @@ export async function triggerHydrospatialSave(req, res) {
 export async function getFloodPredictionData(req, res) {
   try {
     const result = await getFloodPrediction();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
+  }
+}
+
+// ── Prediction Simulation (for panel demo) ─────────────────────────────
+// Accepts manual model inputs, sends them directly to Edge Gateway,
+// returns the prediction without touching real sensor data.
+
+const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
+
+export async function getSimulatedPrediction(req, res) {
+  try {
+    const {
+      rainfall_mm = 0,
+      latitude = 0,
+      longitude = 0,
+      elevation_m = 10,
+      river_distance_km = 1,
+      water_level_m = 0,
+      gauge_alert_level = 2.0,
+      gauge_minor_level = 3.0,
+      gauge_major_level = 5.0,
+    } = req.body || {};
+
+    // Validate required fields
+    if (latitude === 0 && longitude === 0) {
+      return res.status(400).json({ status: 'error', error: 'latitude and longitude are required' });
+    }
+
+    // Map user-friendly inputs to Edge Gateway format
+    const edgeInputs = {
+      rainfall_mm: Number(rainfall_mm),
+      longitude: Number(longitude),
+      latitude: Number(latitude),
+      altitude_m: Number(elevation_m),
+      dem_elevation_m: Number(elevation_m),
+      nearest_river_m: Number(river_distance_km) * 1000,
+      water_level_m: Number(water_level_m),
+      is_forecast: true,
+      gauge_alert_level: Number(gauge_alert_level),
+      gauge_minor_level: Number(gauge_minor_level),
+      gauge_major_level: Number(gauge_major_level),
+      return_shap: true,
+    };
+
+    // Call Edge Gateway prediction
+    const params = new URLSearchParams({
+      lat: String(edgeInputs.latitude),
+      lon: String(edgeInputs.longitude),
+      alt: String(edgeInputs.altitude_m),
+    });
+
+    const url = `${EDGE_API}/hydrospatial/predict?${params}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Edge Gateway returned ${response.status}: ${body.substring(0, 200)}`);
+    }
+
+    const edgeResult = await response.json();
+    const pred = edgeResult.prediction || edgeResult;
+
+    const completedAt = new Date().toISOString();
+
+    const result = {
+      status: 'success',
+      mode: 'simulation',
+      simulation: {
+        overridden_fields: Object.keys(req.body || {}).filter(k => req.body[k] !== undefined),
+      },
+      prediction: {
+        flood_probability: pred.probability ?? 0,
+        flood_probability_percent: Math.round((pred.probability ?? 0) * 100),
+        occurrence: pred.flood_possibility ?? 'Unknown',
+        risk_category: pred.category ?? 'Unknown',
+        forecast_hours: pred.future_forecast?.enabled ? 6 : 0,
+        future_forecast: pred.future_forecast ?? null,
+        source: pred.source ?? 'xgboost',
+        shap_values: pred.shap_values ?? null,
+      },
+      inputs: {
+        rainfall_mm: Number(rainfall_mm),
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        elevation_m: Number(elevation_m),
+        river_distance_km: Number(river_distance_km),
+        water_level_m: Number(water_level_m),
+      },
+      hydrospatial: edgeResult.source_data || null,
+      data_quality: {
+        missing_fields: [],
+        stale: false,
+        data_timestamp: completedAt,
+        validation_errors: [],
+      },
+      prediction_timestamp: completedAt,
+      prediction_duration_ms: 0,
+      alert_evaluation: null,
+      error: null,
+    };
+
     res.json(result);
   } catch (err) {
     res.status(500).json({ status: 'error', error: err.message });

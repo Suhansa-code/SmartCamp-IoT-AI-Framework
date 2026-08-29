@@ -1,0 +1,91 @@
+{
+  "generated_by": "scripts/generate_camp_scenarios.py",
+  "nature": "Generated scenario set. Rates and scales measured; camp-days constructed.",
+  "not_for_training": "Rates were used to construct this set; refitting them to it is circular.",
+  "measured_inputs": {
+    "cohort_rates": "BRIGHT Sri Lanka household survey, n=27,689, sampled from bootstrap CI95",
+    "age_composition": "BRIGHT roster module mod_b0_roster_long",
+    "commodity_mix": "BRIGHT mod_j1_fah_long, 131 items, beverages excluded",
+    "camp_scale": "PDNA Cyclone Ditwah: 233,015 people / 1,441 safety centres = 161.7",
+    "camp_decay": "PDNA national aggregate 0.0671/day; per-camp rates drawn per archetype around it",
+    "archetypes": {
+      "flash_flood": {
+        "w": 0.3,
+        "onset": [
+          1,
+          3
+        ],
+        "plateau": [
+          0,
+          2
+        ],
+        "decay": [
+          0.1,
+          0.2
+        ]
+      },
+      "cyclone": {
+        "w": 0.35,
+        "onset": [
+          2,
+          5
+        ],
+        "plateau": [
+          1,
+          5
+        ],
+        "decay": [
+          0.05,
+          0.1
+        ]
+      },
+      "landslide": {
+        "w": 0.15,
+        "onset": [
+          1,
+          2
+        ],
+        "plateau": [
+          3,
+          10
+        ],
+        "decay": [
+          0.03,
+          0.07
+        ]
+      },
+      "protracted": {
+        "w": 0.2,
+        "onset": [
+          3,
+          8
+        ],
+        "plateau": [
+          5,
+          14
+        ],
+        "decay": [
+          0.01,
+          0.04
+        ]
+      }
+    }
+  },
+  "assumptions": {
+    "initial_cover_days": 5.0,
+    "lead_time_days": 3,
+    "reorder_cover_days": 10,
+    "intake_days": 3
+  },
+  "injected_defects": {
+    "missing_age": 0.08,
+    "duplicate_registration": 0.02,
+    "late_checkin_sync": 0.12,
+    "unconvertible_quantity": 0.27,
+    "unrecorded_issuance": 0.06,
+    "stock_recount_error": 0.15,
+    "late_delivery": 0.2,
+    "person_intake_cv": 0.42,
+    "stockout_censoring": "emergent \u2014 issuance capped by stock"
+  }
+}

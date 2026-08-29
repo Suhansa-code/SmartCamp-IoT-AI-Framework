@@ -82,6 +82,9 @@ class FloodModelComparison:
         "latitude",
         "elevation_m",
         "distance_to_river_m",
+        "water_level_m",
+        "elevation_ratio",
+        "river_proximity_score",
     ]
     TARGET = "flood_risk"
     

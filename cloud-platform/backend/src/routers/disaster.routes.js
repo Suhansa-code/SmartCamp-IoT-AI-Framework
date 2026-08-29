@@ -8,6 +8,7 @@ import {
   getCampWaterLevelHistory,
   getDisasterAlerts,
   updateAlertStatus,
+  updateCampStatus,
   getAggregationOverview,
   triggerCampAggregation,
   triggerAllCampAggregations,
@@ -21,6 +22,7 @@ router.patch('/alerts/:alertId/status', updateAlertStatus);
 router.get('/camps', getCamps);
 router.get('/map-nodes', getMapNodes);
 router.get('/camps/:campId', getCampById);
+router.patch('/camps/:campId/status', updateCampStatus);
 router.get('/camps/:campId/predict', predictCamp);
 router.get('/camps/:campId/water-level-history', getCampWaterLevelHistory);
 

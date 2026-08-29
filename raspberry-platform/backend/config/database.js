@@ -395,6 +395,11 @@ try {
   disasterDb.pragma('synchronous = NORMAL');
   disasterDb.pragma('busy_timeout = 30000');
 
+  // Older disaster databases may predate columns referenced by schema indexes.
+  for (const [column, definition] of [['camp_id', 'TEXT'], ['risk_category', 'TEXT'], ['event_id', 'TEXT']]) {
+    try { disasterDb.exec(`ALTER TABLE disaster_alerts ADD COLUMN ${column} ${definition}`); } catch (_) {}
+  }
+
   const disasterSchemaPath = path.resolve(rootDir, 'db/disaster-schema.sql');
   if (fs.existsSync(disasterSchemaPath)) {
     const disasterSchema = fs.readFileSync(disasterSchemaPath, 'utf8');
@@ -414,6 +419,7 @@ try {
     gauge_latitude: 'REAL', gauge_longitude: 'REAL', river_name: 'TEXT', camp_latitude: 'REAL', camp_longitude: 'REAL',
     source: 'TEXT', prediction_timestamp: 'TEXT', expires_at: 'TEXT', schema_version: "TEXT NOT NULL DEFAULT '1.0'",
     mqtt_status: "TEXT NOT NULL DEFAULT 'PENDING'", cloud_sync_status: "TEXT NOT NULL DEFAULT 'PENDING'",
+    temperature: 'REAL', humidity: 'REAL',
   };
   for (const [column, definition] of Object.entries(disasterAlertColumns)) {
     try { disasterDb.exec(`ALTER TABLE disaster_alerts ADD COLUMN ${column} ${definition}`); } catch (_) {}
@@ -441,6 +447,7 @@ try {
   try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_latitude REAL"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_longitude REAL"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN updated_at TEXT"); } catch (_) {}
+  try { disasterDb.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_water_level_station_time ON water_level_readings(station_id, recorded_at)"); } catch (_) {}
 
   // ── Hydrospatial data extensions ──
   try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_elevation REAL"); } catch (_) {}

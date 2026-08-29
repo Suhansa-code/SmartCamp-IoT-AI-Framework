@@ -279,6 +279,9 @@ ON water_level_readings(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_water_level_station_id
 ON water_level_readings(station_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_water_level_station_time
+ON water_level_readings(station_id, recorded_at);
+
 CREATE INDEX IF NOT EXISTS idx_gps_readings_recorded_at
 ON gps_readings(recorded_at);
 

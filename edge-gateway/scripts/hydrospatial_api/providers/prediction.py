@@ -51,7 +51,9 @@ def run_prediction(inputs):
     """Run a live flood prediction.
 
     inputs keys: rainfall_mm, longitude, latitude, altitude_m, dem_elevation_m,
-                 nearest_river_m, gauging_station_current_water_level_m, is_forecast
+                 nearest_river_m, water_level_m, is_forecast,
+                 gauge_alert_level, gauge_minor_level, gauge_major_level,
+                 return_shap
     """
     model = get_model()
 
@@ -62,8 +64,12 @@ def run_prediction(inputs):
         altitude_m=float(inputs.get("altitude_m", 0.0)),
         dem_elevation_m=None if inputs.get("dem_elevation_m") is None else float(inputs["dem_elevation_m"]),
         nearest_river_m=float(inputs.get("nearest_river_m", 0.0)),
-        gauging_station_current_water_level_m=float(inputs.get("gauging_station_current_water_level_m", 0.0)),
+        water_level_m=float(inputs.get("water_level_m", 0.0)),
         is_forecast=bool(inputs.get("is_forecast", True)),
+        gauge_alert_level=float(inputs.get("gauge_alert_level", 2.0)),
+        gauge_minor_level=float(inputs.get("gauge_minor_level", 3.0)),
+        gauge_major_level=float(inputs.get("gauge_major_level", 5.0)),
+        return_shap=bool(inputs.get("return_shap", False)),
     )
 
     return {
@@ -72,5 +78,6 @@ def run_prediction(inputs):
         "future_forecast": prediction.future_forecast,
         "probability": prediction.probability,
         "source": prediction.source,
+        "shap_values": prediction.shap_values,
         "input": inputs,
     }

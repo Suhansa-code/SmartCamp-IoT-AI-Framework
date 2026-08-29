@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLang }  from '@/components/psychoedu/context/LanguageContext'
 import { t }        from '@/components/psychoedu/lib/translations'
+import { API }      from '@/components/ui/config'
 
 // Animals
 const TARGET_DEFS = [
@@ -25,7 +26,6 @@ const SHOW_MS       = 1500
 const BLANK_MS      = 500   
 const TASK_DURATION = 90
 const COUNTDOWN_SECONDS = 10
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const IDLE_THRESHOLD_MS = 1000
 const RAPID_CLICK_THRESHOLD_MS = 450
 
@@ -171,7 +171,7 @@ export default function AnimalGame({ onComplete, sessionId = '', childId = '', a
           throw new Error('Child ID is missing for new session')
         }
         
-        const response = await fetch(`${API_BASE}/api/session/start`, {
+        const response = await fetch(`${API}/api/session/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ person_id: childId }),
@@ -368,9 +368,9 @@ export default function AnimalGame({ onComplete, sessionId = '', childId = '', a
     let gateDecision = null
 
     try {
-      const fullUrl = `${API_BASE}${gatePath}`
+      const fullUrl = `${API}${gatePath}`
       console.log('[GAME] Full URL:', fullUrl)
-      console.log('[GAME] API_BASE:', API_BASE)
+      console.log('[GAME] API:', API)
       console.log('[GAME] gatePath:', gatePath)
       console.log('[GAME] Submitting to:', fullUrl)
       console.log('[GAME] Payload:', JSON.stringify(payload, null, 2))

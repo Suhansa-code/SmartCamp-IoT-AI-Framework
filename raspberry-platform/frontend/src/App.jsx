@@ -13,7 +13,6 @@ import Navbar from './components/ui/layout/Navbar'
 import ChildFlow from './components/ChildFlow'
 import AuthorizePage from './components/AuthorizePage'
 import ProtectedRoute from './components/ProtectedRoute'
-import ChildcareScreen from './components/childEducation/ChildEducationScreen'
 
 function AdminLayout({ children }) {
   return (
@@ -37,7 +36,7 @@ function AdminRoutes() {
           <Route path="/wristbands" element={<WristbandsScreen />} />
           <Route path="/network" element={<NetworkScreen />} />
           <Route path="/devices" element={<DeviceHealthScreen />} />
-          <Route path="/educationscreen" element={<ChildcareScreen />} />
+          <Route path="/educationscreen" element={<ChildEducationScreen />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
       </AdminLayout>

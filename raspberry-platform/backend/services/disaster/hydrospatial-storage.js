@@ -12,6 +12,7 @@ import { disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { nowISO } from '../../utils/helpers.js';
+import { gpsChangeEmitter } from './gps-storage.js';
 
 const DEVICE_ID = C.DEVICE_ID;
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
@@ -87,11 +88,15 @@ export async function fetchAndSaveHydrospatial() {
   }
 
   const now = nowISO();
-  const elevation = data.camp_elevation ?? null;
+  // Camp elevation from GPS sensor altitude (not DEM)
+  const elevation = gps.altitude ?? null;
   const riverDistance = data.river_distance_km ?? null;
   const riverName = data.river_name ?? data.nearest_river?.name ?? null;
   const gaugeElevation = data.gauge_elevation ?? null;
-  const elevationDifference = data.elevation_difference ?? null;
+  // Recalculate elevation difference: GPS altitude minus gauge DEM elevation
+  const elevationDifference = (elevation != null && gaugeElevation != null)
+    ? Math.round((elevation - gaugeElevation) * 100) / 100
+    : null;
   const gaugeDistance = data.gauge_distance_km ?? null;
   const gaugeLatitude = data.gauge_latitude ?? data.gauging_station?.gauge_latitude ?? null;
   const gaugeLongitude = data.gauge_longitude ?? data.gauging_station?.gauge_longitude ?? null;
@@ -161,6 +166,16 @@ export function startHydrospatialStorage() {
     }
     scheduleNextTick();
   }, 15_000); // 15s delay to allow other services to start first
+
+  // Listen for GPS changes → immediate re-fetch
+  gpsChangeEmitter.on('gps-changed', async (gps) => {
+    logger.info(`[HYDROSPATIAL] GPS changed to ${gps.latitude}, ${gps.longitude} — triggering immediate re-fetch`);
+    try {
+      await fetchAndSaveHydrospatial();
+    } catch (err) {
+      logger.error(`[HYDROSPATIAL] GPS-change re-fetch error: ${err.message}`);
+    }
+  });
 
   logger.info('[HYDROSPATIAL] Started (interval: 30 min)');
 }

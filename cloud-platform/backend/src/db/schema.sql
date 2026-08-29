@@ -25,6 +25,11 @@ CREATE TABLE IF NOT EXISTS sessions (
   session_id      TEXT PRIMARY KEY,
   child_id        TEXT NOT NULL REFERENCES children (child_id),
   composite_score REAL,
+  task_score      REAL,
+  passive_score   REAL,
+  gate_decision   TEXT,
+  z_score         REAL,
+  if_score        REAL,
   anomaly_flagged SMALLINT DEFAULT 0,
   alert_triggered SMALLINT DEFAULT 0,
   created_at      TIMESTAMPTZ
@@ -32,6 +37,12 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_child ON sessions (child_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions (created_at);
+
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS task_score REAL;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS passive_score REAL;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS gate_decision TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS z_score REAL;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS if_score REAL;
 
 CREATE TABLE IF NOT EXISTS alerts (
   alert_id        TEXT PRIMARY KEY,
@@ -481,6 +492,9 @@ CREATE INDEX IF NOT EXISTS idx_disaster_alerts_camp ON disaster_alerts (camp_id,
 
 ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS device_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_disaster_alerts_device ON disaster_alerts (device_id);
+
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS temperature REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS humidity REAL;
 
 CREATE TABLE IF NOT EXISTS prediction_requests (
   id              INTEGER PRIMARY KEY,

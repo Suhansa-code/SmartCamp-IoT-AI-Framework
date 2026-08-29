@@ -6,15 +6,14 @@ import { ResponsiveContainer, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tool
 import SideNav from "@/components/common/SideNav";
 import PageHeader, { HeaderShell } from "@/components/common/PageHeader";
 import DashboardCard from "@/components/dashboard/DashboardCard";
+import DataTable from "@/components/common/DataTable/DataTable";
 import KpiCard from "@/components/dashboard/KpiCard";
 import MiniStat from "@/components/dashboard/MiniStat";
-import ProgressBar from "@/components/dashboard/ProgressBar";
 import StatusDonut from "@/components/dashboard/StatusDonut";
 import ArrowChip from "@/components/alert/ArrowChip";
 import Button from "@/components/common/Button";
 import { useTheme } from "@/components/common/ThemeProvider";
 import { CAMP_META } from "@/data/education.data";
-import { CHILDREN_PROGRESS_MAX as EDU_CHILDREN_MAX, EDU_SESSIONS_PROGRESS_MAX } from "@/data/constants.data";
 import {
   GraduationCap,
   Users,
@@ -23,10 +22,8 @@ import {
   ArrowLeft,
   AlertTriangle,
   CheckCircle2,
-  RefreshCw,
   TrendingUp,
   ArrowUpRight,
-  Radio,
   Search,
   HeartPulse,
   Target,
@@ -35,7 +32,7 @@ import {
   BarChart3,
 } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
 
 function campMeta(id) {
   if (CAMP_META[id]) return CAMP_META[id];
@@ -82,19 +79,22 @@ const scoreTone = (T, v) => (v == null ? T.muted : v >= 70 ? T.green : v >= 50 ?
 function ChildScoreDots({ scores }) {
   return (
     <div style={{ display: "flex", gap: 3 }}>
-      {scores.map((s, i) => (
+      {scores.map((s, i) => {
+        const score = s.composite_score ?? s.score;
+        return (
         <span
           key={i}
-          title={`${s.score}`}
+          title={`${score}`}
           style={{
             width: 8,
             height: 8,
             borderRadius: "50%",
-            background: s.score >= 70 ? "#16A34A" : s.score >= 50 ? "#B45309" : "#DC2626",
+            background: score >= 70 ? "#16A34A" : score >= 50 ? "#B45309" : "#DC2626",
             opacity: 0.9,
           }}
         />
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -196,14 +196,17 @@ export default function EducationPage() {
     else setLoadingCamps(true);
     setLoadError("");
     try {
-      const res = await fetch(`${API_BASE}/api/alerts/education/camps`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(`${API_BASE}/api/alerts/education/camps`, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) throw new Error(`Cloud Backend returned ${res.status}`);
       const payload = await res.json();
       const list = Array.isArray(payload?.camps) ? payload.camps : [];
       setCamps(list);
     } catch (error) {
       setCamps([]);
-      setLoadError(error instanceof Error ? error.message : "Failed to load education data");
+      setLoadError(error?.name === "AbortError" ? "Cloud backend timed out. Check the database connection." : error instanceof Error ? error.message : "Failed to load education data");
     } finally {
       if (isRefresh) setRefreshing(false);
       else setLoadingCamps(false);
@@ -267,7 +270,9 @@ export default function EducationPage() {
   }, [detail]);
 
   const childAvg = (child) =>
-    child.recent_scores?.length ? Math.round(child.recent_scores.reduce((s, x) => s + x.score, 0) / child.recent_scores.length) : null;
+    child.recent_scores?.length
+      ? Math.round(child.recent_scores.reduce((sum, session) => sum + Number(session.composite_score ?? session.score ?? 0), 0) / child.recent_scores.length)
+      : null;
 
   const ranked = useMemo(() => {
     if (!detail) return { atRisk: [], top: [] };
@@ -351,8 +356,6 @@ export default function EducationPage() {
   }, [list]);
   const gradeChildren = gradeTotals.reduce((s, [, n]) => s + n, 0);
 
-  const sparkFor = (key) => list.map((c) => c[key]);
-
   const goOverview = () => {
     setSelectedId(null);
     setDetail(null);
@@ -363,25 +366,17 @@ export default function EducationPage() {
       <style>{`
         * { box-sizing: border-box; }
         @keyframes eduPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
-        @keyframes eduSpin { to { transform: rotate(360deg); } }
         @keyframes eduFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
         .edu-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
         .edu-hero { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.25rem; }
         .edu-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; }
         .edu-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-        .edu-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
         .edu-pill {
           border-radius: 9999px; padding: 0.45rem 1.05rem; font-size: 0.82rem; font-weight: 700;
           cursor: pointer; transition: all 0.18s ease; font-family: 'Inter', sans-serif;
         }
-        .edu-camp-card {
-          text-align: left; cursor: pointer; color: inherit; font-family: 'Inter', sans-serif;
-          background: ${T.card}; border: 1px solid ${T.border}; border-radius: 1.25rem; padding: 1.05rem 1.15rem;
-          box-shadow: 0 14px 34px rgba(20,30,40,0.06); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-        }
-        .edu-camp-card:hover { transform: translateY(-3px); box-shadow: 0 20px 44px rgba(20,30,40,0.14); border-color: ${T.teal}; }
         @media (max-width: 1150px) {
-          .edu-hero, .edu-charts, .edu-two, .edu-cards { grid-template-columns: 1fr; }
+          .edu-hero, .edu-charts, .edu-two { grid-template-columns: 1fr; }
         }
         @media (max-width: 900px) { .edu-kpi { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 560px) { .edu-kpi { grid-template-columns: 1fr; } }
@@ -426,45 +421,6 @@ export default function EducationPage() {
 
               {/* ══ Big rounded panel — alert-page composition ══ */}
               <div style={{ background: T.panel, padding: "clamp(1rem, 2vw, 1.75rem)", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                {/* ── Camp selector pills ── */}
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-                  <button
-                    onClick={goOverview}
-                    className="edu-pill"
-                    style={{
-                      border: `1px solid ${!selectedId ? T.teal : T.border}`,
-                      background: !selectedId ? `${T.teal}22` : T.card,
-                      color: !selectedId ? T.teal : T.muted,
-                    }}
-                  >
-                    All Camps
-                  </button>
-                  {camps.map((camp) => {
-                    const active = selectedId === camp.id;
-                    const m = campMeta(camp.id);
-                    return (
-                      <button
-                        key={camp.id}
-                        onClick={() => selectCamp(camp.id)}
-                        className="edu-pill"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          border: `1px solid ${active ? T.teal : T.border}`,
-                          background: active ? `${T.teal}22` : T.card,
-                          color: active ? T.ink : T.muted,
-                        }}
-                      >
-                        {m.code}
-                        {(camp.pending_alerts || 0) > 0 && (
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.red, boxShadow: `0 0 6px ${T.red}` }} />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
                 {loadingCamps ? (
                   /* ── Skeleton ── */
                   <div className="edu-kpi">
@@ -482,21 +438,49 @@ export default function EducationPage() {
                     ))}
                   </div>
                 ) : loadingDetail ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "4rem 0",
-                      color: T.muted,
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    <RefreshCw size={16} style={{ animation: "eduSpin 0.8s linear infinite", marginRight: 8 }} /> Loading camp detail…
+                  /* ── Detail skeleton ── */
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                    {/* Back button skeleton */}
+                    <div style={{ width: 100, height: 32, borderRadius: 999, background: T.cardSoft, animation: "eduPulse 1.5s ease-in-out infinite" }} />
+                    {/* KPI skeletons */}
+                    <div className="edu-kpi">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          style={{
+                            background: T.cardSoft,
+                            border: `1px solid ${T.border}`,
+                            borderRadius: "1.25rem",
+                            height: 128,
+                            animation: "eduPulse 1.5s ease-in-out infinite",
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {/* Chart skeletons */}
+                    <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1.25rem" }}>
+                      <div style={{ background: T.cardSoft, border: `1px solid ${T.border}`, borderRadius: "1.25rem", height: 240, animation: "eduPulse 1.5s ease-in-out infinite" }} />
+                      <div style={{ background: T.cardSoft, border: `1px solid ${T.border}`, borderRadius: "1.25rem", height: 240, animation: "eduPulse 1.5s ease-in-out infinite" }} />
+                    </div>
+                    {/* Table skeletons */}
+                    <div style={{ background: T.cardSoft, border: `1px solid ${T.border}`, borderRadius: "1.25rem", height: 300, animation: "eduPulse 1.5s ease-in-out infinite" }} />
                   </div>
                 ) : detail ? (
                   <DetailView detail={detail} meta={meta} trend={trend} ranked={ranked} childAvg={childAvg} onBack={goOverview} />
+                ) : loadError ? (
+                  <div
+                    style={{
+                      background: "#FFF7ED",
+                      border: "1px solid #FDBA74",
+                      borderRadius: "1rem",
+                      padding: "2rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    <AlertTriangle size={36} color="#C2410C" style={{ margin: "0 auto 0.75rem" }} />
+                    <p style={{ color: "#9A3412", fontWeight: 800, margin: 0 }}>{loadError}</p>
+                    <Button onClick={() => loadCamps(true)} style={{ marginTop: "1rem" }}>Retry</Button>
+                  </div>
                 ) : camps.length ? (
                   <OverviewView
                     list={list}
@@ -509,7 +493,7 @@ export default function EducationPage() {
                     perfData={perfData}
                     gradeTotals={gradeTotals}
                     gradeChildren={gradeChildren}
-                    sparkFor={sparkFor}
+                    loadingCamps={loadingCamps}
                     onSelect={selectCamp}
                   />
                 ) : (
@@ -554,7 +538,7 @@ function OverviewView({
   perfData,
   gradeTotals,
   gradeChildren,
-  sparkFor,
+  loadingCamps,
   onSelect,
 }) {
   const { T } = useTheme();
@@ -588,8 +572,9 @@ function OverviewView({
           icon={<GraduationCap size={17} />}
           color="#16A34A"
           delta="active sites"
-          pct={100}
-          spark={sparkFor("children").map((_, i) => i + 1)}
+          hideSpark
+          hideProgress
+          hideGradient
         />
         <KpiCard
           label="Children"
@@ -597,8 +582,9 @@ function OverviewView({
           icon={<Users size={17} />}
           color={T.teal}
           delta="grade 3 & 4"
-          pct={Math.min(100, Math.round((scopeTotals.children / EDU_CHILDREN_MAX) * 100))}
-          spark={sparkFor("children")}
+          hideSpark
+          hideProgress
+          hideGradient
         />
         <KpiCard
           label="Learning Sessions"
@@ -606,8 +592,9 @@ function OverviewView({
           icon={<BookOpen size={17} />}
           color={T.purple}
           delta="synced"
-          pct={Math.min(100, Math.round((scopeTotals.sessions / EDU_SESSIONS_PROGRESS_MAX) * 100))}
-          spark={sparkFor("sessions")}
+          hideSpark
+          hideProgress
+          hideGradient
         />
         <KpiCard
           label="Avg Score"
@@ -615,8 +602,9 @@ function OverviewView({
           icon={<TrendingUp size={17} />}
           color={scoreTone(T, scopeAvg)}
           delta={flaggedRate > 0 ? `${flaggedRate}% flagged` : "clean"}
-          pct={Math.min(100, Math.round(scopeAvg || 0))}
-          spark={sparkFor("avg_composite").filter((v) => v != null)}
+          hideSpark
+          hideProgress
+          hideGradient
         />
       </div>
 
@@ -650,7 +638,7 @@ function OverviewView({
               border: `1px solid ${T.border}`,
             }}
           >
-            <Radio size={13} color={T.green} /> Live Monitoring
+            Live Monitoring
           </span>
 
           <div className="grid grid-cols-2 items-center">
@@ -841,6 +829,29 @@ function OverviewView({
             </div>
           )}
 
+          <DashboardCard title="Quick Stats" subtitle="Key metrics at a glance">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0", borderBottom: `1px solid ${T.border}` }}>
+                <span style={{ fontSize: "0.78rem", color: T.muted }}>Total Flagged</span>
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: scopeTotals.flagged > 0 ? T.amber : T.green }}>{scopeTotals.flagged}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0", borderBottom: `1px solid ${T.border}` }}>
+                <span style={{ fontSize: "0.78rem", color: T.muted }}>Pending Alerts</span>
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: scopeTotals.pending > 0 ? T.red : T.green }}>{scopeTotals.pending}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0", borderBottom: `1px solid ${T.border}` }}>
+                <span style={{ fontSize: "0.78rem", color: T.muted }}>Avg Accuracy</span>
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: T.teal }}>
+                  {list.length ? `${Math.round(list.reduce((s, c) => s + (c.avg_accuracy || 0), 0) / list.length)}%` : "—"}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0" }}>
+                <span style={{ fontSize: "0.78rem", color: T.muted }}>Total Sessions</span>
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: T.purple }}>{scopeTotals.sessions.toLocaleString()}</span>
+              </div>
+            </div>
+          </DashboardCard>
+
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             {chip("flagged sessions", scopeTotals.flagged, T.amber)}
             {chip("pending alerts", scopeTotals.pending, scopeTotals.pending > 0 ? T.red : T.green)}
@@ -884,144 +895,92 @@ function OverviewView({
         <PsychoSocialTrend series={psychoSeries} />
       </div>
 
-      {/* ── Camp cards ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: "0.25rem" }}>
-        <div>
-          <div style={{ fontSize: "0.86rem", fontWeight: 800, color: T.ink }}>Camp Overview</div>
-          <div style={{ fontSize: "0.7rem", color: T.muted, fontWeight: 600, marginTop: 2 }}>
-            Select a camp to drill into children, sessions and alerts
-          </div>
-        </div>
-        <span style={{ fontSize: "0.74rem", color: T.muted, fontWeight: 700 }}>
-          {list.length} of {camps.length} camps
-        </span>
-      </div>
-
-      <div className="edu-cards">
-        {list.map((camp) => {
-          const m = campMeta(camp.id);
-          const alertTone = (camp.pending_alerts || 0) > 0 ? T.red : T.green;
-          return (
-            <button key={camp.id} className="edu-camp-card" onClick={() => onSelect(camp.id)}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{ fontSize: "1rem", fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                  >
-                    {m.name}
-                  </div>
-                  <div style={{ marginTop: 3, fontSize: "0.74rem", color: T.muted, fontWeight: 600, display: "flex", gap: 6, alignItems: "center" }}>
-                    <span>{m.code}</span>·<span>{m.location}</span>
+      {/* ── Camp DataTable ── */}
+      <DataTable
+        columns={[
+          {
+            key: "name",
+            label: "Camp",
+            sortable: true,
+            render: (v, row) => {
+              const m = campMeta(row.id);
+              const alertTone = (row.pending_alerts || 0) > 0 ? T.red : T.green;
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: alertTone, flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontWeight: 700, color: T.ink }}>{m.name}</div>
+                    <div style={{ fontSize: "0.72rem", color: T.muted }}>{m.code} · {m.location}</div>
                   </div>
                 </div>
-                <span
-                  style={{
-                    padding: "3px 10px",
-                    borderRadius: 999,
-                    background: `${alertTone}1a`,
-                    border: `1px solid ${alertTone}55`,
-                    color: alertTone,
-                    fontSize: "0.68rem",
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {(camp.pending_alerts || 0) > 0 ? `${camp.pending_alerts} alerts` : "clear"}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: 8,
-                  marginTop: "0.9rem",
-                  paddingTop: "0.9rem",
-                  borderTop: `1px solid ${T.border}`,
-                }}
-              >
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: T.ink }}>{camp.children}</div>
-                  <div
-                    style={{
-                      marginTop: 3,
-                      fontSize: "0.62rem",
-                      color: T.muted,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Children
-                  </div>
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: T.ink }}>{camp.sessions}</div>
-                  <div
-                    style={{
-                      marginTop: 3,
-                      fontSize: "0.62rem",
-                      color: T.muted,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Sessions
-                  </div>
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: scoreTone(T, camp.avg_composite) }}>
-                    {camp.avg_composite != null ? camp.avg_composite.toFixed(1) : "—"}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 3,
-                      fontSize: "0.62rem",
-                      color: T.muted,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Avg Score
-                  </div>
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.05rem", fontWeight: 800, color: (camp.avg_accuracy || 0) >= 70 ? T.green : (camp.avg_accuracy || 0) >= 50 ? T.amber : T.muted }}>
-                    {camp.avg_accuracy != null ? `${camp.avg_accuracy}%` : '—'}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 3,
-                      fontSize: "0.62rem",
-                      color: T.muted,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Accuracy
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: "0.8rem", height: 4, borderRadius: 99, background: T.cardSoft, overflow: "hidden" }}>
-                <div
-                  style={{
-                    width: `${Math.min(100, Math.round(camp.avg_composite || 0))}%`,
-                    height: "100%",
-                    borderRadius: 99,
-                    background: `linear-gradient(90deg, ${scoreTone(T, camp.avg_composite)}88, ${scoreTone(T, camp.avg_composite)})`,
-                  }}
-                />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              );
+            },
+          },
+          {
+            key: "children",
+            label: "Children",
+            sortable: true,
+            numeric: true,
+          },
+          {
+            key: "sessions",
+            label: "Sessions",
+            sortable: true,
+            numeric: true,
+          },
+          {
+            key: "avg_composite",
+            label: "Avg Score",
+            sortable: true,
+            numeric: true,
+            render: (v) => (
+              <span style={{ color: scoreTone(T, v), fontWeight: 700 }}>
+                {v != null ? v.toFixed(1) : "—"}
+              </span>
+            ),
+          },
+          {
+            key: "avg_accuracy",
+            label: "Accuracy",
+            sortable: true,
+            numeric: true,
+            render: (v) => (
+              <span style={{ color: v >= 70 ? T.green : v >= 50 ? T.amber : T.muted, fontWeight: 700 }}>
+                {v != null ? `${v}%` : "—"}
+              </span>
+            ),
+          },
+          {
+            key: "pending_alerts",
+            label: "Alerts",
+            sortable: true,
+            numeric: true,
+            render: (v) => (
+              <span style={{
+                padding: "2px 8px",
+                borderRadius: 999,
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                background: v > 0 ? `${T.red}1a` : `${T.green}1a`,
+                color: v > 0 ? T.red : T.green,
+              }}>
+                {v > 0 ? `${v} pending` : "clear"}
+              </span>
+            ),
+          },
+        ]}
+        data={list}
+        title="Camp Overview"
+        subtitle={`${list.length} of ${camps.length} camps`}
+        searchKeys={["id"]}
+        searchPlaceholder="Search camps…"
+        loading={loadingCamps}
+        emptyMessage="No camps match your search"
+        onRowClick={(row) => onSelect(row.id)}
+        selectedRow={null}
+        rowKey="id"
+        pageSize={10}
+      />
 
       {!list.length && (
         <div
@@ -1048,13 +1007,21 @@ function OverviewView({
 function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
   const { T } = useTheme();
   const flaggedRate = detail.sessions_count ? Math.round((detail.flagged_sessions / detail.sessions_count) * 100) : 0;
+  const ifScoreBySession = new Map((detail.sessions || []).map((session) => [session.session_id, session.if_score]));
+  const gateDecisionsWithIfScore = (detail.gate_decisions_list || []).map((decision) => ({
+    ...decision,
+    if_score: ifScoreBySession.get(decision.session_id) ?? null,
+  }));
 
   // Psycho-social risk bands over time — derive from each child's recent scores.
   const psychoSeries = useMemo(() => {
     const children = detail.children || [];
     if (!children.length) return [];
     const dayOf = (iso) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : null);
-    const scoresByChild = children.map((c) => (c.recent_scores || []).map((s) => ({ day: dayOf(s.date), score: s.score })));
+    const scoresByChild = children.map((c) => (c.recent_scores || []).map((s) => ({
+      day: dayOf(s.created_at || s.date),
+      score: s.composite_score ?? s.score,
+    })));
     const days = [...new Set(scoresByChild.flat().map((s) => s.day).filter(Boolean))].slice(-14);
     return days.map((day) => {
       let stable = 0, watch = 0, atRisk = 0;
@@ -1072,47 +1039,59 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-        <div className="edu-kpi" style={{ flex: 1, minWidth: 320 }}>
-          <KpiCard
-            label="Children"
-            value={detail.children_count.toLocaleString()}
-            icon={<Users size={17} />}
-            color="#16A34A"
-            delta="tracked"
-            pct={100}
-          />
-          <KpiCard
-            label="Sessions"
-            value={detail.sessions_count.toLocaleString()}
-            icon={<BookOpen size={17} />}
-            color={T.purple}
-            delta="recorded"
-            pct={100}
-          />
-          <KpiCard
-            label="Avg Score"
-            value={detail.avg_composite != null ? detail.avg_composite.toFixed(1) : "—"}
-            icon={<TrendingUp size={17} />}
-            color={scoreTone(T, detail.avg_composite)}
-            delta={`${flaggedRate}% flagged`}
-            pct={Math.min(100, Math.round(detail.avg_composite || 0))}
-          />
-          <KpiCard
-            label="Pending Alerts"
-            value={detail.pending_alerts}
-            icon={<BellRing size={17} />}
-            color={detail.pending_alerts > 0 ? T.red : T.green}
-            delta={`${detail.total_alerts} total`}
-            pct={Math.min(100, Math.round((detail.pending_alerts / 4) * 100))}
-          />
-        </div>
+      {/* ── Back button ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <button
           className="edu-pill"
-          style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${T.border}`, background: T.card, color: T.ink }}
+          onClick={onBack}
+          style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${T.border}`, background: T.card, color: T.ink, cursor: "pointer" }}
         >
           <ArrowLeft size={15} /> All Camps
         </button>
+      </div>
+
+      {/* ── KPI row ── */}
+      <div className="edu-kpi">
+        <KpiCard
+          label="Children"
+          value={detail.children_count.toLocaleString()}
+          icon={<Users size={17} />}
+          color="#16A34A"
+          delta="tracked"
+          hideSpark
+          hideProgress
+          hideGradient
+        />
+        <KpiCard
+          label="Sessions"
+          value={detail.sessions_count.toLocaleString()}
+          icon={<BookOpen size={17} />}
+          color={T.purple}
+          delta="recorded"
+          hideSpark
+          hideProgress
+          hideGradient
+        />
+        <KpiCard
+          label="Avg Score"
+          value={detail.avg_composite != null ? detail.avg_composite.toFixed(1) : "—"}
+          icon={<TrendingUp size={17} />}
+          color={scoreTone(T, detail.avg_composite)}
+          delta={`${flaggedRate}% flagged`}
+          hideSpark
+          hideProgress
+          hideGradient
+        />
+        <KpiCard
+          label="Pending Alerts"
+          value={detail.pending_alerts}
+          icon={<BellRing size={17} />}
+          color={detail.pending_alerts > 0 ? T.red : T.green}
+          delta={`${detail.total_alerts} total`}
+          hideSpark
+          hideProgress
+          hideGradient
+        />
       </div>
 
       {/* ── Trend + distribution ── */}
@@ -1254,51 +1233,25 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
       </div>
 
       {/* ── Recent sessions ── */}
-      <DashboardCard
+      <DataTable
+        columns={[
+          { key: "child_id", label: "Child", sortable: true },
+          { key: "composite_score", label: "Score", sortable: true, numeric: true, render: (v) => (
+            <span style={{ color: scoreTone(T, v), fontWeight: 600 }}>{v != null ? Math.round(v) : "—"}</span>
+          )},
+          { key: "anomaly_flagged", label: "Flag", sortable: true, render: (v) => (
+            v ? <span style={{ color: T.red, fontWeight: 600 }}>flagged</span> : <span style={{ color: T.green, fontWeight: 600 }}>ok</span>
+          )},
+          { key: "created_at", label: "When", sortable: true, render: (v) => v ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—" },
+        ]}
+        data={detail.sessions || []}
         title="Recent Sessions"
         subtitle="Latest recorded learning sessions"
-        right={chip("recorded", detail.sessions.length, "#60A5FA")}
-        bodyStyle={{ padding: 0, gap: 0 }}
-      >
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", minWidth: 560 }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: T.muted, fontSize: "0.66rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                <th style={{ padding: "0.6rem 1.1rem", borderBottom: `1px solid ${T.border}` }}>Child</th>
-                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${T.border}` }}>Grade</th>
-                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${T.border}` }}>Score</th>
-                <th style={{ padding: "0.6rem", borderBottom: `1px solid ${T.border}` }}>Flag</th>
-                <th style={{ padding: "0.6rem 1.1rem", borderBottom: `1px solid ${T.border}` }}>When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.sessions.slice(0, 8).map((s) => (
-                <tr key={s.session_id} style={{ borderBottom: `1px solid ${T.border}60` }}>
-                  <td style={{ padding: "0.6rem 1.1rem", fontWeight: 800, color: T.ink }}>{s.child_id}</td>
-                  <td style={{ padding: "0.6rem" }}>
-                    <Tag color={"#64748B"}>G{s.grade ?? "—"}</Tag>
-                  </td>
-                  <td style={{ padding: "0.6rem", fontWeight: 800, color: scoreTone(T, s.composite_score) }}>
-                    {s.composite_score != null ? Math.round(s.composite_score) : "—"}
-                  </td>
-                  <td style={{ padding: "0.6rem" }}>
-                    {s.anomaly_flagged ? (
-                      <span style={{ color: T.red, fontWeight: 800 }}>⚠ flagged</span>
-                    ) : (
-                      <span style={{ color: T.green, fontWeight: 700 }}>✓ ok</span>
-                    )}
-                  </td>
-                  <td style={{ padding: "0.6rem 1.1rem", color: T.muted }}>
-                    {s.created_at
-                      ? new Date(s.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </DashboardCard>
+        searchKeys={["child_id"]}
+        searchPlaceholder="Search sessions…"
+        rowKey="session_id"
+        pageSize={8}
+      />
 
       {/* ── Behavioral Insights ── */}
       {detail.behavioral && detail.behavioral.signal_count > 0 && (
@@ -1427,6 +1380,34 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
           </div>
         )}
       </DashboardCard>
+
+      {/* ── Gate Decisions DataTable ── */}
+      {gateDecisionsWithIfScore.length > 0 && (
+        <DataTable
+          columns={[
+            { key: "child_id", label: "Child", sortable: true },
+            { key: "composite_score", label: "Score", sortable: true, numeric: true, render: (v) => (
+              <span style={{ color: scoreTone(T, v), fontWeight: 600 }}>{v != null ? v.toFixed(1) : "—"}</span>
+            )},
+            { key: "decision", label: "Decision", sortable: true, render: (v) => {
+              const color = v === "PASS" ? T.green : v === "PASS_RECOVERED" ? T.teal : T.red;
+              return <span style={{ color, fontWeight: 600, fontSize: "0.7rem" }}>{v || "—"}</span>;
+            }},
+            { key: "attempt_number", label: "Attempt", sortable: true, numeric: true },
+            { key: "if_score", label: "IF Score", sortable: true, numeric: true, render: (v) => (
+              <span style={{ color: v != null ? T.ink : T.muted, fontWeight: 600 }}>{v != null ? v.toFixed(4) : "—"}</span>
+            )},
+            { key: "decided_at", label: "Date", sortable: true, render: (v) => v ? new Date(v).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—" },
+          ]}
+          data={gateDecisionsWithIfScore}
+          title="Gate Decisions"
+          subtitle={`${detail.gate_decisions} decisions recorded`}
+          searchKeys={["child_id"]}
+          searchPlaceholder="Search decisions…"
+          rowKey="decision_id"
+          pageSize={8}
+        />
+      )}
 
 
     </>

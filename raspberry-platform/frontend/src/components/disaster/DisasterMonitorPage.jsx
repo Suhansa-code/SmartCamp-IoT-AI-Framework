@@ -1,20 +1,30 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Droplets, Wind, MapPin, RefreshCw, Radar, Navigation, Satellite,
   CloudRain, Bell, Download, Mountain, Waves, Gauge as GaugeIcon, ArrowRight,
-  TrendingUp, TrendingDown, Minus, Activity, Zap, Clock,
+  TrendingUp, TrendingDown, Minus, Activity, Zap, Clock, FlaskConical,
 } from 'lucide-react'
 import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { COLORS, SHADOW_CARD } from '../../lib/tokens'
+import { API } from '../ui/config'
+import SimulationModal from './SimulationModal'
 
 const RISK = {
   safe:     { label: 'Stable',   color: COLORS.brand },
   caution:  { label: 'Caution',  color: '#D97706' },
   warning:  { label: 'Warning',  color: '#EA580C' },
   critical: { label: 'Critical', color: '#DC2626' },
+}
+
+const STATUS_META = {
+  critical: { label: 'CRITICAL', color: '#DC2626' },
+  high:     { label: 'HIGH',     color: '#D97706' },
+  medium:   { label: 'MEDIUM',   color: '#F59E0B' },
+  stable:   { label: 'STABLE',   color: '#16A34A' },
+  recovery: { label: 'RECOVERY', color: '#16A34A' },
 }
 
 function getRisk(wl, majorFlood, minorFlood, alertLevel) {
@@ -160,45 +170,88 @@ function FieldBox({ label, value, icon: Icon }) {
 /*  PAGE                                                                */
 /* ------------------------------------------------------------------ */
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 export default function DisasterMonitorPage() {
   const [now, setNow] = useState(new Date())
   const [refreshing, setRefreshing] = useState(false)
   const [latestGps, setLatestGps] = useState(null)
+  const [gpsLoading, setGpsLoading] = useState(true)
   const [weather, setWeather] = useState(null)
+  const [weatherLoading, setWeatherLoading] = useState(true)
   const [waterLevel, setWaterLevel] = useState(null)
+  const [waterLevelLoading, setWaterLevelLoading] = useState(true)
   const [waterHistory, setWaterHistory] = useState([])
+  const [waterRefreshing, setWaterRefreshing] = useState(false)
   const [hydrospatial, setHydrospatial] = useState(null)
+  const [hydroLoading, setHydroLoading] = useState(true)
   const [prediction, setPrediction] = useState(null)
   const [predLoading, setPredLoading] = useState(true)
   const [predError, setPredError] = useState(null)
+  const [campData, setCampData] = useState(null)
+  const [campLoading, setCampLoading] = useState(true)
+  const [overview, setOverview] = useState(null)
+  const [overviewLoading, setOverviewLoading] = useState(true)
+
+  // ── Simulation state ──────────────────────────────────────────────
+  const [showSimModal, setShowSimModal] = useState(false)
+  const [isSimulating, setIsSimulating] = useState(false)
+  const [simPrediction, setSimPrediction] = useState(null)
+
+  // Track last GPS coordinates to detect changes
+  const lastGpsRef = useRef(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(t)
   }, [])
 
-  useEffect(() => {
-    fetch(`${API}/api/disaster/latest-gps`)
+  // ── Fetch all disaster data for current GPS ──────────────────────────
+  const fetchAllDisasterData = useCallback(() => {
+    setWeatherLoading(true)
+    setWaterLevelLoading(true)
+    setHydroLoading(true)
+    setPredLoading(true)
+    setPredError(null)
+    setCampLoading(true)
+    setOverviewLoading(true)
+
+    fetch(`${API}/api/disaster/camp-identity`)
       .then((r) => r.json())
-      .then((data) => setLatestGps(data))
+      .then((data) => {
+        if (data.camp_id) {
+          fetch(`${API}/api/disaster/camps/${data.camp_id}`)
+            .then((r) => r.json())
+            .then((camp) => { if (camp) setCampData(camp) })
+            .catch(() => {})
+            .finally(() => setCampLoading(false))
+        } else {
+          setCampLoading(false)
+        }
+      })
+      .catch(() => setCampLoading(false))
+
+    fetch(`${API}/api/disaster/overview`)
+      .then((r) => r.json())
+      .then((data) => { if (data) setOverview(data) })
       .catch(() => {})
+      .finally(() => setOverviewLoading(false))
+
     fetch(`${API}/api/disaster/weather/latest`)
       .then((r) => r.json())
       .then((data) => { if (data.available) setWeather(data) })
       .catch(() => {})
+      .finally(() => setWeatherLoading(false))
+
     fetch(`${API}/api/disaster/water-level/latest`)
       .then((r) => r.json())
       .then((data) => { if (data.available) setWaterLevel(data) })
       .catch(() => {})
+      .finally(() => setWaterLevelLoading(false))
+
     fetch(`${API}/api/disaster/water-level/history?limit=20`)
       .then((r) => r.json())
       .then((data) => {
         if (data.readings?.length) {
-          const last = data.readings[data.readings.length - 1]
-          const timeLabel = new Date(last.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          const mapped = data.readings.map((r, i) => {
+          const mapped = data.readings.map((r) => {
             const t = new Date(r.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             return { t, level: r.water_level }
           })
@@ -207,10 +260,13 @@ export default function DisasterMonitorPage() {
         }
       })
       .catch(() => {})
+
     fetch(`${API}/api/disaster/hydrospatial/latest`)
       .then((r) => r.json())
       .then((data) => { if (data.available) setHydrospatial(data) })
       .catch(() => {})
+      .finally(() => setHydroLoading(false))
+
     fetch(`${API}/api/disaster/predict`)
       .then((r) => r.json())
       .then((data) => {
@@ -224,8 +280,48 @@ export default function DisasterMonitorPage() {
       .finally(() => setPredLoading(false))
   }, [])
 
+  // ── GPS polling: detect changes and re-fetch all data ────────────────
+  useEffect(() => {
+    const pollGps = () => {
+      fetch(`${API}/api/disaster/latest-gps`)
+        .then((r) => r.json())
+        .then((data) => {
+          setLatestGps(data)
+          setGpsLoading(false)
+
+          const newLat = data?.latitude
+          const newLng = data?.longitude
+
+          if (newLat != null && newLng != null) {
+            const prev = lastGpsRef.current
+            // First load or GPS changed significantly (>50m)
+            if (!prev || Math.abs(prev.lat - newLat) > 0.0005 || Math.abs(prev.lng - newLng) > 0.0005) {
+              lastGpsRef.current = { lat: newLat, lng: newLng }
+              // GPS changed — clear stale data and re-fetch
+              setWeather(null)
+              setWaterLevel(null)
+              setWaterHistory([])
+              setHydrospatial(null)
+              setPrediction(null)
+              setPredError(null)
+              fetchAllDisasterData()
+            }
+          }
+        })
+        .catch(() => setGpsLoading(false))
+    }
+
+    pollGps() // initial fetch
+    const gpsInterval = setInterval(pollGps, 10000) // poll every 10s
+    return () => clearInterval(gpsInterval)
+  }, [fetchAllDisasterData])
+
   const handleRefresh = () => {
     setRefreshing(true)
+    fetch(`${API}/api/disaster/latest-gps`)
+      .then((r) => r.json())
+      .then((data) => setLatestGps(data))
+      .catch(() => {})
     fetch(`${API}/api/disaster/water-level/latest`)
       .then((r) => r.json())
       .then((data) => { if (data.available) setWaterLevel(data) })
@@ -243,16 +339,71 @@ export default function DisasterMonitorPage() {
         }
       })
       .catch(() => {})
-    fetch(`${API}/api/disaster/predict`)
+    fetch(`${API}/api/disaster/weather/latest`)
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setWeather(data) })
+      .catch(() => {})
+    fetch(`${API}/api/disaster/hydrospatial/latest`)
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setHydrospatial(data) })
+      .catch(() => {})
+    if (!isSimulating) {
+      fetch(`${API}/api/disaster/predict`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.status === 'success' && data.prediction) {
+            setPrediction(data)
+            setPredError(null)
+          }
+        })
+        .catch(() => {})
+        .finally(() => setTimeout(() => setRefreshing(false), 700))
+    } else {
+      setTimeout(() => setRefreshing(false), 700)
+    }
+    fetch(`${API}/api/disaster/camp-identity`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.status === 'success' && data.prediction) {
-          setPrediction(data)
-          setPredError(null)
+        if (data.camp_id) {
+          fetch(`${API}/api/disaster/camps/${data.camp_id}`)
+            .then((r) => r.json())
+            .then((camp) => { if (camp) setCampData(camp) })
+            .catch(() => {})
         }
       })
       .catch(() => {})
-      .finally(() => setTimeout(() => setRefreshing(false), 700))
+    fetch(`${API}/api/disaster/overview`)
+      .then((r) => r.json())
+      .then((data) => { if (data) setOverview(data) })
+      .catch(() => {})
+  }
+
+  const handleRefreshWaterLevel = () => {
+    setWaterRefreshing(true)
+    fetch(`${API}/api/disaster/water-level/refresh`, { method: 'POST' })
+      .then((r) => r.json())
+      .then(() => {
+        return fetch(`${API}/api/disaster/water-level/latest`)
+      })
+      .then((r) => r.json())
+      .then((data) => { if (data.available) setWaterLevel(data) })
+      .catch(() => {})
+      .finally(() => {
+        fetch(`${API}/api/disaster/water-level/history?limit=20`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.readings?.length) {
+              const mapped = data.readings.map((r) => {
+                const t = new Date(r.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                return { t, level: r.water_level }
+              })
+              mapped[mapped.length - 1].t = 'Now'
+              setWaterHistory(computeTrend(mapped))
+            }
+          })
+          .catch(() => {})
+          .finally(() => setTimeout(() => setWaterRefreshing(false), 700))
+      })
   }
 
   const wl = waterLevel?.water_level ?? 0
@@ -308,6 +459,113 @@ export default function DisasterMonitorPage() {
           <div className="flex items-center gap-2 text-[13px]">
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: risk.color }} />
             <span className="font-semibold" style={{ color: risk.color }}>{risk.label}</span>
+            {isSimulating && (
+              <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                <FlaskConical className="w-3 h-3" /> SIMULATION
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ================= CAMP STATUS + OVERVIEW STATS ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 pb-4 sm:pb-6">
+          {/* Camp Status Badge */}
+          <div className="lg:col-span-4 rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
+            <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Camp Status</p>
+            {campLoading ? (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-[12px]" style={{ color: COLORS.muted }}>Loading...</p>
+              </div>
+            ) : campData?.status ? (
+              <div className="mt-3">
+                <span
+                  className="inline-flex items-center px-3 py-1.5 rounded-full text-[13px] font-semibold"
+                  style={{
+                    backgroundColor: `${STATUS_META[campData.status]?.color}15`,
+                    color: STATUS_META[campData.status]?.color,
+                    border: `1px solid ${STATUS_META[campData.status]?.color}30`
+                  }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full mr-2"
+                    style={{ backgroundColor: STATUS_META[campData.status]?.color }}
+                  />
+                  {STATUS_META[campData.status]?.label || campData.status.toUpperCase()}
+                </span>
+                <p className="text-[12.5px] mt-3" style={{ color: COLORS.body }}>
+                  {campData.name || 'Camp'} — {campData.type || 'General'}
+                </p>
+                {campData.code && (
+                  <p className="text-[11px] font-mono mt-1" style={{ color: COLORS.muted }}>Code: {campData.code}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-[12px] mt-3" style={{ color: COLORS.muted }}>No camp data available</p>
+            )}
+          </div>
+
+          {/* Camp Overview Stats */}
+          <div className="lg:col-span-8 rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
+            <p className="text-[11px] uppercase tracking-widest font-mono" style={{ color: COLORS.muted }}>Camp Overview</p>
+            {overviewLoading ? (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-[12px]" style={{ color: COLORS.muted }}>Loading...</p>
+              </div>
+            ) : overview ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.hairline }}>
+                  <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Displaced</p>
+                  <p className="text-[20px] sm:text-[22px] font-bold font-mono mt-1" style={{ color: COLORS.ink }}>
+                    {overview.total_displaced?.toLocaleString() ?? '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.hairline }}>
+                  <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Capacity</p>
+                  <p className="text-[20px] sm:text-[22px] font-bold font-mono mt-1" style={{ color: COLORS.ink }}>
+                    {overview.total_capacity?.toLocaleString() ?? '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.hairline }}>
+                  <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Occupancy</p>
+                  <p className="text-[20px] sm:text-[22px] font-bold font-mono mt-1" style={{ color: COLORS.brand }}>
+                    {overview.occupancy_pct != null ? `${overview.occupancy_pct.toFixed(1)}%` : '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.hairline }}>
+                  <p className="text-[10.5px] uppercase tracking-wider font-mono" style={{ color: COLORS.muted }}>Aid Coverage</p>
+                  <p className="text-[20px] sm:text-[22px] font-bold font-mono mt-1" style={{ color: COLORS.brand }}>
+                    {overview.avg_aid_coverage != null ? `${overview.avg_aid_coverage.toFixed(1)}%` : '—'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[12px] mt-3" style={{ color: COLORS.muted }}>No overview data available</p>
+            )}
+
+            {/* Status Distribution */}
+            {!overviewLoading && overview && (
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
+                <p className="text-[10.5px] uppercase tracking-wider font-mono mb-2" style={{ color: COLORS.muted }}>Status Distribution</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {[
+                    { key: 'critical_count', label: 'Critical', color: STATUS_META.critical.color },
+                    { key: 'high_count', label: 'High', color: STATUS_META.high.color },
+                    { key: 'medium_count', label: 'Medium', color: STATUS_META.medium.color },
+                    { key: 'stable_count', label: 'Stable', color: STATUS_META.stable.color },
+                    { key: 'recovery_count', label: 'Recovery', color: STATUS_META.recovery.color },
+                  ].map((s) => (
+                    <div key={s.key} className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span className="text-[11px] font-mono" style={{ color: COLORS.body }}>
+                        {s.label}: <span className="font-semibold">{overview[s.key] ?? 0}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -380,13 +638,24 @@ export default function DisasterMonitorPage() {
                 {stationName && <p className="text-[10.5px] sm:text-[11px] mt-0.5" style={{ color: COLORS.muted }}>{stationName}{distanceKm != null ? ` · ${distanceKm} km away` : ''}</p>}
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-[11px] sm:text-[11.5px] font-mono" style={{ color: COLORS.muted }}>Last 6 hours</span>
-              {waterLevel?.recorded_at && (
-                <p className="text-[10px] font-mono mt-0.5" style={{ color: COLORS.muted }}>
-                  Updated: {new Date(waterLevel.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              )}
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <span className="text-[11px] sm:text-[11.5px] font-mono" style={{ color: COLORS.muted }}>Last 6 hours</span>
+                {waterLevel?.recorded_at && (
+                  <p className="text-[10px] font-mono mt-0.5" style={{ color: COLORS.muted }}>
+                    Updated: {new Date(waterLevel.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleRefreshWaterLevel}
+                disabled={waterRefreshing}
+                className="p-1.5 rounded-lg border transition-colors hover:bg-gray-50"
+                style={{ borderColor: COLORS.line }}
+                title="Refresh water level data from ArcGIS"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${waterRefreshing ? 'animate-spin' : ''}`} style={{ color: COLORS.muted }} />
+              </button>
             </div>
           </div>
 
@@ -422,7 +691,19 @@ export default function DisasterMonitorPage() {
             </div>
             <div className="flex items-center gap-2">
               {prediction?.mode === 'simulation' && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-100 text-amber-700">SIMULATION</span>
+                <>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-100 text-amber-700">SIMULATION</span>
+                  <button
+                    onClick={() => {
+                      setIsSimulating(false)
+                      setSimPrediction(null)
+                      fetchAllDisasterData()
+                    }}
+                    className="px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 transition-colors"
+                  >
+                    Return to Live
+                  </button>
+                </>
               )}
               {prediction?.mode === 'live' && (
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-600">LIVE</span>
@@ -590,6 +871,35 @@ export default function DisasterMonitorPage() {
           </div>
         </div>
       </div>
+
+      {/* ================= FLOATING SIMULATION BUTTON ================= */}
+      <button
+        onClick={() => setShowSimModal(true)}
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-[13px] font-semibold text-white transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+        style={{ backgroundColor: isSimulating ? '#D97706' : COLORS.brand }}
+        title="Open prediction simulation"
+      >
+        <FlaskConical className="w-4 h-4" />
+        {isSimulating ? 'Simulating' : 'Simulate'}
+      </button>
+
+      {/* ================= SIMULATION MODAL ================= */}
+      <SimulationModal
+        open={showSimModal}
+        onClose={() => setShowSimModal(false)}
+        onSimulate={(data) => {
+          setSimPrediction(data)
+          setIsSimulating(true)
+          setPrediction(data)
+        }}
+        onExitSimulation={() => {
+          setIsSimulating(false)
+          setSimPrediction(null)
+          fetchAllDisasterData()
+        }}
+        isSimulating={isSimulating}
+        simResult={simPrediction}
+      />
     </div>
   )
 }

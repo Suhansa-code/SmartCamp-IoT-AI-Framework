@@ -15,6 +15,7 @@ class Config:
     BASELINE_INIT = float(os.getenv('BASELINE_INIT', '60.0'))
     ZSCORE_THRESHOLD = float(os.getenv('ZSCORE_THRESHOLD', '-2.0'))
     IF_SCORE_THRESHOLD = float(os.getenv('IF_SCORE_THRESHOLD', '-0.10'))
+    IF_CONTAMINATION = float(os.getenv('IF_CONTAMINATION', '0.10'))
     ZSCORE_MIN_SESSIONS = int(os.getenv('ZSCORE_MIN_SESSIONS', '3'))
     IF_MIN_SESSIONS = int(os.getenv('IF_MIN_SESSIONS', '8'))
 
@@ -28,8 +29,9 @@ class Config:
     PASSIVE_CLICKS_W = 0.25
     PASSIVE_COMPLETION_W = 0.40
 
-    COMPOSITE_TASK_W = 0.60
-    COMPOSITE_PASSIVE_W = 0.40
+    COMPOSITE_TASK_W = 0.50
+    COMPOSITE_PASSIVE_W = 0.30
+    COMPOSITE_BASELINE_W = 0.20 
 
     # Normalisation baselines
     RT_NORM_BASE = 800       # ms — reaction time above this scores 0
@@ -40,7 +42,7 @@ class Config:
     DATA_DIR = Path(os.getenv('DATA_DIR', './data'))
     MODELS_DIR = Path(os.getenv('MODELS_DIR', './models'))
     SQLITE_PATH = Path(os.getenv('SQLITE_PATH', './data/pages.db'))
-    CAMP_ID = os.getenv('CAMP_ID', 'CAMP-UNKNOWN')
+    CAMP_ID = os.getenv('CAMP_ID', os.getenv('DEVICE_ID', 'CAMP-UNKNOWN'))
 
     # ── Database ───────────────────────────────────────────────────
     POSTGRES_URL = os.getenv('POSTGRES_URL') or None
