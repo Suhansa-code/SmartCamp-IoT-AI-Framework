@@ -15,6 +15,7 @@ class Config:
     BASELINE_INIT = float(os.getenv('BASELINE_INIT', '60.0'))
     ZSCORE_THRESHOLD = float(os.getenv('ZSCORE_THRESHOLD', '-2.0'))
     IF_SCORE_THRESHOLD = float(os.getenv('IF_SCORE_THRESHOLD', '-0.10'))
+    IF_CONTAMINATION = float(os.getenv('IF_CONTAMINATION', '0.10'))
     ZSCORE_MIN_SESSIONS = int(os.getenv('ZSCORE_MIN_SESSIONS', '3'))
     IF_MIN_SESSIONS = int(os.getenv('IF_MIN_SESSIONS', '8'))
 

@@ -65,6 +65,77 @@ class TestComputeIfScore:
         )
         assert result is None
 
+    def test_computes_score_with_8_behavioral_signals(self):
+        try:
+            import numpy as np
+            history = {
+                'child-1': [
+                    {
+                        'accuracyRate': 0.85,
+                        'falseTapRate': 0.05,
+                        'avgReactionTime': 350,
+                        'reactionVariance': 120,
+                        'idleTimeRatio': 0.1,
+                        'rapidClickCount': 1,
+                        'timeToFirstMs': 250,
+                        'completionRatio': 0.95,
+                    }
+                    for _ in range(8)
+                ]
+            }
+            current_session = {
+                'accuracy': 0.80,
+                'false_tap_rate': 0.08,
+                'avg_reaction_time': 380,
+                'reaction_variance': 140,
+                'idle_time_ratio': 0.15,
+                'rapid_click_count': 2,
+                'time_to_first_interaction': 300,
+                'completion_ratio': 0.90,
+            }
+            score = if_service.compute_if_score('child-1', current_session, history, Config, None)
+            assert score is not None
+            assert isinstance(score, float)
+        except ImportError:
+            pytest.skip("numpy/sklearn not available")
+
+
+class TestSessionToFeatureVector:
+    def test_extracts_all_8_behavioral_signals(self):
+        session = {
+            'accuracy': 0.9,
+            'false_tap_rate': 0.04,
+            'avg_reaction_time': 320.0,
+            'reaction_variance': 110.0,
+            'idle_time_ratio': 0.08,
+            'rapid_click_count': 3,
+            'time_to_first_interaction': 220.0,
+            'completion_ratio': 0.98,
+        }
+        vector = if_service.session_to_feature_vector(session)
+        assert len(vector) == 8
+        assert vector == [0.9, 0.04, 320.0, 110.0, 0.08, 3.0, 220.0, 0.98]
+
+    def test_extracts_camelcase_and_nested_signals(self):
+        session = {
+            'taskMetrics': {
+                'accuracyRate': 0.88,
+                'falseTapRate': 0.02,
+                'avgReactionTime': 310.0,
+                'reactionVariance': 95.0,
+            },
+            'passiveSignals': {
+                'idleTimeRatio': 0.05,
+                'rapidClickCount': 1,
+                'timeToFirstMs': 180.0,
+                'completionRatio': 1.0,
+            }
+        }
+        vector = if_service.session_to_feature_vector(session)
+        assert len(vector) == 8
+        assert vector == [0.88, 0.02, 310.0, 95.0, 0.05, 1.0, 180.0, 1.0]
+
+
 
 class TestSaveIfInsight:
     def test_saves_insight(self):
