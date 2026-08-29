@@ -35,6 +35,7 @@ import { useTheme } from "@/components/common/ThemeProvider";
 import { Map, MapControls, useMap } from "@/components/ui/map";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import { GaugingChart, WaterLevelBarChart } from "@/components/disaster/DisasterVisuals";
+import TerrainVisualization3D from "@/components/disaster/TerrainVisualization3D";
 
 const PAGE_PAD = "clamp(1rem, 2vw, 1.75rem)";
 
@@ -44,6 +45,7 @@ const TERRAIN_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{
 const TERRAIN_SOURCE = "camp-detail-dem";
 const TERRAIN_EXAGGERATION = 1.5;
 const HILLSHADE_LAYER = "camp-detail-hillshade";
+const SKY_LAYER = "camp-detail-sky";
 
 const VIEW_MODES = ["2d", "3d", "terrain", "slope"];
 
@@ -286,8 +288,9 @@ function CampMapView({ camp, dark, viewMode }) {
 
 function CampDetailTerrain({ viewMode }) {
   const { map, isLoaded } = useMap();
-  const enableTerrain = viewMode !== "2d";
-  const enableHillshade = viewMode === "terrain" || viewMode === "slope";
+  const enableTerrain = viewMode === "terrain" || viewMode === "slope";
+  const enableHillshade = enableTerrain;
+  const isSlope = viewMode === "slope";
 
   useEffect(() => {
     if (!map || !isLoaded) return;
@@ -296,54 +299,80 @@ function CampDetailTerrain({ viewMode }) {
       if (!map.getSource(TERRAIN_SOURCE)) {
         map.addSource(TERRAIN_SOURCE, {
           type: "raster-dem",
-          url: TERRAIN_TILES,
+          tiles: [TERRAIN_TILES],
           tileSize: 256,
           encoding: "terrarium",
           maxzoom: 12,
         });
       }
-      map.setTerrain({ source: TERRAIN_SOURCE, exaggeration: TERRAIN_EXAGGERATION });
+      map.setTerrain({ source: TERRAIN_SOURCE, exaggeration: isSlope ? 1.0 : 1.5 });
 
-      if (enableHillshade && !map.getLayer(HILLSHADE_LAYER)) {
+      if (enableHillshade) {
+        if (map.getLayer(HILLSHADE_LAYER)) map.removeLayer(HILLSHADE_LAYER);
         map.addLayer(
           {
             id: HILLSHADE_LAYER,
             type: "hillshade",
             source: TERRAIN_SOURCE,
             paint: {
-              "hillshade-exaggeration": viewMode === "slope" ? 1.0 : 0.8,
-              "hillshade-shadow-color": viewMode === "slope" ? "#1e293b" : "#334155",
-              "hillshade-highlight-color": viewMode === "slope" ? "#fef3c7" : "#e2e8f0",
-              "hillshade-accent-color": viewMode === "slope" ? "#f59e0b" : "#94a3b8",
+              "hillshade-exaggeration": isSlope ? 1.0 : 0.8,
+              "hillshade-illumination-direction": 315,
+              "hillshade-shadow-color": isSlope ? "#1e293b" : "#0f172a",
+              "hillshade-highlight-color": isSlope ? "#fef3c7" : "#f1f5f9",
+              "hillshade-accent-color": isSlope ? "#f59e0b" : "#64748b",
             },
           },
           "waterway",
         );
-      } else if (!enableHillshade && map.getLayer(HILLSHADE_LAYER)) {
-        map.removeLayer(HILLSHADE_LAYER);
+      } else {
+        if (map.getLayer(HILLSHADE_LAYER)) map.removeLayer(HILLSHADE_LAYER);
+      }
+
+      if (!map.getLayer(SKY_LAYER)) {
+        map.addLayer({
+          id: SKY_LAYER,
+          type: "sky",
+          paint: {
+            "sky-type": "atmosphere",
+            "sky-azimuthal-direction": 180,
+            "sky-blend": "screen",
+          },
+        });
       }
     } else {
       map.setTerrain(null);
       if (map.getLayer(HILLSHADE_LAYER)) map.removeLayer(HILLSHADE_LAYER);
+      if (map.getLayer(SKY_LAYER)) map.removeLayer(SKY_LAYER);
     }
-  }, [map, isLoaded, enableTerrain, enableHillshade, viewMode]);
+  }, [map, isLoaded, enableTerrain, enableHillshade, isSlope, viewMode]);
 
   return null;
 }
 
 function MapViewController({ viewMode }) {
   const { map, isLoaded } = useMap();
-  const is3D = viewMode !== "2d";
 
   useEffect(() => {
     if (!map || !isLoaded) return;
+
+    let pitch, bearing;
+    switch (viewMode) {
+      case "3d":
+        pitch = 45;
+        bearing = 30;
+        break;
+      default:
+        pitch = 0;
+        bearing = 0;
+    }
+
     map.easeTo({
-      pitch: is3D ? 55 : 0,
-      bearing: is3D ? 25 : 0,
+      pitch,
+      bearing,
       duration: 800,
       easing: (t) => t * (2 - t),
     });
-  }, [map, isLoaded, is3D]);
+  }, [map, isLoaded, viewMode]);
 
   return null;
 }
@@ -687,96 +716,183 @@ export default function DisasterCampDetailPage() {
           <div style={{ padding: `1rem ${PAGE_PAD}` }}>
             <div
               style={{
-                position: "relative",
-                borderRadius: "1.5rem",
-                overflow: "hidden",
                 border: `1px solid ${T.border}`,
-                height: "clamp(400px, 50vh, 600px)",
-                background: dark ? "#030c18" : "#ddeaf5",
-                boxShadow: dark ? "0 20px 50px rgba(0,0,0,0.35)" : "0 20px 50px rgba(15,23,42,0.08)",
+                borderRadius: "1.25rem",
+                background: T.card,
+                overflow: "hidden",
               }}
             >
-              <Map center={[camp.lng, camp.lat]} zoom={12} className="absolute inset-0" theme={dark ? "dark" : "light"}>
-                <CampMapSkeletonOverlay />
-                <MapControls showZoom showLocate showCompass />
-                <MapViewController viewMode={viewMode} />
-                <CampDetailTerrain viewMode={viewMode} />
-                <CampMapView camp={camp} dark={dark} viewMode={viewMode} />
-              </Map>
-
-              {/* View mode toggle */}
+              {/* Map Header */}
               <div
-                className="absolute z-[13] top-3 right-3 flex items-center rounded-full overflow-hidden"
                 style={{
-                  background: dark ? "rgba(13,13,16,0.85)" : "rgba(255,255,255,0.9)",
-                  border: `1px solid ${T.border}`,
-                  backdropFilter: "blur(10px)",
-                  boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
+                  padding: "1.1rem 1.25rem 0.75rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 }}
               >
-                {VIEW_MODES.map((m) => {
-                  const active = viewMode === m;
-                  const icon =
-                    m === "2d" ? (
-                      <Layers size={11} />
-                    ) : m === "3d" ? (
-                      <Box size={11} />
-                    ) : m === "terrain" ? (
-                      <Mountain size={11} />
-                    ) : (
-                      <Triangle size={11} />
-                    );
-                  return (
-                    <button
-                      key={m}
-                      onClick={() => setViewMode(m)}
-                      title={m.toUpperCase()}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "7px 12px",
-                        fontSize: "0.6rem",
-                        fontWeight: 800,
-                        letterSpacing: "0.06em",
-                        cursor: "pointer",
-                        border: "none",
-                        background: active ? T.teal : "transparent",
-                        color: active ? "#fff" : T.muted,
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      {icon} {m.toUpperCase()}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Camp label overlay */}
-              <div
-                className="absolute z-[13] bottom-3 left-3 flex items-center gap-2 rounded-xl px-3 py-2"
-                style={{
-                  background: dark ? "rgba(13,13,16,0.85)" : "rgba(255,255,255,0.9)",
-                  border: `1px solid ${T.border}`,
-                  backdropFilter: "blur(10px)",
-                  boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
-                }}
-              >
-                <div
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: "50%",
-                    background: STATUS_COLOR[camp.status],
-                    boxShadow: `0 0 10px ${STATUS_COLOR[camp.status]}88`,
-                  }}
-                />
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: T.ink, lineHeight: 1.2 }}>{camp.code}</div>
-                  <div style={{ fontSize: 9, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                    {STATUS_META[camp.status]?.label}
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 10,
+                      background: `${T.teal}15`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <MapPin size={16} style={{ color: T.teal }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>Camp Overview Map</div>
+                    <div style={{ fontSize: 11, color: T.muted, marginTop: 1 }}>Interactive map with terrain visualization</div>
                   </div>
                 </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <MapPin size={12} style={{ color: T.teal }} />
+                  <span style={{ fontSize: 11, color: T.muted }}>Lat:</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.ink, fontFamily: "monospace" }}>
+                    {camp.lat?.toFixed(4) ?? "—"}°
+                  </span>
+                  <span style={{ fontSize: 11, color: T.muted, marginLeft: 4 }}>Lng:</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.ink, fontFamily: "monospace" }}>
+                    {camp.lng?.toFixed(4) ?? "—"}°
+                  </span>
+                </div>
+              </div>
+
+              {/* Map container */}
+              <div style={{ padding: "0 1.25rem 1rem" }}>
+                <div
+                  style={{
+                    position: "relative",
+                    borderRadius: "1rem",
+                    overflow: "hidden",
+                    height: "clamp(400px, 50vh, 600px)",
+                    background: dark ? "#030c18" : "#ddeaf5",
+                    border: `1px solid ${T.border}`,
+                  }}
+                >
+                  <Map center={[camp.lng, camp.lat]} zoom={12} className="absolute inset-0" theme={dark ? "dark" : "light"}>
+                    <CampMapSkeletonOverlay />
+                    <MapControls showZoom showLocate showCompass />
+                    <MapViewController viewMode={viewMode} />
+                    <CampDetailTerrain viewMode={viewMode} />
+                    <CampMapView camp={camp} dark={dark} viewMode={viewMode} />
+                  </Map>
+
+                  {/* View mode toggle */}
+                  <div
+                    className="absolute z-[13] top-3 right-3 flex items-center rounded-full overflow-hidden"
+                    style={{
+                      background: dark ? "rgba(13,13,16,0.85)" : "rgba(255,255,255,0.9)",
+                      border: `1px solid ${T.border}`,
+                      backdropFilter: "blur(10px)",
+                      boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
+                    }}
+                  >
+                    {VIEW_MODES.map((m) => {
+                      const active = viewMode === m;
+                      const icon =
+                        m === "2d" ? (
+                          <Layers size={11} />
+                        ) : m === "3d" ? (
+                          <Box size={11} />
+                        ) : m === "terrain" ? (
+                          <Mountain size={11} />
+                        ) : (
+                          <Triangle size={11} />
+                        );
+                      return (
+                        <button
+                          key={m}
+                          onClick={() => setViewMode(m)}
+                          title={m.toUpperCase()}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "7px 12px",
+                            fontSize: "0.6rem",
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            cursor: "pointer",
+                            border: "none",
+                            background: active ? T.teal : "transparent",
+                            color: active ? "#fff" : T.muted,
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {icon} {m.toUpperCase()}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Camp label overlay */}
+                  <div
+                    className="absolute z-[13] bottom-3 left-3 flex items-center gap-2 rounded-xl px-3 py-2"
+                    style={{
+                      background: dark ? "rgba(13,13,16,0.85)" : "rgba(255,255,255,0.9)",
+                      border: `1px solid ${T.border}`,
+                      backdropFilter: "blur(10px)",
+                      boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        background: STATUS_COLOR[camp.status],
+                        boxShadow: `0 0 10px ${STATUS_COLOR[camp.status]}88`,
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: T.ink, lineHeight: 1.2 }}>{camp.code}</div>
+                      <div style={{ fontSize: 9, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        {STATUS_META[camp.status]?.label}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Map Footer */}
+              <div
+                style={{
+                  padding: "0.75rem 1.25rem 1rem",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 16,
+                  borderTop: `1px solid ${T.border}`,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <MapPin size={12} style={{ color: T.teal }} />
+                  <span style={{ fontSize: 11, color: T.muted }}>Latitude:</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: T.ink, fontFamily: "monospace" }}>
+                    {camp.lat?.toFixed(4) ?? "—"}°
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <MapPin size={12} style={{ color: T.teal }} />
+                  <span style={{ fontSize: 11, color: T.muted }}>Longitude:</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: T.ink, fontFamily: "monospace" }}>
+                    {camp.lng?.toFixed(4) ?? "—"}°
+                  </span>
+                </div>
+                {detail?.elev != null && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Mountain size={12} style={{ color: T.teal }} />
+                    <span style={{ fontSize: 11, color: T.muted }}>Camp Elevation:</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: T.ink, fontFamily: "monospace" }}>
+                      {detail.elev} m
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1023,6 +1139,16 @@ export default function DisasterCampDetailPage() {
                 </DashboardCard>
               </div>
             )}
+
+            {/* ── 3D Terrain Visualization ── */}
+            <TerrainVisualization3D
+              lat={camp.lat}
+              lng={camp.lng}
+              elevation={detail?.elev}
+              campName={camp.name}
+              campCode={camp.code}
+              campStatus={camp.status}
+            />
           </div>
         </main>
       </div>
