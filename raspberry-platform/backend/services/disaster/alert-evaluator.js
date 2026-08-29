@@ -121,7 +121,7 @@ export function evaluateDht11Thresholds({ temperature, humidity }) {
     id: saved.id, event_id: saved.event_id, alert_id: saved.alert_id,
     camp_id: saved.camp_id, camp_name: saved.camp_name, alert_type: saved.alert_type,
     severity: saved.severity, priority: saved.priority, title: saved.title,
-    temperature: saved.temperature, humidity: saved.humidity,
+    message: saved.message, temperature: saved.temperature, humidity: saved.humidity,
     created_at: saved.created_at, source: saved.source,
   };
   const result = saamp.publish(`smartcamp/alerts/${saved.camp_id}`, compact, 'alert', 'disaster-alert');
