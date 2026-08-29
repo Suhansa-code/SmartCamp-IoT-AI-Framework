@@ -15,6 +15,7 @@ import { disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { nowISO } from '../../utils/helpers.js';
+import { gpsChangeEmitter } from './gps-storage.js';
 
 const DEVICE_ID = C.DEVICE_ID;
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
@@ -326,6 +327,16 @@ export function startWaterLevelStorage() {
 
     scheduleNextTick();
   }, 10_000);
+
+  // Listen for GPS changes → immediate re-fetch
+  gpsChangeEmitter.on('gps-changed', async (gps) => {
+    logger.info(`[WATER_LEVEL] GPS changed to ${gps.latitude}, ${gps.longitude} — triggering immediate re-fetch`);
+    try {
+      await fetchAndSaveWaterLevel();
+    } catch (err) {
+      logger.error(`[WATER_LEVEL] GPS-change re-fetch error: ${err.message}`);
+    }
+  });
 
   logger.info('[WATER_LEVEL] Started (interval: 15 min, gap-aware backfill on startup)');
 }

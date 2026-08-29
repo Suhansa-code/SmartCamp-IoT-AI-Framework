@@ -44,21 +44,38 @@ const STATION_META = {
 };
 
 /**
- * Derive camp status from current water level relative to alert thresholds.
+ * Derive camp status from current water level relative to alert thresholds,
+ * overridden by active disaster alert severity when present.
  * Returns one of: critical, high, medium, stable, recovery.
  */
-function deriveStatus(wl, alertL, minorL, majorL) {
-  if (wl == null || alertL == null) return 'medium';
-  const w = Number(wl);
-  const alert = Number(alertL);
-  const minor = Number(minorL || alert + 1);
-  const major = Number(majorL || minor + 1.5);
+function deriveStatus(wl, alertL, minorL, majorL, alertSeverity) {
+  // Start with water-level-based status
+  let status;
+  if (wl == null || alertL == null) {
+    status = 'medium';
+  } else {
+    const w = Number(wl);
+    const alert = Number(alertL);
+    const minor = Number(minorL || alert + 1);
+    const major = Number(majorL || minor + 1.5);
 
-  if (w >= major) return 'critical';
-  if (w >= minor) return 'high';
-  if (w >= alert) return 'medium';
-  if (w >= alert - 1.0) return 'stable';
-  return 'recovery';
+    if (w >= major) status = 'critical';
+    else if (w >= minor) status = 'high';
+    else if (w >= alert) status = 'medium';
+    else if (w >= alert - 1.0) status = 'stable';
+    else status = 'recovery';
+  }
+
+  // Override with alert severity if it indicates higher risk
+  const SEVERITY_rank = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+  const STATUS_rank = { critical: 4, high: 3, medium: 2, stable: 1, recovery: 0 };
+
+  if (alertSeverity && SEVERITY_rank[alertSeverity] > STATUS_rank[status]) {
+    if (alertSeverity === 'CRITICAL') status = 'critical';
+    else if (alertSeverity === 'HIGH') status = 'high';
+  }
+
+  return status;
 }
 
 /**
@@ -345,8 +362,8 @@ async function aggregateCamp(campId) {
         vals.water_path = stationMeta.waterPath;
       }
 
-      // Derive status from water level vs alert thresholds
-      vals.status = deriveStatus(vals.wl, vals.alert_l, vals.minor_l, vals.major_l);
+      // Derive status from water level vs alert thresholds, overridden by active alert severity
+      vals.status = deriveStatus(vals.wl, vals.alert_l, vals.minor_l, vals.major_l, alert?.severity);
       vals.workers = 0;
       vals.aid = 0;
 
@@ -422,12 +439,12 @@ async function aggregateCamp(campId) {
       guardedSet(updates, 'displaced', displaced, now, t);
     }
 
-    // Re-derive status from latest water level and alert thresholds
+    // Re-derive status from latest water level, alert thresholds, and active alert severity
     const effectiveWl = updates.wl ?? current.wl;
     const effectiveAlertL = updates.alert_l ?? current.alert_l;
     const effectiveMinorL = updates.minor_l ?? current.minor_l;
     const effectiveMajorL = updates.major_l ?? current.major_l;
-    const newStatus = deriveStatus(effectiveWl, effectiveAlertL, effectiveMinorL, effectiveMajorL);
+    const newStatus = deriveStatus(effectiveWl, effectiveAlertL, effectiveMinorL, effectiveMajorL, alert?.severity);
     if (newStatus !== current.status) {
       updates.status = newStatus;
     }
