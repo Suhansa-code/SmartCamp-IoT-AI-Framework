@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Satellite, Thermometer, Droplets, Radio, RefreshCw, Activity, MapPin, ArrowLeft, Wifi, WifiOff, CloudRain, Fingerprint } from 'lucide-react';
 import { COLORS, SHADOW_CARD } from '../../lib/tokens';
 import { API } from '../ui/config';
+import useFingerprintDevice from '../../lib/useFingerprintDevice';
 
 /* ------------------------------------------------------------------ */
 /*  SEMANTIC COLOUR MAP                                                 */
@@ -313,23 +314,21 @@ function RainfallCard({ sensor }) {
 /*  FINGERPRINT CARD                                                    */
 /* ------------------------------------------------------------------ */
 
-function FingerprintCard() {
-  const connected = true;
-
-  const mockData = {
-    enrolled: 24,
-    last_scan: '5m ago',
-    match_score: 98.5,
-    access_count: 156,
-  };
+function FingerprintCard({ deviceConnected }) {
+  const { status } = useFingerprintDevice();
+  const connected = deviceConnected;
+  const linkedCount = status?.linked_count ?? 0;
+  const isSimulation = status?.simulation ?? true;
+  const enabled = status?.enabled ?? false;
+  const devicePort = status?.device?.port || '—';
 
   return (
     <SensorCard icon={Fingerprint} name="Fingerprint Sensor" description="Biometric identification for camp access" connected={connected} lastUpdated={new Date().toISOString()}>
       <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3">
-        <DataRow label="Enrolled" value={mockData.enrolled} mono />
-        <DataRow label="Last Scan" value={mockData.last_scan} />
-        <DataRow label="Match Score" value={`${mockData.match_score}%`} mono />
-        <DataRow label="Access Count" value={mockData.access_count} mono />
+        <DataRow label="Enrolled" value={linkedCount} mono />
+        <DataRow label="Interface" value={devicePort} mono />
+        <DataRow label="Mode" value={isSimulation ? 'Simulation' : 'Hardware'} />
+        <DataRow label="Enabled" value={enabled ? 'Yes' : 'No'} />
       </div>
 
       <div className="mt-3 pt-3 border-t flex items-start gap-2" style={{ borderColor: COLORS.hairline }}>
@@ -337,8 +336,9 @@ function FingerprintCard() {
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>System Status</p>
           <p className="text-[12.5px] font-medium mt-0.5 break-words" style={{ color: COLORS.ink }}>
-            {mockData.enrolled > 0 ? 'Operational — ready for scanning' : 'No fingerprints enrolled'}
-            <span className="text-[11px] ml-1" style={{ color: TONE.warning.color }}>(Mock)</span>
+            {connected
+              ? (linkedCount > 0 ? 'Operational — ready for scanning' : 'Connected — no fingerprints enrolled')
+              : (enabled ? 'Scanner unreachable' : 'Scanner disabled')}
           </p>
         </div>
       </div>
@@ -350,42 +350,14 @@ function FingerprintCard() {
 /*  MAIN SCREEN                                                         */
 /* ------------------------------------------------------------------ */
 
-/** The fingerprint scanner is the one device reporting real state today. */
-function applyFingerprintStatus(devices, status) {
-  return devices.map((device) => {
-    if (device.id !== 'fingerprint') return device;
-    if (!status) {
-      return { ...device, status: 'unknown', lastSeen: '—', live: true,
-        reading: { label: 'Enrolled', value: '—' } };
-    }
-
-    const device_ = status.device || {};
-    return {
-      ...device,
-      live: true,
-      status: device_.connected ? 'connected' : (status.enabled ? 'offline' : 'degraded'),
-      interface: device_.port || 'not configured',
-      baud: device_.baud_rate || null,
-      lastSeen: device_.last_event_at
-        ? new Date(device_.last_event_at).toLocaleTimeString()
-        : (device_.connected ? 'idle' : '—'),
-      signal: device_.connected ? 100 : 0,
-      reading: { label: 'Enrolled', value: String(status.linked_count ?? 0) },
-      description: device_.connected
-        ? `R503 on ${device_.port} · ${device_.template_count ?? 0} templates on sensor`
-        : (status.enabled
-          ? `Scanner unreachable${device_.last_error ? ` — ${device_.last_error}` : ''}`
-          : 'Scanner disabled — registration runs in simulation mode'),
-    };
-  });
-}
-
 export default function DeviceHealthScreen() {
   const [deviceStatus, setDeviceStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastAt, setLastAt] = useState(null);
   const [pollError, setPollError] = useState(null);
   const intervalRef = useRef(null);
+
+  const { deviceConnected: fpConnected } = useFingerprintDevice();
 
   const fetchDeviceStatus = useCallback(async () => {
     try {
@@ -420,7 +392,6 @@ export default function DeviceHealthScreen() {
   const tempConnected = !!sensors.temperature?.connected;
   const humConnected = !!sensors.humidity?.connected;
   const rainConnected = !!sensors.rainfall?.connected;
-  const fpConnected = true;
   const connectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(Boolean).length;
   const disconnectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(c => !c).length;
 
@@ -494,7 +465,7 @@ export default function DeviceHealthScreen() {
           <TemperatureCard sensor={sensors.temperature} />
           <HumidityCard sensor={sensors.humidity} />
           <RainfallCard sensor={sensors.rainfall} />
-          <FingerprintCard />
+          <FingerprintCard deviceConnected={fpConnected} />
         </div>
 
         <div className="text-[11.5px] font-mono space-y-1" style={{ color: COLORS.muted }}>
