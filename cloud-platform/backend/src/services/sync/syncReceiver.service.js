@@ -272,7 +272,7 @@ async function handleSyncMessage(topic, buffer) {
 async function handleAlertMessage(topic, buffer) {
   let alert;
   try { alert = JSON.parse(buffer.toString()); } catch { return; }
-  const allowedTypes = new Set(['FLOOD_RISK_HIGH', 'FLOOD_RISK_CRITICAL', 'WATER_LEVEL_CRITICAL', 'RAINFALL_EXTREME', 'RAPID_WATER_LEVEL_RISE', 'SENSOR_FAILURE', 'HYDROSPATIAL_DATA_STALE', 'SYSTEM_OFFLINE']);
+  const allowedTypes = new Set(['FLOOD_RISK_HIGH', 'FLOOD_RISK_CRITICAL', 'WATER_LEVEL_CRITICAL', 'RAINFALL_EXTREME', 'RAPID_WATER_LEVEL_RISE', 'SENSOR_FAILURE', 'HYDROSPATIAL_DATA_STALE', 'SYSTEM_OFFLINE', 'TEMPERATURE_CRITICAL', 'HUMIDITY_CRITICAL']);
   const allowedLevels = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
   const probability = Number(alert.flood_probability);
   if (!alert.id || !alert.event_id || !alert.camp_id || !allowedTypes.has(alert.alert_type)

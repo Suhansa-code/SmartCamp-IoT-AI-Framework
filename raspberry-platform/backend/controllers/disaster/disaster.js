@@ -3,7 +3,7 @@ import * as gpsService from '../../services/disaster/gps.js';
 import { getLatestWeather, getWeatherStorageStatus } from '../../services/disaster/weather-storage.js';
 import { getLatestRainfall, getRainfallStorageStatus, fetchAndSaveRainfall } from '../../services/disaster/rainfall-storage.js';
 import { getLatestDht11, getDht11StorageStatus, fetchAndSaveDht11 } from '../../services/disaster/dht11-storage.js';
-import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, fetchAndSaveWaterLevel, fetchAndSaveWaterLevelHistory } from '../../services/disaster/water-level-storage.js';
+import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, fetchAndSaveWaterLevel, fetchAndSaveWaterLevelHistory, clearWaterLevelData, refreshWaterLevelData } from '../../services/disaster/water-level-storage.js';
 import { getLatestSensorStatus, getSensorStatusStorageStatus, fetchAndSaveSensorStatus } from '../../services/disaster/sensor-status-storage.js';
 import { getLatestHydrospatial, getHydrospatialHistory, getHydrospatialStorageStatus, fetchAndSaveHydrospatial } from '../../services/disaster/hydrospatial-storage.js';
 import { getFloodPrediction } from '../../services/disaster/prediction-service.js';
@@ -204,6 +204,34 @@ export async function triggerWaterLevelHistoryFetch(req, res) {
     }
     const inserted = await fetchAndSaveWaterLevelHistory(station, hours);
     res.json({ inserted, message: `Backfilled ${inserted} readings from ArcGIS (${hours}h)` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export function clearWaterLevelReadings(req, res) {
+  try {
+    const result = clearWaterLevelData();
+    res.json({ cleared: result.cleared, message: `Cleared ${result.cleared} water level readings` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function refreshWaterLevelReadings(req, res) {
+  try {
+    const station = req.query.station || null;
+    const hours = parseInt(req.query.hours, 10) || 24;
+    const result = await refreshWaterLevelData(station, hours);
+    res.json({
+      cleared: result.cleared,
+      inserted: result.inserted,
+      live_saved: result.live_saved,
+      station: result.station,
+      message: result.error
+        ? `Refresh failed: ${result.error}`
+        : `Cleared ${result.cleared} old readings, inserted ${result.inserted} from ArcGIS, live: ${result.live_saved}`,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
