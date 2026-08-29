@@ -2,6 +2,11 @@
 data/raw/*.csv
 data/network_logs/*.csv
 
+# Generated scenario set — reproducible from the seeded generator:
+#   python scripts/generate_camp_scenarios.py --camps 60 --seed 42
+# The manifest IS tracked: it records the sources, assumptions and defect rates.
+data/scenarios/*.csv
+
 # Virtual environment
 siren_env/
 venv/

@@ -15,6 +15,7 @@ import {
   getCampList,
   getResourceTypes,
 } from '../controllers/distribution/distribution.controller.js';
+import { getStockOutlook, getStockAlerts } from '../controllers/resources/stockRunout.controller.js';
 import {
   listResources,
   getSummary as getResourceSummary,
@@ -41,6 +42,10 @@ router.get('/distributions/by-resource', getByResourceType);
 router.get('/distributions/timeline', getTimeline);
 router.get('/distributions/camps', getCampList);
 router.get('/distributions/resource-types', getResourceTypes);
+
+// Stock runout — forecast-driven days of cover, runout and reorder dates.
+router.get('/stock/outlook', getStockOutlook);
+router.get('/stock/alerts', getStockAlerts);
 
 // Resource inventory — live data from resources table.
 router.get('/inventory', listResources);

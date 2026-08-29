@@ -40,6 +40,7 @@ Usage
 """
 
 import argparse
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -64,6 +65,14 @@ AGE_BANDS = {
 MAX_HOUSEHOLD_SIZE = 15
 MIN_KG_DAY, MAX_KG_DAY = 0.1, 40.0
 
+# Beverages are recorded in the same module as food. They must be excluded from
+# any figure that is later combined with the separate drinking-water allowance,
+# or the water is counted twice. Both totals are emitted so downstream scripts
+# can pick the basis they need -- but they must not mix one with the other.
+BEVERAGE_ITEMS = re.compile(
+    r"soft drink|bottled water|fruit juice|tea leaves|coffee|other beverages", re.I
+)
+
 
 def build(source: Path) -> pd.DataFrame:
     food = pd.read_csv(source / "mod_j1_fah_long.tab", sep="\t", low_memory=False)
@@ -73,9 +82,19 @@ def build(source: Path) -> pd.DataFrame:
     # ── food: only items actually consumed, and only where the unit converts ──
     consumed = food[(food.j1_01 == 1) & food.j1_02.notna() & food.fcf_kg.notna()].copy()
     consumed["kg"] = consumed.j1_02 * consumed.fcf_kg
+
+    labels = item_labels(source)
+    consumed["item_name"] = consumed.j1_item.map(labels)
+    consumed["is_beverage"] = consumed.item_name.fillna("").str.contains(BEVERAGE_ITEMS)
+
     weekly = consumed.groupby("hhcode", as_index=False).agg(
         kg_week=("kg", "sum"), items_consumed=("kg", "size")
     )
+    solid = (consumed[~consumed.is_beverage]
+             .groupby("hhcode", as_index=False)["kg"].sum()
+             .rename(columns={"kg": "kg_week_solid"}))
+    weekly = weekly.merge(solid, on="hhcode", how="left")
+    weekly["kg_week_solid"] = weekly.kg_week_solid.fillna(0.0)
 
     # ── roster: cohort counts ────────────────────────────────────────────────
     people = roster[roster.b0_04_years.notna()].copy()
@@ -89,6 +108,7 @@ def build(source: Path) -> pd.DataFrame:
              .merge(ident[["hhcode", "a_01_province", "a_02_district", "hhweight"]],
                     on="hhcode", how="left"))
     frame["kg_day"] = frame.kg_week / 7.0
+    frame["kg_day_solid"] = frame.kg_week_solid / 7.0
 
     before = len(frame)
     frame = frame[
@@ -100,11 +120,24 @@ def build(source: Path) -> pd.DataFrame:
 
     frame["kg_per_person_day"] = (frame.kg_day / frame.household_size).round(4)
     frame["kg_day"] = frame.kg_day.round(4)
+    frame["kg_day_solid"] = frame.kg_day_solid.round(4)
     frame = frame.rename(columns={"a_01_province": "province", "a_02_district": "district"})
 
     print(f"  {before:,} households joined, {before - len(frame):,} dropped as out of bounds")
     return frame[["hhcode", "province", "district", "hhweight", "household_size",
-                  *AGE_BANDS, "items_consumed", "kg_week", "kg_day", "kg_per_person_day"]]
+                  *AGE_BANDS, "items_consumed", "kg_week", "kg_day", "kg_day_solid",
+                  "kg_per_person_day"]]
+
+
+def item_labels(source: Path) -> dict:
+    """Food item code -> name, from the survey's own codebook."""
+    codebook = source.parent / "Documentation" / "Codebook" / "mod_j1_fah_long_codebook.tab"
+    if not codebook.exists():
+        raise SystemExit(f"Codebook not found at {codebook}; needed to identify beverages.")
+    cb = pd.read_csv(codebook, sep="\t", low_memory=False)
+    cb["v"] = cb["Variable Name"].ffill()
+    items = cb[cb.v == "j1_item"][["Answer Code", "Answer Label"]].dropna()
+    return dict(zip(items["Answer Code"].astype(int), items["Answer Label"]))
 
 
 def main():
@@ -131,6 +164,9 @@ def main():
           f"mean {frame.household_size.mean():.2f}")
     print(f"  kg/day          median {frame.kg_day.median():.2f}  "
           f"mean {frame.kg_day.mean():.2f}")
+    print(f"  kg/day solid    median {frame.kg_day_solid.median():.2f}  "
+          f"mean {frame.kg_day_solid.mean():.2f}  "
+          f"({(1 - frame.kg_day_solid.sum()/frame.kg_day.sum())*100:.1f} % is beverages)")
     print(f"  kg/person/day   median {frame.kg_per_person_day.median():.3f}  "
           f"mean {frame.kg_per_person_day.mean():.3f}")
     print(f"  provinces {frame.province.nunique()}  districts {frame.district.nunique()}")
