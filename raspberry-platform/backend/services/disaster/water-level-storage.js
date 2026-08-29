@@ -19,6 +19,7 @@ import { gpsChangeEmitter } from './gps-storage.js';
 
 const DEVICE_ID = C.DEVICE_ID;
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
+const ARCGIS_URL = 'https://services3.arcgis.com/J7ZFXmR8rSmQ3FGf/arcgis/rest/services/gauges_2_view/FeatureServer/0/query';
 
 const INTERVAL_MS = 15 * 60_000;
 
@@ -26,6 +27,66 @@ let timer = null;
 let lastSaveTime = null;
 
 let insertStmt = null;
+
+// ── Local gauging station data (fallback when Edge Gateway is unreachable) ──
+// Source: edge-gateway/resources/gauging_stations.csv
+const LOCAL_STATIONS = [
+  { name: 'Nagalagam Street', river: 'Kelani Ganga', lat: 6.9603, lon: 79.8786, alert: 1.2192, minor: 1.524, major: 2.1336 },
+  { name: 'Hanwella', river: 'Kelani Ganga', lat: 6.9105, lon: 80.0813, alert: 7.0, minor: 8.0, major: 10.0 },
+  { name: 'Glencourse', river: 'Kelani Ganga', lat: 6.9757, lon: 80.1866, alert: 15.0, minor: 16.5, major: 19.0 },
+  { name: 'Kithulgala', river: 'Kelani Ganga', lat: 6.9853, lon: 80.4254, alert: 3.0, minor: 4.0, major: 6.0 },
+  { name: 'Norwood', river: 'Kelani Ganga', lat: 6.8396, lon: 80.6124, alert: 1.5, minor: 3.0, major: 4.5 },
+  { name: 'Deraniyagala', river: 'Kelani Ganga', lat: 6.93, lon: 80.34, alert: 4.8, minor: 5.8, major: 6.4 },
+  { name: 'Holombuwa', river: 'Kelani Ganga', lat: 7.19, lon: 80.27, alert: 3.0, minor: 3.4, major: 5.0 },
+  { name: 'Ellagawa', river: 'Kalu Ganga', lat: 6.7304, lon: 80.2131, alert: 10.0, minor: 10.7, major: 12.2 },
+  { name: 'Rathnapura', river: 'Kalu Ganga', lat: 6.6899, lon: 80.3803, alert: 5.2, minor: 7.5, major: 9.5 },
+  { name: 'Kalawellawa', river: 'Kalu Ganga', lat: 6.6315, lon: 80.1607, alert: 5.0, minor: 6.5, major: 8.0 },
+  { name: 'Putupaula', river: 'Kalu Ganga', lat: 6.6116, lon: 80.0597, alert: 3.0, minor: 4.0, major: 5.0 },
+  { name: 'Manampitiya', river: 'Mahaweli Ganga', lat: 7.9133, lon: 81.089, alert: 3.0, minor: 4.3, major: 6.0 },
+  { name: 'Nawalapitiya', river: 'Mahaweli Ganga', lat: 7.046, lon: 80.5262, alert: 3.5, minor: 5.0, major: 6.0 },
+  { name: 'Peradeniya', river: 'Mahaweli Ganga', lat: 7.2642, lon: 80.5936, alert: 5.0, minor: 7.0, major: 9.0 },
+  { name: 'Weraganthota', river: 'Mahaweli Ganga', lat: 7.33, lon: 80.9879, alert: 5.0, minor: 6.0, major: 8.0 },
+  { name: 'Thaldena', river: 'Mahaweli Ganga', lat: 7.0927, lon: 81.0487, alert: 3.0, minor: 4.0, major: 5.0 },
+  { name: 'Badalgama', river: 'Maha Oya', lat: 7.2931, lon: 79.9777, alert: 5.0, minor: 6.2, major: 9.6 },
+  { name: 'Giriulla', river: 'Maha Oya', lat: 7.3303, lon: 80.1243, alert: 5.5, minor: 6.5, major: 7.5 },
+  { name: 'Baddegama', river: 'Gin Ganga', lat: 6.1775, lon: 80.1805, alert: 3.5, minor: 4.0, major: 5.0 },
+  { name: 'Thawalama', river: 'Gin Ganga', lat: 6.3429, lon: 80.3319, alert: 4.0, minor: 6.0, major: 7.5 },
+  { name: 'Panadugama', river: 'Nilwala Ganga', lat: 6.1101, lon: 80.4807, alert: 5.0, minor: 6.0, major: 7.5 },
+  { name: 'Pitabeddara', river: 'Nilwala Ganga', lat: 6.2071, lon: 80.4504, alert: 4.0, minor: 5.0, major: 6.5 },
+  { name: 'Thalgahagoda', river: 'Nilwala Ganga', lat: 6.0123, lon: 80.5348, alert: 1.4, minor: 1.7, major: 2.8 },
+  { name: 'Urawa', river: 'Nilwala Ganga', lat: 6.2365, lon: 80.5663, alert: 2.5, minor: 4.0, major: 6.0 },
+  { name: 'Thanamalwila', river: 'Kirindi Oya', lat: 6.4428, lon: 81.1389, alert: 4.0, minor: 5.0, major: 5.5 },
+  { name: 'Wellawaya', river: 'Kirindi Oya', lat: 6.7332, lon: 81.1099, alert: 4.4, minor: 5.4, major: 5.9 },
+  { name: 'Deraniyagala', river: 'Seethawaka Ganga', lat: 6.9258, lon: 80.3392, alert: 4.8, minor: 5.8, major: 6.4 },
+  { name: 'Dunamale', river: 'Attanagalu Oya', lat: 7.113, lon: 80.079, alert: 3.3, minor: 4.4, major: 5.5 },
+  { name: 'Galgamuwa', river: 'Mee Oya', lat: 7.9684, lon: 80.2614, alert: 4.84, minor: 5.94, major: 8.0 },
+  { name: 'Holombuwa', river: 'Gurugoda Oya', lat: 7.1886, lon: 80.2738, alert: 3.0, minor: 3.4, major: 5.0 },
+  { name: 'Horowpothana', river: 'Yan Oya', lat: 8.5771, lon: 80.8812, alert: 6.0, minor: 7.5, major: 10.5 },
+  { name: 'Katharagama', river: 'Menik Ganga', lat: 6.4184, lon: 81.3316, alert: 4.0, minor: 4.6, major: 6.5 },
+  { name: 'Magura', river: 'Maguru Ganga', lat: 6.5137, lon: 80.244, alert: 4.0, minor: 6.0, major: 7.5 },
+  { name: 'Moragaswewa', river: 'Deduru Oya', lat: 7.7319, lon: 80.243, alert: 4.75, minor: 6.0, major: 7.0 },
+  { name: 'Moraketiya', river: 'Walawe Ganga', lat: 6.3451, lon: 80.902, alert: 3.0, minor: 5.0, major: 7.0 },
+  { name: 'Nakkala', river: 'Kumbukkan Oya', lat: 6.8903, lon: 81.2979, alert: 5.0, minor: 6.0, major: 7.5 },
+  { name: 'Padiyathalawa', river: 'Maduru Oya', lat: 7.3827, lon: 81.1948, alert: 4.0, minor: 4.5, major: 6.0 },
+  { name: 'Siyambalanduwa', river: 'Heda Oya', lat: 6.9055, lon: 81.5454, alert: 4.5, minor: 6.0, major: 7.0 },
+  { name: 'Thanthirimale', river: 'Malwathu Oya', lat: 8.5808, lon: 80.284, alert: 5.0, minor: 6.8, major: 7.8 },
+  { name: 'Yaka Wewa', river: 'Ma Oya', lat: 8.7265, lon: 80.6751, alert: 4.0, minor: 5.0, major: 6.0 },
+];
+
+function resolveStationLocally(lat, lon) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const s of LOCAL_STATIONS) {
+    const dLat = (s.lat - lat) * 111000;
+    const dLon = (s.lon - lon) * 111000 * Math.cos((lat * Math.PI) / 180);
+    const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = s;
+    }
+  }
+  return best ? { ...best, distance_meters: Math.round(bestDist) } : null;
+}
 
 // ── Station name cache ──────────────────────────────────────────────────
 let cachedStationName = null;
@@ -80,21 +141,31 @@ async function resolveStationName(gps) {
     if (dist < STATION_CACHE_DISTANCE_M) return cachedStationName;
   }
 
+  // Try Edge Gateway first
   try {
     const url = `${EDGE_API}/hydrospatial/nearest-river-gauging-station?lat=${gps.latitude}&lon=${gps.longitude}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
-    if (!res.ok) return cachedStationName;
-    const data = await res.json();
-    const name = data.gauging_station?.station_name || null;
-    if (name) {
-      cachedStationName = name;
-      cachedStationGps = { latitude: gps.latitude, longitude: gps.longitude };
+    const res = await fetch(url, { signal: AbortSignal.timeout(6_000) });
+    if (res.ok) {
+      const data = await res.json();
+      const name = data.gauging_station?.station_name || null;
+      if (name) {
+        cachedStationName = name;
+        cachedStationGps = { latitude: gps.latitude, longitude: gps.longitude };
+        return name;
+      }
     }
-    return name;
-  } catch (err) {
-    logger.warn(`[WATER_LEVEL] Station resolve failed: ${err.message}`);
-    return cachedStationName;
+  } catch (_) {}
+
+  // Fallback: local station resolution
+  const local = resolveStationLocally(gps.latitude, gps.longitude);
+  if (local) {
+    cachedStationName = local.name;
+    cachedStationGps = { latitude: gps.latitude, longitude: gps.longitude };
+    logger.info(`[WATER_LEVEL] Resolved station locally: ${local.name} (${local.distance_meters}m)`);
+    return local.name;
   }
+
+  return cachedStationName;
 }
 
 function getLastRecordedAt() {
@@ -111,7 +182,7 @@ function getLastRecordedAt() {
 async function fetchLivePayload(lat, lon, alt) {
   try {
     const url = `${EDGE_API}/hydrospatial/live-payload?lat=${lat}&lon=${lon}&alt=${alt || 10}`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+    const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!response.ok) {
       return { data: null, error: `Gateway returned ${response.status}` };
     }
@@ -120,6 +191,58 @@ async function fetchLivePayload(lat, lon, alt) {
   } catch (err) {
     return { data: null, error: err.message };
   }
+}
+
+/**
+ * Direct ArcGIS live gauge data — bypasses Edge Gateway Overpass calls.
+ * Used as fallback when Edge Gateway live-payload is unavailable or slow.
+ */
+async function fetchArcGISLiveDirect(gaugeName) {
+  const params = new URLSearchParams({
+    where: `gauge='${gaugeName}'`,
+    outFields: '*',
+    orderByFields: 'EditDate DESC',
+    resultRecordCount: '1',
+    f: 'json',
+  });
+
+  const res = await fetch(`${ARCGIS_URL}?${params}`, { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`ArcGIS returned ${res.status}`);
+  const data = await res.json();
+  const features = data.features || [];
+  if (features.length === 0) throw new Error('No features found');
+
+  const attr = features[0].attributes || {};
+  const geom = features[0].geometry || {};
+
+  return {
+    live_gauge_data: {
+      gauge: attr.gauge,
+      basin: attr.basin,
+      water_level: attr.water_level,
+      rainfall: attr.rain_fall,
+      alert_level: attr.alertpull,
+      minor_flood_level: attr.minorpull,
+      major_flood_level: attr.majorpull,
+      created_at: attr.CreationDate,
+      updated_at: attr.EditDate,
+      latitude: geom.y,
+      longitude: geom.x,
+    },
+    gauging_station: {
+      station_name: attr.gauge,
+      river: attr.basin,
+      distance_meters: null,
+      alert_level: attr.alertpull,
+      minor_flood_level: attr.minorpull,
+      major_flood_level: attr.majorpull,
+      gauge_latitude: geom.y,
+      gauge_longitude: geom.x,
+    },
+    nearest_river: {
+      name: attr.basin,
+    },
+  };
 }
 
 // ── Core fetch + save logic ─────────────────────────────────────────────
@@ -133,9 +256,24 @@ export async function fetchAndSaveWaterLevel() {
     return false;
   }
 
-  const { data, error } = await fetchLivePayload(gps.latitude, gps.longitude, gps.altitude);
+  let { data, error } = await fetchLivePayload(gps.latitude, gps.longitude, gps.altitude);
+
+  // Fallback: direct ArcGIS query if Edge Gateway fails
   if (error || !data) {
-    logger.warn(`[WATER_LEVEL] Fetch from Edge Gateway failed: ${error || 'no data'}`);
+    const stationName = await resolveStationName(gps);
+    if (stationName) {
+      try {
+        data = await fetchArcGISLiveDirect(stationName);
+        error = null;
+        logger.info(`[WATER_LEVEL] Used direct ArcGIS fallback for ${stationName}`);
+      } catch (arcErr) {
+        logger.warn(`[WATER_LEVEL] ArcGIS fallback also failed: ${arcErr.message}`);
+      }
+    }
+  }
+
+  if (error || !data) {
+    logger.warn(`[WATER_LEVEL] Fetch failed: ${error || 'no data'}`);
     return false;
   }
 
@@ -197,6 +335,62 @@ export async function fetchAndSaveWaterLevel() {
 
 // ── ArcGIS history backfill ─────────────────────────────────────────────
 
+/**
+ * Direct ArcGIS FeatureServer query — bypasses Edge Gateway.
+ * Used as fallback when Edge Gateway /water-level-history is unavailable.
+ */
+async function fetchArcGISHistoryDirect(gaugeName, hours = 24) {
+  const recordCount = Math.min(hours * 4 + 20, 500);
+  const params = new URLSearchParams({
+    where: `gauge='${gaugeName}'`,
+    outFields: 'gauge,water_level,EditDate',
+    orderByFields: 'EditDate DESC',
+    resultRecordCount: String(recordCount),
+    returnGeometry: 'false',
+    f: 'json',
+  });
+
+  const res = await fetch(`${ARCGIS_URL}?${params}`, { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`ArcGIS returned ${res.status}`);
+  const data = await res.json();
+  const features = data.features || [];
+
+  const readings = [];
+  for (const feat of features) {
+    const attr = feat.attributes || {};
+    const wl = attr.water_level;
+    const editDate = attr.EditDate;
+    if (wl == null || editDate == null) continue;
+    const ts = new Date(editDate).toISOString();
+    readings.push({ gauge: attr.gauge, water_level: wl, timestamp: ts });
+  }
+  readings.reverse();
+  return readings;
+}
+
+/**
+ * Fetch water level history: try Edge Gateway first, fall back to direct ArcGIS.
+ */
+async function fetchWaterLevelHistoryFromSource(stationName, hours) {
+  // Try Edge Gateway first
+  try {
+    const url = `${EDGE_API}/hydrospatial/water-level-history?station=${encodeURIComponent(stationName)}&hours=${hours}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.readings?.length > 0) return { source: 'edge-gateway', readings: data.readings };
+    }
+  } catch (_) {}
+
+  // Fallback: direct ArcGIS query
+  try {
+    const readings = await fetchArcGISHistoryDirect(stationName, hours);
+    return { source: 'arcgis-direct', readings };
+  } catch (err) {
+    throw new Error(`Both Edge Gateway and ArcGIS failed: ${err.message}`);
+  }
+}
+
 export async function fetchAndSaveWaterLevelHistory(stationName, hours = 24) {
   ensureStatements();
 
@@ -207,18 +401,10 @@ export async function fetchAndSaveWaterLevelHistory(stationName, hours = 24) {
   }
 
   try {
-    const url = `${EDGE_API}/hydrospatial/water-level-history?station=${encodeURIComponent(stationName)}&hours=${hours}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-    if (!res.ok) {
-      logger.warn(`[WATER_LEVEL] History fetch failed: ${res.status}`);
-      return 0;
-    }
-    const data = await res.json();
+    const { source, readings } = await fetchWaterLevelHistoryFromSource(stationName, hours);
 
     let inserted = 0;
-    const now = nowISO();
-
-    for (const r of data.readings || []) {
+    for (const r of readings || []) {
       try {
         insertStmt.run(
           DEVICE_ID,
@@ -249,7 +435,7 @@ export async function fetchAndSaveWaterLevelHistory(stationName, hours = 24) {
     }
 
     if (inserted > 0) {
-      logger.info(`[WATER_LEVEL] Backfilled ${inserted} readings from ArcGIS (${hours}h)`);
+      logger.info(`[WATER_LEVEL] Backfilled ${inserted} readings from ${source} (${hours}h)`);
     }
     return inserted;
   } catch (err) {
