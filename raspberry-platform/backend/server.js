@@ -8,12 +8,13 @@ import C from './config/constants.js';
 import { getCampId } from './config/camp-id.js';
 import logger from './utils/logger.js';
 import { initializeCampDb } from './config/database.js';
-import { connect as mqttConnect } from './services/network/saamp-mqtt.js';
+import { connect as mqttConnect, onMessage } from './services/network/saamp-mqtt.js';
 import { startConnectivityWatcher } from './services/network/connectivity.js';
 import { initFingerprintHardware } from './services/resource/fingerprint.js';
 import { setSocketServer } from './services/resource/fingerprint-events.js';
 import { checkFlaskHealth } from './services/education/scoring.js';
 import { startSync } from './services/sync/sync-manager.js';
+import { setCampStatusOverride } from './services/disaster/camp-status-store.js';
 import { startGpsStorage } from './services/disaster/gps-storage.js';
 import { startWeatherStorage } from './services/disaster/weather-storage.js';
 import { startRainfallStorage } from './services/disaster/rainfall-storage.js';
@@ -100,6 +101,14 @@ initializeCampDb();
 
 // Connect to MQTT broker
 mqttConnect();
+
+// Listen for camp status updates from cloud
+onMessage('smartcamp/camps/', (payload) => {
+  if (payload?.camp_id && payload?.status) {
+    logger.info(`[CAMP_STATUS] Received from cloud: ${payload.camp_id} → ${payload.status}`);
+    setCampStatusOverride(payload.camp_id, payload.status, payload.source || 'cloud_admin');
+  }
+});
 
 // Check Flask health at startup
 checkFlaskHealth().then(healthy => {

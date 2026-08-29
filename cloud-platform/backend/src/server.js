@@ -1,12 +1,11 @@
 import { createApp } from './app.js';
-import { MqttService } from './services/network/mqtt.service.js';
+import { mqttService } from './services/network/mqtt.service.js';
 import { startCampDataService } from './services/resources/campData.service.js';
 import { AlertSyncService } from './services/education/alertSync.service.js';
 import { startSyncReceiver, stopSyncReceiver } from './services/sync/syncReceiver.service.js';
 import { env } from './config/env.js';
 import { initSchema, testConnection, closeDatabase } from './config/database.js';
 
-const mqttService = new MqttService();
 const alertSyncService = new AlertSyncService(mqttService);
 
 const app = createApp();

@@ -1,13 +1,24 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getAllCampStatusOverrides } from './camp-status-store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CAMPS_PATH = path.join(__dirname, '..', '..', 'data', 'disaster', 'camps.json');
 
 export function getCampsData() {
   const raw = fs.readFileSync(CAMPS_PATH, 'utf-8');
-  return JSON.parse(raw);
+  const camps = JSON.parse(raw);
+  // Apply cloud-assigned status overrides
+  const overrides = getAllCampStatusOverrides();
+  for (const camp of camps) {
+    if (overrides[camp.id]) {
+      camp.status = overrides[camp.id].status;
+      camp.status_source = overrides[camp.id].source;
+      camp.status_updated_at = overrides[camp.id].updated_at;
+    }
+  }
+  return camps;
 }
 
 export function getCampById(id) {

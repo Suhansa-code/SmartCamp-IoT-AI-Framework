@@ -35,7 +35,6 @@ import { useTheme } from "@/components/common/ThemeProvider";
 import { Map, MapControls, useMap } from "@/components/ui/map";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import { GaugingChart, WaterLevelBarChart } from "@/components/disaster/DisasterVisuals";
-import TerrainVisualization3D from "@/components/disaster/TerrainVisualization3D";
 
 const PAGE_PAD = "clamp(1rem, 2vw, 1.75rem)";
 
@@ -447,6 +446,7 @@ export default function DisasterCampDetailPage() {
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState("terrain");
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
   const campId = Array.isArray(params?.campId) ? params.campId[0] : params?.campId;
   const dark = T.mode === "dark";
@@ -576,6 +576,25 @@ export default function DisasterCampDetailPage() {
     }
   }, [campId]);
 
+  const handleStatusChange = useCallback(async (newStatus) => {
+    if (!campId || statusUpdating) return;
+    setStatusUpdating(true);
+    try {
+      const res = await fetch(`${DISASTER_API_BASE}/api/disaster/camps/${campId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        setCamp((prev) => prev ? { ...prev, status: newStatus } : prev);
+      }
+    } catch (err) {
+      console.error("Failed to update camp status:", err);
+    } finally {
+      setStatusUpdating(false);
+    }
+  }, [campId, statusUpdating]);
+
   const waterTone = detail ? (detail.wl > detail.alertL ? T.red : detail.wl > 0 ? T.amber : T.teal) : T.teal;
 
   /* ── Loading ── */
@@ -696,7 +715,37 @@ export default function DisasterCampDetailPage() {
                   )}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                {camp.status !== "recovery" && (
+                  <button
+                    onClick={() => handleStatusChange("recovery")}
+                    disabled={statusUpdating}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "6px 14px", borderRadius: 8, fontSize: "0.7rem", fontWeight: 700,
+                      background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0",
+                      cursor: statusUpdating ? "not-allowed" : "pointer",
+                      opacity: statusUpdating ? 0.6 : 1, transition: "all 0.15s",
+                    }}
+                  >
+                    <Shield size={12} /> Mark as Recovery
+                  </button>
+                )}
+                {camp.status !== "stable" && camp.status !== "recovery" && (
+                  <button
+                    onClick={() => handleStatusChange("stable")}
+                    disabled={statusUpdating}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "6px 14px", borderRadius: 8, fontSize: "0.7rem", fontWeight: 700,
+                      background: "#F0F9FF", color: "#0284C7", border: "1px solid #BAE6FD",
+                      cursor: statusUpdating ? "not-allowed" : "pointer",
+                      opacity: statusUpdating ? 0.6 : 1, transition: "all 0.15s",
+                    }}
+                  >
+                    <Shield size={12} /> Mark as Stable
+                  </button>
+                )}
                 <Button variant="outline" circleIcon={false} onClick={() => router.push("/disaster")} icon={<ArrowLeft size={13} />}>
                   Overview
                 </Button>
@@ -1139,16 +1188,6 @@ export default function DisasterCampDetailPage() {
                 </DashboardCard>
               </div>
             )}
-
-            {/* ── 3D Terrain Visualization ── */}
-            <TerrainVisualization3D
-              lat={camp.lat}
-              lng={camp.lng}
-              elevation={detail?.elev}
-              campName={camp.name}
-              campCode={camp.code}
-              campStatus={camp.status}
-            />
           </div>
         </main>
       </div>
