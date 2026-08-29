@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException
 from .service import find_nearest_river_and_station, build_live_payload, build_live_prediction, build_hydrospatial_analysis
 from .providers.weather_forecast_location import fetch_forecast_location
+from .providers.live_water_level_api import get_gauge_history
 from digital_elevation_model.elevation_service import get_elevation
 
 
@@ -74,6 +75,24 @@ def nearest_river_gauging_station(lat: float = Query(..., description="Latitude"
             "message": "No nearby water-level gauging station found near the nearest river.",
         }
     return result
+
+
+@router.get("/water-level-history")
+def water_level_history(
+    station: str = Query(..., description="Gauging station name"),
+    hours: int = Query(24, ge=1, le=168, description="Hours of history to fetch"),
+):
+    """Query ArcGIS for historical water level readings of a gauging station."""
+    try:
+        readings = get_gauge_history(station, hours)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"ArcGIS query failed: {e}")
+    return {
+        "station": station,
+        "hours": hours,
+        "count": len(readings),
+        "readings": readings,
+    }
 
 
 @router.get("/analysis")

@@ -1,0 +1,34 @@
+# SmartCamp Pi — Flask scoring service (psychoedu gate decisions)
+#
+# Referenced by docker-compose as `python-service`; the Node backend reaches it
+# at FLASK_URL=http://python-service:5001.
+#
+# Build context is backend/ (not backend/python/) so the service can read the
+# model files that live alongside it.
+
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    FLASK_PORT=5001
+
+WORKDIR /app
+
+# scikit-learn and numpy publish arm64 wheels for cp311, so this resolves from
+# wheels on a Pi 4/5 and needs no compiler. Keep the Python minor version at
+# 3.11 — moving it can drop you off the wheel index and trigger a source build
+# that takes hours on Pi hardware.
+COPY python/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY python/ ./
+
+RUN useradd --create-home --uid 1001 appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 5001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=4).status==200 else 1)"
+
+CMD ["python", "app.py"]

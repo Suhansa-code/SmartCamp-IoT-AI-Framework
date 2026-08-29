@@ -27,6 +27,9 @@ ENV NODE_ENV=production \
 COPY --from=deps /app/node_modules ./node_modules
 COPY backend/package.json ./package.json
 COPY backend/src ./src
+# EMQX TLS root. Read in a try/catch by campData/syncReceiver, so a missing
+# file silently downgrades to unverified TLS rather than failing loudly.
+COPY backend/emqxsl-ca.crt ./emqxsl-ca.crt
 
 # Ration rate table + child-intake Ridge artifact. Pinned by env var rather
 # than left to the relative walk above, which lands outside WORKDIR in-image.

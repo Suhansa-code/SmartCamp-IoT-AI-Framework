@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Users,
@@ -313,10 +313,16 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [campId, setCampId] = useState("");
   const [latestGps, setLatestGps] = useState(null);
+  const [gpsLoading, setGpsLoading] = useState(true);
   const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
   const [waterLevel, setWaterLevel] = useState(null);
+  const [waterLevelLoading, setWaterLevelLoading] = useState(true);
   const [eduInsights, setEduInsights] = useState(null);
   const [prediction, setPrediction] = useState(null);
+  const [predLoading, setPredLoading] = useState(true);
+
+  const lastGpsRef = useRef(null);
 
   const fetchStats = () => {
     fetch(`${API}/api/stats/overview`)
@@ -334,34 +340,23 @@ export default function DashboardPage() {
       });
   };
 
-  useEffect(() => {
-    fetchStats();
-    fetch(`${API}/api/disaster/camp-identity`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.camp_id) setCampId(data.camp_id);
-      })
-      .catch(() => {});
-    fetch(`${API}/api/disaster/latest-gps`)
-      .then((r) => r.json())
-      .then((data) => setLatestGps(data))
-      .catch(() => {});
+  const fetchDisasterData = useCallback(() => {
+    setWeatherLoading(true);
+    setWaterLevelLoading(true);
+    setPredLoading(true);
+
     fetch(`${API}/api/disaster/weather/latest`)
       .then((r) => r.json())
-      .then((data) => {
-        if (data.available) setWeather(data);
-      })
-      .catch(() => {});
+      .then((data) => { if (data.available) setWeather(data); })
+      .catch(() => {})
+      .finally(() => setWeatherLoading(false));
+
     fetch(`${API}/api/disaster/water-level/latest`)
       .then((r) => r.json())
-      .then((data) => {
-        if (data.available) setWaterLevel(data);
-      })
-      .catch(() => {});
-    fetch(`${API}/api/education/insights`)
-      .then((r) => r.json())
-      .then((data) => setEduInsights(data))
-      .catch(() => {});
+      .then((data) => { if (data.available) setWaterLevel(data); })
+      .catch(() => {})
+      .finally(() => setWaterLevelLoading(false));
+
     fetch(`${API}/api/disaster/predict`)
       .then((r) => r.json())
       .then((data) => {
@@ -369,10 +364,55 @@ export default function DashboardPage() {
           setPrediction(data);
         }
       })
+      .catch(() => {})
+      .finally(() => setPredLoading(false));
+  }, []);
+
+  // GPS polling with change detection
+  useEffect(() => {
+    fetchStats();
+    fetch(`${API}/api/disaster/camp-identity`)
+      .then((r) => r.json())
+      .then((data) => { if (data.camp_id) setCampId(data.camp_id); })
+      .catch(() => {});
+    fetch(`${API}/api/education/insights`)
+      .then((r) => r.json())
+      .then((data) => setEduInsights(data))
       .catch(() => {});
     const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // GPS polling: detect changes and re-fetch disaster data
+  useEffect(() => {
+    const pollGps = () => {
+      fetch(`${API}/api/disaster/latest-gps`)
+        .then((r) => r.json())
+        .then((data) => {
+          setLatestGps(data);
+          setGpsLoading(false);
+
+          const newLat = data?.latitude;
+          const newLng = data?.longitude;
+
+          if (newLat != null && newLng != null) {
+            const prev = lastGpsRef.current;
+            if (!prev || Math.abs(prev.lat - newLat) > 0.0005 || Math.abs(prev.lng - newLng) > 0.0005) {
+              lastGpsRef.current = { lat: newLat, lng: newLng };
+              setWeather(null);
+              setWaterLevel(null);
+              setPrediction(null);
+              fetchDisasterData();
+            }
+          }
+        })
+        .catch(() => setGpsLoading(false));
+    };
+
+    pollGps();
+    const gpsInterval = setInterval(pollGps, 5000);
+    return () => clearInterval(gpsInterval);
+  }, [fetchDisasterData]);
 
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",

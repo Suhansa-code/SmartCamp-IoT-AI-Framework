@@ -446,6 +446,7 @@ try {
   try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_latitude REAL"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN gauge_longitude REAL"); } catch (_) {}
   try { disasterDb.exec("ALTER TABLE water_level_readings ADD COLUMN updated_at TEXT"); } catch (_) {}
+  try { disasterDb.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_water_level_station_time ON water_level_readings(station_id, recorded_at)"); } catch (_) {}
 
   // ── Hydrospatial data extensions ──
   try { disasterDb.exec("ALTER TABLE hydrospatial_data ADD COLUMN gauge_elevation REAL"); } catch (_) {}
