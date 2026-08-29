@@ -60,6 +60,15 @@ export const env = {
     rationRatesPath:
       process.env.RATION_RATES_PATH ||
       path.join(__dirname, '../../../prediction-models/models/lka_v2/ration_rates.json'),
+    foodRatesRawPath:
+      process.env.FOOD_RATES_RAW_PATH ||
+      path.join(__dirname, '../../../prediction-models/models/lka_v2/food_rates_raw.json'),
+    commoditySharesPath:
+      process.env.COMMODITY_SHARES_PATH ||
+      path.join(__dirname, '../../../prediction-models/models/lka_v2/commodity_shares.json'),
+    // Days between placing a resupply order and it reaching the camp. Drives
+    // the reorder-by date and the forecast-aware stock status thresholds.
+    resupplyLeadTimeDays: Number(process.env.RESUPPLY_LEAD_TIME_DAYS || 3),
   },
 
   // Alert database (Education domain)
