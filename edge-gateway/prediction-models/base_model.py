@@ -32,8 +32,10 @@ BASE_FEATURES = [
     "distance_to_river_m",
 ]
 
-# Extended feature set (8 features) — adds 3 derived features
+# Extended feature set (10 features) — adds 5 derived/safe features
 EXTENDED_FEATURES = BASE_FEATURES + [
+    "monthly_rainfall_mm",
+    "drainage_index",
     "water_level_m",
     "elevation_ratio",
     "river_proximity_score",
@@ -148,6 +150,7 @@ class BaseFloodModel(ABC):
     def explain_prediction(self, rainfall_mm: float, longitude: float, latitude: float,
                            altitude_m: float, dem_elevation_m: Optional[float],
                            nearest_river_m: float, water_level_m: float = 0.0,
+                           monthly_rainfall_mm: float = 0.0, drainage_index: float = 0.5,
                            elevation_ratio: float = 1.0,
                            river_proximity_score: float = 0.0) -> Dict[str, float]:
         """Return SHAP values for a single prediction (feature importance)."""
@@ -164,6 +167,8 @@ class BaseFloodModel(ABC):
             "latitude": latitude,
             "elevation_m": effective_elevation,
             "distance_to_river_m": nearest_river_m,
+            "monthly_rainfall_mm": monthly_rainfall_mm,
+            "drainage_index": drainage_index,
             "water_level_m": water_level_m,
             "elevation_ratio": elevation_ratio,
             "river_proximity_score": river_proximity_score,
@@ -314,6 +319,8 @@ class BaseFloodModel(ABC):
         dem_elevation_m: Optional[float],
         nearest_river_m: float,
         water_level_m: float = 0.0,
+        monthly_rainfall_mm: float = 0.0,
+        drainage_index: float = 0.5,
         is_forecast: bool = False,
         gauge_alert_level: float = 2.0,
         gauge_minor_level: float = 3.0,
@@ -342,6 +349,8 @@ class BaseFloodModel(ABC):
             "latitude": latitude,
             "elevation_m": effective_elevation,
             "distance_to_river_m": nearest_river_m,
+            "monthly_rainfall_mm": monthly_rainfall_mm,
+            "drainage_index": drainage_index,
             "water_level_m": water_level_m,
             "elevation_ratio": elevation_ratio,
             "river_proximity_score": river_proximity_score,
@@ -392,6 +401,8 @@ class BaseFloodModel(ABC):
                 dem_elevation_m=dem_elevation_m,
                 nearest_river_m=nearest_river_m,
                 water_level_m=water_level_m,
+                monthly_rainfall_mm=monthly_rainfall_mm,
+                drainage_index=drainage_index,
                 elevation_ratio=elevation_ratio,
                 river_proximity_score=river_proximity_score,
             )
@@ -420,6 +431,8 @@ class BaseFloodModel(ABC):
                 dem_elevation_m=None if item.get("dem_elevation_m") is None else float(item["dem_elevation_m"]),
                 nearest_river_m=float(item["nearest_river_m"]),
                 water_level_m=float(item.get("water_level_m", 0.0)),
+                monthly_rainfall_mm=float(item.get("monthly_rainfall_mm", 0.0)),
+                drainage_index=float(item.get("drainage_index", 0.5)),
                 is_forecast=bool(item.get("is_forecast", False)),
                 gauge_alert_level=float(item.get("gauge_alert_level", 2.0)),
                 gauge_minor_level=float(item.get("gauge_minor_level", 3.0)),
