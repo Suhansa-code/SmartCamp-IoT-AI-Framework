@@ -73,7 +73,7 @@ CYCLE_ORDER = ['STABLE', 'DEGRADED', 'CRITICAL', 'STABLE', 'DEGRADED',
 
 LOG_FILE = 'network_simulation_log.csv'
 TARGET_HOST = '8.8.8.8'  # for ping measurement
-EMQX_HOST = 'i17140d1.ala.asia-southeast1.emqxsl.com'  # your broker
+EMQX_HOST = 'sa60a43c.ala.asia-southeast1.emqxsl.com'  # your broker
 
 
 

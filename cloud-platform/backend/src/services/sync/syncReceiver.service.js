@@ -11,7 +11,7 @@ import mqtt from 'mqtt';
 import fs from 'fs';
 import { env } from '../../config/env.js';
 import {
-  isSyncProcessed, logSync,
+  isSyncProcessed, logSync, getBehavioralSignals,
   upsertPerson, upsertCheckin, upsertWristband, upsertDistribution,
   upsertResource, upsertResourceUsage, upsertAuditLog,
   upsertChild, upsertSession, upsertBehavioralSignal,
@@ -211,7 +211,13 @@ async function handleSyncMessage(topic, buffer) {
   }
 
   try {
-    await handler(payload);
+    // Handlers take (row, ctx). ctx was never passed, so every device_id and
+    // camp_id column the schema added for multi-camp filtering stayed NULL —
+    // and the FK stubs below need the camp id to satisfy children.camp_id.
+    await handler(payload, {
+      device_id: envelope.device_id,
+      camp_id,
+    });
 
     // Keep the in-memory roster in step with what was just written. Guarded
     // so a roster bug can never fail a sync that already committed to Postgres.
@@ -224,7 +230,7 @@ async function handleSyncMessage(topic, buffer) {
       }
     }
 
-    await logSync(sync_id, entity, local_id, camp_id, operation);
+    await logSync(sync_id, entity, local_id, camp_id, operation, envelope.device_id);
     processedCount++;
     console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} (QoS ${envelope.priority})`);
     publishAck(envelope, 'ok');

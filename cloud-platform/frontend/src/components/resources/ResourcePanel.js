@@ -13,8 +13,9 @@ import {
   MOCK_RESOURCES, MOCK_TIMELINE, MOCK_PREDICTIONS, MOCK_RESOURCE_LOCATIONS,
   MOCK_CATEGORIES, computeMockSummary,
 } from '@/data/resources.data'
+import { DISASTER_API_BASE } from "@/lib/apiBase";
 
-const API = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3002'
+const API = DISASTER_API_BASE
 
 const CATEGORY_COLORS = {
   food: '#16A34A',

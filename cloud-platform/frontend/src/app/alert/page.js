@@ -17,6 +17,7 @@ import AlertCard from "@/components/alert/AlertCard";
 import ArrowChip from "@/components/alert/ArrowChip";
 import Button from "@/components/common/Button";
 import { daysSince } from "@/components/common/utils";
+import { API_BASE, DISASTER_API_BASE, withQuery } from "@/lib/apiBase";
 
 // ── Alert table columns ─────────────────────────────────────────────────────
 const ALERT_COLUMNS = [
@@ -137,10 +138,9 @@ export default function AlertsPage() {
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      const disasterApiBase = process.env.NEXT_PUBLIC_DISASTER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
       const [eduRes, disasterRes] = await Promise.allSettled([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/alerts?camp=${selectedCamp === "all" ? "" : selectedCamp}`),
-        fetch(`${disasterApiBase}/api/disaster/alerts?status=ACTIVE`),
+        fetch(`${API_BASE}${withQuery('/api/alerts', { camp: selectedCamp === "all" ? "" : selectedCamp })}`),
+        fetch(`${DISASTER_API_BASE}/api/disaster/alerts?status=ACTIVE`),
       ]);
 
       const transformed = [];

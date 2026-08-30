@@ -5,8 +5,9 @@ import Button from '@/components/common/Button'
 import DashboardCard from '@/components/dashboard/DashboardCard'
 import { useTheme } from '@/components/common/ThemeProvider'
 import { timeAgo } from '@/components/common/utils'
+import { API_BASE } from "@/lib/apiBase";
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
+const API = API_BASE
 
 const BLUE = '#2563EB'
 

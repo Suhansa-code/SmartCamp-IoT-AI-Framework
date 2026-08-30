@@ -8,6 +8,7 @@ import SeverityBadge from './SeverityBadge'
 import ScoreSparkline from './ScoreSparkline'
 import Button from '@/components/common/Button'
 import { daysSince } from '@/components/common/utils'
+import { API_BASE } from '@/lib/apiBase'
 
 export default function AlertCard({ alert, onAction, highlighted }) {
   const [actionLoading, setActionLoading] = useState(null)
@@ -19,7 +20,7 @@ export default function AlertCard({ alert, onAction, highlighted }) {
     try {
       const endpoint = `/api/alerts/${alert.id}/resolve`
       const body = action === 'escalate' ? { notes: 'Escalated by admin' } : { notes: 'Reviewed by admin' }
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}${endpoint}`, {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

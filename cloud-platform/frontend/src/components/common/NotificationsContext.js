@@ -2,9 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { mockAlerts } from '@/data/alerts.data'
+import { API_BASE, DISASTER_API_BASE } from '@/lib/apiBase'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
-const DISASTER_API = process.env.NEXT_PUBLIC_DISASTER_API_URL || 'http://localhost:3002'
+const DISASTER_API = DISASTER_API_BASE
 
 const NotificationsContext = createContext({
   notifications: [],

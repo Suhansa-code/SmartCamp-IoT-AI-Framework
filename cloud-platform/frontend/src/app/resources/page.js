@@ -7,7 +7,6 @@ import PageTitle from "@/components/common/PageTitle";
 import Button from "@/components/common/Button";
 import ResourcePanel from "@/components/resources/ResourcePanel";
 import DistributionPanel from "@/components/resources/DistributionPanel";
-import ResourcePanel from "@/components/resources/ResourcePanel";
 import { useTheme } from "@/components/common/ThemeProvider";
 
 // Cloud-side resources page — live data from Cloud DB (resources, resource_usage, flood_predictions).

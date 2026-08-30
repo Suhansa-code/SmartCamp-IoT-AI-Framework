@@ -13,8 +13,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, PackageCheck, RefreshCw, TrendingUp, CalendarClock, Info } from 'lucide-react'
 import { useTheme } from '@/components/common/ThemeProvider'
+import { DISASTER_API_BASE } from "@/lib/apiBase";
 
-const API = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3002'
+const API = DISASTER_API_BASE
 
 // Derived from the theme rather than hardcoded, so the badges follow the
 // palette in both light and dark mode. The background is the accent at low
