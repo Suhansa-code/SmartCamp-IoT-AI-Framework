@@ -256,6 +256,8 @@ function ChildEducationScreen() {
     resolved: alerts.filter((a) => a.status === "resolved").length,
   };
 
+  const latestZScore = sessions.length > 0 ? sessions[0].z_score : null;
+
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
       <div className="sm:px-5 lg:px-6 py-2 sm:py-5 space-y-4 sm:space-y-6">
@@ -361,6 +363,7 @@ function ChildEducationScreen() {
                     ["SDQ Band", child.sdq_band],
                     ["QR Available", child.qr_code_data ? "Yes" : "No"],
                     ["Sessions Done", child.total_sessions],
+                    ["Latest Z-Score", latestZScore != null ? Number(latestZScore).toFixed(2) : "-"],
                   ].map(([label, value]) => (
                     <FieldRow key={label} label={label} value={value} />
                   ))}
@@ -408,7 +411,7 @@ function ChildEducationScreen() {
                 <table className="min-w-full text-left text-[12.5px]">
                   <thead style={{ backgroundColor: "#FAFAF9" }}>
                     <tr className="border-b" style={{ borderColor: COLORS.hairline }}>
-                      {["Session", "Date / Time", "Gate", "Flags", "Sync"].map((h) => (
+                      {["Session", "Date / Time", "Gate", "Z-Score", "Flags", "Sync"].map((h) => (
                         <th
                           key={h}
                           className="px-3 sm:px-4 py-3 font-mono font-semibold text-[10.5px] uppercase tracking-[0.06em]"
@@ -422,7 +425,7 @@ function ChildEducationScreen() {
                   <tbody>
                     {sessions.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="px-4 py-8 text-center text-[12.5px]" style={{ color: COLORS.muted }}>
+                        <td colSpan="6" className="px-4 py-8 text-center text-[12.5px]" style={{ color: COLORS.muted }}>
                           No sessions found.
                         </td>
                       </tr>
@@ -445,6 +448,20 @@ function ChildEducationScreen() {
                           </td>
                           <td className="px-3 sm:px-4 py-3">
                             <Chip>{s.gate_decision || "-"}</Chip>
+                          </td>
+                          <td className="px-3 sm:px-4 py-3">
+                            {s.z_score != null ? (
+                              <span
+                                className="font-mono text-[12px] font-semibold"
+                                style={{
+                                  color: s.z_score < -2.0 ? "#DC2626" : s.z_score < -1.0 ? "#D97706" : "#059669",
+                                }}
+                              >
+                                {Number(s.z_score).toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className="text-[12px]" style={{ color: COLORS.muted }}>-</span>
+                            )}
                           </td>
                           <td className="px-3 sm:px-4 py-3">
                             <div className="flex flex-wrap gap-1">
