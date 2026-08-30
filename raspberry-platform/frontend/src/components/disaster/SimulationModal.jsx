@@ -99,7 +99,7 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
 
       {/* Modal */}
       <div
-        className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col"
+        className="relative bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
         style={{ border: `1px solid ${COLORS.line}` }}
       >
         {/* Header */}
@@ -128,14 +128,14 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
 
           {SECTIONS.map(section => (
             <div key={section}>
-              <p className="text-[10.5px] uppercase tracking-wider font-mono mb-2" style={{ color: COLORS.muted }}>
+              <p className="text-[10.5px] uppercase tracking-wider mb-2" style={{ color: COLORS.muted }}>
                 {section}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {FIELD_DEFS.filter(f => f.section === section).map(f => (
                   <div key={f.key}>
                     <label className="text-[11px] font-medium" style={{ color: COLORS.body }}>
-                      {f.label} <span className="font-mono" style={{ color: COLORS.muted }}>({f.unit})</span>
+                      {f.label} <span className="" style={{ color: COLORS.muted }}>({f.unit})</span>
                     </label>
                     <input
                       type="number"
@@ -144,7 +144,7 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
                       min={f.min}
                       max={f.max}
                       step={f.step}
-                      className={`mt-1 w-full rounded-lg border px-3 py-2 text-[13px] font-mono outline-none transition-colors ${
+                      className={`mt-1 w-full rounded-lg border px-3 py-2 text-[13px] outline-none transition-colors ${
                         errors[f.key] ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-teal-500'
                       }`}
                       style={{ color: COLORS.ink }}

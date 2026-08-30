@@ -1,5 +1,6 @@
 import { getPool } from '../../config/database.js';
 import { env } from '../../config/env.js';
+import { getDeviceCampId } from '../sync/sync.postgres.repository.js';
 import * as mockRepository from './camps.data.js';
 
 const CACHE_TTL_MS = 15_000;
@@ -66,7 +67,23 @@ export async function getAllDevices() {
 
 export async function getDisasterCampById(campId) {
   if (!env.db.enabled) return null;
-  return (await getCloudCamps()).find((camp) => camp.id === campId) || null;
+  const camps = await getCloudCamps();
+
+  // First try direct camp ID match
+  const directMatch = camps.find((camp) => camp.id === campId);
+  if (directMatch) return directMatch;
+
+  // If not found, check if it's a device ID and resolve to the associated camp
+  try {
+    const resolvedCampId = await getDeviceCampId(campId);
+    if (resolvedCampId) {
+      return camps.find((camp) => camp.id === resolvedCampId) || null;
+    }
+  } catch {
+    // Device lookup failed — fall through to return null
+  }
+
+  return null;
 }
 
 export async function getDisasterCampSummaries() {

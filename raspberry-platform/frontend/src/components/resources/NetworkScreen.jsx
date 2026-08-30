@@ -3,21 +3,9 @@ import { motion } from 'framer-motion';
 import { Activity, Wifi, Layers, Database, RefreshCw, AlertTriangle } from 'lucide-react';
 import ErrorState from '../ui/feedback/ErrorState';
 import { API, NETWORK_STATE_DESC } from '../ui/config';
-import { COLORS, SHADOW_CARD } from '../../lib/tokens';
+import { COLORS, SHADOW_CARD, TONE } from '../../lib/tokens';
 
 const POLL_MS = 10_000;
-
-/* ------------------------------------------------------------------ */
-/*  SEMANTIC COLOUR MAP                                                 */
-/* ------------------------------------------------------------------ */
-
-const TONE = {
-  brand:   { color: COLORS.brand, bg: `${COLORS.brand}14`, border: `${COLORS.brand}33` },
-  warning: { color: '#D97706',    bg: '#FFFBEB',           border: '#FDE68A' },
-  danger:  { color: '#DC2626',    bg: '#FEF2F2',           border: '#FECACA' },
-  info:    { color: '#0284C7',    bg: '#F0F9FF',           border: '#BAE6FD' },
-  neutral: { color: COLORS.body,  bg: '#F5F6F5',            border: COLORS.line },
-};
 
 const STATE_TONE = {
   STABLE: 'brand',
@@ -58,7 +46,7 @@ function metricTone(value, warn, crit, invert = false) {
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl border bg-white p-4 sm:p-6 ${className}`} style={{ borderColor: COLORS.line }}>
+    <div className={`rounded-xl bg-white p-4 sm:p-6 ${className}`}>
       {children}
     </div>
   );
@@ -91,7 +79,7 @@ function SectionHeader({ icon, title, subtitle }) {
     <div className="flex items-center gap-3 mb-3 sm:mb-4">
       <IconTile icon={icon} />
       <div>
-        <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>{title}</h2>
+        <h2 className="text-[13px] sm:text-[14px] font-medium" style={{ color: COLORS.ink }}>{title}</h2>
         {subtitle && <p className="text-[11px] sm:text-[11.5px]" style={{ color: COLORS.muted }}>{subtitle}</p>}
       </div>
     </div>
@@ -154,14 +142,14 @@ export default function NetworkScreen() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
+            <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>Camp operations</p>
             <div className="flex items-center gap-3 flex-wrap mt-1.5">
 
-              <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">Network Monitor</h1>
+              <h1 className="font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">Network Monitor</h1>
             </div>
-            <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>ML-predicted link health and adaptive QoS decisions</p>
+            <p className="text-[12px] mt-2" style={{ color: COLORS.muted }}>ML-predicted link health and adaptive QoS decisions</p>
           </div>
-          <div className="flex items-center gap-1.5 text-[12px] font-mono" style={{ color: COLORS.muted }}>
+          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: COLORS.muted }}>
             <RefreshCw className={`w-3.5 h-3.5 ${lastAt ? '' : 'animate-spin'}`} style={{ color: COLORS.brand }} />
             <span className="font-medium">Refreshes every {POLL_MS / 1000}s</span>
           </div>
@@ -177,7 +165,7 @@ export default function NetworkScreen() {
             <div>
               <span className="font-bold">No ML prediction received yet.</span> Start the monitor service:
               <br />
-              <code className="px-1.5 py-0.5 rounded text-[11.5px] font-mono mt-1 inline-block" style={{ backgroundColor: '#FDE68A' }}>
+              <code className="px-1.5 py-0.5 rounded text-[11.5px] mt-1 inline-block" style={{ backgroundColor: '#FDE68A' }}>
                 python3 scripts/network_monitor_service.py
               </code>
             </div>
@@ -191,17 +179,17 @@ export default function NetworkScreen() {
             <div className="flex flex-col h-full">
               <div className="flex items-start justify-between gap-6 flex-wrap">
                 <div>
-                  <p className="text-[11px] font-mono font-semibold uppercase tracking-wider mb-2" style={{ color: COLORS.muted }}>
+                  <p className="text-[11px] font-medium uppercase tracking-wider mb-2" style={{ color: COLORS.muted }}>
                     ML-Predicted Network State
                   </p>
                   <div className="flex items-center gap-3">
                     <div className="w-3.5 h-3.5 rounded-full animate-pulse" style={{ backgroundColor: t.color }} />
-                    <span className="font-serif font-medium text-[26px] sm:text-[30px] tracking-tight" style={{ color: t.color }}>{state}</span>
+                    <span className="font-medium text-[26px] sm:text-[30px] tracking-tight" style={{ color: t.color }}>{state}</span>
                     <Chip tone={tone}>Random Forest</Chip>
                   </div>
                   <p className="text-[13px] mt-2" style={{ color: COLORS.muted }}>{NETWORK_STATE_DESC[state]}</p>
                 </div>
-                <div className="text-right text-[11.5px] font-mono space-y-1" style={{ color: COLORS.muted }}>
+                <div className="text-right text-[11px] space-y-1" style={{ color: COLORS.muted }}>
                   <p>Updated {updatedAt}</p>
                   <p>{lastAt ? `Polled ${lastAt.toLocaleTimeString()}` : 'Connecting…'}</p>
                 </div>
@@ -216,21 +204,21 @@ export default function NetworkScreen() {
                 { label: 'Jitter',       val: m.jitter,      unit: ' ms',   warn: 30,   crit: 80   },
                 { label: 'Broker RTT',   val: m.broker_rtt,  unit: ' ms',   warn: 300,  crit: 1000 },
                 { label: 'Queue Depth',  val: m.queue_depth, unit: '',      warn: 50,   crit: 100  },
-              ].map(({ label, val, unit, warn, crit, invert }) => {
-                const mTone = val !== undefined ? metricTone(val, warn, crit, invert) : 'neutral';
-                return (
-                  <div key={label} className="flex justify-between items-center border-b pb-2" style={{ borderColor: COLORS.hairline }}>
-                    <span className="text-[12.5px]" style={{ color: COLORS.muted }}>{label}</span>
-                    <span className="text-[13px] font-semibold font-mono" style={{ color: val !== undefined ? TONE[mTone].color : COLORS.muted }}>
-                      {val !== undefined ? `${val}${unit}` : '—'}
-                    </span>
-                  </div>
+                ].map(({ label, val, unit, warn, crit, invert }) => {
+                  const mTone = val !== undefined ? metricTone(val, warn, crit, invert) : 'neutral';
+                  return (
+                    <div key={label} className="flex justify-between items-center border-b pb-2" style={{ borderColor: COLORS.hairline }}>
+                      <span className="text-[12px]" style={{ color: COLORS.muted }}>{label}</span>
+                      <span className="text-[13px] font-medium" style={{ color: val !== undefined ? TONE[mTone].color : COLORS.muted }}>
+                        {val !== undefined ? `${val}${unit}` : '—'}
+                      </span>
+                    </div>
                 );
               })}
               <div className="flex justify-between items-center border-b pb-2" style={{ borderColor: COLORS.hairline }}>
-                <span className="text-[12.5px]" style={{ color: COLORS.muted }}>Broker alive</span>
+                <span className="text-[12px]" style={{ color: COLORS.muted }}>Broker alive</span>
                 <span
-                  className="text-[13px] font-semibold font-mono"
+                  className="text-[13px] font-medium"
                   style={{ color: m.bridge_alive === true ? COLORS.brand : m.bridge_alive === false ? TONE.danger.color : COLORS.muted }}
                 >
                   {m.bridge_alive === true ? 'YES' : m.bridge_alive === false ? 'DOWN' : '—'}
@@ -247,7 +235,7 @@ export default function NetworkScreen() {
           <Card className="h-full">
             <SectionHeader icon={Layers} title="Adaptive QoS Decisions" subtitle="Current state highlighted" />
             <div className="overflow-x-auto">
-            <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-mono font-semibold mb-2 min-w-[320px]">
+            <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-medium mb-2 min-w-[320px]">
               <div />
               {['STABLE', 'DEGRADED', 'CRITICAL'].map((s) => {
                 const sTone = TONE[STATE_TONE[s]];
@@ -269,7 +257,7 @@ export default function NetworkScreen() {
               const rowTone = TONE[row.tone];
               return (
                 <div key={row.priority} className="grid grid-cols-4 gap-2 text-center text-[11px] mb-2">
-                  <div className="font-bold text-left flex items-center font-mono" style={{ color: rowTone.color }}>
+                  <div className="font-bold text-left flex items-center" style={{ color: rowTone.color }}>
                     {row.priority}
                   </div>
                   {(['stable', 'degraded', 'critical']).map((col) => {
@@ -280,13 +268,13 @@ export default function NetworkScreen() {
                     return (
                       <div
                         key={col}
-                        className="rounded-lg py-2 font-semibold font-mono transition-all border"
+                        className="rounded-lg py-2 font-medium transition-all"
                         style={isActive
-                          ? { backgroundColor: cellTone.bg, color: cellTone.color, borderColor: cellTone.border }
-                          : { backgroundColor: '#FAFAF9', color: COLORS.muted, borderColor: 'transparent' }}
+                          ? { backgroundColor: cellTone.bg, color: cellTone.color }
+                          : { backgroundColor: COLORS.grid, color: COLORS.muted }}
                       >
                         <div>QoS {cell.qos}</div>
-                        {cell.buf && <div className="font-bold" style={{ color: TONE.warning.color }}>buffer</div>}
+                        {cell.buf && <div className="font-semibold" style={{ color: TONE.warning.color }}>buffer</div>}
                       </div>
                     );
                   })}
@@ -305,19 +293,19 @@ export default function NetworkScreen() {
               <div className="flex items-start gap-3">
                 <IconTile icon={Database} tone={buffered > 0 ? 'warning' : 'brand'} size="lg" />
                 <div>
-                  <h2 className="text-[12px] font-semibold uppercase tracking-wider font-mono" style={{ color: COLORS.ink }}>
+                  <h2 className="text-[12px] font-medium uppercase tracking-wider" style={{ color: COLORS.ink }}>
                     Priority Message Buffer
                   </h2>
-                  <p className="text-[12.5px] mt-1" style={{ color: COLORS.muted }}>
+                  <p className="text-[12px] mt-1" style={{ color: COLORS.muted }}>
                     Held during outage · flushed CRITICAL → HIGH → MEDIUM → LOW on reconnect
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-serif font-medium text-[32px] sm:text-[36px]" style={{ color: buffered > 0 ? TONE.warning.color : COLORS.brand }}>
+                <p className="font-medium text-[32px] sm:text-[36px]" style={{ color: buffered > 0 ? TONE.warning.color : COLORS.brand }}>
                   {buffered}
                 </p>
-                <p className="text-[11px] font-mono" style={{ color: COLORS.muted }}>buffered</p>
+                <p className="text-[11px]" style={{ color: COLORS.muted }}>buffered</p>
               </div>
             </div>
 
@@ -332,21 +320,21 @@ export default function NetworkScreen() {
                   const share = buffered > 0 ? count / buffered : 0;
                   return (
                     <div key={priority} className="flex items-center gap-3">
-                      <span className="text-[11px] font-mono w-5 shrink-0" style={{ color: COLORS.muted }}>
+                      <span className="text-[11px] w-5 shrink-0" style={{ color: COLORS.muted }}>
                         {flush_position}
                       </span>
-                      <span className="text-[12px] font-semibold font-mono w-[68px] shrink-0" style={{ color: t.color }}>
+                      <span className="text-[12px] font-medium w-[68px] shrink-0" style={{ color: t.color }}>
                         {priority}
                       </span>
                       <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: COLORS.hairline }}>
                         <div className="h-full rounded-full transition-all duration-500"
                              style={{ width: `${Math.round(share * 100)}%`, backgroundColor: t.color }} />
                       </div>
-                      <span className="text-[12px] font-mono w-8 text-right shrink-0"
+                      <span className="text-[12px] w-8 text-right shrink-0"
                             style={{ color: count > 0 ? t.color : COLORS.muted }}>
                         {count}
                       </span>
-                      <span className="text-[10.5px] font-mono w-[62px] text-right shrink-0 hidden sm:block"
+                      <span className="text-[11px] w-[62px] text-right shrink-0 hidden sm:block"
                             style={{ color: COLORS.muted }}>
                         {count > 0 && oldest_at ? `${Math.max(0, Math.round((Date.now() - new Date(oldest_at.replace(' ', 'T') + 'Z')) / 1000))}s` : ''}
                       </span>
@@ -371,20 +359,20 @@ export default function NetworkScreen() {
                     return (
                       <div key={msg.id} className="flex items-center gap-3 py-1.5 px-2 rounded-md"
                            style={{ backgroundColor: i % 2 ? 'transparent' : COLORS.hairline + '55' }}>
-                        <span className="text-[11px] font-mono w-6 shrink-0" style={{ color: COLORS.muted }}>
+                        <span className="text-[11px] w-6 shrink-0" style={{ color: COLORS.muted }}>
                           {i + 1}
                         </span>
-                        <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0 w-[74px] text-center"
-                              style={{ color: t.color, backgroundColor: t.bg, border: `1px solid ${t.border}` }}>
+                        <span className="text-[11px] font-medium px-1.5 py-0.5 rounded shrink-0 w-[74px] text-center"
+                              style={{ color: t.color, backgroundColor: t.bg }}>
                           {msg.priority}
                         </span>
-                        <span className="text-[12px] font-mono truncate flex-1" style={{ color: COLORS.body }}>
+                        <span className="text-[12px] truncate flex-1" style={{ color: COLORS.body }}>
                           {msg.topic}
                         </span>
-                        <span className="text-[10.5px] font-mono shrink-0 hidden sm:block" style={{ color: COLORS.muted }}>
+                        <span className="text-[11px] shrink-0 hidden sm:block" style={{ color: COLORS.muted }}>
                           QoS {msg.qos}
                         </span>
-                        <span className="text-[10.5px] font-mono w-[56px] text-right shrink-0" style={{ color: COLORS.muted }}>
+                        <span className="text-[11px] w-[56px] text-right shrink-0" style={{ color: COLORS.muted }}>
                           {msg.created_at
                             ? `${Math.max(0, Math.round((Date.now() - new Date(msg.created_at.replace(' ', 'T') + 'Z')) / 1000))}s`
                             : ''}

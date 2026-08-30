@@ -26,19 +26,15 @@ import {
   HeartPulse,
   AlertTriangle,
 } from "lucide-react";
-import { COLORS, SHADOW_CARD } from "../../lib/tokens";
+import { COLORS, SHADOW_CARD, TONE } from "../../lib/tokens";
 import { API } from "../ui/config";
 import QRScanner from "./QRScanner";
 
-/* ------------------------------------------------------------------ */
-/*  STATUS / SEMANTIC COLOUR MAP — mirrors the RISK map on FloodWatch   */
-/* ------------------------------------------------------------------ */
-
 const STATUS = {
-  success: { color: COLORS.brand, bg: `${COLORS.brand}14`, border: `${COLORS.brand}33` },
-  error: { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-  pending: { color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  info: { color: "#0284C7", bg: "#F0F9FF", border: "#BAE6FD" },
+  success: { color: COLORS.brand, bg: COLORS.brandSoft, border: COLORS.brandMuted },
+  error: { color: TONE.danger.color, bg: TONE.danger.bg, border: TONE.danger.border },
+  pending: { color: TONE.warning.color, bg: TONE.warning.bg, border: TONE.warning.border },
+  info: { color: TONE.info.color, bg: TONE.info.bg, border: TONE.info.border },
 };
 
 const TYPE_LABELS = {
@@ -67,7 +63,7 @@ const TAB_META = {
 
 function IconTile({ icon: Icon, color }) {
   return (
-    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border flex items-center justify-center shrink-0" style={{ borderColor: COLORS.line }}>
+    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: COLORS.hairline }}>
       <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" style={{ color: color || COLORS.body }} strokeWidth={1.6} />
     </div>
   );
@@ -94,8 +90,8 @@ function Avatar({ name }) {
     .toUpperCase();
   return (
     <div
-      className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl flex items-center justify-center shrink-0 font-serif text-[22px] font-medium"
-      style={{ backgroundColor: `${COLORS.brand}14`, color: COLORS.brand, border: `1px solid ${COLORS.brand}33` }}
+      className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl flex items-center justify-center shrink-0 text-[22px] font-medium"
+      style={{ backgroundColor: COLORS.brandSoft, color: COLORS.brand }}
     >
       {initials || <UserCircle2 className="w-7 h-7" />}
     </div>
@@ -135,7 +131,7 @@ function TabSwitcher({ active, onChange }) {
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className="relative flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-[12px] sm:text-[12.5px] font-semibold font-mono transition-colors"
+            className="relative flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-[12px] sm:text-[12.5px] font-semibold transition-colors"
             style={{ color: isActive ? COLORS.brand : COLORS.muted }}
           >
             {isActive && (
@@ -166,33 +162,31 @@ function DistributionTile({ label, icon: Icon, item, onGive }) {
   const unit = item?.unit;
   return (
     <div
-      className="rounded-xl border p-4 sm:p-5 flex flex-col items-center text-center transition-colors"
+      className="rounded-xl p-4 sm:p-5 flex flex-col items-center text-center transition-colors"
       style={{
-        borderColor: given ? `${COLORS.brand}40` : COLORS.line,
-        backgroundColor: given ? `${COLORS.brand}0A` : "transparent",
+        backgroundColor: given ? COLORS.brandSoft : COLORS.grid,
       }}
     >
       <div
         className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3"
         style={{
-          backgroundColor: given ? "#fff" : `${COLORS.brand}0F`,
-          border: `1px solid ${given ? COLORS.line : `${COLORS.brand}33`}`,
+          backgroundColor: given ? COLORS.surface : COLORS.brandSoft,
         }}
       >
         <Icon className="w-5 h-5" style={{ color: COLORS.brand }} strokeWidth={1.7} />
       </div>
-      <p className="text-[13px] sm:text-[13.5px] font-semibold" style={{ color: COLORS.ink }}>
+      <p className="text-[13px] sm:text-[13px] font-medium" style={{ color: COLORS.ink }}>
         {label}
       </p>
-      <p className="text-[10.5px] font-mono mt-0.5 mb-1" style={{ color: COLORS.muted }}>
+      <p className="text-[11px] mt-0.5 mb-1" style={{ color: COLORS.muted }}>
         {quantity != null ? `${quantity} ${unit || ""} / day` : "\u00A0"}
       </p>
       {!given && left != null && (
-        <p className="text-[11px] font-mono mb-3" style={{ color: left > 0 ? "#0284C7" : COLORS.muted }}>
+        <p className="text-[11px] mb-3" style={{ color: left > 0 ? TONE.info.color : COLORS.muted }}>
           {left} {unit || ""} left today
         </p>
       )}
-      {given && <p className="text-[11px] font-mono mb-3" style={{ color: COLORS.muted }}>0 left today</p>}
+      {given && <p className="text-[11px] mb-3" style={{ color: COLORS.muted }}>0 left today</p>}
       <div className="mt-auto w-full">
         {given ? (
           <div
@@ -396,7 +390,7 @@ function DistributionPanel() {
         <>
           {/* Barcode lookup */}
           <form onSubmit={handleScan} className="rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
-            <p className="text-[11px] uppercase tracking-[0.1em] font-mono mb-3" style={{ color: COLORS.muted }}>
+            <p className="text-[11px] uppercase tracking-[0.1em] mb-3" style={{ color: COLORS.muted }}>
               Wristband barcode
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -410,7 +404,7 @@ function DistributionPanel() {
                   onChange={(e) => setBarcode(e.target.value)}
                   placeholder="Scan or type barcode (e.g. WB000001)"
                   autoFocus
-                  className="w-full pl-10 pr-11 py-2.5 rounded-lg border text-[13px] font-mono font-medium focus:outline-none transition-colors"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-lg border text-[13px] font-medium focus:outline-none transition-colors"
                   style={{ borderColor: COLORS.line, color: COLORS.ink, backgroundColor: "#FAFAF9" }}
                 />
                 <AnimatePresence>
@@ -485,7 +479,7 @@ function DistributionPanel() {
               <div className="flex flex-row items-center sm:items-start gap-2 sm:gap-5">
                 <Avatar name={profile.full_name} />
                 <div className="flex-1 text-left">
-                  <p className="font-serif font-medium text-[19px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>
+                  <p className="font-medium text-[19px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>
                     {profile.full_name}
                   </p>
                   <div className="flex flex-wrap items-center justify-start gap-1.5 mt-2.5">
@@ -543,7 +537,7 @@ function DistributionPanel() {
               <div className="rounded-xl border p-4 sm:p-5" style={{ borderColor: COLORS.line }}>
                 <div className="flex items-center gap-2 mb-2.5">
                   <HeartPulse className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
-                  <span className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: COLORS.muted }}>
+                  <span className="text-[11px] uppercase tracking-[0.1em]" style={{ color: COLORS.muted }}>
                     Health status
                   </span>
                 </div>
@@ -562,7 +556,7 @@ function DistributionPanel() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <Droplets className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
-                  <span className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: COLORS.muted }}>
+                  <span className="text-[11px] uppercase tracking-[0.1em]" style={{ color: COLORS.muted }}>
                     Daily availability left
                   </span>
                 </div>
@@ -595,7 +589,7 @@ function DistributionPanel() {
 
             {qosInfo && (
               <div className="rounded-xl border p-4 sm:p-5 flex flex-wrap items-center gap-2" style={{ borderColor: COLORS.line }}>
-                <span className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.08em] mr-1" style={{ color: COLORS.muted }}>
+                <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] mr-1" style={{ color: COLORS.muted }}>
                   <Activity className="w-3.5 h-3.5" style={{ color: COLORS.brand }} /> MQTT sync
                 </span>
                 <Chip tone={priorityTone(qosInfo.priority)}>Priority: {qosInfo.priority}</Chip>
@@ -646,7 +640,7 @@ function StatTile({ label, value, unit, icon: Icon }) {
   return (
     <div className="rounded-lg border p-3.5" style={{ borderColor: COLORS.line }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10.5px] uppercase tracking-[0.06em] font-mono" style={{ color: COLORS.muted }}>
+        <span className="text-[10.5px] uppercase tracking-[0.06em]" style={{ color: COLORS.muted }}>
           {label}
         </span>
         {Icon && <Icon className="w-3.5 h-3.5" style={{ color: COLORS.chip }} />}
@@ -675,7 +669,7 @@ function ForecastRow({ row, isToday, index }) {
       className="border-t"
     >
       <td className="px-4 sm:px-5 py-3.5">
-        <p className="text-[10.5px] font-mono" style={{ color: COLORS.muted }}>
+        <p className="text-[10.5px] " style={{ color: COLORS.muted }}>
         </p>
       </td>
       <td className="px-4 sm:px-5 py-3.5">
@@ -683,10 +677,10 @@ function ForecastRow({ row, isToday, index }) {
       </td>
       {r ? (
         <>
-          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: "#B45309" }}>
+          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-semibold" style={{ color: "#B45309" }}>
             {r.food_kg_day?.toLocaleString()}
           </td>
-          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: "#0284C7" }}>
+          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-semibold" style={{ color: "#0284C7" }}>
             {r.water_liters_day?.toLocaleString()}
           </td>
         </>
@@ -782,7 +776,7 @@ function PredictionPanel() {
               <IconTile icon={Users} color={COLORS.brand} />
               <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>
                 Live demographics
-                <p className="text-[11px] uppercase tracking-[0.08em] font-mono" style={{ color: COLORS.muted }}>
+                <p className="text-[11px] uppercase tracking-[0.08em]" style={{ color: COLORS.muted }}>
                   Auto-synced
                 </p>
               </h2>
@@ -829,7 +823,7 @@ function PredictionPanel() {
           <div className="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t" style={{ borderColor: COLORS.hairline }}>
             <div className="flex items-center gap-2 mb-3">
               <FileText className="w-3.5 h-3.5" style={{ color: COLORS.muted }} />
-              <span className="text-[11px] uppercase tracking-[0.08em] font-mono" style={{ color: COLORS.muted }}>
+              <span className="text-[11px] uppercase tracking-[0.08em]" style={{ color: COLORS.muted }}>
                 Category breakdown
               </span>
             </div>
@@ -896,8 +890,8 @@ function PredictionPanel() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr
-                    className="text-[10.5px] font-mono font-semibold uppercase tracking-[0.06em]"
-                    style={{ color: COLORS.muted, backgroundColor: "#FAFAF9" }}
+                    className="text-[11px] font-medium uppercase tracking-wider"
+                    style={{ color: COLORS.muted, backgroundColor: COLORS.grid }}
                   >
                     <th className="px-4 sm:px-5 py-3">Date</th>
                     <th className="px-4 sm:px-5 py-3">Est. pop.</th>
@@ -937,7 +931,7 @@ export default function WristbandScanScreen() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-2 sm:py-7">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>
+            <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>
               {meta.eyebrow}
             </p>
             <div className="flex items-center gap-3 flex-wrap mt-1.5">
@@ -948,13 +942,13 @@ export default function WristbandScanScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight"
+                  className="font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight"
                 >
                   {meta.title}
                 </motion.h1>
               </AnimatePresence>
             </div>
-            <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>
+            <p className="text-[12px] mt-2" style={{ color: COLORS.muted }}>
               {meta.subtitle}
             </p>
           </div>

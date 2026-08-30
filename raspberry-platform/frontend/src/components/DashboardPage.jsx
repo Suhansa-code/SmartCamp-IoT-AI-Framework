@@ -21,22 +21,9 @@ import {
 } from "lucide-react";
 import LoadingState from "./ui/feedback/LoadingState";
 import ErrorState from "./ui/feedback/ErrorState";
-import { COLORS, SHADOW_CARD } from "../lib/tokens";
+import { COLORS, TONE } from "../lib/tokens";
 import StatCard from "./ui/base/StatCard";
 import { API } from "./ui/config";
-
-/* ------------------------------------------------------------------ */
-/*  SEMANTIC COLOUR MAP                                                 */
-/* ------------------------------------------------------------------ */
-
-const TONE = {
-  brand: { color: COLORS.brand, bg: `${COLORS.brand}14`, border: `${COLORS.brand}33` },
-  warning: { color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  danger: { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-  info: { color: "#0284C7", bg: "#F0F9FF", border: "#BAE6FD" },
-  violet: { color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
-  neutral: { color: COLORS.body, bg: "#F5F6F5", border: COLORS.line },
-};
 
 const NETWORK_TONE = { STABLE: "brand", DEGRADED: "warning", CRITICAL: "danger" };
 
@@ -80,11 +67,10 @@ const MOCK_POPULATION = [
 function Card({ children, className = "", delay = 0 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.35 }}
-      className={`rounded-xl border bg-white p-4 sm:p-5 ${className}`}
-      style={{ borderColor: COLORS.line }}
+      transition={{ delay, duration: 0.3 }}
+      className={`bg-white rounded-xl p-4 sm:p-5 ${className}`}
     >
       {children}
     </motion.div>
@@ -95,8 +81,8 @@ function IconTile({ icon: Icon, tone = "brand", size = "md" }) {
   const t = TONE[tone] || TONE.brand;
   const dims = size === "lg" ? "w-10 h-10" : size === "sm" ? "w-8 h-8" : "w-9 h-9";
   return (
-    <div className={`${dims} rounded-lg flex items-center justify-center shrink-0 border`} style={{ backgroundColor: t.bg, borderColor: t.border }}>
-      <Icon className={size === "lg" ? "w-5 h-5" : "w-4 h-4"} style={{ color: t.color }} strokeWidth={1.7} />
+    <div className={`${dims} rounded-lg flex items-center justify-center shrink-0`} style={{ backgroundColor: t.bg }}>
+      <Icon className={size === "lg" ? "w-5 h-5" : "w-4 h-4"} style={{ color: t.color }} strokeWidth={1.5} />
     </div>
   );
 }
@@ -105,8 +91,8 @@ function Chip({ children, tone = "neutral" }) {
   const t = TONE[tone] || TONE.neutral;
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold tracking-wide border"
-      style={{ color: t.color, backgroundColor: t.bg, borderColor: t.border }}
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium"
+      style={{ color: t.color, backgroundColor: t.bg }}
     >
       {children}
     </span>
@@ -115,7 +101,7 @@ function Chip({ children, tone = "neutral" }) {
 
 function SectionLabel({ children }) {
   return (
-    <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.08em] mb-3 sm:mb-4" style={{ color: COLORS.muted }}>
+    <p className="text-[11px] font-medium uppercase tracking-wider mb-3" style={{ color: COLORS.muted }}>
       {children}
     </p>
   );
@@ -149,12 +135,12 @@ function DistributionRow({ label, data }) {
   const pct = data.percent ?? 0;
   const tone = pct >= 85 ? TONE.brand : pct >= 60 ? TONE.info : TONE.warning;
   return (
-    <div className="flex items-center justify-between py-2.5 border-b last:border-0" style={{ borderColor: COLORS.hairline }}>
-      <span className="text-[13px] font-semibold w-20" style={{ color: COLORS.ink }}>
+    <div className="flex items-center justify-between py-2.5" style={{ borderBottom: `1px solid ${COLORS.hairline}` }}>
+      <span className="text-[13px] font-medium w-20" style={{ color: COLORS.ink }}>
         {label}
       </span>
       <div className="flex-1 mx-3">
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#F0F1EF" }}>
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: COLORS.hairline }}>
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
@@ -164,10 +150,10 @@ function DistributionRow({ label, data }) {
           />
         </div>
       </div>
-      <span className="text-[12px] font-mono w-20 text-right" style={{ color: COLORS.muted }}>
+      <span className="text-[12px] w-20 text-right" style={{ color: COLORS.muted }}>
         {data.served}/{data.served + data.pending}
       </span>
-      <span className="text-[13px] font-semibold font-mono w-12 text-right" style={{ color: tone.color }}>
+      <span className="text-[12px] font-medium w-12 text-right" style={{ color: tone.color }}>
         {pct}%
       </span>
     </div>
@@ -179,10 +165,10 @@ function VulnerableRow({ icon: Icon, tone, label, value }) {
     <div className="flex items-center gap-3">
       <IconTile icon={Icon} tone={tone} />
       <div>
-        <p className="text-[11.5px]" style={{ color: COLORS.muted }}>
+        <p className="text-[11px]" style={{ color: COLORS.muted }}>
           {label}
         </p>
-        <p className="text-[16px] font-semibold font-mono" style={{ color: COLORS.ink }}>
+        <p className="text-[15px] font-medium" style={{ color: COLORS.ink }}>
           {value ?? 0}
         </p>
       </div>
@@ -193,13 +179,13 @@ function VulnerableRow({ icon: Icon, tone, label, value }) {
 function InsightRow({ icon: Icon, tone, label, value, sub }) {
   const t = TONE[tone] || TONE.neutral;
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b last:border-0" style={{ borderColor: COLORS.hairline }}>
+    <div className="flex items-start gap-3 py-2.5" style={{ borderBottom: `1px solid ${COLORS.hairline}` }}>
       <IconTile icon={Icon} tone={tone} size="sm" />
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
+        <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: COLORS.muted }}>
           {label}
         </p>
-        <p className="text-[13.5px] font-semibold mt-0.5" style={{ color: COLORS.ink }}>
+        <p className="text-[13px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
           {value}
         </p>
         {sub && (
@@ -217,11 +203,11 @@ function ResourceBar({ item }) {
   const barTone = pct >= 90 ? TONE.danger : pct >= 70 ? TONE.warning : TONE.brand;
   return (
     <div className="flex items-center gap-3 py-2">
-      <span className="text-[12px] font-semibold w-16 shrink-0" style={{ color: COLORS.ink }}>
+      <span className="text-[12px] font-medium w-16 shrink-0" style={{ color: COLORS.ink }}>
         {item.label}
       </span>
       <div className="flex-1">
-        <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "#F0F1EF" }}>
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: COLORS.hairline }}>
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
@@ -231,7 +217,7 @@ function ResourceBar({ item }) {
           />
         </div>
       </div>
-      <span className="text-[11px] font-mono w-20 text-right shrink-0" style={{ color: COLORS.muted }}>
+      <span className="text-[11px] w-20 text-right shrink-0" style={{ color: COLORS.muted }}>
         {item.used.toLocaleString()}/{item.total.toLocaleString()} {item.unit}
       </span>
     </div>
@@ -277,10 +263,10 @@ function DonutChart({ data, size = 160, strokeWidth = 24 }) {
           ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[28px] font-semibold font-mono leading-none" style={{ color: COLORS.ink }}>
+          <span className="text-[26px] font-semibold leading-none" style={{ color: COLORS.ink }}>
             {total}
           </span>
-          <span className="text-[10px] font-mono uppercase tracking-wider mt-1" style={{ color: COLORS.muted }}>
+          <span className="text-[10px] font-medium uppercase tracking-wider mt-1" style={{ color: COLORS.muted }}>
             Total
           </span>
         </div>
@@ -292,7 +278,7 @@ function DonutChart({ data, size = 160, strokeWidth = 24 }) {
             <span className="text-[11.5px] flex-1" style={{ color: COLORS.body }}>
               {d.label}
             </span>
-            <span className="text-[12px] font-semibold font-mono" style={{ color: COLORS.ink }}>
+            <span className="text-[12px] font-medium" style={{ color: COLORS.ink }}>
               {d.count}
             </span>
           </div>
@@ -432,24 +418,23 @@ export default function DashboardPage() {
   const netTone = NETWORK_TONE[mqtt.network_state] ?? "neutral";
 
   return (
-    <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
-      <div className="sm:px-5 lg:px-6 py-2 sm:py-7 space-y-4 sm:space-y-6">
+    <div className="space-y-6" style={{ color: COLORS.ink }}>
         {/* ================= TITLE ROW ================= */}
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
         >
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>
+            <p className="text-[11px] font-medium uppercase tracking-wider mb-1" style={{ color: COLORS.muted }}>
               {campId || "Camp"}
             </p>
-            <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight mt-1.5">Camp Dashboard</h1>
-            <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>
+            <h1 className="text-[24px] sm:text-[28px] font-semibold leading-tight tracking-tight">Camp Dashboard</h1>
+            <p className="text-[12px] mt-1" style={{ color: COLORS.muted }}>
               Live overview of population, distribution &amp; readiness
             </p>
           </div>
-          <div className="flex items-center gap-1.5 text-[12px] font-mono" style={{ color: COLORS.muted }}>
+          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: COLORS.muted }}>
             <CalendarDays className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
             <span className="font-medium">{today}</span>
           </div>
@@ -457,10 +442,10 @@ export default function DashboardPage() {
 
         {/* ================= STAT ROW ================= */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard label="Total Population" value={pop.total?.toLocaleString()} icon={Users} tone="brand" delay={0} />
-          <StatCard label="Today Registered" value={pop.today_registered} icon={UserPlus} tone="info" delay={0.05} />
-          <StatCard label="Today Check-ins" value={pop.today_checkins} icon={ClipboardCheck} tone="violet" delay={0.1} />
-          <StatCard label="Families" value={pop.families} icon={Heart} tone="warning" delay={0.15} />
+          <StatCard label="Total Population" value={pop.total?.toLocaleString()} icon={Users} accent="brand" />
+          <StatCard label="Today Registered" value={pop.today_registered} icon={UserPlus} accent="info" />
+          <StatCard label="Today Check-ins" value={pop.today_checkins} icon={ClipboardCheck} accent="violet" />
+          <StatCard label="Families" value={pop.families} icon={Heart} accent="warning" />
         </div>
 
         {/* ================= DISTRIBUTION + SIDE CARDS ================= */}
@@ -482,22 +467,22 @@ export default function DashboardPage() {
                   <ResourceBar key={item.label} item={item} />
                 ))}
               </div>
-              <div className="flex items-center gap-4 mt-3 pt-3 border-t" style={{ borderColor: COLORS.hairline }}>
+              <div className="flex items-center gap-4 mt-3 pt-3" style={{ borderTop: `1px solid ${COLORS.hairline}` }}>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.brand }} />
-                  <span className="text-[10px] font-mono" style={{ color: COLORS.muted }}>
+                  <span className="text-[10px]" style={{ color: COLORS.muted }}>
                     Normal
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#D97706" }} />
-                  <span className="text-[10px] font-mono" style={{ color: COLORS.muted }}>
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.warning }} />
+                  <span className="text-[10px]" style={{ color: COLORS.muted }}>
                     Warning
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#DC2626" }} />
-                  <span className="text-[10px] font-mono" style={{ color: COLORS.muted }}>
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.danger }} />
+                  <span className="text-[10px]" style={{ color: COLORS.muted }}>
                     Critical
                   </span>
                 </div>
@@ -528,33 +513,33 @@ export default function DashboardPage() {
                   {mqtt.network_state ?? "UNKNOWN"}
                 </Chip>
               </div>
-              <div className="flex items-center gap-2 text-[12.5px]" style={{ color: COLORS.muted }}>
+              <div className="flex items-center gap-2 text-[12px]" style={{ color: COLORS.muted }}>
                 <Wifi className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
                 <span>
                   Buffered:{" "}
-                  <strong className="font-mono font-semibold" style={{ color: COLORS.ink }}>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>
                     {mqtt.buffered_messages ?? 0}
-                  </strong>{" "}
+                  </span>{" "}
                   messages
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-[12.5px] mt-3" style={{ color: COLORS.muted }}>
-                <Activity className="w-3.5 h-3.5" style={{ color: "#D97706" }} />
+              <div className="flex items-center gap-2 text-[12px] mt-2.5" style={{ color: COLORS.muted }}>
+                <Activity className="w-3.5 h-3.5" style={{ color: COLORS.warning }} />
                 <span>
                   Uptime:{" "}
-                  <strong className="font-mono font-semibold" style={{ color: COLORS.ink }}>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>
                     {mqtt.uptime_hours ?? 0}
-                  </strong>{" "}
+                  </span>{" "}
                   hours
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-[12.5px] mt-3" style={{ color: COLORS.muted }}>
+              <div className="flex items-center gap-2 text-[12px] mt-2.5" style={{ color: COLORS.muted }}>
                 <ArrowUpRight className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
                 <span>
                   Last sync:{" "}
-                  <strong className="font-mono font-semibold" style={{ color: COLORS.ink }}>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>
                     {mqtt.last_sync ?? "—"}
-                  </strong>
+                  </span>
                 </span>
               </div>
             </Card>
@@ -564,24 +549,24 @@ export default function DashboardPage() {
                 <TrendingUp className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
                 <SectionLabel>Tomorrow</SectionLabel>
               </div>
-              <div className="text-[12.5px] space-y-1.5" style={{ color: COLORS.body }}>
+              <div className="text-[12px] space-y-1.5" style={{ color: COLORS.body }}>
                 <p className="flex justify-between">
                   <span>Expected</span>
-                  <strong className="font-mono font-semibold" style={{ color: COLORS.ink }}>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>
                     {pred.expected_persons?.toLocaleString() ?? "—"} persons
-                  </strong>
+                  </span>
                 </p>
                 <p className="flex justify-between">
                   <span>Food</span>
-                  <strong className="font-mono font-semibold" style={{ color: COLORS.ink }}>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>
                     {pred.breakfast_kg ?? "—"} kg
-                  </strong>
+                  </span>
                 </p>
                 <p className="flex justify-between">
                   <span>Water</span>
-                  <strong className="font-mono font-semibold" style={{ color: COLORS.ink }}>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>
                     {pred.water_litres?.toLocaleString() ?? "—"} L
-                  </strong>
+                  </span>
                 </p>
               </div>
             </Card>
@@ -600,7 +585,7 @@ export default function DashboardPage() {
                   Flood Prediction
                 </span>
                 {prediction?.mode === 'simulation' && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-amber-100 text-amber-700">SIM</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-700">SIM</span>
                 )}
               </div>
               <div className="space-y-0">
@@ -652,7 +637,7 @@ export default function DashboardPage() {
                       sub={`Rainfall: ${weather.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : '—'} · Wind: ${weather.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : '—'}`}
                     />
                     {weather.fetched_at && (
-                      <p className="text-[10px] font-mono mt-2" style={{ color: COLORS.muted }}>
+                      <p className="text-[10px] mt-2" style={{ color: COLORS.muted }}>
                         Last updated: {new Date(weather.fetched_at).toLocaleString()}
                       </p>
                     )}
@@ -713,36 +698,31 @@ export default function DashboardPage() {
                 label="Children Enrolled"
                 value={eduInsights.total_children}
                 icon={Users}
-                tone="brand"
-                delay={0}
+                accent="brand"
               />
               <StatCard
                 label="Sessions Completed"
                 value={`${eduInsights.completed_sessions}/${eduInsights.total_sessions}`}
                 icon={ClipboardCheck}
-                tone="info"
-                delay={0.05}
+                accent="info"
               />
               <StatCard
                 label="Completion Rate"
                 value={`${eduInsights.completion_rate}%`}
                 icon={TrendingUp}
-                tone="violet"
-                delay={0.1}
+                accent="violet"
               />
               <StatCard
                 label="Avg Composite Score"
                 value={eduInsights.avg_composite != null ? eduInsights.avg_composite.toFixed(1) : "—"}
                 icon={BrainCircuit}
-                tone="warning"
-                delay={0.15}
+                accent="warning"
               />
               <StatCard
                 label="Active Alerts"
                 value={eduInsights.active_alerts}
                 icon={Activity}
-                tone={eduInsights.active_alerts > 0 ? "danger" : "brand"}
-                delay={0.2}
+                accent={eduInsights.active_alerts > 0 ? "danger" : "brand"}
               />
             </div>
 
@@ -750,7 +730,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
               {/* Grade Distribution */}
               <div>
-                <p className="text-[11px] font-mono uppercase tracking-[0.08em] mb-2" style={{ color: COLORS.muted }}>
+                <p className="text-[11px] font-medium uppercase tracking-wider mb-2" style={{ color: COLORS.muted }}>
                   Grade Distribution
                 </p>
                 <div className="space-y-2">
@@ -768,7 +748,7 @@ export default function DashboardPage() {
                           }}
                         />
                       </div>
-                      <span className="text-[11px] font-mono" style={{ color: COLORS.muted }}>
+                      <span className="text-[11px]" style={{ color: COLORS.muted }}>
                         {g.count}
                       </span>
                     </div>
@@ -778,7 +758,7 @@ export default function DashboardPage() {
 
               {/* Recent Sessions */}
               <div>
-                <p className="text-[11px] font-mono uppercase tracking-[0.08em] mb-2" style={{ color: COLORS.muted }}>
+                <p className="text-[11px] font-medium uppercase tracking-wider mb-2" style={{ color: COLORS.muted }}>
                   Recent Sessions
                 </p>
                 <div className="space-y-1.5">
@@ -786,12 +766,12 @@ export default function DashboardPage() {
                     <div
                       key={s.session_id}
                       className="flex items-center justify-between py-1.5 px-2 rounded-lg text-[12px]"
-                      style={{ backgroundColor: "#FAFAF9" }}
+                      style={{ backgroundColor: COLORS.grid }}
                     >
-                      <span className="font-mono" style={{ color: COLORS.ink }}>
+                      <span style={{ color: COLORS.ink }}>
                         {s.child_id}
                       </span>
-                      <span className="font-mono" style={{ color: COLORS.muted }}>
+                      <span style={{ color: COLORS.muted }}>
                         {s.composite_score != null ? s.composite_score.toFixed(1) : "—"}
                       </span>
                       <Chip tone={s.session_complete ? "brand" : "warning"}>
@@ -804,7 +784,6 @@ export default function DashboardPage() {
             </div>
           </Card>
         )}
-      </div>
     </div>
   );
 }

@@ -3,18 +3,18 @@ import { Loader2 } from 'lucide-react'
 import { COLORS } from '../../../lib/tokens'
 
 const base =
-  'inline-flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-opacity outline-none active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 hover:opacity-90'
+  'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors outline-none disabled:opacity-40 disabled:cursor-not-allowed'
 
 const VARIANT_STYLE = {
   primary: { backgroundColor: COLORS.brand, color: '#fff' },
   secondary: { backgroundColor: 'transparent', color: COLORS.body, border: `1px solid ${COLORS.line}` },
-  danger: { backgroundColor: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' },
+  danger: { backgroundColor: COLORS.dangerSoft, color: COLORS.danger, border: `1px solid ${COLORS.line}` },
 }
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-[11.5px]',
-  md: 'px-4 py-2.5 text-[12.5px]',
-  lg: 'px-5 py-3 text-[13.5px]',
+  sm: 'px-3 py-1.5 text-[12px]',
+  md: 'px-4 py-2 text-[12.5px]',
+  lg: 'px-5 py-2.5 text-[13px]',
 }
 
 function Button({

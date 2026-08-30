@@ -102,10 +102,10 @@ function StatTile({ label, value, unit, icon: Icon, tone = "brand" }) {
       />
       <div className="relative">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] uppercase tracking-[0.06em] font-mono" style={{ color: COLORS.muted }}>{label}</span>
+          <span className="text-[10px] uppercase tracking-[0.06em]" style={{ color: COLORS.muted }}>{label}</span>
           <Icon className="w-3.5 h-3.5" style={{ color: t.color }} />
         </div>
-        <p className="text-[18px] sm:text-[19px] font-semibold font-mono tracking-tight" style={{ color: COLORS.ink }}>
+        <p className="text-[18px] sm:text-[19px] font-semibold tracking-tight" style={{ color: COLORS.ink }}>
           {value ?? '—'}<span className="text-[11px] font-normal" style={{ color: COLORS.muted }}>{unit}</span>
         </p>
       </div>
@@ -134,15 +134,15 @@ function ForecastRow({ row, isToday, index }) {
     >
       <td className="px-4 sm:px-5 py-3.5">
         <div className="font-semibold text-[12.5px]" style={{ color: isToday ? COLORS.brand : COLORS.ink }}>{dayName}</div>
-        <div className="text-[10.5px] font-mono" style={{ color: COLORS.muted }}>{dateStr}</div>
+        <div className="text-[10.5px] " style={{ color: COLORS.muted }}>{dateStr}</div>
       </td>
       <td className="px-4 sm:px-5 py-3.5">
         <Chip>{pop?.toLocaleString() ?? '—'}</Chip>
       </td>
       {r ? (
         <>
-          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: '#B45309' }}>{r.food_kg_day?.toLocaleString()}</td>
-          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-mono font-semibold" style={{ color: '#0284C7' }}>{r.water_liters_day?.toLocaleString()}</td>
+          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-semibold" style={{ color: '#B45309' }}>{r.food_kg_day?.toLocaleString()}</td>
+          <td className="px-4 sm:px-5 py-3.5 text-[12.5px] font-semibold" style={{ color: '#0284C7' }}>{r.water_liters_day?.toLocaleString()}</td>
         </>
       ) : (
         <td colSpan={2} className="px-4 sm:px-5 py-3.5">
@@ -224,10 +224,10 @@ function PredictionScreen() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
+            <p className="text-[11px] uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
             <div className="flex items-center gap-3 mt-1.5">
               <IconTile icon={BrainCircuit} size="lg" />
-              <h1 className="font-serif font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">AI Prediction</h1>
+              <h1 className="font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">AI Prediction</h1>
             </div>
             <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Resource allocation forecast, projected 7 days ahead</p>
           </div>
@@ -252,7 +252,7 @@ function PredictionScreen() {
               <div className="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t" style={{ borderColor: COLORS.hairline }}>
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-3.5 h-3.5" style={{ color: COLORS.muted }} />
-                  <span className="text-[11px] uppercase tracking-[0.08em] font-mono" style={{ color: COLORS.muted }}>Category Breakdown</span>
+                  <span className="text-[11px] uppercase tracking-[0.08em]" style={{ color: COLORS.muted }}>Category Breakdown</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(TYPE_LABELS).map(([key, label]) => (
@@ -313,7 +313,7 @@ function PredictionScreen() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="text-[10.5px] font-mono font-semibold uppercase tracking-[0.06em]" style={{ color: COLORS.muted, backgroundColor: '#FAFAF9' }}>
+                    <tr className="text-[10.5px]  font-semibold uppercase tracking-[0.06em]" style={{ color: COLORS.muted, backgroundColor: '#FAFAF9' }}>
                       <th className="px-4 sm:px-5 py-3">Date Target</th>
                       <th className="px-4 sm:px-5 py-3">Est. Pop.</th>
                       <th className="px-4 sm:px-5 py-3" style={{ color: '#B45309' }}>Food kg/d</th>

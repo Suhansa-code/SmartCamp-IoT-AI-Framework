@@ -20,19 +20,7 @@ import DataTable from "../ui/display/DataTable";
 import ErrorState from "../ui/feedback/ErrorState";
 import { useToast } from "../ui/feedback/Toast";
 import { fetchChildDirectory, fetchChildEducation } from "@/components/psychoedu/lib/api";
-import { COLORS, SHADOW_CARD } from "../../lib/tokens";
-
-/* ------------------------------------------------------------------ */
-/*  SEMANTIC COLOUR MAP                                                 */
-/* ------------------------------------------------------------------ */
-
-const TONE = {
-  brand: { color: COLORS.brand, bg: `${COLORS.brand}14`, border: `${COLORS.brand}33` },
-  warning: { color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  danger: { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-  info: { color: "#0284C7", bg: "#F0F9FF", border: "#BAE6FD" },
-  neutral: { color: COLORS.body, bg: "#F5F6F5", border: COLORS.line },
-};
+import { COLORS, SHADOW_CARD, TONE } from "../../lib/tokens";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -47,7 +35,7 @@ function formatDate(value) {
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl border bg-white p-4 sm:p-5 lg:p-6 ${className}`} style={{ borderColor: COLORS.line }}>
+    <div className={`rounded-xl bg-white p-4 sm:p-5 lg:p-6 ${className}`}>
       {children}
     </div>
   );
@@ -57,7 +45,7 @@ function IconTile({ icon: Icon, tone = "brand", size = "md" }) {
   const t = TONE[tone] || TONE.brand;
   const dims = size === "sm" ? "w-8 h-8" : size === "lg" ? "w-11 h-11" : "w-9 h-9";
   return (
-    <div className={`${dims} rounded-lg flex items-center justify-center shrink-0 border`} style={{ backgroundColor: t.bg, borderColor: t.border }}>
+    <div className={`${dims} rounded-lg flex items-center justify-center shrink-0`} style={{ backgroundColor: t.bg }}>
       <Icon className={size === "lg" ? "w-5 h-5" : "w-4 h-4"} style={{ color: t.color }} strokeWidth={1.7} />
     </div>
   );
@@ -68,7 +56,7 @@ function SectionHeader({ icon, title, subtitle }) {
     <div className="flex items-center gap-3 mb-3 sm:mb-4">
       <IconTile icon={icon} />
       <div>
-        <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>
+        <h2 className="text-[13px] sm:text-[14px] font-medium" style={{ color: COLORS.ink }}>
           {title}
         </h2>
         {subtitle && (
@@ -103,8 +91,8 @@ function Avatar({ name, size = "md" }) {
     .toUpperCase();
   return (
     <div
-      className={`${dims} rounded-lg flex items-center justify-center shrink-0 font-serif font-medium`}
-      style={{ backgroundColor: `${COLORS.brand}14`, color: COLORS.brand, border: `1px solid ${COLORS.brand}33` }}
+      className={`${dims} rounded-lg flex items-center justify-center shrink-0 font-medium`}
+      style={{ backgroundColor: COLORS.brandSoft, color: COLORS.brand }}
     >
       {initials || <User className="w-1/2 h-1/2" />}
     </div>
@@ -159,11 +147,11 @@ function StatCard({ label, value, icon: Icon, tone }) {
       <div className="relative">
         <div className="flex items-center gap-1.5 mb-1.5">
           <Icon className="w-3.5 h-3.5" style={{ color: t.color }} />
-          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
+          <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: COLORS.muted }}>
             {label}
           </span>
         </div>
-        <span className="text-[19px] font-semibold font-mono tracking-tight" style={{ color: COLORS.ink }}>
+        <span className="text-[19px] font-semibold tracking-tight" style={{ color: COLORS.ink }}>
           {value}
         </span>
       </div>
@@ -173,11 +161,11 @@ function StatCard({ label, value, icon: Icon, tone }) {
 
 function FieldRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border px-3 py-2" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
-      <span className="text-[10px] font-mono font-semibold uppercase tracking-wide" style={{ color: COLORS.muted }}>
+    <div className="flex items-center justify-between rounded-lg px-3 py-2" style={{ backgroundColor: COLORS.grid }}>
+      <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: COLORS.muted }}>
         {label}
       </span>
-      <span className="text-[12.5px] font-semibold" style={{ color: COLORS.ink }}>
+      <span className="text-[12px] font-medium" style={{ color: COLORS.ink }}>
         {value ?? "—"}
       </span>
     </div>
@@ -266,8 +254,8 @@ function ChildEducationScreen() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div>
-                <h1 className="font-serif font-medium text-[24px] sm:text-[28px] leading-[1.1] tracking-tight">Child Education</h1>
-                <p className="text-[12.5px] mt-1" style={{ color: COLORS.muted }}>
+                <h1 className="font-medium text-[24px] sm:text-[28px] leading-[1.1] tracking-tight">Child Education</h1>
+                <p className="text-[12px] mt-1" style={{ color: COLORS.muted }}>
                   {child ? child.child_id : "Session history, alerts & profile details"}
                 </p>
               </div>
@@ -384,7 +372,7 @@ function ChildEducationScreen() {
                     alerts.map((alert) => (
                       <div key={alert.alert_id} className="rounded-lg border p-3" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono" style={{ color: COLORS.muted }}>
+                          <span className="text-[10px]" style={{ color: COLORS.muted }}>
                             {alert.alert_id?.slice(0, 12)}...
                           </span>
                           <Chip tone={alert.status === "pending" ? "warning" : alert.status === "resolved" ? "brand" : "neutral"}>
@@ -414,7 +402,7 @@ function ChildEducationScreen() {
                       {["Session", "Date / Time", "Gate", "Z-Score", "Flags", "Sync"].map((h) => (
                         <th
                           key={h}
-                          className="px-3 sm:px-4 py-3 font-mono font-semibold text-[10.5px] uppercase tracking-[0.06em]"
+                          className="px-3 sm:px-4 py-3 font-medium text-[11px] uppercase tracking-wider"
                           style={{ color: COLORS.muted }}
                         >
                           {h}
@@ -433,10 +421,10 @@ function ChildEducationScreen() {
                       sessions.map((s) => (
                         <tr key={s.session_id} className="border-t transition-colors" style={{ borderColor: COLORS.hairline }}>
                           <td className="px-3 sm:px-4 py-3">
-                            <div className="font-mono text-[12px]" style={{ color: COLORS.ink }}>
+                            <div className="text-[12px]" style={{ color: COLORS.ink }}>
                               {s.session_id?.slice(0, 16)}...
                             </div>
-                            <div className="text-[10px]" style={{ color: COLORS.muted }}>
+                            <div className="text-[11px]" style={{ color: COLORS.muted }}>
                               {s.content_session_id || "-"}
                             </div>
                           </td>
@@ -452,9 +440,9 @@ function ChildEducationScreen() {
                           <td className="px-3 sm:px-4 py-3">
                             {s.z_score != null ? (
                               <span
-                                className="font-mono text-[12px] font-semibold"
+                                className="text-[12px] font-medium"
                                 style={{
-                                  color: s.z_score < -2.0 ? "#DC2626" : s.z_score < -1.0 ? "#D97706" : "#059669",
+                                  color: s.z_score < -2.0 ? TONE.danger.color : s.z_score < -1.0 ? TONE.warning.color : COLORS.brand,
                                 }}
                               >
                                 {Number(s.z_score).toFixed(2)}
