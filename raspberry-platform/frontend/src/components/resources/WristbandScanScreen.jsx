@@ -908,8 +908,7 @@ function PredictionPanel() {
 /* ------------------------------------------------------------------ */
 
 export default function WristbandScanScreen() {
-  const [activeTab, setActiveTab] = useState("distribute");
-  const meta = TAB_META[activeTab];
+  const meta = TAB_META.distribute;
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
@@ -938,19 +937,18 @@ export default function WristbandScanScreen() {
               {meta.subtitle}
             </p>
           </div>
-          <TabSwitcher active={activeTab} onChange={setActiveTab} />
-        </div>
+</div>
         {/* ================= CONTENT ================= */}
         <div className="pb-6 sm:pb-8">
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeTab}
+              key="distribute"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              {activeTab === "distribute" ? <DistributionPanel /> : <PredictionPanel />}
+              <DistributionPanel />
             </motion.div>
           </AnimatePresence>
         </div>
