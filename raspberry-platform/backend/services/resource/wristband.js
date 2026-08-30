@@ -266,7 +266,7 @@ export function updateWristbandStatus(id, status, { actor } = {}) {
     closeOpenAssignment(wristband.id, actor);
   }
 
-  db.prepare("UPDATE wristbands SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, wristband.id);
+  db.prepare("UPDATE wristbands SET status = ?, updated_at = datetime('now'), synced = 0 WHERE id = ?").run(status, wristband.id);
   audit({ actor, action: 'wristband_status', wristband_id: wristband.id, details: `${wristband.barcode} → ${status}` });
   return getWristbandById(wristband.id);
 }
@@ -324,7 +324,7 @@ export function assignWristband(wristbandRef, personId, { actor } = {}) {
     for (const w of held) closeOpenAssignment(w.id, actor);
 
     db.prepare('INSERT INTO wristband_assignments (wristband_id, person_id) VALUES (?, ?)').run(wristband.id, pid);
-    db.prepare("UPDATE wristbands SET status = 'ASSIGNED', person_id = ?, assigned_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")
+    db.prepare("UPDATE wristbands SET status = 'ASSIGNED', person_id = ?, assigned_at = datetime('now'), updated_at = datetime('now'), synced = 0 WHERE id = ?")
       .run(pid, wristband.id);
   });
   assign();
@@ -351,7 +351,7 @@ export function unassignWristband(wristbandRef, { actor } = {}) {
     });
   }
 
-  db.prepare("UPDATE wristbands SET status = 'AVAILABLE', person_id = NULL, assigned_at = NULL, updated_at = datetime('now') WHERE id = ?")
+  db.prepare("UPDATE wristbands SET status = 'AVAILABLE', person_id = NULL, assigned_at = NULL, updated_at = datetime('now'), synced = 0 WHERE id = ?")
     .run(wristband.id);
 
   enqueueSync('wristbands', wristband.id);
