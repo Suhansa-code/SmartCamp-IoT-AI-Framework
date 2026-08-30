@@ -152,11 +152,18 @@ export async function upsertWristband(r) {
     // from; anything else is a genuine error and must still surface.
     if (err.code !== '23505' || err.constraint !== 'wristbands_barcode_key') throw err;
 
+    // Renumbered deliberately. Reusing the INSERT's numbering here left $1
+    // (the id) referenced nowhere in the statement, and Postgres cannot infer
+    // a type for a parameter it never sees: every recovery attempt died with
+    // 42P18 "could not determine data type of parameter $1". The collision it
+    // was written to repair therefore never got repaired, and the row retried
+    // until it exhausted its backoff.
+    const [, personId, barcode, qrIdentifier, status, issuedAt, assignedAt, isActive] = params;
     await pool.query(
-      `UPDATE wristbands SET person_id=$2,qr_identifier=$4,status=$5,
-         issued_at=$6,assigned_at=$7,is_active=$8
-       WHERE barcode=$3`,
-      params
+      `UPDATE wristbands SET person_id=$1,qr_identifier=$2,status=$3,
+         issued_at=$4,assigned_at=$5,is_active=$6
+       WHERE barcode=$7`,
+      [personId, qrIdentifier, status, issuedAt, assignedAt, isActive, barcode]
     );
   }
 }
