@@ -49,12 +49,12 @@ const TYPE_LABELS = {
 
 const TABS = [
   { id: "distribute", label: "Distribution", icon: ScanBarcode },
-  { id: "predict", label: "AI Prediction", icon: BrainCircuit },
+  { id: "predict", label: "Prediction", icon: BrainCircuit },
 ];
 
 const TAB_META = {
   distribute: { eyebrow: "Camp operations", title: "Distribution Hub", subtitle: "Scan wristbands to allocate daily resources safely" },
-  predict: { eyebrow: "Camp operations", title: "AI Prediction", subtitle: "Resource allocation forecast, projected 7 days ahead" },
+  predict: { eyebrow: "Camp operations", title: "Distribution Prediction", subtitle: "Resource allocation forecast, projected 7 days ahead" },
 };
 
 /* ------------------------------------------------------------------ */
@@ -175,17 +175,10 @@ function DistributionTile({ label, icon: Icon, item, onGive }) {
       >
         <Icon className="w-5 h-5" style={{ color: COLORS.brand }} strokeWidth={1.7} />
       </div>
-      <p className="text-[13px] sm:text-[13px] font-medium" style={{ color: COLORS.ink }}>
+      <p className="text-[13px] sm:text-[13px] font-medium mb-2" style={{ color: COLORS.ink }}>
         {label}
       </p>
-      <p className="text-[11px] mt-0.5 mb-1" style={{ color: COLORS.muted }}>
-        {quantity != null ? `${quantity} ${unit || ""} / day` : "\u00A0"}
-      </p>
-      {!given && left != null && (
-        <p className="text-[11px] mb-3" style={{ color: left > 0 ? TONE.info.color : COLORS.muted }}>
-          {left} {unit || ""} left today
-        </p>
-      )}
+
       {given && <p className="text-[11px] mb-3" style={{ color: COLORS.muted }}>0 left today</p>}
       <div className="mt-auto w-full">
         {given ? (
@@ -560,14 +553,7 @@ function DistributionPanel() {
                     Daily availability left
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <Chip tone="info">
-                    Food left: {foodLeft.toFixed(1)} / {foodEntitlement.toFixed(1)} kg
-                  </Chip>
-                  <Chip tone="info">
-                    Water left: {waterItem ? `${waterItem.left} / ${waterItem.quantity}` : "—"} L
-                  </Chip>
-                </div>
+
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                 <DistributionTile

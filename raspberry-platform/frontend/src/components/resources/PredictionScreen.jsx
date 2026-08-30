@@ -227,7 +227,7 @@ function PredictionScreen() {
             <p className="text-[11px] uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
             <div className="flex items-center gap-3 mt-1.5">
               <IconTile icon={BrainCircuit} size="lg" />
-              <h1 className="font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">AI Prediction</h1>
+              <h1 className="font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">Prediction</h1>
             </div>
             <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>Resource allocation forecast, projected 7 days ahead</p>
           </div>

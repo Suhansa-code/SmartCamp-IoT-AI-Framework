@@ -855,6 +855,7 @@ function RegistrationScreen() {
   const [qrScanning, setQrScanning] = useState(false);
   const [qrBound, setQrBound] = useState(false);
   const [qrCode, setQrCode] = useState("");
+  const [wristbandScanForCheckin, setWristbandScanForCheckin] = useState(false);
   const abortRef = useRef(null);
 
   // ── Live fingerprint hardware ──
@@ -1163,18 +1164,40 @@ function RegistrationScreen() {
   };
 
   const handleCheckin = async () => {
+    setWristbandScanForCheckin(true);
+    setQrScanning(true);
+  };
+
+  const handleCheckinWristbandScan = async (barcode) => {
+    setQrScanning(false);
+    setWristbandScanForCheckin(false);
+    if (!barcode) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${API}/api/checkin`, {
+      const checkinRes = await fetch(`${API}/api/checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ person_id: profile.id }),
       });
-      if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || "Check-in failed"); }
-      const data = await res.json();
-      setQosInfo(data.mqtt);
-      setWristband(data.wristband_barcode || "");
-      setStatusMessage(`Wristband assigned: ${data.wristband_barcode}`);
+      if (!checkinRes.ok) {
+        const data = await checkinRes.json().catch(() => ({}));
+        throw new Error(data.error || "Check-in failed");
+      }
+      const checkinData = await checkinRes.json();
+      setQosInfo(checkinData.mqtt);
+
+      const assignRes = await fetch(`${API}/api/wristbands/assign-by-barcode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ barcode, person_id: profile.id }),
+      });
+      const assignData = await assignRes.json();
+      if (!assignRes.ok) {
+        throw new Error(assignData.message || "Wristband assignment failed");
+      }
+
+      setWristband(barcode);
+      setStatusMessage(`Wristband assigned: ${barcode}`);
       setScanState("success");
       addToast("Check-in successful", "success");
       fetchPersons();
@@ -1258,6 +1281,7 @@ function RegistrationScreen() {
     setQrBound(false);
     setQrCode("");
     setQrData(null);
+    setWristbandScanForCheckin(false);
     setNewPersonForm(EMPTY_PERSON_FORM);
     setEnrolling(false);
     setEnrollStep(null);
@@ -1361,7 +1385,7 @@ function RegistrationScreen() {
                 {(scanState === "idle" || scanState === "scanning") && (
                   <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
                     {qrScanning ? (
-                      <QRScanner onScan={handleQrScan} onCancel={() => setQrScanning(false)} />
+                      <QRScanner onScan={wristbandScanForCheckin ? handleCheckinWristbandScan : handleQrScan} onCancel={() => { setQrScanning(false); setWristbandScanForCheckin(false); }} />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-center h-full space-y-5">
                         <div className="w-20 h-20 rounded-full flex items-center justify-center border" style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line }}>
@@ -1387,6 +1411,9 @@ function RegistrationScreen() {
 
                 {scanState === "found" && profile && (
                   <motion.div key="found" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} className="space-y-4 sm:space-y-6">
+                    {qrScanning ? (
+                      <QRScanner onScan={handleCheckinWristbandScan} onCancel={() => { setQrScanning(false); setWristbandScanForCheckin(false); }} />
+                    ) : (<>
                     <div className="flex items-start gap-3 sm:gap-5">
                       <Avatar name={profile.full_name} size="lg" />
                       <div>
@@ -1439,13 +1466,14 @@ function RegistrationScreen() {
                         <Button onClick={reset} className="w-full">Done — Next Person</Button>
                       ) : (
                         <Button onClick={handleCheckin} loading={submitting} loadingText="Processing…" className="w-full">
-                          Confirm Check-in &amp; Assign Wristband <ArrowRight className="w-4 h-4" />
+                          Scan Wristband &amp; Check-in <ArrowRight className="w-4 h-4" />
                         </Button>
                       )}
                       <Button variant="secondary" onClick={() => openPersonQr(profile.id)} loading={qrLoading} loadingText="…" className="px-3" aria-label="Show QR">
                         <QrCode className="w-4 h-4" />
                       </Button>
                     </div>
+                    </>)}
                   </motion.div>
                 )}
 
