@@ -1,6 +1,5 @@
 import { getPool } from '../../config/database.js';
 import { env } from '../../config/env.js';
-import { getDeviceCampId } from '../sync/sync.postgres.repository.js';
 import * as mockRepository from './camps.data.js';
 
 const CACHE_TTL_MS = 15_000;
@@ -73,17 +72,95 @@ export async function getDisasterCampById(campId) {
   const directMatch = camps.find((camp) => camp.id === campId);
   if (directMatch) return directMatch;
 
-  // If not found, check if it's a device ID and resolve to the associated camp
+  // If not found, try to construct a camp from source tables
+  // (handles device IDs like SCB-UNIT-01 that aren't in the CAMPS seed data)
   try {
-    const resolvedCampId = await getDeviceCampId(campId);
-    if (resolvedCampId) {
-      return camps.find((camp) => camp.id === resolvedCampId) || null;
-    }
-  } catch {
-    // Device lookup failed — fall through to return null
-  }
+    const pool = getPool();
 
-  return null;
+    // Check if this camp_id exists in any source table
+    const [floodResult, alertResult, wlResult, hydroResult] = await Promise.all([
+      pool.query(
+        'SELECT * FROM flood_predictions WHERE device_id = $1 OR $1 IN (SELECT device_id FROM devices WHERE camp_id = $1) ORDER BY predicted_at DESC LIMIT 1',
+        [campId]
+      ).catch(() => ({ rows: [] })),
+      pool.query(
+        'SELECT * FROM disaster_alerts WHERE camp_id = $1 ORDER BY created_at DESC LIMIT 1',
+        [campId]
+      ).catch(() => ({ rows: [] })),
+      pool.query(
+        'SELECT * FROM water_level_readings WHERE device_id = $1 OR $1 IN (SELECT device_id FROM devices WHERE camp_id = $1) ORDER BY recorded_at DESC LIMIT 1',
+        [campId]
+      ).catch(() => ({ rows: [] })),
+      pool.query(
+        'SELECT * FROM hydrospatial_data WHERE device_id = $1 OR $1 IN (SELECT device_id FROM devices WHERE camp_id = $1) ORDER BY created_at DESC LIMIT 1',
+        [campId]
+      ).catch(() => ({ rows: [] })),
+    ]);
+
+    const hasData = floodResult.rows.length || alertResult.rows.length || wlResult.rows.length || hydroResult.rows.length;
+    if (!hasData) return null;
+
+    const alert = alertResult.rows[0];
+    const hydro = hydroResult.rows[0];
+    const wl = wlResult.rows[0];
+    const flood = floodResult.rows[0];
+
+    const camp = {
+      id: campId,
+      code: campId.slice(0, 3).toUpperCase(),
+      name: alert?.camp_name || `Camp ${campId}`,
+      lat: Number(alert?.camp_latitude || hydro?.latitude || 0),
+      lng: Number(alert?.camp_longitude || hydro?.longitude || 0),
+      status: alert?.severity?.toLowerCase() || 'medium',
+      displaced: 0,
+      capacity: 100,
+      aid: 0,
+      type: 'FLOOD',
+      workers: 0,
+      elev: hydro?.elevation != null ? Number(hydro.elevation) : null,
+      last_aggregation_at: null,
+      created_at: null,
+      updated_at: null,
+      detail: {
+        waterPath: null,
+        river: alert?.river_name || hydro?.river_name || null,
+        station: alert?.station_name || wl?.station_id || null,
+        stDist: alert?.gauge_distance_km != null ? Number(alert.gauge_distance_km) : 0,
+        upDist: 0,
+        wl: wl?.water_level != null ? Number(wl.water_level) : null,
+        rain: alert?.rainfall != null ? Number(alert.rainfall) : null,
+        alertL: null,
+        minorL: null,
+        majorL: null,
+        gauLat: alert?.gauge_latitude != null ? Number(alert.gauge_latitude) : null,
+        gauLng: alert?.gauge_longitude != null ? Number(alert.gauge_longitude) : null,
+        fcLat: null,
+        fcLng: null,
+        elev: hydro?.elevation != null ? Number(hydro.elevation) : null,
+        minT: null,
+        maxT: null,
+        hum: null,
+        precip: null,
+        maxHrPrec: null,
+        maxWind: null,
+        avgWind: null,
+        soil: null,
+        pres: null,
+        cloud: null,
+      },
+      prediction: flood ? {
+        probability: Number(flood.flood_probability),
+        category: flood.flood_category,
+        forecast_hours: flood.forecast_hours,
+        prediction_timestamp: flood.predicted_at,
+        source: flood.model_version,
+      } : null,
+    };
+
+    return camp;
+  } catch {
+    return null;
+  }
 }
 
 export async function getDisasterCampSummaries() {
