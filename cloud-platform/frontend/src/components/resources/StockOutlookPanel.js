@@ -9,10 +9,24 @@
  *
  * Everything here comes from GET /api/resources/stock/outlook, which walks the
  * population forecast day by day against each commodity's share of the basket.
+ *
+ * The page is laid out as that chain, top to bottom, because every date on it
+ * is the product of exactly two things and an operator asked to trust a reorder
+ * deadline is entitled to see both:
+ *
+ *   1. the population forecast   how many people, with an honest band
+ *   2. the commodity matching    which share of their food draws THIS item down
+ *   3. the resulting dates       cover, runout, reorder-by
+ *
+ * Steps 1 and 2 used to be a sentence and a line of grey text above a table of
+ * step 3. A wrong date was then indistinguishable from a right one, because
+ * neither input was visible.
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, PackageCheck, RefreshCw, TrendingUp, CalendarClock, Info } from 'lucide-react'
 import { useTheme } from '@/components/common/ThemeProvider'
+import PopulationForecastChart from './PopulationForecastChart'
+import CommodityMatchPanel from './CommodityMatchPanel'
 import { DISASTER_API_BASE } from "@/lib/apiBase";
 
 const API = DISASTER_API_BASE
@@ -92,31 +106,50 @@ export default function StockOutlookPanel() {
     )
   }
 
-  const { summary, population, items, lead_time_days, provenance } = data
+  const { summary, population, items, lead_time_days, provenance, allocation } = data
   const STATUS_STYLE = statusStyles(T)
   const forecastable = items.filter((i) => i.forecastable)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
 
-      {/* Population basis — the forecast everything below depends on */}
+      {/* ── Step 1. The population forecast every date below rests on ──── */}
       <div style={{
         background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem',
-        padding: '1rem 1.1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+        padding: '1rem 1.1rem 0.6rem',
       }}>
-        <TrendingUp size={18} style={{ color: T.teal, flexShrink: 0, marginTop: 2 }} />
-        <div style={{ minWidth: 0 }}>
-          <p style={{ margin: 0, fontWeight: 700, color: T.textPrimary, fontSize: '0.92rem' }}>
-            {population.current} people now · {population.slope_per_day >= 0 ? '+' : ''}
-            {population.slope_per_day}/day ·{' '}
-            <span style={{ color: population.confidence === 'HIGH' ? T.green : population.confidence === 'MEDIUM' ? T.amber : T.red }}>
-              {population.confidence} confidence
-            </span>
-          </p>
-          <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: T.muted, lineHeight: 1.45 }}>
-            {population.note}
-          </p>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+          <TrendingUp size={18} style={{ color: T.teal, flexShrink: 0, marginTop: 2 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: T.textPrimary, fontSize: '0.92rem' }}>
+              {population.current} people now · {population.slope_per_day >= 0 ? '+' : ''}
+              {population.slope_per_day}/day ·{' '}
+              <span style={{ color: population.confidence === 'HIGH' ? T.green : population.confidence === 'MEDIUM' ? T.amber : T.red }}>
+                {population.confidence} confidence
+              </span>
+            </p>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: T.muted, lineHeight: 1.45 }}>
+              {population.note}
+            </p>
+          </div>
         </div>
+
+        {/* The band is the honest part. A short history gives a wide band, and
+            a wide band is a real answer — showing only the central line would
+            present a cold-start guess as a measurement. */}
+        <PopulationForecastChart
+          daily={population.daily}
+          current={population.current}
+          confidence={population.confidence}
+        />
+        <p style={{
+          margin: '0 0 0.6rem', fontSize: '0.72rem', color: T.dim,
+          textAlign: 'center', lineHeight: 1.5,
+        }}>
+          {population.daily?.some((d) => d.upper !== d.lower)
+            ? 'Shaded band: lower to upper projection, widening with the horizon. Every runout date below is computed three times — at the lower, central and upper population — which is where the earliest/latest range comes from.'
+            : `No band is drawn: ${population.observations} day(s) of history is too few to estimate a residual spread, so only the central projection is shown.`}
+        </p>
       </div>
 
       {/* Headline counters */}
@@ -152,7 +185,10 @@ export default function StockOutlookPanel() {
         </button>
       </div>
 
-      {/* Item table */}
+      {/* ── Step 2. Which share of that demand draws each item down ────── */}
+      <CommodityMatchPanel items={items} allocation={allocation} provenance={provenance} />
+
+      {/* ── Step 3. The dates that follow from 1 and 2 ─────────────────── */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: 780 }}>
@@ -175,9 +211,33 @@ export default function StockOutlookPanel() {
                   <tr key={it.id} style={{ borderTop: `1px solid ${T.border}` }}>
                     <td style={{ padding: '0.7rem 0.9rem', fontWeight: 700, color: T.textPrimary }}>
                       {it.resource_name}
+                      {/* Say what this line was READ AS, not just what it
+                          matched. The canonical key is what both sides of the
+                          match were reduced to, so when a share looks wrong it
+                          is the first thing worth seeing. */}
                       {it.commodity_matched && it.commodity_matched !== it.resource_name && (
                         <span style={{ display: 'block', fontSize: '0.7rem', color: T.dim, fontWeight: 500 }}>
-                          matched: {it.commodity_matched}
+                          {it.commodity_matched}
+                          {it.commodities_matched?.length > 1 && (
+                            <span title={it.commodities_matched.join(', ')} style={{ cursor: 'help' }}>
+                              {' '}+{it.commodities_matched.length - 1}
+                            </span>
+                          )}
+                          {it.basket_share != null && ` · ${(it.basket_share * 100).toFixed(1)} % of basket`}
+                        </span>
+                      )}
+                      {it.standardisation?.match_rule && it.standardisation.match_confidence !== 'high' && (
+                        <span title={`Matched by ${it.standardisation.match_rule.replace('_', ' ')} — the words line up, but no exact name or curated alias confirms it.`}
+                              style={{ display: 'inline-block', marginTop: 3, fontSize: '0.66rem',
+                                       fontWeight: 800, color: T.blue, cursor: 'help' }}>
+                          word match
+                        </span>
+                      )}
+                      {it.forecastable && it.kind === 'food' && !it.commodity_matched && (
+                        <span title={it.warnings?.join(' ')}
+                              style={{ display: 'inline-block', marginTop: 3, fontSize: '0.66rem',
+                                       fontWeight: 800, color: T.amber, cursor: 'help' }}>
+                          unallocated remainder
                         </span>
                       )}
                       {it.warnings?.length > 0 && (
@@ -250,7 +310,18 @@ export default function StockOutlookPanel() {
           Population is forecast from live check-in history ({provenance.population}); food
           quantities come from {provenance.food_rates}; water from {provenance.water_rates}; each
           commodity&apos;s share of the basket is measured from {provenance.commodity_shares}.
+          Store names are standardised and resolved through{' '}
+          {provenance.commodity_aliases
+            ? `a curated alias table (${provenance.commodity_aliases.artifact_id}, ${provenance.commodity_aliases.counts.aliases} entries)`
+            : 'a curated alias table'}{' '}
+          before matching — that table is the one input here that is curated rather than measured,
+          and it decides only WHICH commodity a line refers to, never how much of it is consumed.
           Reorder dates assume a {lead_time_days}-day resupply lead time.
+          {provenance.matching_note && (
+            <span style={{ display: 'block', marginTop: '0.4rem' }}>
+              <strong style={{ color: T.textPrimary }}>Matching:</strong> {provenance.matching_note}
+            </span>
+          )}
           {provenance.basis_note && (
             <span style={{ display: 'block', marginTop: '0.4rem' }}>
               <strong style={{ color: T.textPrimary }}>Basis:</strong> {provenance.basis_note}
