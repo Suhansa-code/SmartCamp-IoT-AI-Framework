@@ -192,8 +192,19 @@ export function recordResourceUsage({ person_id, resource_id, meal, quantity, re
     db.prepare('UPDATE resources SET available_quantity = available_quantity - ?, updated_at = datetime(\'now\') WHERE id = ?')
       .run(qty, resourceId);
 
-    if (resource.available_quantity - qty <= resource.minimum_threshold) {
-      db.prepare("UPDATE resources SET status = 'AVAILABLE', updated_at = datetime('now') WHERE id = ?").run(resourceId);
+    // Stock status after this issue. The threshold is a LEVEL test and cannot
+    // see arrivals -- the cloud's /resources/stock/outlook does the rate-based
+    // version -- but it must at least point the right way: falling to or below
+    // the minimum is LOW, and empty is UNAVAILABLE.
+    const left = resource.available_quantity - qty;
+    const nextStatus = left <= 0
+      ? 'UNAVAILABLE'
+      : left <= resource.minimum_threshold
+        ? 'LOW'
+        : 'AVAILABLE';
+    if (nextStatus !== resource.status) {
+      db.prepare("UPDATE resources SET status = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(nextStatus, resourceId);
     }
 
     audit({

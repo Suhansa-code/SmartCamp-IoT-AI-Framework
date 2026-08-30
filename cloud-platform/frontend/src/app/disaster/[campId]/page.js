@@ -35,10 +35,11 @@ import { useTheme } from "@/components/common/ThemeProvider";
 import { Map, MapControls, useMap } from "@/components/ui/map";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import { GaugingChart, WaterLevelBarChart } from "@/components/disaster/DisasterVisuals";
+import { DISASTER_API_BASE as DISASTER_API_BASE_URL } from "@/lib/apiBase";
 
 const PAGE_PAD = "clamp(1rem, 2vw, 1.75rem)";
 
-const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || "http://localhost:3002";
+const DISASTER_API_BASE = DISASTER_API_BASE_URL;
 
 const TERRAIN_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 const TERRAIN_SOURCE = "camp-detail-dem";

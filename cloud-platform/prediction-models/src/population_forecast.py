@@ -72,6 +72,27 @@ MAX_HORIZON_GROWTH_FACTOR = 3.0
 # runs short, which is the more costly error. Set to 1.0 to disable damping.
 TREND_DAMPING = 0.8
 
+# Fit the trend on this many trailing days rather than the whole history.
+#
+# A camp's history contains its intake ramp -- a steep rise from zero over the
+# first days. Theil-Sen takes the median of ALL pairwise slopes, so once the
+# camp starts emptying those ramp pairs keep dragging the fitted slope upward
+# and the forecast projects growth for a camp that is demobilising. Measured
+# over 60 heterogeneous synthetic camps (4 trajectory archetypes, per-camp
+# decay rates drawn around the PDNA national figure):
+#
+#   window   MAE h=7   MAPE h=7   bias h=7
+#   all        53.07     64.6 %    +34.28
+#   10         49.74     59.2 %    +30.84
+#   7          47.33     55.0 %    +28.10   <- default
+#   5          44.73     51.3 %    +24.95
+#
+# Shorter windows score better still, but 7 is chosen to match
+# MIN_DAYS_FOR_BAND: the residual band needs that many points to mean anything,
+# and a one-week window is what an operator would call "recent". Set to None to
+# fit on the entire history.
+TREND_WINDOW_DAYS = 7
+
 
 
 def _theil_sen_slope(xs, ys) -> float:
@@ -148,7 +169,11 @@ def forecast_population(history, horizon_days: int = DEFAULT_HORIZON,
         note         — plain-English statement of what was and was not fitted
     """
     days, xs, ys = _normalise_history(history or [])
+    # Confidence is judged on everything observed; the trend is fitted only on
+    # the trailing window, so the intake ramp stops biasing a demobilising camp.
     n = len(days)
+    if TREND_WINDOW_DAYS and len(xs) > TREND_WINDOW_DAYS:
+        xs, ys = xs[-TREND_WINDOW_DAYS:], ys[-TREND_WINDOW_DAYS:]
 
     if current_population is None:
         current_population = ys[-1] if ys else 0.0
@@ -172,9 +197,9 @@ def forecast_population(history, horizon_days: int = DEFAULT_HORIZON,
             spread     = _residual_spread(xs, ys, slope, intercept)
             method     = "theil_sen_with_band"
             confidence = "HIGH"
-            note = (f"Theil-Sen trend fitted on {n} days of registration history "
-                    f"({slope:+.2f} persons/day), with a band from the median "
-                    f"absolute residual.")
+            note = (f"Theil-Sen trend fitted on the last {len(xs)} of {n} days of "
+                    f"registration history ({slope:+.2f} persons/day), with a band "
+                    f"from the median absolute residual.")
         else:
             spread     = 0.0
             method     = "theil_sen"
@@ -213,6 +238,7 @@ def forecast_population(history, horizon_days: int = DEFAULT_HORIZON,
         "confidence":       confidence,
         "slope_per_day":    round(slope, 3),
         "observations":     n,
+        "trend_window":     len(xs),
         "damping":          damping,
         "horizon_days":     horizon_days,
         "current_population": int(round(current_population)),

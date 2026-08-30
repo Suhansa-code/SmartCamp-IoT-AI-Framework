@@ -12,7 +12,7 @@ The Raspberry Pi unit communicates with the cloud platform through MQTT, a light
 
 | Setting | Value |
 |---|---|
-| Broker | EMQX Cloud (`i17140d1.ala.asia-southeast1.emqxsl.com`) |
+| Broker | EMQX Cloud (`sa60a43c.ala.asia-southeast1.emqxsl.com`) |
 | Port | `8883` (MQTTS / TLS) |
 | CA Cert | `backend/emqxsl-ca.crt` |
 | Client ID | `smartcamp_pi_<random-6-hex>` |
@@ -144,7 +144,7 @@ During registration and check-in, a unique MQTT user is created per person via t
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `EMQX_HOST` | `i17140d1.ala.asia-southeast1.emqxsl.com` | MQTT broker host |
+| `EMQX_HOST` | `sa60a43c.ala.asia-southeast1.emqxsl.com` | MQTT broker host |
 | `EMQX_PORT` | `8883` | MQTT TLS port |
 | `EMQX_USERNAME` | `admin` | Broker username |
 | `EMQX_PASSWORD` | `public` | Broker password |

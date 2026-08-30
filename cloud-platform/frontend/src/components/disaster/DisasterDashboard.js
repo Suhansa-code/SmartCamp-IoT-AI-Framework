@@ -19,9 +19,10 @@ import StatusDonut from '@/components/dashboard/StatusDonut'
 import ArrowChip from '@/components/alert/ArrowChip'
 import FilterPills from '@/components/alert/FilterPills'
 import { useTheme } from '@/components/common/ThemeProvider'
+import { DISASTER_API_BASE as DISASTER_API_BASE_URL } from "@/lib/apiBase";
 
 // Map themes — the relief image follows the app's light/dark mode.
-const DISASTER_API_BASE = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3002'
+const DISASTER_API_BASE = DISASTER_API_BASE_URL
 
 function Chip({ children, color = '#64748B', style }) {
   return (

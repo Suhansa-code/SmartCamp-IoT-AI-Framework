@@ -7,8 +7,9 @@ import DashboardCard from '@/components/dashboard/DashboardCard'
 import DataTable from '@/components/common/DataTable/DataTable'
 import Button from '@/components/common/Button'
 import { useTheme } from '@/components/common/ThemeProvider'
+import { DISASTER_API_BASE, withQuery } from "@/lib/apiBase";
 
-const API = process.env.NEXT_PUBLIC_DISASTER_API_BASE_URL || 'http://localhost:3002'
+const API = DISASTER_API_BASE
 
 const RESOURCE_COLORS = {
   breakfast: '#16A34A',
@@ -137,11 +138,10 @@ export default function DistributionPanel() {
     setLoading(true)
     setError('')
     try {
-      const campParam = campId ? `?campId=${campId}` : ''
       const [distRes, summaryRes, timelineRes] = await Promise.all([
-        fetch(`${API}/api/resources/distributions${campParam}&page=0&limit=100`),
-        fetch(`${API}/api/resources/distributions/summary${campParam}`),
-        fetch(`${API}/api/resources/distributions/timeline${campParam}&days=30`),
+        fetch(`${API}${withQuery('/api/resources/distributions', { campId, page: 0, limit: 100 })}`),
+        fetch(`${API}${withQuery('/api/resources/distributions/summary', { campId })}`),
+        fetch(`${API}${withQuery('/api/resources/distributions/timeline', { campId, days: 30 })}`),
       ])
 
       if (!distRes.ok) throw new Error('Failed to load distributions')

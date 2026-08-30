@@ -16,8 +16,9 @@ import { DISASTER_MATCH, DIS_STATUS } from '@/data/dashboard.data'
 import { CHILDREN_PROGRESS_MAX, SESSIONS_PROGRESS_MAX, ALERTS_PROGRESS_MAX, EDU_CODE_MAP } from '@/data/constants.data'
 import { Droplets, Users, BookOpen, Bell, Radio, Tent, CalendarCheck, HeartHandshake, Mountain } from 'lucide-react'
 import { TrendChart } from '@/components/disaster/DisasterVisuals'
+import { API_BASE as API_BASE_URL } from "@/lib/apiBase";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
+const API_BASE = API_BASE_URL
 
 function eduCode(id) {
   return EDU_CODE_MAP[id] || id.replace(/^CAMP-B-/, '').slice(0, 3).toUpperCase()

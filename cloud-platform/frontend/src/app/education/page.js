@@ -31,8 +31,9 @@ import {
   Zap,
   BarChart3,
 } from "lucide-react";
+import { API_BASE as API_BASE_URL } from "@/lib/apiBase";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
+const API_BASE = API_BASE_URL;
 
 function campMeta(id) {
   if (CAMP_META[id]) return CAMP_META[id];

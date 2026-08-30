@@ -7,10 +7,10 @@ import logger from '../../utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const EMQX_HOST = process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com';
+const EMQX_HOST = process.env.EMQX_HOST || 'sa60a43c.ala.asia-southeast1.emqxsl.com';
 const EMQX_PORT = process.env.EMQX_PORT || 8883;
 const EMQX_USERNAME = process.env.EMQX_USERNAME || 'admin';
-const EMQX_PASSWORD = process.env.EMQX_PASSWORD || 'public';
+const EMQX_PASSWORD = process.env.EMQX_PASSWORD || 'admin@123';
 const CA_CERT_PATH = process.env.EMQX_CA_CERT || path.join(__dirname, '../..', 'emqxsl-ca.crt');
 
 const EMQX_URL = `mqtts://${EMQX_HOST}:${EMQX_PORT}`;

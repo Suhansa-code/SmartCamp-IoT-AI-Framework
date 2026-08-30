@@ -38,10 +38,19 @@ services:
     build:
       context: ./frontend
       args:
-        # Baked into the client bundle at build time. Point it at the public
-        # address the *browser* will use, never at localhost or a private IP.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
-        # Falls back to NEXT_PUBLIC_API_URL inside the Dockerfile when unset.
+        # Leave BOTH of these empty. src/lib/apiBase.js then resolves the API
+        # to a relative /api/..., which nginx below routes to the backend on
+        # the same origin — so one image is correct on localhost, on the VM,
+        # and on whatever address the VM moves to next.
+        #
+        # NEXT_PUBLIC_* is inlined at BUILD time, so any value here pins the
+        # image to one address. That is what broke the deployment: the value
+        # was 54.91.43.141 while the VM was answering on 34.192.205.77, and
+        # every fetch from the UI went to a host that is no longer ours.
+        #
+        # Only set these to run `next dev` on :3000 with no nginx in front,
+        # where the API genuinely is a separate origin (http://localhost:3001).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
         NEXT_PUBLIC_DISASTER_API_BASE_URL: ${NEXT_PUBLIC_DISASTER_API_BASE_URL:-}
     expose:
       - "3000"

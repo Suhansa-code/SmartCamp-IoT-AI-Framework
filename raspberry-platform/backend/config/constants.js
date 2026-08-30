@@ -95,10 +95,10 @@ export default {
   FLOOD_SIMULATION_RIVER_DISTANCE_KM: process.env.FLOOD_SIMULATION_RIVER_DISTANCE_KM,
   FLOOD_SIMULATION_WATER_LEVEL: process.env.FLOOD_SIMULATION_WATER_LEVEL,
 
-  EMQX_HOST: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
+  EMQX_HOST: process.env.EMQX_HOST || 'sa60a43c.ala.asia-southeast1.emqxsl.com',
   EMQX_PORT: process.env.EMQX_PORT || 8883,
   EMQX_USERNAME: process.env.EMQX_USERNAME || 'admin',
-  EMQX_PASSWORD: process.env.EMQX_PASSWORD || 'public',
+  EMQX_PASSWORD: process.env.EMQX_PASSWORD || 'admin@123',
   EMQX_API_KEY: process.env.EMQX_API_KEY || '',
   EMQX_API_SECRET: process.env.EMQX_API_SECRET || '',
   CA_CERT_PATH: process.env.EMQX_CA_CERT || './db/emqxsl-ca.crt',

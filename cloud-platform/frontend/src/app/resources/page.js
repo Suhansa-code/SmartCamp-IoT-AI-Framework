@@ -5,9 +5,8 @@ import SideNav from "@/components/common/SideNav";
 import PageHeader, { HeaderShell } from "@/components/common/PageHeader";
 import PageTitle from "@/components/common/PageTitle";
 import Button from "@/components/common/Button";
-import OverviewPanel from "@/components/resources/OverviewPanel";
-import DistributionPanel from "@/components/resources/DistributionPanel";
 import ResourcePanel from "@/components/resources/ResourcePanel";
+import DistributionPanel from "@/components/resources/DistributionPanel";
 import { useTheme } from "@/components/common/ThemeProvider";
 
 // Cloud-side resources page — live data from Cloud DB (resources, resource_usage, flood_predictions).

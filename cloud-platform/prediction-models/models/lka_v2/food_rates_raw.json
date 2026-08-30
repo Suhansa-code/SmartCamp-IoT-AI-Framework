@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "artifact_id": "lka_food_rates_raw",
+  "generated_at": "2026-08-29T13:04:58+00:00",
+  "generated_by": "scripts/train_raw_food_model.py",
+  "basis": "RAW as-acquired SOLID food, kg per person per day (beverages excluded)",
+  "basis_note": "This is the basis a camp STORE holds and procures against. It is NOT cooked served weight -- see ration_rates.json for the cooked quantities the kitchen issues.",
+  "estimator": "LinearRegression(fit_intercept=False) on six age-band counts",
+  "evidence": "measured",
+  "training_data": {
+    "source": "BRIGHT Sri Lanka household survey, February 2025",
+    "n_households": 6802,
+    "n_people": 27689,
+    "provinces": 9,
+    "districts": 25,
+    "recall_days": 7,
+    "prepared_by": "scripts/prepare_household_food_data.py",
+    "filters": "household_size <= 15; 0.1 < kg_day < 40; consumed rows with a unit conversion only",
+    "beverages": "excluded -- drinking water is a separate allowance in ration_rates.json"
+  },
+  "rates": {
+    "infant_0_5": {
+      "kg_per_day": 0.4669,
+      "ci95": [
+        0.3612,
+        0.5768
+      ],
+      "weighted_kg_per_day": 0.52,
+      "ratio_to_adult": 0.5543,
+      "n_people": 1669,
+      "age_range": [
+        0,
+        5
+      ]
+    },
+    "child_6_14": {
+      "kg_per_day": 0.4664,
+      "ci95": [
+        0.4014,
+        0.5285
+      ],
+      "weighted_kg_per_day": 0.5011,
+      "ratio_to_adult": 0.5536,
+      "n_people": 3287,
+      "age_range": [
+        6,
+        14
+      ]
+    },
+    "teen_15_17": {
+      "kg_per_day": 0.5702,
+      "ci95": [
+        0.4446,
+        0.6897
+      ],
+      "weighted_kg_per_day": 0.6287,
+      "ratio_to_adult": 0.6768,
+      "n_people": 1268,
+      "age_range": [
+        15,
+        17
+      ]
+    },
+    "adult_18_59": {
+      "kg_per_day": 0.8424,
+      "ci95": [
+        0.814,
+        0.8714
+      ],
+      "weighted_kg_per_day": 0.8253,
+      "ratio_to_adult": 1.0,
+      "n_people": 16022,
+      "age_range": [
+        18,
+        59
+      ]
+    },
+    "eld_60_74": {
+      "kg_per_day": 0.9148,
+      "ci95": [
+        0.8534,
+        0.9765
+      ],
+      "weighted_kg_per_day": 0.9209,
+      "ratio_to_adult": 1.0859,
+      "n_people": 4229,
+      "age_range": [
+        60,
+        74
+      ]
+    },
+    "eld_75plus": {
+      "kg_per_day": 0.7593,
+      "ci95": [
+        0.6674,
+        0.8704
+      ],
+      "weighted_kg_per_day": 0.776,
+      "ratio_to_adult": 0.9014,
+      "n_people": 1214,
+      "age_range": [
+        75,
+        130
+      ]
+    }
+  },
+  "metrics": {
+    "cv_folds": 5,
+    "cv_mae_kg_household_day": 1.195,
+    "cv_r2": 0.0894,
+    "note": "Low R2 reflects lumpy household purchasing, not imprecise coefficients: the adult rate's 95 % interval is about +/- 4 %. Individual households buy in bulk; the per-band means are what the model estimates and they are estimated tightly.",
+    "adult_coef_if_intercept_allowed": 0.5899,
+    "intercept_if_allowed": 1.1342
+  },
+  "caveats": [
+    "BRIGHT measures acquisition, so waste, guests and food given away are included. For procurement that is closer to correct than pure intake.",
+    "About 27 % of consumed rows have no unit conversion factor and are dropped upstream, so household totals are slightly understated.",
+    "Household eating is not camp eating: a central kitchen wastes less than 6,802 separate homes."
+  ]
+}

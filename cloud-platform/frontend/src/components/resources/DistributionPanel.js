@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import { timeAgo } from '@/components/common/utils'
 import Button from '@/components/common/Button'
+import { API_BASE } from "@/lib/apiBase";
 
 // Cloud-side distribution planner.
 // Food and drinking water only — shelter and medical staffing are out of scope
@@ -19,7 +20,7 @@ import Button from '@/components/common/Button'
 // chart palette is chosen and validated for a white background rather than
 // inherited from the dark dashboard tokens.
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API = API_BASE
 
 // ── palette ─────────────────────────────────────────────────────────────────
 // Validated against a white surface: lightness band, chroma floor, CVD
