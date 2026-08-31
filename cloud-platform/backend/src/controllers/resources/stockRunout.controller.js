@@ -5,6 +5,8 @@
  * from the Pi over MQTT); stock levels come from the resources table.
  */
 import { computeStockOutlook } from '../../services/resources/stockRunout.service.js';
+import { standardize, getAliasProvenance, reloadAliasTable } from '../../services/resources/commodityStandardizer.service.js';
+import { shareFor, reloadShares } from '../../services/resources/commodityShares.service.js';
 import { getPersons, getPopulationHistory, getOverview } from '../../services/resources/campData.service.js';
 import { getResourceInventory } from '../../services/resource/resource.service.js';
 import { env } from '../../config/env.js';
@@ -68,5 +70,74 @@ export async function getStockAlerts(req, res) {
   } catch (err) {
     console.error('[StockRunout] getStockAlerts error:', err);
     res.status(500).json({ error: err.message || 'Failed to compute stock alerts' });
+  }
+}
+
+
+/**
+ * GET /api/resources/stock/aliases — what the standardisation layer knows.
+ *
+ * The alias table is the one artifact in this pipeline that is curated rather
+ * than measured, so it is the one most likely to be wrong and the one an
+ * operator has the most business inspecting. Exposing it means "why did rice
+ * get that share?" is answerable without shell access to the container.
+ *
+ * `?name=` dry-runs one name through the whole chain without touching stock,
+ * which is how you check an alias edit before trusting a reorder date to it.
+ */
+export function getAliasInfo(req, res) {
+  try {
+    const provenance = getAliasProvenance();
+    const name = req.query.name;
+    if (!name) return res.json(provenance);
+
+    const standardized = standardize(name);
+    const match = shareFor(name);
+    res.json({
+      provenance,
+      probe: {
+        raw: name,
+        canonical: standardized.canonical,
+        classified_as: standardized.klass,
+        class_rule: standardized.rule,
+        note: standardized.note,
+        match: match && {
+          commodity: match.commodity,
+          commodities: match.commodities,
+          share: match.share,
+          rule: match.match,
+          confidence: match.confidence,
+        },
+        explanation: match
+          ? `"${name}" standardises to "${standardized.canonical}" and matches ` +
+            `${match.commodities.length} survey commodit${match.commodities.length === 1 ? 'y' : 'ies'} ` +
+            `by ${match.match}, for ${(match.share * 100).toFixed(2)} % of the daily food basket.`
+          : `"${name}" standardises to "${standardized.canonical}" and is classified ` +
+            `${standardized.klass}, so it is not given a share of the food basket.`,
+      },
+    });
+  } catch (err) {
+    console.error('[StockRunout] getAliasInfo error:', err);
+    res.status(500).json({ error: err.message || 'Failed to read the alias table' });
+  }
+}
+
+/**
+ * POST /api/resources/stock/aliases/reload — re-read the artifacts from disk.
+ *
+ * commodity_aliases.json is hand-edited, so requiring a container restart to
+ * pick up a new alias makes the sensible fix (name the commodity properly) more
+ * expensive than the bad one (leave it on the unallocated remainder). The
+ * shares cache is dropped too, because the alias table indexes against it and a
+ * stale index would silently keep matching the old names.
+ */
+export function reloadAliases(_req, res) {
+  try {
+    reloadAliasTable();
+    reloadShares();
+    res.json({ reloaded: true, ...getAliasProvenance() });
+  } catch (err) {
+    console.error('[StockRunout] reloadAliases error:', err);
+    res.status(500).json({ error: err.message || 'Failed to reload the alias table' });
   }
 }

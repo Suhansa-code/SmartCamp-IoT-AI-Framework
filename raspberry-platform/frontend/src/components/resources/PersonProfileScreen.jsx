@@ -64,7 +64,7 @@ function Avatar({ name, size = "md" }) {
   const initials = (name || "").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   return (
     <div
-      className={`${dims} rounded-xl flex items-center justify-center shrink-0 font-serif font-medium`}
+      className={`${dims} rounded-xl flex items-center justify-center shrink-0 font-medium`}
       style={{ backgroundColor: `${COLORS.brand}14`, color: COLORS.brand, border: `1px solid ${COLORS.brand}33` }}
     >
       {initials || <User className="w-1/2 h-1/2" />}
@@ -95,7 +95,7 @@ function InfoField({ label, icon: Icon, editing, value, children }) {
     <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
       <div className="flex items-center gap-1.5 mb-1" style={{ color: COLORS.muted }}>
         <Icon className="w-3.5 h-3.5" />
-        <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider">{label}</span>
       </div>
       {editing ? children : <p className="text-[13.5px] font-semibold" style={{ color: COLORS.ink }}>{value}</p>}
     </div>
@@ -414,7 +414,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
               placeholder="Full name"
             />
           ) : (
-            <h3 className="font-serif font-medium text-[18px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>{person.full_name}</h3>
+            <h3 className="font-medium text-[18px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>{person.full_name}</h3>
           )}
           {editErrors.full_name && <p className="text-[11px] mt-0.5" style={{ color: TONE.danger.color }}>{editErrors.full_name}</p>}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5">
@@ -424,7 +424,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
               <Chip tone="info">New</Chip>
             )}
             {person.wristband_barcode && (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md" style={{ color: COLORS.body, backgroundColor: "#F5F6F5" }}>
+              <span className="text-[11px] px-2 py-0.5 rounded-md" style={{ color: COLORS.body, backgroundColor: "#F5F6F5" }}>
                 {person.wristband_barcode}
               </span>
             )}
@@ -492,7 +492,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-bold transition-colors border"
                   style={{ backgroundColor: "#F5F6F5", borderColor: COLORS.line, color: COLORS.body }}
                 >−</button>
-                <span className="text-[13px] font-bold w-6 text-center tabular-nums font-mono" style={{ color: COLORS.ink }}>{editForm.family_size || 1}</span>
+                <span className="text-[13px] font-bold w-6 text-center tabular-nums" style={{ color: COLORS.ink }}>{editForm.family_size || 1}</span>
                 <button
                   type="button"
                   onClick={() => updateField("family_size", Math.min(20, Number(editForm.family_size || 1) + 1))}
@@ -532,7 +532,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
 
           {editing ? (
             <div>
-              <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider mb-1" style={{ color: COLORS.muted }}>Medical Notes</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: COLORS.muted }}>Medical Notes</label>
               <textarea rows={2} value={editForm.medical_notes}
                 onChange={(e) => updateField("medical_notes", e.target.value)}
                 className={`${inputClassBase} resize-none`} placeholder="Optional" />
@@ -548,7 +548,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2" style={{ color: COLORS.muted }}>
                   <Fingerprint className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">Biometrics</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">Biometrics</span>
                 </div>
                 {person.fingerprint_slot != null ? (
                   <Chip tone="brand"><CheckCircle className="w-3.5 h-3.5" /> Sensor slot #{person.fingerprint_slot}</Chip>
@@ -596,7 +596,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
             </div>
           )}
 
-          <div className="text-[11px] flex flex-wrap items-center gap-1 font-mono" style={{ color: COLORS.muted }}>
+          <div className="text-[11px] flex flex-wrap items-center gap-1" style={{ color: COLORS.muted }}>
             <CalendarDays className="w-3 h-3" />
             <span>Registered: {person.created_at ? new Date(person.created_at).toLocaleDateString() : "—"}</span>
             {person.last_checkin && (
@@ -642,7 +642,7 @@ export default function PersonProfileScreen({ personId, onBack, onUpdated }) {
                   tone="warning"
                   title={<span className="capitalize">{d.resource_type}</span>}
                   meta={d.distributed_at ? new Date(d.distributed_at).toLocaleString() : "—"}
-                  right={d.quantity && <span className="text-[12px] font-semibold font-mono" style={{ color: COLORS.body }}>{d.quantity}</span>}
+                  right={d.quantity && <span className="text-[12px] font-semibold" style={{ color: COLORS.body }}>{d.quantity}</span>}
                 />
               ))}
             </div>

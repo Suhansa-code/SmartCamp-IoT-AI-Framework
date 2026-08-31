@@ -324,52 +324,98 @@ export async function getFloodPredictionData(req, res) {
 // Accepts manual model inputs, sends them directly to Edge Gateway,
 // returns the prediction without touching real sensor data.
 
+function getLatestFromTable(table, columns = '*') {
+  try {
+    return disasterDb.prepare(`SELECT ${columns} FROM ${table} ORDER BY id DESC LIMIT 1`).get() || null;
+  } catch { return null; }
+}
+
+function toNum(val, fallback = 0) {
+  const n = Number(val);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function getLatestSimulationInputs() {
+  const gps = getLatestFromTable('gps_readings', 'latitude, longitude, altitude');
+  const rainfall = getLatestFromTable('rainfall_readings', 'rain_analog');
+  const wl = getLatestFromTable('water_level_readings', 'water_level, alert_level, minor_flood_level, major_flood_level');
+  const hs = getLatestFromTable('hydrospatial_data', 'elevation, river_distance');
+
+  return {
+    rainfall_mm: toNum(rainfall?.rain_analog, 0),
+    latitude: toNum(gps?.latitude, 0),
+    longitude: toNum(gps?.longitude, 0),
+    elevation_m: toNum(hs?.elevation ?? gps?.altitude, 10),
+    river_distance_km: toNum(hs?.river_distance, 1),
+    water_level_m: toNum(wl?.water_level, 0),
+    gauge_alert_level: toNum(wl?.alert_level, 2.0),
+    gauge_minor_level: toNum(wl?.minor_flood_level, 3.0),
+    gauge_major_level: toNum(wl?.major_flood_level, 5.0),
+  };
+}
+
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
 
 export async function getSimulatedPrediction(req, res) {
   try {
     const {
-      rainfall_mm = 0,
-      latitude = 0,
-      longitude = 0,
-      elevation_m = 10,
-      river_distance_km = 1,
-      water_level_m = 0,
-      gauge_alert_level = 2.0,
-      gauge_minor_level = 3.0,
-      gauge_major_level = 5.0,
+      rainfall_mm,
+      latitude,
+      longitude,
+      elevation_m,
+      river_distance_km,
+      water_level_m,
+      gauge_alert_level,
+      gauge_minor_level,
+      gauge_major_level,
+      enabled_fields = [],
     } = req.body || {};
 
+    // Read live sensor data for fields not enabled by the user
+    const live = getLatestSimulationInputs();
+
+    // Merge: use user value if field is enabled, otherwise use live sensor data
+    const merged = {
+      rainfall_mm: enabled_fields.includes('rainfall_mm') ? Number(rainfall_mm) : live.rainfall_mm,
+      latitude: enabled_fields.includes('latitude') ? Number(latitude) : live.latitude,
+      longitude: enabled_fields.includes('longitude') ? Number(longitude) : live.longitude,
+      elevation_m: enabled_fields.includes('elevation_m') ? Number(elevation_m) : live.elevation_m,
+      river_distance_km: enabled_fields.includes('river_distance_km') ? Number(river_distance_km) : live.river_distance_km,
+      water_level_m: enabled_fields.includes('water_level_m') ? Number(water_level_m) : live.water_level_m,
+      gauge_alert_level: enabled_fields.includes('gauge_alert_level') ? Number(gauge_alert_level) : live.gauge_alert_level,
+      gauge_minor_level: enabled_fields.includes('gauge_minor_level') ? Number(gauge_minor_level) : live.gauge_minor_level,
+      gauge_major_level: enabled_fields.includes('gauge_major_level') ? Number(gauge_major_level) : live.gauge_major_level,
+    };
+
     // Validate required fields
-    if (latitude === 0 && longitude === 0) {
-      return res.status(400).json({ status: 'error', error: 'latitude and longitude are required' });
+    if (merged.latitude === 0 && merged.longitude === 0) {
+      return res.status(400).json({ status: 'error', error: 'latitude and longitude are required (enable Location fields or ensure GPS is active)' });
     }
 
-    // Map user-friendly inputs to Edge Gateway format
+    // Map to Edge Gateway format
     const edgeInputs = {
-      rainfall_mm: Number(rainfall_mm),
-      longitude: Number(longitude),
-      latitude: Number(latitude),
-      altitude_m: Number(elevation_m),
-      dem_elevation_m: Number(elevation_m),
-      nearest_river_m: Number(river_distance_km) * 1000,
-      water_level_m: Number(water_level_m),
+      rainfall_mm: merged.rainfall_mm,
+      longitude: merged.longitude,
+      latitude: merged.latitude,
+      altitude_m: merged.elevation_m,
+      dem_elevation_m: merged.elevation_m,
+      nearest_river_m: merged.river_distance_km * 1000,
+      water_level_m: merged.water_level_m,
       is_forecast: true,
-      gauge_alert_level: Number(gauge_alert_level),
-      gauge_minor_level: Number(gauge_minor_level),
-      gauge_major_level: Number(gauge_major_level),
+      gauge_alert_level: merged.gauge_alert_level,
+      gauge_minor_level: merged.gauge_minor_level,
+      gauge_major_level: merged.gauge_major_level,
       return_shap: true,
     };
 
-    // Call Edge Gateway prediction
-    const params = new URLSearchParams({
-      lat: String(edgeInputs.latitude),
-      lon: String(edgeInputs.longitude),
-      alt: String(edgeInputs.altitude_m),
+    // Call Edge Gateway predict-local endpoint (bypasses external API fetches)
+    const url = `${EDGE_API}/hydrospatial/predict-local`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(edgeInputs),
+      signal: AbortSignal.timeout(120_000),
     });
-
-    const url = `${EDGE_API}/hydrospatial/predict?${params}`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
@@ -385,7 +431,8 @@ export async function getSimulatedPrediction(req, res) {
       status: 'success',
       mode: 'simulation',
       simulation: {
-        overridden_fields: Object.keys(req.body || {}).filter(k => req.body[k] !== undefined),
+        simulated_fields: enabled_fields,
+        live_fields: Object.keys(merged).filter(k => !enabled_fields.includes(k)),
       },
       prediction: {
         flood_probability: pred.probability ?? 0,
@@ -398,12 +445,15 @@ export async function getSimulatedPrediction(req, res) {
         shap_values: pred.shap_values ?? null,
       },
       inputs: {
-        rainfall_mm: Number(rainfall_mm),
-        latitude: Number(latitude),
-        longitude: Number(longitude),
-        elevation_m: Number(elevation_m),
-        river_distance_km: Number(river_distance_km),
-        water_level_m: Number(water_level_m),
+        rainfall_mm: merged.rainfall_mm,
+        latitude: merged.latitude,
+        longitude: merged.longitude,
+        elevation_m: merged.elevation_m,
+        river_distance_km: merged.river_distance_km,
+        water_level_m: merged.water_level_m,
+        gauge_alert_level: merged.gauge_alert_level,
+        gauge_minor_level: merged.gauge_minor_level,
+        gauge_major_level: merged.gauge_major_level,
       },
       hydrospatial: edgeResult.source_data || null,
       data_quality: {

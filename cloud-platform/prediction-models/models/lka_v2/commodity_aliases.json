@@ -1,0 +1,476 @@
+{
+  "schema_version": 1,
+  "artifact_id": "lka_commodity_aliases",
+  "generated_at": "2026-08-31T00:00:00+00:00",
+  "generated_by": "hand-curated; checked by scripts/validate_commodity_aliases.py",
+  "basis": "camp store vocabulary -> BRIGHT survey commodity names",
+  "target_artifact": "lka_commodity_shares",
+  "evidence": "curated",
+  "evidence_note": "Unlike ration_rates.json and food_rates_raw.json, nothing here is measured. This artifact encodes naming knowledge, not quantities: it decides WHICH survey commodity a store line refers to, never HOW MUCH of it is consumed. Every number in the pipeline still comes from a measured artifact.",
+  "caveat": "Aliases are a Sri Lankan camp-store vocabulary and are not portable to another country's store sheets without revision. Two mappings are deliberate approximations and are flagged as such: canned/tinned fish is priced against fresh large fish (the survey has no preserved-fish line), and bread is priced against 'Other cereals (e.g., buns)'.",
+  "normalisation": {
+    "note": "Applied to BOTH the store name and every survey commodity name, so the two sides are compared on the same footing. Order matters and is fixed: lowercase -> strip accents -> drop parentheticals -> strip punctuation -> drop noise tokens -> singularise -> apply token_stems -> sort tokens.",
+    "drop_parentheticals": true,
+    "singularise": true,
+    "sort_tokens": true
+  },
+  "noise_tokens": [
+    "kg",
+    "kgs",
+    "kilo",
+    "kilos",
+    "kilogram",
+    "kilograms",
+    "g",
+    "gm",
+    "gms",
+    "mg",
+    "l",
+    "ltr",
+    "ltrs",
+    "litre",
+    "litres",
+    "liter",
+    "liters",
+    "ml",
+    "lb",
+    "lbs",
+    "oz",
+    "pack",
+    "packs",
+    "packet",
+    "packets",
+    "pkt",
+    "pkts",
+    "bag",
+    "bags",
+    "sack",
+    "sacks",
+    "tin",
+    "tins",
+    "can",
+    "cans",
+    "bottle",
+    "bottles",
+    "box",
+    "boxes",
+    "carton",
+    "cartons",
+    "jar",
+    "jars",
+    "sachet",
+    "sachets",
+    "tub",
+    "tubs",
+    "loaf",
+    "loaves",
+    "portion",
+    "portions",
+    "piece",
+    "pieces",
+    "unit",
+    "units",
+    "each",
+    "qty",
+    "quantity",
+    "item",
+    "items",
+    "stock",
+    "loose",
+    "bulk",
+    "raw",
+    "grade",
+    "brand",
+    "branded",
+    "local",
+    "imported",
+    "assorted",
+    "mixed",
+    "misc",
+    "other",
+    "ration",
+    "rations",
+    "relief",
+    "supply",
+    "supplies",
+    "store",
+    "donated",
+    "donation",
+    "donations",
+    "new",
+    "old",
+    "spare"
+  ],
+  "token_stems": {
+    "powdered": "powder",
+    "dry": "dried",
+    "tinned": "canned",
+    "yoghurt": "yogurt",
+    "curds": "curd",
+    "veg": "vegetable",
+    "veggies": "vegetable",
+    "chilli": "chili",
+    "chillie": "chili"
+  },
+  "aliases": {
+    "rice": [
+      "White rice",
+      "Red rice"
+    ],
+    "samba rice": [
+      "White rice"
+    ],
+    "nadu rice": [
+      "White rice"
+    ],
+    "kekulu rice": [
+      "White rice"
+    ],
+    "basmati rice": [
+      "White rice"
+    ],
+    "parboiled rice": [
+      "White rice"
+    ],
+    "keeri samba": [
+      "White rice"
+    ],
+    "brown rice": [
+      "Red rice"
+    ],
+    "flour": [
+      "Wheat flour"
+    ],
+    "atta": [
+      "Wheat flour"
+    ],
+    "atta flour": [
+      "Wheat flour"
+    ],
+    "bread": [
+      "Other cereals (e.g., buns)"
+    ],
+    "buns": [
+      "Other cereals (e.g., buns)"
+    ],
+    "noodles": [
+      "Flour products (e.g. pasta, noodles, stringhoppers, pittu)"
+    ],
+    "pasta": [
+      "Flour products (e.g. pasta, noodles, stringhoppers, pittu)"
+    ],
+    "string hoppers": [
+      "Flour products (e.g. pasta, noodles, stringhoppers, pittu)"
+    ],
+    "pittu": [
+      "Flour products (e.g. pasta, noodles, stringhoppers, pittu)"
+    ],
+    "kurakkan": [
+      "Kurakkan flour (finger millet flour)"
+    ],
+    "finger millet": [
+      "Kurakkan flour (finger millet flour)"
+    ],
+    "triposha": [
+      "Cereal flour (triposha / samaposha)"
+    ],
+    "samaposha": [
+      "Cereal flour (triposha / samaposha)"
+    ],
+    "dhal": [
+      "Dhal - masoor/red"
+    ],
+    "dal": [
+      "Dhal - masoor/red"
+    ],
+    "daal": [
+      "Dhal - masoor/red"
+    ],
+    "parippu": [
+      "Dhal - masoor/red"
+    ],
+    "lentils": [
+      "Dhal - masoor/red"
+    ],
+    "red lentils": [
+      "Dhal - masoor/red"
+    ],
+    "masoor": [
+      "Dhal - masoor/red"
+    ],
+    "chickpeas": [
+      "Garbanzo (chickpeas) or chickpea flour"
+    ],
+    "kadala": [
+      "Garbanzo (chickpeas) or chickpea flour"
+    ],
+    "soya": [
+      "Soya meat"
+    ],
+    "textured soya": [
+      "Soya meat"
+    ],
+    "peanuts": [
+      "Groundnuts/Peanuts"
+    ],
+    "groundnuts": [
+      "Groundnuts/Peanuts"
+    ],
+    "cooking oil": [
+      "Coconut oil"
+    ],
+    "oil": [
+      "Coconut oil"
+    ],
+    "butter": [
+      "Butter or margarine"
+    ],
+    "margarine": [
+      "Butter or margarine"
+    ],
+    "milk": [
+      "Powdered milk",
+      "Fresh milk"
+    ],
+    "dried milk": [
+      "Powdered milk"
+    ],
+    "full cream milk powder": [
+      "Powdered milk"
+    ],
+    "curd": [
+      "Yogurt/Curd"
+    ],
+    "yogurt": [
+      "Yogurt/Curd"
+    ],
+    "sprats": [
+      "Dried small fish (e.g., sprats, keeramin)"
+    ],
+    "dried sprats": [
+      "Dried small fish (e.g., sprats, keeramin)"
+    ],
+    "keeramin": [
+      "Dried small fish (e.g., sprats, keeramin)"
+    ],
+    "karawala": [
+      "Dried large fish (e.g., balaya, thalapath, kelawalla, katta, shark, keelan)"
+    ],
+    "dried fish": [
+      "Dried small fish (e.g., sprats, keeramin)",
+      "Dried large fish (e.g., balaya, thalapath, kelawalla, katta, shark, keelan)"
+    ],
+    "fish": [
+      "Small fish (e.g. hurulla, salaya, sudaya, linna, Halmassa)",
+      "Large fish (e.g. balaya, thalapath, kelawalla)"
+    ],
+    "canned fish": [
+      "Large fish (e.g. balaya, thalapath, kelawalla)"
+    ],
+    "tuna": [
+      "Large fish (e.g. balaya, thalapath, kelawalla)"
+    ],
+    "mackerel": [
+      "Large fish (e.g. balaya, thalapath, kelawalla)"
+    ],
+    "sardines": [
+      "Small fish (e.g. hurulla, salaya, sudaya, linna, Halmassa)"
+    ],
+    "prawns": [
+      "Prawns or shrimps"
+    ],
+    "shrimp": [
+      "Prawns or shrimps"
+    ],
+    "eggplant": [
+      "Brinjal (eggplant)"
+    ],
+    "okra": [
+      "Bandakka (Okra/ ladies fingers)"
+    ],
+    "ladies fingers": [
+      "Bandakka (Okra/ ladies fingers)"
+    ],
+    "big onion": [
+      "Onions (e.g. Bombay, red, white)"
+    ],
+    "red onion": [
+      "Onions (e.g. Bombay, red, white)"
+    ],
+    "manioc": [
+      "Mannioc"
+    ],
+    "cassava": [
+      "Mannioc"
+    ],
+    "banana": [
+      "Ripe banana"
+    ],
+    "plantain": [
+      "Ash plaintain"
+    ],
+    "vegetables": [
+      "Onions (e.g. Bombay, red, white)",
+      "White or yellow fleshed potato",
+      "String beans (e.g., green beans, long beans, winged beans)",
+      "Brinjal (eggplant)",
+      "Pumpkin",
+      "Tomato",
+      "Carrot",
+      "Cabbage",
+      "Bandakka (Okra/ ladies fingers)",
+      "Leeks",
+      "Beetroot",
+      "Other gourds (e.g., ridge gourd, snake gourd, etc.)?",
+      "Elabatu (local eggplant)",
+      "Radish (e.g., red, white, etc.)",
+      "Bitter gourd",
+      "Capsicum",
+      "Mushroom",
+      "Cucumber",
+      "Kekiri (cooking melon)",
+      "Knol khol"
+    ],
+    "fruits": [
+      "Ripe banana",
+      "Jackfruit",
+      "Mango",
+      "Papaw/Papaya",
+      "Ambarella (june plum)",
+      "Dates",
+      "Lime/Lemon"
+    ],
+    "pulses": [
+      "Dhal - masoor/red",
+      "Dhal gram",
+      "Green gram",
+      "Cowpeas (red/white)",
+      "Garbanzo (chickpeas) or chickpea flour"
+    ]
+  },
+  "beverage_excluded": [
+    "tea",
+    "tea leaves",
+    "black tea",
+    "green tea",
+    "coffee",
+    "soft drink",
+    "soft drinks",
+    "fruit juice",
+    "juice",
+    "cordial",
+    "bottled water",
+    "soda",
+    "energy drink"
+  ],
+  "water": [
+    "water",
+    "drinking water",
+    "purified water",
+    "treated water",
+    "potable water",
+    "mineral water",
+    "water bowser",
+    "bowser water"
+  ],
+  "non_food": [
+    "tarpaulin",
+    "tarpaulins",
+    "tent",
+    "tents",
+    "blanket",
+    "blankets",
+    "mat",
+    "mats",
+    "mattress",
+    "mattresses",
+    "pillow",
+    "pillows",
+    "bedsheet",
+    "bedsheets",
+    "clothing",
+    "clothes",
+    "towel",
+    "towels",
+    "sarong",
+    "sarongs",
+    "underwear",
+    "footwear",
+    "slippers",
+    "soap",
+    "toothpaste",
+    "toothbrush",
+    "shampoo",
+    "detergent",
+    "sanitary pad",
+    "sanitary pads",
+    "sanitary napkins",
+    "diapers",
+    "nappies",
+    "hand sanitizer",
+    "sanitizer",
+    "disinfectant",
+    "bleach",
+    "bucket",
+    "buckets",
+    "jerry can",
+    "jerry cans",
+    "water tank",
+    "basin",
+    "plate",
+    "plates",
+    "cup",
+    "cups",
+    "spoon",
+    "spoons",
+    "cutlery",
+    "torch",
+    "torches",
+    "battery",
+    "batteries",
+    "candle",
+    "candles",
+    "matches",
+    "lighter",
+    "rope",
+    "ropes",
+    "cable",
+    "wire",
+    "firewood",
+    "gas cylinder",
+    "kerosene",
+    "fuel",
+    "diesel",
+    "petrol",
+    "generator",
+    "stove",
+    "cooker",
+    "paracetamol",
+    "ors",
+    "oral rehydration salts",
+    "antiseptic",
+    "bandage",
+    "bandages",
+    "gauze",
+    "plaster",
+    "syringe",
+    "syringes",
+    "mask",
+    "masks",
+    "gloves",
+    "first aid kit",
+    "medicine",
+    "medicines",
+    "vitamin",
+    "vitamins",
+    "antibiotic",
+    "antibiotics",
+    "stationery",
+    "notebook",
+    "notebooks",
+    "pen",
+    "pens",
+    "book",
+    "books"
+  ]
+}

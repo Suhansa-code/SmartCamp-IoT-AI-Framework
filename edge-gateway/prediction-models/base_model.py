@@ -32,8 +32,10 @@ BASE_FEATURES = [
     "distance_to_river_m",
 ]
 
-# Extended feature set (8 features) — adds 3 derived features
+# Extended feature set (10 features) — adds 5 derived/safe features
 EXTENDED_FEATURES = BASE_FEATURES + [
+    "monthly_rainfall_mm",
+    "drainage_index",
     "water_level_m",
     "elevation_ratio",
     "river_proximity_score",
@@ -148,6 +150,7 @@ class BaseFloodModel(ABC):
     def explain_prediction(self, rainfall_mm: float, longitude: float, latitude: float,
                            altitude_m: float, dem_elevation_m: Optional[float],
                            nearest_river_m: float, water_level_m: float = 0.0,
+                           monthly_rainfall_mm: float = 0.0, drainage_index: float = 0.5,
                            elevation_ratio: float = 1.0,
                            river_proximity_score: float = 0.0) -> Dict[str, float]:
         """Return SHAP values for a single prediction (feature importance)."""
@@ -164,13 +167,46 @@ class BaseFloodModel(ABC):
             "latitude": latitude,
             "elevation_m": effective_elevation,
             "distance_to_river_m": nearest_river_m,
+            "monthly_rainfall_mm": monthly_rainfall_mm,
+            "drainage_index": drainage_index,
             "water_level_m": water_level_m,
             "elevation_ratio": elevation_ratio,
             "river_proximity_score": river_proximity_score,
         }])
 
-        explainer = shap.TreeExplainer(self._estimator)
-        shap_values = explainer.shap_values(row)
+        # Load the actual estimator (not the raw artifact dict)
+        estimator = None
+        features = MODEL_FEATURES
+        if IMPROVED_MODEL_PATH.exists():
+            try:
+                artifact = joblib.load(IMPROVED_MODEL_PATH)
+                estimator = artifact["estimator"]
+                features = artifact.get("features", MODEL_FEATURES)
+            except Exception:
+                pass
+        if estimator is None:
+            # Fallback: try to unwrap self._estimator if it's a dict artifact
+            if isinstance(self._estimator, dict):
+                estimator = self._estimator.get("estimator")
+            else:
+                estimator = self._estimator
+        if estimator is None or isinstance(estimator, dict):
+            return {}
+
+        row_aligned = row[features]
+
+        # Unwrap CalibratedClassifierCV to get the base estimator for SHAP
+        shap_estimator = estimator
+        if hasattr(estimator, 'base_estimator_'):
+            shap_estimator = estimator.base_estimator_
+        elif hasattr(estimator, 'estimator'):
+            shap_estimator = estimator.estimator
+
+        try:
+            explainer = shap.TreeExplainer(shap_estimator)
+            shap_values = explainer.shap_values(row_aligned)
+        except Exception:
+            return {}
         # For binary classification, shap_values may be a list [neg, pos]
         if isinstance(shap_values, list):
             vals = shap_values[1][0]
@@ -179,7 +215,7 @@ class BaseFloodModel(ABC):
 
         return {
             feature: float(val)
-            for feature, val in zip(MODEL_FEATURES, vals)
+            for feature, val in zip(features, vals)
         }
 
     # ── Training ──────────────────────────────────────────────────────────
@@ -314,6 +350,8 @@ class BaseFloodModel(ABC):
         dem_elevation_m: Optional[float],
         nearest_river_m: float,
         water_level_m: float = 0.0,
+        monthly_rainfall_mm: float = 0.0,
+        drainage_index: float = 0.5,
         is_forecast: bool = False,
         gauge_alert_level: float = 2.0,
         gauge_minor_level: float = 3.0,
@@ -342,6 +380,8 @@ class BaseFloodModel(ABC):
             "latitude": latitude,
             "elevation_m": effective_elevation,
             "distance_to_river_m": nearest_river_m,
+            "monthly_rainfall_mm": monthly_rainfall_mm,
+            "drainage_index": drainage_index,
             "water_level_m": water_level_m,
             "elevation_ratio": elevation_ratio,
             "river_proximity_score": river_proximity_score,
@@ -392,6 +432,8 @@ class BaseFloodModel(ABC):
                 dem_elevation_m=dem_elevation_m,
                 nearest_river_m=nearest_river_m,
                 water_level_m=water_level_m,
+                monthly_rainfall_mm=monthly_rainfall_mm,
+                drainage_index=drainage_index,
                 elevation_ratio=elevation_ratio,
                 river_proximity_score=river_proximity_score,
             )
@@ -420,6 +462,8 @@ class BaseFloodModel(ABC):
                 dem_elevation_m=None if item.get("dem_elevation_m") is None else float(item["dem_elevation_m"]),
                 nearest_river_m=float(item["nearest_river_m"]),
                 water_level_m=float(item.get("water_level_m", 0.0)),
+                monthly_rainfall_mm=float(item.get("monthly_rainfall_mm", 0.0)),
+                drainage_index=float(item.get("drainage_index", 0.5)),
                 is_forecast=bool(item.get("is_forecast", False)),
                 gauge_alert_level=float(item.get("gauge_alert_level", 2.0)),
                 gauge_minor_level=float(item.get("gauge_minor_level", 3.0)),

@@ -17,7 +17,7 @@ import {
   Layers,
   Cpu,
 } from "lucide-react";
-import { COLORS, SHADOW_CARD } from "../../../lib/tokens";
+import { COLORS } from "../../../lib/tokens";
 import { API } from "../config";
 
 const tabs = [
@@ -31,13 +31,9 @@ const tabs = [
 ];
 
 const itemVariants = {
-  hidden: { opacity: 0, x: 16 },
+  hidden: { opacity: 0, x: 12 },
   visible: { opacity: 1, x: 0 },
 };
-
-/* ------------------------------------------------------------------ */
-/*  DESKTOP NAV LINK — bordered brand-tint pill, mirrors Chip/TabSwitch */
-/* ------------------------------------------------------------------ */
 
 function NavLink({ tab, active }) {
   const Icon = tab.icon;
@@ -45,19 +41,19 @@ function NavLink({ tab, active }) {
     <Link
       to={tab.path}
       aria-label={`Navigate to ${tab.label}`}
-      className="relative flex items-center gap-2 px-3 py-2 text-[12.5px] font-semibold rounded-lg outline-none transition-colors duration-200"
+      className="relative flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium rounded-md outline-none transition-colors duration-150"
       style={{ color: active ? COLORS.brand : COLORS.muted }}
     >
       {active && (
         <motion.span
           layoutId="nav-pill"
-          className="absolute inset-0 rounded-lg"
-          style={{ backgroundColor: `${COLORS.brand}12`, border: `1px solid ${COLORS.brand}33` }}
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          className="absolute inset-0 rounded-md"
+          style={{ backgroundColor: COLORS.brandSoft }}
+          transition={{ type: "spring", stiffness: 400, damping: 28 }}
         />
       )}
-      <Icon className="w-3.5 h-3.5 relative z-10" strokeWidth={1.8} />
-      <span className="relative z-10 pt-0.5">{tab.label}</span>
+      <Icon className="w-3.5 h-3.5 relative z-10" strokeWidth={active ? 1.8 : 1.5} />
+      <span className="relative z-10">{tab.label}</span>
     </Link>
   );
 }
@@ -70,23 +66,19 @@ function MobileNavLink({ tab, active, onClick }) {
         to={tab.path}
         onClick={onClick}
         aria-label={`Navigate to ${tab.label}`}
-        className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors duration-200 outline-none border"
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors duration-150 outline-none"
         style={
           active
-            ? { backgroundColor: `${COLORS.brand}0F`, color: COLORS.brand, borderColor: `${COLORS.brand}33` }
-            : { backgroundColor: "transparent", color: COLORS.body, borderColor: "transparent" }
+            ? { backgroundColor: COLORS.brandSoft, color: COLORS.brand }
+            : { color: COLORS.body }
         }
       >
-        <Icon className="w-4 h-4" style={{ color: active ? COLORS.brand : COLORS.muted }} strokeWidth={1.8} />
+        <Icon className="w-4 h-4" style={{ color: active ? COLORS.brand : COLORS.muted }} strokeWidth={1.5} />
         {tab.label}
       </Link>
     </motion.div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  NAVBAR                                                              */
-/* ------------------------------------------------------------------ */
 
 export default function Navbar() {
   const { path, navigate } = useRouter();
@@ -141,26 +133,24 @@ export default function Navbar() {
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
   return (
-    <header className="sticky top-0 z-50 w-full font-sans">
-      <nav className="bg-white/85 backdrop-blur-xl border-b" style={{ borderColor: COLORS.line }} aria-label="Main navigation">
+    <header className="sticky top-0 z-50 w-full">
+      <nav className="bg-white/90 backdrop-blur-lg py-2" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-14">
+          <div className="flex items-center justify-between h-12">
             <motion.div
-              initial={{ opacity: 0, x: -12 }}
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="flex items-center gap-2.5"
+              transition={{ duration: 0.3 }}
+              className="flex items-center gap-2"
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.brand }}>
-                <Radar className="w-4 h-4 text-white" strokeWidth={1.8} />
+              <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ backgroundColor: COLORS.brand }}>
+                <Radar className="w-3.5 h-3.5 text-white" strokeWidth={1.8} />
               </div>
-              <span className="font-serif font-medium text-[16px] tracking-tight" style={{ color: COLORS.ink }}>
+              <span className="font-medium text-[14px] tracking-tight" style={{ color: COLORS.ink }}>
                 SmartCamp
               </span>
             </motion.div>
@@ -170,80 +160,73 @@ export default function Navbar() {
                 <NavLink key={tab.id} tab={tab} active={path === tab.path} />
               ))}
 
-              <div className="w-px h-5 mx-2" style={{ backgroundColor: COLORS.line }} />
+              <div className="w-px h-4 mx-2" style={{ backgroundColor: COLORS.line }} />
 
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3, delay: 0.15 }}>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.1 }}>
                 {isAuthenticated ? (
                   <button
-                    onClick={() => {
-                      logout();
-                      navigate("/authorize");
-                    }}
+                    onClick={() => { logout(); navigate("/authorize"); }}
                     aria-label="Deauthorize session"
-                    className="flex items-center gap-1.5 px-3 py-2  text-[12.5px] font-semibold rounded-lg border outline-none transition-colors duration-200"
-                    style={{ color: COLORS.brand, backgroundColor: `${COLORS.brand}0F`, borderColor: `${COLORS.brand}33` }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium rounded-md outline-none transition-colors duration-150"
+                    style={{ color: COLORS.brand }}
                   >
-                    <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.8} />
-                    <span className="pt-0.5">Authorized</span>
+                    <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    <span>Authorized</span>
                   </button>
                 ) : (
                   <Link
                     to="/authorize"
                     aria-label="Authorize access"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-semibold rounded-lg border outline-none transition-colors duration-200"
-                    style={{ color: COLORS.muted, borderColor: COLORS.line }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium rounded-md outline-none transition-colors duration-150"
+                    style={{ color: COLORS.muted }}
                   >
-                    <LogOut className="w-3.5 h-3.5" strokeWidth={1.8} />
+                    <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
                     <span>Authorize</span>
                   </Link>
                 )}
               </motion.div>
-              {/* Devices Status Card */}
+
               <Link
                 to="/devices"
                 aria-label="View connected devices"
-                className="relative z-10 md:ml-1.5 flex items-center justify-center w-9.25 h-9.25 rounded-lg border cursor-pointer transition-colors duration-200"
-                style={{
-                  color: COLORS.muted,
-                  borderColor: COLORS.line,
-                }}
+                className="relative flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-150"
+                style={{ color: COLORS.muted }}
               >
-                <Cpu className="w-4 h-4 pointer-events-none" strokeWidth={1.8} />
-
+                <Cpu className="w-4 h-4" strokeWidth={1.5} />
                 {disconnectedCount > 0 ? (
-                  <span className="absolute -top-1.5 -right-1.5 z-20 min-w-[22px] h-[22px] px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold border-2 border-white pointer-events-none">
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-medium">
                     {disconnectedCount}
                   </span>
                 ) : (
-                  <span className="absolute top-1 right-1 z-20 w-3 h-3 rounded-full bg-green-500 border-2 border-white pointer-events-none" />
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
                 )}
               </Link>
             </div>
 
-            <div className="lg:hidden flex items-center gap-2">
+            <div className="lg:hidden flex items-center gap-1.5">
               <Link
                 to="/devices"
                 aria-label="View connected devices"
-                className="relative flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
-                style={{ borderColor: COLORS.line, color: COLORS.body }}
+                className="relative flex items-center justify-center w-8 h-8 rounded-md"
+                style={{ color: COLORS.body }}
               >
-                <Cpu className="w-4 h-4" strokeWidth={1.8} />
+                <Cpu className="w-4 h-4" strokeWidth={1.5} />
                 {disconnectedCount > 0 ? (
-                  <span className="absolute -top-1.5 -right-1.5 z-20 min-w-[18px] h-[18px] px-0.5 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold border-2 border-white pointer-events-none">
+                  <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[8px] flex items-center justify-center font-medium">
                     {disconnectedCount}
                   </span>
                 ) : (
-                  <span className="absolute top-1 right-1 z-20 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white pointer-events-none" />
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
                 )}
               </Link>
               <button
                 onClick={() => setMobileOpen((o) => !o)}
-                className="flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
-                style={{ borderColor: COLORS.line, color: COLORS.body }}
+                className="flex items-center justify-center w-8 h-8 rounded-md"
+                style={{ color: COLORS.body }}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileOpen}
               >
-                {mobileOpen ? <X className="w-4 h-4" strokeWidth={1.8} /> : <Menu className="w-4 h-4" strokeWidth={1.8} />}
+                {mobileOpen ? <X className="w-4 h-4" strokeWidth={1.5} /> : <Menu className="w-4 h-4" strokeWidth={1.5} />}
               </button>
             </div>
           </div>
@@ -257,61 +240,57 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 bg-black/20 z-40 lg:hidden"
               aria-hidden="true"
             />
             <motion.div
               ref={menuRef}
-              initial={{ opacity: 0, x: "100%" }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: "100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 bottom-0 w-72 max-w-[85vw] bg-white z-50 lg:hidden"
-              style={{ boxShadow: "-24px 0 48px -12px rgba(15,23,20,0.18)" }}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              className="fixed top-0 right-0 bottom-0 w-64 max-w-[80vw] bg-white z-50 lg:hidden"
+              style={{ borderLeft: `1px solid ${COLORS.line}` }}
               role="dialog"
               aria-modal="true"
               aria-label="Navigation menu"
             >
-              <div className="flex flex-col h-full p-5 pt-6">
-                <div className="flex items-center gap-2.5 px-1 pb-5 mb-5 border-b" style={{ borderColor: COLORS.hairline }}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.brand }}>
-                    <Radar className="w-4 h-4 text-white" strokeWidth={1.8} />
+              <div className="flex flex-col h-full p-5">
+                <div className="flex items-center gap-2 pb-4 mb-4" style={{ borderBottom: `1px solid ${COLORS.hairline}` }}>
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ backgroundColor: COLORS.brand }}>
+                    <Radar className="w-3.5 h-3.5 text-white" strokeWidth={1.8} />
                   </div>
-                  <span className="font-serif font-medium text-[16px] tracking-tight" style={{ color: COLORS.ink }}>
+                  <span className="font-medium text-[14px] tracking-tight" style={{ color: COLORS.ink }}>
                     SmartCamp
                   </span>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {tabs.map((tab) => (
                     <MobileNavLink key={tab.id} tab={tab} active={path === tab.path} onClick={() => setMobileOpen(false)} />
                   ))}
                 </div>
 
-                <div className="mt-auto pt-5 border-t" style={{ borderColor: COLORS.hairline }}>
+                <div className="mt-auto pt-4" style={{ borderTop: `1px solid ${COLORS.hairline}` }}>
                   <motion.div variants={itemVariants}>
                     {isAuthenticated ? (
                       <button
-                        onClick={() => {
-                          logout();
-                          navigate("/authorize");
-                          setMobileOpen(false);
-                        }}
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-lg text-[13px] font-semibold border transition-colors duration-200"
-                        style={{ color: COLORS.brand, backgroundColor: `${COLORS.brand}0F`, borderColor: `${COLORS.brand}33` }}
+                        onClick={() => { logout(); navigate("/authorize"); setMobileOpen(false); }}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors duration-150"
+                        style={{ color: COLORS.brand }}
                       >
-                        <ShieldCheck className="w-4 h-4" strokeWidth={1.8} />
+                        <ShieldCheck className="w-4 h-4" strokeWidth={1.5} />
                         <span>Authorized session</span>
                       </button>
                     ) : (
                       <Link
                         to="/authorize"
                         onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-lg text-[13px] font-semibold border transition-colors duration-200"
-                        style={{ color: COLORS.muted, borderColor: COLORS.line }}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors duration-150"
+                        style={{ color: COLORS.muted }}
                       >
-                        <LogOut className="w-4 h-4" strokeWidth={1.8} />
+                        <LogOut className="w-4 h-4" strokeWidth={1.5} />
                         <span>Authorize access</span>
                       </Link>
                     )}

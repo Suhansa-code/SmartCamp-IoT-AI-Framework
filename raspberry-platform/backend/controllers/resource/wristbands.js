@@ -112,3 +112,15 @@ export async function exportWristbandQRSheet(req, res) {
     res.status(err.status || 500).json({ success: false, message: err.message });
   }
 }
+
+export function assignWristbandByBarcode(req, res) {
+  try {
+    const { barcode, person_id } = req.body;
+    if (!barcode) return res.status(400).json({ success: false, message: 'barcode is required' });
+    if (!person_id) return res.status(400).json({ success: false, message: 'person_id is required' });
+    const wristband = wristbandService.assignWristbandByBarcode(barcode, person_id, { actor: actor(req) });
+    res.json({ success: true, wristband });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, message: err.message });
+  }
+}

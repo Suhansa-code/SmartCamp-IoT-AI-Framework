@@ -16,9 +16,11 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 function AdminLayout({ children }) {
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen bg-white" >
       <Navbar />
-      <div className="p-5">{children}</div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {children}
+      </main>
     </div>
   )
 }

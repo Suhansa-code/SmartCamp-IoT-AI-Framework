@@ -44,6 +44,8 @@ def main() -> None:
         dem_elevation_m=None if payload.get('dem_elevation_m') is None else to_float(payload, 'dem_elevation_m'),
         nearest_river_m=to_float(payload, 'nearest_river_m'),
         water_level_m=to_float(payload, 'water_level_m'),
+        monthly_rainfall_mm=to_float(payload, 'monthly_rainfall_mm'),
+        drainage_index=to_float(payload, 'drainage_index', 0.5),
         is_forecast=bool(payload.get('is_forecast', True)),
         gauge_alert_level=to_float(payload, 'gauge_alert_level', 2.0),
         gauge_minor_level=to_float(payload, 'gauge_minor_level', 3.0),
