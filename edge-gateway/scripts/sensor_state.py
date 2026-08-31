@@ -22,7 +22,7 @@ import pynmea2
 
 # ── Configuration ───────────────────────────────────────────────────────────
 
-SERIAL_PORT = os.environ.get("GPS_PORT", "/dev/ttyUSB0")
+SERIAL_PORT = os.environ.get("GPS_PORT", "/dev/ttyUSB1")
 SERIAL_BAUD = int(os.environ.get("GPS_BAUDRATE", "115200"))
 
 # How many consecutive read failures before marking disconnected

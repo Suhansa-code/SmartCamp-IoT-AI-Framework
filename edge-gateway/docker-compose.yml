@@ -23,7 +23,7 @@ services:
     environment:
       # sensor_state.py opens this port ONCE at startup and owns it for the
       # process lifetime; every endpoint reads its in-memory cache.
-      GPS_PORT: ${GPS_SERIAL_PORT:-/dev/ttyUSB0}
+      GPS_PORT: ${GPS_SERIAL_PORT:-/dev/ttyUSB1}
       GPS_BAUDRATE: ${GPS_BAUDRATE:-115200}
       # The rainfall ESP32 posts over WiFi instead of serial, so its
       # freshness is decided by a timeout rather than by the port state.
