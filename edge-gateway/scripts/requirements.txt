@@ -1,3 +1,6 @@
+# Dev list — incomplete on purpose (see README). The container installs
+# the complete pinned set in ../requirements.txt.
+
 fastapi
 uvicorn
 pyserial

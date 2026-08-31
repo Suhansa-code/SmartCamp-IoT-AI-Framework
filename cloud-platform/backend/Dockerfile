@@ -38,7 +38,8 @@ COPY backend/emqxsl-ca.crt ./emqxsl-ca.crt
 COPY prediction-models/models ./prediction-models/models
 ENV RATION_RATES_PATH=/app/prediction-models/models/lka_v2/ration_rates.json \
     FOOD_RATES_RAW_PATH=/app/prediction-models/models/lka_v2/food_rates_raw.json \
-    COMMODITY_SHARES_PATH=/app/prediction-models/models/lka_v2/commodity_shares.json
+    COMMODITY_SHARES_PATH=/app/prediction-models/models/lka_v2/commodity_shares.json \
+    COMMODITY_ALIASES_PATH=/app/prediction-models/models/lka_v2/commodity_aliases.json
 
 # ALERTS_DB_PATH defaults to /app/data/alerts.db — a named volume in compose,
 # since *.db is gitignored and the SQLite file must outlive the container.

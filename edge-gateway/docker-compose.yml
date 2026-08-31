@@ -1,0 +1,55 @@
+# Edge Gateway stack. Runs on the Raspberry Pi (linux/arm64) alongside the
+# camp backend, or on a NUC — the image builds on both.
+#
+#   docker compose up -d --build                    # no sensor bridge attached
+#   docker compose -f docker-compose.yml \
+#                  -f docker-compose.sensors.yml up -d --build   # with the ESP32
+#
+# No .env is required: every value below has a default.
+#
+# The Pi's backend reaches this over the camp LAN, so EDGE_API_URL in
+# raspberry-platform/backend/.env must be http://<this-host>:8000 — its
+# default of 127.0.0.1 resolves to the backend's own container.
+services:
+  edge-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Optional: compose still starts with no .env, falling back to the
+    # defaults interpolated below.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # sensor_state.py opens this port ONCE at startup and owns it for the
+      # process lifetime; every endpoint reads its in-memory cache.
+      GPS_PORT: ${GPS_SERIAL_PORT:-/dev/ttyUSB0}
+      GPS_BAUDRATE: ${GPS_BAUDRATE:-115200}
+      # The rainfall ESP32 posts over WiFi instead of serial, so its
+      # freshness is decided by a timeout rather than by the port state.
+      RAINFALL_WIRELESS_TIMEOUT_SECONDS: ${RAINFALL_WIRELESS_TIMEOUT_SECONDS:-30}
+    # Published on all interfaces on purpose: the Pi backend polls it and the
+    # wireless rainfall ESP32 POSTs to /api/rainfall. Bound to localhost it
+    # would leave GPS, DHT11, rainfall and weather silently empty on the Pi.
+    ports:
+      - "${EDGE_PORT:-8000}:8000"
+    # No `devices:` here on purpose. Compose refuses to START a service whose
+    # device path is missing, so naming the ESP32 in the base file makes the
+    # whole stack undeployable on any host without the bridge plugged in.
+    # sensor_state.py already opens the port inside a try/except with a retry
+    # backoff, so with no bridge the API serves hydrospatial, DEM, weather and
+    # prediction normally and reports GPS/DHT11 disconnected.
+    #
+    # When the bridge IS attached, add it back with the overlay:
+    #   docker compose -f docker-compose.yml -f docker-compose.sensors.yml up -d --build
+    # The local DEM raster is NOT in the image: digital_elevation_algorithm.py
+    # hardcodes a Windows .img path (line 7), so /hydrospatial/elevation always
+    # answers from the Open-Elevation API here. To serve it from the raster,
+    # make that path configurable and mount the file, e.g.
+    #   volumes:
+    #     - ${DEM_FILE:-./resources/dem.img}:/app/resources/dem.img:ro
+    # /dev/ttyUSB* is root:dialout 0660 and the image runs as the unprivileged
+    # `gateway` user, so the process must join gid 20 (dialout) to open it.
+    group_add:
+      - "${DIALOUT_GID:-20}"
+    restart: unless-stopped

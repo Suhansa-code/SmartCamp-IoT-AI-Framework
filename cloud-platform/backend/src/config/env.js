@@ -72,6 +72,13 @@ export const env = {
     commoditySharesPath:
       process.env.COMMODITY_SHARES_PATH ||
       path.join(__dirname, '../../../prediction-models/models/lka_v2/commodity_shares.json'),
+    // Alias table read by commodityStandardizer.service.js. Unlike its
+    // neighbours this artifact is hand-curated rather than generated, so it is
+    // checked in rather than rebuilt; scripts/validate_commodity_aliases.py
+    // fails if it drifts out of step with commodity_shares.json.
+    commodityAliasesPath:
+      process.env.COMMODITY_ALIASES_PATH ||
+      path.join(__dirname, '../../../prediction-models/models/lka_v2/commodity_aliases.json'),
     // Days between placing a resupply order and it reaching the camp. Drives
     // the reorder-by date and the forecast-aware stock status thresholds.
     resupplyLeadTimeDays: Number(process.env.RESUPPLY_LEAD_TIME_DAYS || 3),
