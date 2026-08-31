@@ -39,7 +39,7 @@ const COLUMNS = [
   }},
   { key: 'type', label: 'Type', sortable: true },
   { key: 'displaced', label: 'Displaced', sortable: true, numeric: true, render: (v) => (
-    <span style={{ color: '#D97706', fontWeight: 700 }}>{v?.toLocaleString()}</span>
+    <span style={{ fontWeight: 700 }}>{v?.toLocaleString()}</span>
   )},
   { key: 'capacity', label: 'Capacity', sortable: true, numeric: true, render: (v) => v?.toLocaleString() },
   { key: 'occupancy', label: 'Occupancy', sortable: true, numeric: true, render: (_v, row) => {
@@ -50,15 +50,15 @@ const COLUMNS = [
         <div style={{ width: 40, height: 5, borderRadius: 99, background: '#E2E8F0', overflow: 'hidden' }}>
           <div style={{ width: `${Math.min(occ, 100)}%`, height: '100%', borderRadius: 99, background: color }} />
         </div>
-        <span style={{ fontWeight: 700, color, fontSize: '0.72rem' }}>{occ}%</span>
+        <span style={{ fontWeight: 700, fontSize: '0.72rem' }}>{occ}%</span>
       </div>
     )
   }},
   { key: 'aid', label: 'Aid %', sortable: true, numeric: true, render: (v) => (
-    <span style={{ color: '#16A34A', fontWeight: 700 }}>{v}%</span>
+    <span style={{ fontWeight: 700 }}>{v}%</span>
   )},
   { key: 'workers', label: 'Workers', sortable: true, numeric: true, render: (v) => (
-    <span style={{ color: '#8B5CF6', fontWeight: 600 }}>{v}</span>
+    <span style={{ fontWeight: 600 }}>{v}</span>
   )},
 ]
 
