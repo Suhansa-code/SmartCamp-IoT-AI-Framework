@@ -692,12 +692,21 @@ export default function DisasterMonitorPage() {
             </div>
           )}
 
-          {/* Simulation overrides indicator */}
-          {prediction?.simulation?.overridden_fields?.length > 0 && (
-            <div className="mt-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-[11px] text-amber-700">
-                Simulation overrides: {prediction.simulation.overridden_fields.join(', ')}
-              </p>
+          {/* Simulation vs live fields indicator */}
+          {prediction?.simulation?.simulated_fields?.length > 0 && (
+            <div className="mt-3 px-3 py-2 rounded-lg" style={{ backgroundColor: COLORS.surface }}>
+              <div className="flex flex-wrap gap-1.5">
+                {prediction.simulation.simulated_fields.map(f => (
+                  <span key={f} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                    Simulated: {f}
+                  </span>
+                ))}
+                {(prediction.simulation.live_fields || []).map(f => (
+                  <span key={f} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: '#ECFDF5', color: '#065F46' }}>
+                    Live: {f}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>

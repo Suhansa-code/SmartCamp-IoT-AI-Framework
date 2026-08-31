@@ -222,6 +222,31 @@ def build_live_prediction(latitude: float, longitude: float, altitude: float = 1
     }, None
 
 
+def build_local_prediction(inputs: dict):
+    """Run prediction with a pre-assembled feature vector (no external API fetches).
+
+    Unlike build_live_prediction, this bypasses all data gathering (Overpass, ArcGIS, DEM)
+    and feeds the provided inputs directly to the XGBoost model.
+    """
+    try:
+        prediction = run_prediction(inputs)
+    except Exception as exc:
+        logger.error(f"[PREDICTION] Local prediction failed: {exc}", exc_info=True)
+        return {
+            "prediction": None,
+            "inputs": inputs,
+            "source_data": {},
+            "errors": {"prediction": f"Prediction failed: {exc}"},
+        }, {"error": f"Prediction failed: {exc}"}
+
+    return {
+        "prediction": prediction,
+        "inputs": inputs,
+        "source_data": {},
+        "errors": {},
+    }, None
+
+
 def build_hydrospatial_analysis(latitude: float, longitude: float, altitude: float = 10.0):
     """
     Complete hydro-spatial analysis for a camp location.
