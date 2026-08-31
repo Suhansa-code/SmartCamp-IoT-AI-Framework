@@ -41,6 +41,11 @@ export function resolveQR(qrRaw) {
 
   const today = getTodayUsage(person.id);
 
+  // Get total water issued today for this person's wristbands
+  const waterRow = db.prepare(
+    "SELECT SUM(d.quantity) as total FROM distributions d JOIN wristbands w ON d.wristband_barcode = w.barcode WHERE w.person_id = ? AND d.resource_type = 'water' AND DATE(d.distributed_at) = DATE('now')"
+  ).get(person.id);
+
   return {
     qr_identifier: qr,
     wristband: {
@@ -51,6 +56,9 @@ export function resolveQR(qrRaw) {
       assigned_at: wristband.assigned_at,
     },
     person,
+    today_distributions: today.meals,
+    water_issued: waterRow?.total || 0,
+    water_max: 6,
     today,
     daily: getDailyLeft(person, today.meals),
   };
@@ -94,10 +102,19 @@ export function lookupQR(qrRaw) {
   }
 
   const today = getTodayUsage(person.id);
+
+  // Get total water issued today for this person's wristbands
+  const waterRow = db.prepare(
+    "SELECT SUM(d.quantity) as total FROM distributions d JOIN wristbands w ON d.wristband_barcode = w.barcode WHERE w.person_id = ? AND d.resource_type = 'water' AND DATE(d.distributed_at) = DATE('now')"
+  ).get(person.id);
+
   return {
     state: 'assigned',
     wristband: summarizeWristband(wristband),
     person,
+    today_distributions: today.meals,
+    water_issued: waterRow?.total || 0,
+    water_max: 6,
     daily: getDailyLeft(person, today.meals),
   };
 }

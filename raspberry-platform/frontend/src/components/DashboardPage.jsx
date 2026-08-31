@@ -699,6 +699,7 @@ export default function DashboardPage() {
                 value={eduInsights.total_children}
                 icon={Users}
                 accent="brand"
+                style={{ backgroundColor: "" }}
               />
               <StatCard
                 label="Sessions Completed"

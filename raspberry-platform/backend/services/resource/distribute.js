@@ -17,7 +17,7 @@ function getQuantities() {
   return _quantities;
 }
 
-const MAX_WATER_LITERS = 5;
+const MAX_WATER_LITERS = 6;
 
 /**
  * Get configured maximum water allowance (default 5L, can be overridden via distribution.json)
@@ -50,11 +50,14 @@ export async function distributeResource(barcode, resourceType, quantity) {
     }
   }
 
-  const existing = db.prepare(
-    "SELECT id FROM distributions WHERE wristband_barcode = ? AND resource_type = ? AND DATE(distributed_at) = DATE('now')"
-  ).get(barcode, resourceType);
-  if (existing) {
-    throw Object.assign(new Error(`${resourceType} already distributed today.`), { status: 400 });
+  // For non-water resources, block duplicate distribution on the same day
+  if (resourceType !== 'water') {
+    const existing = db.prepare(
+      "SELECT id FROM distributions WHERE wristband_barcode = ? AND resource_type = ? AND DATE(distributed_at) = DATE('now')"
+    ).get(barcode, resourceType);
+    if (existing) {
+      throw Object.assign(new Error(`${resourceType} already distributed today.`), { status: 400 });
+    }
   }
 
   db.prepare('INSERT INTO distributions (wristband_barcode, resource_type, quantity) VALUES (?, ?, ?)')
@@ -69,6 +72,13 @@ export async function distributeResource(barcode, resourceType, quantity) {
     db.prepare("SELECT resource_type FROM distributions WHERE wristband_barcode = ? AND DATE(distributed_at) = DATE('now')")
       .all(barcode).map(d => d.resource_type)
   );
+
+  // Get total water issued today for this wristband
+  const waterRow = db.prepare(
+    "SELECT SUM(quantity) as total FROM distributions WHERE wristband_barcode = ? AND resource_type = 'water' AND DATE(distributed_at) = DATE('now')"
+  ).get(barcode);
+  const waterIssued = waterRow?.total || 0;
+  const maxWater = getMaxWaterLiters();
 
   const payload = {
     event: 'distribution', person_id: person.id, person_name: person.full_name,
@@ -88,6 +98,8 @@ export async function distributeResource(barcode, resourceType, quantity) {
       breakfast: given.has('breakfast'), lunch: given.has('lunch'),
       dinner: given.has('dinner'), water: given.has('water'),
     },
+    water_issued: waterIssued,
+    water_max: maxWater,
     mqtt: mqttResult,
   };
 }

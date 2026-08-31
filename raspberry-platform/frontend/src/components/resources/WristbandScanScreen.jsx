@@ -155,22 +155,19 @@ function TabSwitcher({ active, onChange }) {
 /*  DISTRIBUTION TILE                                                   */
 /* ------------------------------------------------------------------ */
 
-function DistributionTile({ label, icon: Icon, item, onGive }) {
+function DistributionTile({ label, icon: Icon, item, onGive, children, showAllocated = true }) {
   const given = !!item?.given;
-  const quantity = item?.quantity;
-  const left = item?.left;
-  const unit = item?.unit;
   return (
     <div
       className="rounded-xl p-4 sm:p-5 flex flex-col items-center text-center transition-colors"
       style={{
-        backgroundColor: given ? COLORS.brandSoft : COLORS.grid,
+        backgroundColor: given && showAllocated ? COLORS.brandSoft : COLORS.grid,
       }}
     >
       <div
         className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3"
         style={{
-          backgroundColor: given ? COLORS.surface : COLORS.brandSoft,
+          backgroundColor: given && showAllocated ? COLORS.surface : COLORS.brandSoft,
         }}
       >
         <Icon className="w-5 h-5" style={{ color: COLORS.brand }} strokeWidth={1.7} />
@@ -179,9 +176,13 @@ function DistributionTile({ label, icon: Icon, item, onGive }) {
         {label}
       </p>
 
-      {given && <p className="text-[11px] mb-3" style={{ color: COLORS.muted }}>0 left today</p>}
+      {given && showAllocated && <p className="text-[11px] mb-3" style={{ color: COLORS.muted }}>0 left today</p>}
+
+      {/* Extra content (e.g. water stepper) */}
+      {children}
+
       <div className="mt-auto w-full">
-        {given ? (
+        {given && showAllocated ? (
           <div
             className="flex items-center justify-center gap-1.5 text-[12px] font-semibold py-2 rounded-lg border"
             style={{ color: COLORS.brand, borderColor: `${COLORS.brand}33`, backgroundColor: "#fff" }}
@@ -243,6 +244,8 @@ function DistributionPanel() {
   const [qosInfo, setQosInfo] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [waterQuantity, setWaterQuantity] = useState(1);
+  const [waterIssued, setWaterIssued] = useState(0);
+  const [waterMax, setWaterMax] = useState(6);
 
   const applyLookup = (data, raw) => {
     const person = data.person;
@@ -259,6 +262,8 @@ function DistributionPanel() {
     setTodayStatus(flags);
     setDaily(data.daily || todayStatusToDaily(person, flags));
     setBarcode(data.wristband?.wristband_id || raw || person.wristband_barcode || "");
+    setWaterIssued(data.water_issued || 0);
+    setWaterMax(data.water_max || 6);
     setStatusMessage("");
     setQosInfo(null);
   };
@@ -343,6 +348,8 @@ function DistributionPanel() {
           left: flags[item.key] ? 0 : item.quantity,
         }))
       );
+      if (data.water_issued !== undefined) setWaterIssued(data.water_issued);
+      if (data.water_max !== undefined) setWaterMax(data.water_max);
       setQosInfo(data.mqtt);
       setStatusMessage(`${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)} distributed successfully.`);
       setStatusType("success");
@@ -577,27 +584,66 @@ function DistributionPanel() {
                     item={dailyMap.dinner}
                     onGive={() => handleDistribute("dinner")}
                   />
-                  <DistributionTile label="Water" icon={Droplets} item={dailyMap.water} onGive={() => handleDistribute("water")} />
+                  <DistributionTile
+                    label="Water"
+                    icon={Droplets}
+                    item={{ ...dailyMap.water, given: waterIssued >= waterMax }}
+                    onGive={() => handleDistribute("water")}
+                    showAllocated={waterIssued >= waterMax}
+                  >
+                    {barcode && (
+                      <div className="w-full mb-2 space-y-2">
+                        {/* Distributed amount */}
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-[20px] font-semibold" style={{ color: COLORS.ink }}>{waterIssued}</span>
+                          <span className="text-[11px]" style={{ color: COLORS.muted }}>/ {waterMax} L</span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: COLORS.line }}>
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{
+                              width: `${Math.min((waterIssued / waterMax) * 100, 100)}%`,
+                              backgroundColor: waterIssued >= waterMax ? '#16A34A' : COLORS.brand,
+                            }}
+                          />
+                        </div>
+                        {/* Stepper */}
+                        {waterIssued < waterMax && (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setWaterQuantity((q) => Math.max(1, q - 1))}
+                              disabled={waterQuantity <= 1}
+                              className="w-7 h-7 rounded-md flex items-center justify-center text-[14px] font-medium border transition-colors"
+                              style={{
+                                borderColor: waterQuantity <= 1 ? COLORS.line : COLORS.brand,
+                                color: waterQuantity <= 1 ? COLORS.muted : COLORS.brand,
+                                backgroundColor: 'white',
+                              }}
+                            >
+                              -
+                            </button>
+                            <span className="flex-1 text-center text-[12px] font-medium" style={{ color: COLORS.ink }}>
+                              Issue {waterQuantity}L
+                            </span>
+                            <button
+                              onClick={() => setWaterQuantity((q) => Math.min(waterMax - waterIssued, q + 1))}
+                              disabled={waterQuantity >= waterMax - waterIssued}
+                              className="w-7 h-7 rounded-md flex items-center justify-center text-[14px] font-medium border transition-colors"
+                              style={{
+                                borderColor: waterQuantity >= waterMax - waterIssued ? COLORS.line : COLORS.brand,
+                                color: waterQuantity >= waterMax - waterIssued ? COLORS.muted : COLORS.brand,
+                                backgroundColor: 'white',
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </DistributionTile>
                 </div>
-                {barcode && waterQuantity && (
-                  <div className="mt-4 flex items-center justify-center gap-2">
-                    <PrimaryButton
-                      size="sm"
-                      onClick={() => setWaterQuantity((q) => Math.max(1, q - 1))}
-                      disabled={waterQuantity <= 1}
-                    >
-                      -
-                    </PrimaryButton>
-                    <span className="text-[12px] font-medium">Water: {waterQuantity}{' '}L</span>
-                    <PrimaryButton
-                      size="sm"
-                      onClick={() => setWaterQuantity((q) => Math.min(5, q + 1))}
-                      disabled={waterQuantity >= 5}
-                    >
-                      +
-                    </PrimaryButton>
-                  </div>
-                )}
             </div>
 
             {qosInfo && (

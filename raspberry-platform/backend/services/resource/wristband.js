@@ -27,10 +27,18 @@ export function getWristbandInfo(barcode) {
     water: givenSet.has('water'),
   };
 
+  // Get total water issued today
+  const waterRow = db.prepare(
+    "SELECT SUM(quantity) as total FROM distributions WHERE wristband_barcode = ? AND resource_type = 'water' AND DATE(distributed_at) = DATE('now')"
+  ).get(barcode);
+  const waterIssued = waterRow?.total || 0;
+
   return {
     person,
     wristband_barcode: barcode,
     today_distributions: todayDistributions,
+    water_issued: waterIssued,
+    water_max: 6,
     daily: getDailyLeft(person, todayDistributions),
   };
 }

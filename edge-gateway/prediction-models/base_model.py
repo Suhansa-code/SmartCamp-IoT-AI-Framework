@@ -174,8 +174,28 @@ class BaseFloodModel(ABC):
             "river_proximity_score": river_proximity_score,
         }])
 
-        explainer = shap.TreeExplainer(self._estimator)
-        shap_values = explainer.shap_values(row)
+        # Load the actual estimator (not the raw artifact dict)
+        estimator = None
+        features = MODEL_FEATURES
+        if IMPROVED_MODEL_PATH.exists():
+            try:
+                artifact = joblib.load(IMPROVED_MODEL_PATH)
+                estimator = artifact["estimator"]
+                features = artifact.get("features", MODEL_FEATURES)
+            except Exception:
+                pass
+        if estimator is None:
+            # Fallback: try to unwrap self._estimator if it's a dict artifact
+            if isinstance(self._estimator, dict):
+                estimator = self._estimator.get("estimator")
+            else:
+                estimator = self._estimator
+        if estimator is None or isinstance(estimator, dict):
+            return {}
+
+        row_aligned = row[features]
+        explainer = shap.TreeExplainer(estimator)
+        shap_values = explainer.shap_values(row_aligned)
         # For binary classification, shap_values may be a list [neg, pos]
         if isinstance(shap_values, list):
             vals = shap_values[1][0]
@@ -184,7 +204,7 @@ class BaseFloodModel(ABC):
 
         return {
             feature: float(val)
-            for feature, val in zip(MODEL_FEATURES, vals)
+            for feature, val in zip(features, vals)
         }
 
     # ── Training ──────────────────────────────────────────────────────────
