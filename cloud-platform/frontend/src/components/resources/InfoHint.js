@@ -22,12 +22,13 @@ import { Info } from 'lucide-react'
 import { useTheme } from '@/components/common/ThemeProvider'
 
 /**
- * @param {string} text     the explanation
- * @param {string} [align]  'center' (default) | 'left' | 'right' — bubble anchor
- * @param {number} [size]   icon size in px
- * @param {number} [width]  bubble width in px
+ * @param {string} text        the explanation
+ * @param {string} [align]     'center' (default) | 'left' | 'right' — horizontal anchor
+ * @param {string} [placement] 'top' (default) | 'bottom' — which side the bubble opens on
+ * @param {number} [size]      icon size in px
+ * @param {number} [width]     bubble width in px
  */
-export default function InfoHint({ text, align = 'center', size = 13, width = 250 }) {
+export default function InfoHint({ text, align = 'center', placement = 'top', size = 13, width = 250 }) {
   const { T } = useTheme()
   const [open, setOpen] = useState(false)
   const id = useId()
@@ -65,7 +66,13 @@ export default function InfoHint({ text, align = 'center', size = 13, width = 25
           id={id}
           role="tooltip"
           style={{
-            position: 'absolute', bottom: 'calc(100% + 8px)', ...anchor,
+            position: 'absolute',
+            // A metric's ⓘ sits under the number it explains, so opening
+            // upwards would hide that number behind the bubble.
+            ...(placement === 'bottom'
+              ? { top: 'calc(100% + 8px)' }
+              : { bottom: 'calc(100% + 8px)' }),
+            ...anchor,
             width, zIndex: 40, pointerEvents: 'none',
             background: T.mode === 'dark' ? T.cardSoft : T.textPrimary,
             color: T.mode === 'dark' ? T.ink : '#FFFFFF',

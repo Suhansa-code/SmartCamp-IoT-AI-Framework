@@ -36,7 +36,10 @@ export default function StockPage() {
         <SideNav />
 
         <div className="header-wrapper">
-          <main style={{ background: T.panel, width: "100%", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          {/* minHeight keeps the panel ground behind the whole viewport. The
+              redesigned page is shorter than the old one, which left a band of
+              the outer background exposed below the last card. */}
+          <main style={{ background: T.panel, width: "100%", minHeight: "100svh", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             <HeaderShell>
               <PageHeader />
             </HeaderShell>
@@ -47,7 +50,7 @@ export default function StockPage() {
               <PageTitle
                 eyebrow="Resources"
                 title="Stock Runout"
-                subtitle="Days of cover, runout dates and reorder deadlines — driven by the population forecast, not a fixed threshold"
+                subtitle="Inventory forecast based on current population trends"
               />
               <StockOutlookPanel />
             </div>
