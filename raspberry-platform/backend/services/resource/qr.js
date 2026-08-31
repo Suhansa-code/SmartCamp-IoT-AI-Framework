@@ -58,7 +58,7 @@ export function resolveQR(qrRaw) {
     person,
     today_distributions: today.meals,
     water_issued: waterRow?.total || 0,
-    water_max: 6,
+    water_max: 4,
     today,
     daily: getDailyLeft(person, today.meals),
   };
@@ -114,7 +114,7 @@ export function lookupQR(qrRaw) {
     person,
     today_distributions: today.meals,
     water_issued: waterRow?.total || 0,
-    water_max: 6,
+    water_max: 4,
     daily: getDailyLeft(person, today.meals),
   };
 }

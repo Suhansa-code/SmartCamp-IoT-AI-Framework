@@ -182,7 +182,7 @@ export default function DataTable({
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       {(searchKeys.length > 0 || filters.length > 0) && (
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
           {searchKeys.length > 0 && (

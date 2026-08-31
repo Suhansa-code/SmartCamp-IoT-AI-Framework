@@ -17,7 +17,7 @@ function getQuantities() {
   return _quantities;
 }
 
-const MAX_WATER_LITERS = 6;
+const MAX_WATER_LITERS = 4;
 
 /**
  * Get configured maximum water allowance (default 5L, can be overridden via distribution.json)

@@ -70,7 +70,7 @@ const ALERT_COLUMNS = [
     label: "Camp",
     sortable: true,
     render: (v) => (
-      <span style={{ fontWeight: 600, color: "#16A34A" }}>{v || "—"}</span>
+      <span style={{ fontWeight: 600, color: "#0F172A" }}>{v || "—"}</span>
     ),
   },
   {

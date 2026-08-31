@@ -46,7 +46,7 @@ function metricTone(value, warn, crit, invert = false) {
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl bg-white p-4 sm:p-6 ${className}`}>
+    <div className={`rounded-xl bg-gray-50 p-4 sm:p-6 ${className}`}>
       {children}
     </div>
   );
@@ -173,7 +173,7 @@ export default function NetworkScreen() {
         )}
 
         {/* ── Live metrics + Adaptive QoS (side by side) ─ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5 ">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-6">
           <Card className="h-full">
             <div className="flex flex-col h-full">
@@ -288,7 +288,7 @@ export default function NetworkScreen() {
 
         {/* ── Buffer status ─────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="border" style={{ borderColor: buffered > 0 ? TONE.warning.border : COLORS.line }}>
+          <Card style={{ borderColor: buffered > 0 ? TONE.warning.border : COLORS.line }}>
             <div className="flex justify-between items-center gap-6 flex-wrap">
               <div className="flex items-start gap-3">
                 <IconTile icon={Database} tone={buffered > 0 ? 'warning' : 'brand'} size="lg" />

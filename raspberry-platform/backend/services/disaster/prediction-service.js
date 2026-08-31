@@ -233,22 +233,40 @@ function applySimulationOverrides(inputs, data) {
 // ── Call Edge Gateway prediction endpoint ───────────────────────────────
 
 async function callEdgePrediction(inputs) {
-  const params = new URLSearchParams({
-    lat: String(inputs.latitude),
-    lon: String(inputs.longitude),
-    alt: String(inputs.altitude_m),
+  // Use predict-local: sends the full feature vector directly to XGBoost
+  // without re-fetching from Overpass/ArcGIS/DEM (saves 20-30s per call)
+  const url = `${EDGE_API}/hydrospatial/predict-local`;
+  logger.info(`[PREDICTION] Calling Edge Gateway predict-local: ${url}`);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(inputs),
+    signal: AbortSignal.timeout(30_000),
   });
-
-  const url = `${EDGE_API}/hydrospatial/predict?${params}`;
-  logger.info(`[PREDICTION] Calling Edge Gateway: ${url}`);
-
-  const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     throw new Error(`Edge Gateway returned ${response.status}: ${body.substring(0, 200)}`);
   }
 
   return response.json();
+}
+
+// ── Prediction cache ──────────────────────────────────────────────────
+const _predictionCache = new Map();
+const PREDICTION_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getPredictionCacheKey(inputs) {
+  // Hash key from rounded input values for cache lookup
+  const parts = [
+    Math.round(inputs.latitude * 1000),
+    Math.round(inputs.longitude * 1000),
+    Math.round(inputs.rainfall_mm * 10),
+    Math.round(inputs.dem_elevation_m * 10),
+    Math.round(inputs.nearest_river_m / 100),
+    Math.round(inputs.water_level_m * 10),
+  ];
+  return parts.join(':');
 }
 
 // ── Main prediction function ───────────────────────────────────────────
@@ -284,6 +302,14 @@ export async function getFloodPrediction() {
   const { inputs: finalInputs, overridden } = applySimulationOverrides(inputs, data);
   inputs = finalInputs;
 
+  // Check prediction cache (skip Edge Gateway call if inputs haven't changed)
+  const cacheKey = mode === 'simulation' ? null : getPredictionCacheKey(inputs);
+  const cached = cacheKey ? _predictionCache.get(cacheKey) : null;
+  if (cached && (Date.now() - cached.ts < PREDICTION_CACHE_TTL_MS)) {
+    logger.info(`[PREDICTION] Cache hit for inputs, returning cached result (${Date.now() - cached.ts}ms old)`);
+    return { ...cached.result, prediction_timestamp: cached.result.prediction_timestamp };
+  }
+
   // Step 4: Validate inputs
   const validationErrors = [];
   if (inputs.latitude === 0 && inputs.longitude === 0) {
@@ -296,9 +322,10 @@ export async function getFloodPrediction() {
   // Step 5: Call Edge Gateway prediction
   let prediction = null;
   let predictionError = null;
+  let edgeResult = null;
 
   try {
-    const edgeResult = await callEdgePrediction(inputs);
+    edgeResult = await callEdgePrediction(inputs);
     const pred = edgeResult.prediction || edgeResult;
     prediction = {
       flood_probability: pred.probability ?? 0,
@@ -363,18 +390,22 @@ export async function getFloodPrediction() {
   }
 
   // Step 8: Build response
+  // Prefer Edge Gateway's returned inputs for display (these are the actual values used by the model)
+  const edgeInputs = edgeResult?.inputs || {};
   return {
     status: prediction ? 'success' : 'error',
     mode,
     simulation: mode === 'simulation' ? { overridden_fields: overridden } : undefined,
     prediction,
     inputs: {
-      rainfall_mm: inputs.rainfall_mm,
-      latitude: inputs.latitude,
-      longitude: inputs.longitude,
-      elevation_m: inputs.dem_elevation_m,
-      river_distance_km: inputs.nearest_river_m / 1000,
-      water_level_m: inputs.water_level_m,
+      rainfall_mm: edgeInputs.rainfall_mm ?? inputs.rainfall_mm,
+      latitude: edgeInputs.latitude ?? inputs.latitude,
+      longitude: edgeInputs.longitude ?? inputs.longitude,
+      elevation_m: edgeInputs.dem_elevation_m ?? edgeInputs.elevation_m ?? inputs.dem_elevation_m,
+      river_distance_km: edgeInputs.nearest_river_m != null
+        ? Math.round(edgeInputs.nearest_river_m / 1000 * 1000) / 1000
+        : inputs.nearest_river_m / 1000,
+      water_level_m: edgeInputs.water_level_m ?? inputs.water_level_m,
     },
     hydrospatial: data.hydrospatial ? {
       gauge_elevation: data.hydrospatial.gauge_elevation,
@@ -395,4 +426,18 @@ export async function getFloodPrediction() {
     alert_evaluation: alertEvaluation,
     error: predictionError,
   };
+
+  // Cache the result for live predictions
+  if (cacheKey && prediction) {
+    _predictionCache.set(cacheKey, { result, ts: Date.now() });
+    // Evict old entries
+    if (_predictionCache.size > 50) {
+      const now = Date.now();
+      for (const [k, v] of _predictionCache) {
+        if (now - v.ts > PREDICTION_CACHE_TTL_MS * 2) _predictionCache.delete(k);
+      }
+    }
+  }
+
+  return result;
 }

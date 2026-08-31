@@ -245,7 +245,7 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
             {loading ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Running...
+                {enabled.latitude || enabled.longitude ? 'Fetching location data...' : 'Running...'}
               </>
             ) : (
               <>

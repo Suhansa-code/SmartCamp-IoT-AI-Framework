@@ -60,7 +60,7 @@ function stateStep(scanState) {
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl bg-white ${className}`}>
+    <div className={`rounded-xl bg-gray-50/80 ${className}`}>
       {children}
     </div>
   );
@@ -1702,13 +1702,13 @@ function RegistrationScreen() {
         </Card>
 
         {/* ================= REGISTERED USERS TABLE ================= */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="p-4 sm:p-5 lg:p-6">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} >
+          <Card className="p-4 sm:p-5 lg:p-6 bg-white" >
             {viewingPersonId ? (
               <PersonProfileScreen personId={viewingPersonId} onBack={() => { setViewingPersonId(null); fetchPersons(); }} onUpdated={() => fetchPersons()} />
             ) : (
               <>
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 ">
                   <div className="flex items-center gap-2.5 sm:gap-3">
                     <IconTile icon={List} />
                     <div>
