@@ -690,25 +690,79 @@ export default function DisasterMonitorPage() {
             </div>
           ) : null}
 
+          {/* Simulation hydrospatial context — river + station */}
+          {prediction?.mode === 'simulation' && prediction?.hydrospatial && (prediction.hydrospatial.river_name || prediction.hydrospatial.station_name) && (
+            <div className="mt-3 px-3 py-2.5 rounded-lg flex flex-wrap items-center gap-x-5 gap-y-1" style={{ backgroundColor: '#F0FDF4' }}>
+              {prediction.hydrospatial.river_name && (
+                <span className="flex items-center gap-1.5 text-[12px]">
+                  <Waves className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
+                  <span style={{ color: COLORS.muted }}>Nearest River:</span>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>{prediction.hydrospatial.river_name}</span>
+                </span>
+              )}
+              {prediction.hydrospatial.station_name && (
+                <span className="flex items-center gap-1.5 text-[12px]">
+                  <Gauge className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
+                  <span style={{ color: COLORS.muted }}>Gauging Station:</span>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>{prediction.hydrospatial.station_name}</span>
+                </span>
+              )}
+              {prediction.hydrospatial.gauge_distance_km != null && (
+                <span className="flex items-center gap-1.5 text-[12px]">
+                  <MapPin className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
+                  <span style={{ color: COLORS.muted }}>Gauge dist:</span>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>{prediction.hydrospatial.gauge_distance_km} km</span>
+                </span>
+              )}
+              {prediction.hydrospatial.elevation_difference != null && (
+                <span className="flex items-center gap-1.5 text-[12px]">
+                  <Mountain className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
+                  <span style={{ color: COLORS.muted }}>Δ Elev:</span>
+                  <span className="font-medium" style={{ color: COLORS.ink }}>{prediction.hydrospatial.elevation_difference} m</span>
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Prediction Inputs */}
           {prediction?.inputs && !predLoading && !predError && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
               <p className="text-[11px] uppercase tracking-wider mb-3" style={{ color: COLORS.muted }}>Model input conditions</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 {[
-                  { label: 'Rainfall', value: prediction.inputs.rainfall_mm != null ? `${prediction.inputs.rainfall_mm} mm` : '—' },
-                  { label: 'Elevation', value: prediction.inputs.elevation_m != null ? `${prediction.inputs.elevation_m} m` : '—' },
-                  { label: 'River Distance', value: prediction.inputs.river_distance_km != null ? `${prediction.inputs.river_distance_km} km` : '—' },
-                  { label: 'Water Level', value: prediction.inputs.water_level_m != null ? `${prediction.inputs.water_level_m} m` : '—' },
-                  { label: 'Latitude', value: prediction.inputs.latitude?.toFixed(4) ?? '—' },
-                  { label: 'Longitude', value: prediction.inputs.longitude?.toFixed(4) ?? '—' },
+                  { label: 'Rainfall', value: prediction.inputs.rainfall_mm != null ? `${prediction.inputs.rainfall_mm} mm` : '—', fetched: prediction?.mode === 'simulation' },
+                  { label: 'Elevation', value: prediction.inputs.elevation_m != null ? `${prediction.inputs.elevation_m} m` : '—', fetched: prediction?.mode === 'simulation' },
+                  { label: 'River Distance', value: prediction.inputs.river_distance_km != null ? `${prediction.inputs.river_distance_km} km` : '—', fetched: prediction?.mode === 'simulation' },
+                  { label: 'Water Level', value: prediction.inputs.water_level_m != null ? `${prediction.inputs.water_level_m} m` : '—', fetched: prediction?.mode === 'simulation' },
+                  { label: 'Latitude', value: prediction.inputs.latitude?.toFixed(4) ?? '—', fetched: false },
+                  { label: 'Longitude', value: prediction.inputs.longitude?.toFixed(4) ?? '—', fetched: false },
                 ].map((d) => (
                   <div key={d.label} className="rounded-lg px-2.5 py-2" style={{ backgroundColor: COLORS.surface }}>
-                    <p className="text-[11px]" style={{ color: COLORS.muted }}>{d.label}</p>
+                    <p className="text-[11px] flex items-center gap-1" style={{ color: COLORS.muted }}>
+                      {d.label}
+                      {d.fetched && <span className="text-[9px] px-1 py-0.5 rounded" style={{ backgroundColor: '#DCFCE7', color: '#166534' }}>API</span>}
+                    </p>
                     <p className="text-[12px] font-medium mt-0.5" style={{ color: COLORS.ink }}>{d.value}</p>
                   </div>
                 ))}
               </div>
+              {/* Fetched hydrospatial names — shown during simulation */}
+              {prediction?.mode === 'simulation' && prediction?.hydrospatial && (prediction.hydrospatial.river_name || prediction.hydrospatial.station_name) && (
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                  {prediction.hydrospatial.river_name && (
+                    <div className="rounded-lg px-2.5 py-2" style={{ backgroundColor: '#F0FDF4' }}>
+                      <p className="text-[11px]" style={{ color: '#166534' }}>Nearest River</p>
+                      <p className="text-[12px] font-medium mt-0.5" style={{ color: COLORS.ink }}>{prediction.hydrospatial.river_name}</p>
+                    </div>
+                  )}
+                  {prediction.hydrospatial.station_name && (
+                    <div className="rounded-lg px-2.5 py-2" style={{ backgroundColor: '#F0FDF4' }}>
+                      <p className="text-[11px]" style={{ color: '#166534' }}>Gauging Station</p>
+                      <p className="text-[12px] font-medium mt-0.5" style={{ color: COLORS.ink }}>{prediction.hydrospatial.station_name}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -803,7 +857,7 @@ export default function DisasterMonitorPage() {
 
       {/* ================= ESCALATED ALERTS TABLE ================= */}
       <div className="mt-6">
-        <div className="rounded-xl border border-black/[.06] overflow-hidden" style={{ background: '#fff', boxShadow: SHADOW_CARD }}>
+        <div className="rounded-xl  overflow-hidden" style={{ background: '#fff', boxShadow: SHADOW_CARD }}>
           <div className="px-4 sm:px-5 py-3.5 border-b border-black/[.06] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4" style={{ color: COLORS.brand }} />
@@ -813,7 +867,7 @@ export default function DisasterMonitorPage() {
               {alertsPagination.total} total
             </span>
           </div>
-          <div className="p-0">
+          <div className="py-4">
             <DataTable
               columns={[
                 {

@@ -9,6 +9,7 @@ import { getLatestHydrospatial, getHydrospatialHistory, getHydrospatialStorageSt
 import { getFloodPrediction } from '../../services/disaster/prediction-service.js';
 import { getAlerts } from '../../services/disaster/alert-evaluator.js';
 import { disasterDb } from '../../config/database.js';
+import logger from '../../utils/logger.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
 const GPS_CACHE_TTL_MS = 30_000; // 30 seconds
@@ -409,7 +410,7 @@ export async function getSimulatedPrediction(req, res) {
     }
 
     // When lat/lon are simulated, fetch live hydrospatial data for that location
-    // (nearest river, gauge station, elevation) to give accurate prediction context
+    // (nearest river, gauge station, elevation, water level) to give accurate prediction context
     let hydrospatialData = null;
     const locationSimulated = enabled_fields.includes('latitude') || enabled_fields.includes('longitude');
     if (locationSimulated) {
@@ -436,15 +437,15 @@ export async function getSimulatedPrediction(req, res) {
           if (hydrospatialData.gauge_major_level != null) {
             merged.gauge_major_level = hydrospatialData.gauge_major_level;
           }
-          // Use live water level from gauge if available
+          // Always fetch water level from live gauge (not user-simulated)
           if (hydrospatialData.live_gauge_data?.water_level != null) {
             merged.water_level_m = hydrospatialData.live_gauge_data.water_level;
           }
-          // Use live rainfall from gauge if available
+          // Always fetch rainfall from live gauge (not user-simulated)
           if (hydrospatialData.live_gauge_data?.rainfall != null) {
             merged.rainfall_mm = hydrospatialData.live_gauge_data.rainfall;
           }
-          logger.info(`[SIM] Hydrospatial data fetched: elevation=${merged.elevation_m}m, river=${merged.river_distance_km}km, water_level=${merged.water_level_m}m`);
+          logger.info(`[SIM] Hydrospatial data fetched: elevation=${merged.elevation_m}m, river=${merged.river_distance_km}km, water_level=${merged.water_level_m}m, station=${hydrospatialData.station_name}, river_name=${hydrospatialData.river_name}`);
         } else {
           logger.warn(`[SIM] Hydrospatial fetch failed: ${hsResponse.status}`);
         }
@@ -518,12 +519,14 @@ export async function getSimulatedPrediction(req, res) {
         gauge_major_level: merged.gauge_major_level,
       },
       hydrospatial: hydrospatialData ? {
-        river_name: hydrospatialData.nearest_river?.name ?? hydrospatialData.river_name,
-        station_name: hydrospatialData.station_name,
-        gauge_elevation: hydrospatialData.gauge_elevation,
-        elevation_difference: hydrospatialData.elevation_difference,
-        gauge_distance_km: hydrospatialData.gauge_distance_km,
-      } : (edgeResult.source_data || null),
+        river_name: hydrospatialData.nearest_river?.name ?? hydrospatialData.river_name ?? null,
+        station_name: hydrospatialData.station_name ?? null,
+        gauge_elevation: hydrospatialData.gauge_elevation ?? null,
+        elevation_difference: hydrospatialData.elevation_difference ?? null,
+        gauge_distance_km: hydrospatialData.gauge_distance_km ?? null,
+        live_water_level: hydrospatialData.live_gauge_data?.water_level ?? null,
+        live_rainfall: hydrospatialData.live_gauge_data?.rainfall ?? null,
+      } : { river_name: null, station_name: null, gauge_elevation: null, elevation_difference: null, gauge_distance_km: null, live_water_level: null, live_rainfall: null },
       data_quality: {
         missing_fields: [],
         stale: false,

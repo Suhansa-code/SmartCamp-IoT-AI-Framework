@@ -38,7 +38,7 @@ export function getWristbandInfo(barcode) {
     wristband_barcode: barcode,
     today_distributions: todayDistributions,
     water_issued: waterIssued,
-    water_max: 6,
+    water_max: 4,
     daily: getDailyLeft(person, todayDistributions),
   };
 }
