@@ -214,26 +214,26 @@ export default function DisasterMonitorPage() {
     setCampLoading(true)
     setOverviewLoading(true)
 
-    fetch(`${API}/api/disaster/camp-identity`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.camp_id) {
-          fetch(`${API}/api/disaster/camps/${data.camp_id}`)
-            .then((r) => r.json())
-            .then((camp) => { if (camp) setCampData(camp) })
-            .catch(() => {})
-            .finally(() => setCampLoading(false))
-        } else {
-          setCampLoading(false)
-        }
-      })
-      .catch(() => setCampLoading(false))
+    // fetch(`${API}/api/disaster/camp-identity`)
+    //   .then((r) => r.json())
+    //   .then((data) => {
+    //     if (data.camp_id) {
+    //       fetch(`${API}/api/disaster/camps/${data.camp_id}`)
+    //         .then((r) => r.json())
+    //         .then((camp) => { if (camp) setCampData(camp) })
+    //         .catch(() => {})
+    //         .finally(() => setCampLoading(false))
+    //     } else {
+    //       setCampLoading(false)
+    //     }
+    //   })
+    //   .catch(() => setCampLoading(false))
 
-    fetch(`${API}/api/disaster/overview`)
-      .then((r) => r.json())
-      .then((data) => { if (data) setOverview(data) })
-      .catch(() => {})
-      .finally(() => setOverviewLoading(false))
+    // fetch(`${API}/api/disaster/overview`)
+    //   .then((r) => r.json())
+    //   .then((data) => { if (data) setOverview(data) })
+    //   .catch(() => {})
+    //   .finally(() => setOverviewLoading(false))
 
     fetch(`${API}/api/disaster/weather/latest`)
       .then((r) => r.json())
@@ -361,17 +361,17 @@ export default function DisasterMonitorPage() {
     } else {
       setTimeout(() => setRefreshing(false), 700)
     }
-    fetch(`${API}/api/disaster/camp-identity`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.camp_id) {
-          fetch(`${API}/api/disaster/camps/${data.camp_id}`)
-            .then((r) => r.json())
-            .then((camp) => { if (camp) setCampData(camp) })
-            .catch(() => {})
-        }
-      })
-      .catch(() => {})
+    // fetch(`${API}/api/disaster/camp-identity`)
+    //   .then((r) => r.json())
+    //   .then((data) => {
+    //     if (data.camp_id) {
+    //       fetch(`${API}/api/disaster/camps/${data.camp_id}`)
+    //         .then((r) => r.json())
+    //         .then((camp) => { if (camp) setCampData(camp) })
+    //         .catch(() => {})
+    //     }
+    //   })
+    //   .catch(() => {})
     fetch(`${API}/api/disaster/overview`)
       .then((r) => r.json())
       .then((data) => { if (data) setOverview(data) })

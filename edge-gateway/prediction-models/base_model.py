@@ -194,8 +194,19 @@ class BaseFloodModel(ABC):
             return {}
 
         row_aligned = row[features]
-        explainer = shap.TreeExplainer(estimator)
-        shap_values = explainer.shap_values(row_aligned)
+
+        # Unwrap CalibratedClassifierCV to get the base estimator for SHAP
+        shap_estimator = estimator
+        if hasattr(estimator, 'base_estimator_'):
+            shap_estimator = estimator.base_estimator_
+        elif hasattr(estimator, 'estimator'):
+            shap_estimator = estimator.estimator
+
+        try:
+            explainer = shap.TreeExplainer(shap_estimator)
+            shap_values = explainer.shap_values(row_aligned)
+        except Exception:
+            return {}
         # For binary classification, shap_values may be a list [neg, pos]
         if isinstance(shap_values, list):
             vals = shap_values[1][0]
