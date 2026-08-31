@@ -467,107 +467,7 @@ export default function DisasterMonitorPage() {
           </div>
         </div>
 
-        {/* ================= CAMP STATUS + OVERVIEW STATS ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 pb-4 sm:pb-6">
-          {/* Camp Status Badge */}
-          <div className="lg:col-span-4 rounded-xl p-4 sm:p-6" style={{ backgroundColor: COLORS.grid }}>
-            <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>Camp Status</p>
-            {campLoading ? (
-              <div className="flex items-center gap-2 mt-3">
-                <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-[12px]" style={{ color: COLORS.muted }}>Loading...</p>
-              </div>
-            ) : campData?.status ? (
-              <div className="mt-3">
-                <span
-                  className="inline-flex items-center px-3 py-1.5 rounded-full text-[13px] font-semibold"
-                  style={{
-                    backgroundColor: `${STATUS_META[campData.status]?.color}15`,
-                    color: STATUS_META[campData.status]?.color,
-                    border: `1px solid ${STATUS_META[campData.status]?.color}30`
-                  }}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full mr-2"
-                    style={{ backgroundColor: STATUS_META[campData.status]?.color }}
-                  />
-                  {STATUS_META[campData.status]?.label || campData.status.toUpperCase()}
-                </span>
-                <p className="text-[12.5px] mt-3" style={{ color: COLORS.body }}>
-                  {campData.name || 'Camp'} — {campData.type || 'General'}
-                </p>
-                {campData.code && (
-                  <p className="text-[11px] mt-1" style={{ color: COLORS.muted }}>Code: {campData.code}</p>
-                )}
-              </div>
-            ) : (
-              <p className="text-[12px] mt-3" style={{ color: COLORS.muted }}>No camp data available</p>
-            )}
-          </div>
 
-          {/* Camp Overview Stats */}
-          <div className="lg:col-span-8 rounded-xl p-4 sm:p-6" style={{ backgroundColor: COLORS.grid }}>
-            <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>Camp Overview</p>
-            {overviewLoading ? (
-              <div className="flex items-center gap-2 mt-3">
-                <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-[12px]" style={{ color: COLORS.muted }}>Loading...</p>
-              </div>
-            ) : overview ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                <div className="rounded-lg p-3" style={{ backgroundColor: COLORS.surface }}>
-                  <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>Displaced</p>
-                  <p className="text-[20px] sm:text-[22px] font-semibold mt-1" style={{ color: COLORS.ink }}>
-                    {overview.total_displaced?.toLocaleString() ?? '—'}
-                  </p>
-                </div>
-                <div className="rounded-lg p-3" style={{ backgroundColor: COLORS.surface }}>
-                  <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>Capacity</p>
-                  <p className="text-[20px] sm:text-[22px] font-semibold mt-1" style={{ color: COLORS.ink }}>
-                    {overview.total_capacity?.toLocaleString() ?? '—'}
-                  </p>
-                </div>
-                <div className="rounded-lg p-3" style={{ backgroundColor: COLORS.surface }}>
-                  <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>Occupancy</p>
-                  <p className="text-[20px] sm:text-[22px] font-semibold mt-1" style={{ color: COLORS.brand }}>
-                    {overview.occupancy_pct != null ? `${overview.occupancy_pct.toFixed(1)}%` : '—'}
-                  </p>
-                </div>
-                <div className="rounded-lg p-3" style={{ backgroundColor: COLORS.surface }}>
-                  <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>Aid Coverage</p>
-                  <p className="text-[20px] sm:text-[22px] font-semibold mt-1" style={{ color: COLORS.brand }}>
-                    {overview.avg_aid_coverage != null ? `${overview.avg_aid_coverage.toFixed(1)}%` : '—'}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-[12px] mt-3" style={{ color: COLORS.muted }}>No overview data available</p>
-            )}
-
-            {/* Status Distribution */}
-            {!overviewLoading && overview && (
-              <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
-                <p className="text-[11px] uppercase tracking-wider mb-2" style={{ color: COLORS.muted }}>Status Distribution</p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  {[
-                    { key: 'critical_count', label: 'Critical', color: STATUS_META.critical.color },
-                    { key: 'high_count', label: 'High', color: STATUS_META.high.color },
-                    { key: 'medium_count', label: 'Medium', color: STATUS_META.medium.color },
-                    { key: 'stable_count', label: 'Stable', color: STATUS_META.stable.color },
-                    { key: 'recovery_count', label: 'Recovery', color: STATUS_META.recovery.color },
-                  ].map((s) => (
-                    <div key={s.key} className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span className="text-[11px]" style={{ color: COLORS.body }}>
-                        {s.label}: <span className="font-semibold">{overview[s.key] ?? 0}</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* ================= OVERVIEW + WEATHER ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 pb-4 sm:pb-6">
@@ -595,7 +495,7 @@ export default function DisasterMonitorPage() {
               <div className="flex items-center gap-3">
                 <IconTile icon={CloudRain} />
                 <div>
-                  <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>Weather prediction</p>
+                  <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>Weather Forecast</p>
                   <p className="text-[13px] sm:text-[14px] font-medium mt-0.5">{weather?.condition || 'Weather data unavailable'}</p>
                 </div>
               </div>
@@ -849,15 +749,15 @@ export default function DisasterMonitorPage() {
                 <p className="text-[13px]">Awaiting hydro-spatial analysis...</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 ">
                 {[
                   { label: 'Camp Elevation', value: hydrospatial.elevation != null ? `${hydrospatial.elevation} m` : '—', sub: hydrospatial.source || '—' },
                   { label: 'Gauge Elevation', value: hydrospatial.gauge_elevation != null ? `${hydrospatial.gauge_elevation} m` : '—', sub: hydrospatial.station_name || '—' },
                   { label: 'Elevation Δ', value: hydrospatial.elevation_difference != null ? `${hydrospatial.elevation_difference} m` : '—', sub: hydrospatial.elevation_difference > 0 ? 'Camp above gauge' : hydrospatial.elevation_difference < 0 ? 'Camp below gauge' : 'Same level', icon: hydrospatial.elevation_difference > 0 ? TrendingUp : hydrospatial.elevation_difference < 0 ? TrendingDown : Minus },
                   { label: 'Gauge Distance', value: hydrospatial.gauge_distance != null ? `${hydrospatial.gauge_distance} km` : '—', sub: hydrospatial.gauge_distance != null ? `${(hydrospatial.gauge_distance * 0.621371).toFixed(1)} mi` : '—' },
                 ].map((d) => (
-                  <div key={d.label} className="rounded-lg p-3 sm:p-3.5 min-h-34" style={{ backgroundColor: COLORS.surface }}>
-                    <span className="inline-block w-1.5 h-1.5 rounded-full mb-2" style={{ backgroundColor: COLORS.brand }} />
+                  <div key={d.label} className="rounded-lg p-3 sm:p-3.5 min-h-34 bg-gray-50" >
+                    <span className="inline-block w-1.5 h-1.5 rounded-full mb-2 " style={{ backgroundColor: COLORS.brand }} />
                     <p className="text-[12px] sm:text-[12px] font-medium leading-tight">{d.label}</p>
                     <p className="text-[14px] sm:text-[15px] font-semibold mt-1">{d.value}</p>
                     <p className="text-[11px] sm:text-[11px] mt-0.5 truncate flex items-center gap-1" style={{ color: COLORS.muted }}>

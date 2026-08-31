@@ -16,7 +16,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 function AdminLayout({ children }) {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+    <div className="min-h-screen bg-white" >
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {children}

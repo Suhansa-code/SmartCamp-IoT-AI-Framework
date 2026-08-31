@@ -138,7 +138,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full">
-      <nav className="bg-white/90 backdrop-blur-lg" style={{ borderBottom: `1px solid ${COLORS.line}` }} aria-label="Main navigation">
+      <nav className="bg-white/90 backdrop-blur-lg py-2" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-12">
             <motion.div

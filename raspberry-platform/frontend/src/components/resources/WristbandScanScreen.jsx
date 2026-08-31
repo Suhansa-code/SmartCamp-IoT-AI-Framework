@@ -242,6 +242,7 @@ function DistributionPanel() {
   const [statusType, setStatusType] = useState("error");
   const [qosInfo, setQosInfo] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [waterQuantity, setWaterQuantity] = useState(1);
 
   const applyLookup = (data, raw) => {
     const person = data.person;
@@ -315,10 +316,17 @@ function DistributionPanel() {
 
   const handleDistribute = async (resourceType) => {
     try {
+      let body = {
+        barcode,
+        resource_type: resourceType,
+      };
+      if (resourceType === 'water') {
+        body.quantity = waterQuantity;
+      }
       const res = await fetch(`${API}/api/distribute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barcode, resource_type: resourceType }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.error) {
@@ -555,22 +563,41 @@ function DistributionPanel() {
                 </div>
 
               </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                <DistributionTile
-                  label="Breakfast"
-                  icon={Coffee}
-                  item={dailyMap.breakfast}
-                  onGive={() => handleDistribute("breakfast")}
-                />
-                <DistributionTile label="Lunch" icon={Utensils} item={dailyMap.lunch} onGive={() => handleDistribute("lunch")} />
-                <DistributionTile
-                  label="Dinner"
-                  icon={Utensils}
-                  item={dailyMap.dinner}
-                  onGive={() => handleDistribute("dinner")}
-                />
-                <DistributionTile label="Water" icon={Droplets} item={dailyMap.water} onGive={() => handleDistribute("water")} />
-              </div>
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                  <DistributionTile
+                    label="Breakfast"
+                    icon={Coffee}
+                    item={dailyMap.breakfast}
+                    onGive={() => handleDistribute("breakfast")}
+                  />
+                  <DistributionTile label="Lunch" icon={Utensils} item={dailyMap.lunch} onGive={() => handleDistribute("lunch")} />
+                  <DistributionTile
+                    label="Dinner"
+                    icon={Utensils}
+                    item={dailyMap.dinner}
+                    onGive={() => handleDistribute("dinner")}
+                  />
+                  <DistributionTile label="Water" icon={Droplets} item={dailyMap.water} onGive={() => handleDistribute("water")} />
+                </div>
+                {barcode && waterQuantity && (
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <PrimaryButton
+                      size="sm"
+                      onClick={() => setWaterQuantity((q) => Math.max(1, q - 1))}
+                      disabled={waterQuantity <= 1}
+                    >
+                      -
+                    </PrimaryButton>
+                    <span className="text-[12px] font-medium">Water: {waterQuantity}{' '}L</span>
+                    <PrimaryButton
+                      size="sm"
+                      onClick={() => setWaterQuantity((q) => Math.min(5, q + 1))}
+                      disabled={waterQuantity >= 5}
+                    >
+                      +
+                    </PrimaryButton>
+                  </div>
+                )}
             </div>
 
             {qosInfo && (

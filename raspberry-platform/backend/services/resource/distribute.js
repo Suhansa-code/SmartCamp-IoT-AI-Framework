@@ -17,12 +17,37 @@ function getQuantities() {
   return _quantities;
 }
 
-export async function distributeResource(barcode, resourceType) {
+const MAX_WATER_LITERS = 5;
+
+/**
+ * Get configured maximum water allowance (default 5L, can be overridden via distribution.json)
+ */
+function getMaxWaterLiters() {
+  const dist = getQuantities();
+  return dist.standard?.water ?? MAX_WATER_LITERS;
+}
+
+export async function distributeResource(barcode, resourceType, quantity) {
   const dist = getQuantities();
   const quantities = dist.standard;
 
   if (!quantities[resourceType]) {
     throw Object.assign(new Error('Invalid resource_type'), { status: 400 });
+  }
+
+  // For water, check cumulative issuance against maximum allowance
+  if (resourceType === 'water') {
+    const maxLiters = getMaxWaterLiters();
+    
+    // Calculate total water already issued to this wristband today
+    const alreadyIssued = db.prepare(
+      "SELECT SUM(quantity) as total FROM distributions WHERE wristband_barcode = ? AND resource_type = 'water' AND DATE(distributed_at) = DATE('now')"
+    ).get(barcode).total || 0;
+    
+    // If adding this quantity would exceed maximum, throw error
+    if ((alreadyIssued || 0) + (quantity || 0) > maxLiters) {
+      throw Object.assign(new Error(`Water maximum allowance (${maxLiters}L) exceeded. Already issued: ${alreadyIssued}L, request: ${quantity}L`), { status: 400 });
+    }
   }
 
   const existing = db.prepare(
@@ -33,7 +58,7 @@ export async function distributeResource(barcode, resourceType) {
   }
 
   db.prepare('INSERT INTO distributions (wristband_barcode, resource_type, quantity) VALUES (?, ?, ?)')
-    .run(barcode, resourceType, quantities[resourceType]);
+    .run(barcode, resourceType, quantity || quantities[resourceType]);
 
   enqueueSync('distributions', barcode);
 
@@ -47,7 +72,7 @@ export async function distributeResource(barcode, resourceType) {
 
   const payload = {
     event: 'distribution', person_id: person.id, person_name: person.full_name,
-    barcode, resource_type: resourceType, quantity: quantities[resourceType], timestamp: new Date().toISOString(),
+    barcode, resource_type: resourceType, quantity: quantity || quantities[resourceType], timestamp: new Date().toISOString(),
   };
 
   // One shared broker connection for everything the Pi publishes. Per-person

@@ -70,7 +70,7 @@ function Card({ children, className = "", delay = 0 }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.3 }}
-      className={`bg-white rounded-xl p-4 sm:p-5 ${className}`}
+      className={`bg-gray-50/80 rounded-xl p-4 sm:p-5 ${className}`}
     >
       {children}
     </motion.div>
@@ -449,9 +449,9 @@ export default function DashboardPage() {
         </div>
 
         {/* ================= DISTRIBUTION + SIDE CARDS ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 ">
           <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-            <Card delay={0.1} className="lg:col-span-2 w-full h-fit">
+            <Card delay={0.1} className="lg:col-span-2 w-full h-fit ">
               <SectionLabel>Today's Distribution</SectionLabel>
               <DistributionRow label="Breakfast" data={dist.breakfast} />
               <DistributionRow label="Lunch" data={dist.lunch} />
@@ -585,7 +585,7 @@ export default function DashboardPage() {
                   Flood Prediction
                 </span>
                 {prediction?.mode === 'simulation' && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-700">SIM</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-amber-100 text-amber-700">SIM</span>
                 )}
               </div>
               <div className="space-y-0">
@@ -748,7 +748,7 @@ export default function DashboardPage() {
                           }}
                         />
                       </div>
-                      <span className="text-[11px]" style={{ color: COLORS.muted }}>
+                      <span className="text-[11px] font-mono" style={{ color: COLORS.muted }}>
                         {g.count}
                       </span>
                     </div>
