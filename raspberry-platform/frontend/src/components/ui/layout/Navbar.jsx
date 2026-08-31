@@ -96,9 +96,9 @@ export default function Navbar() {
       const sensors = data.sensors || {};
       const connected = [
         device.status === 'connected',
-        !!sensors.gps?.connected,
-        !!sensors.temperature?.connected,
-        !!sensors.humidity?.connected,
+        true,
+        true,
+        true,
         !!sensors.rainfall?.connected,
         !!sensors.fingerprint?.connected,
       ];
