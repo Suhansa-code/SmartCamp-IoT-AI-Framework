@@ -13,4 +13,4 @@
 services:
   edge-gateway:
     devices:
-      - "${GPS_SERIAL_PORT:-/dev/ttyUSB0}:${GPS_SERIAL_PORT:-/dev/ttyUSB0}"
+      - "${GPS_SERIAL_PORT:-/dev/ttyUSB1}:${GPS_SERIAL_PORT:-/dev/ttyUSB1}"
