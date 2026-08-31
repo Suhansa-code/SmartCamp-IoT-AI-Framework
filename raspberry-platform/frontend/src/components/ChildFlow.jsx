@@ -65,7 +65,7 @@ function ChildFlowContent() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="child-flow min-h-screen">
       {screen === 'welcome' && <ChildWelcomePage onNavigate={(data) => { setSessionData(data); setScreen('game') }} />}
       {screen === 'game' && (
         <AnimalGame

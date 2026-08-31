@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, FlaskConical, Play, RotateCcw } from 'lucide-react'
-import { COLORS, SHADOW_CARD } from '../../lib/tokens'
+import { COLORS } from '../../lib/tokens'
 import { API } from '../ui/config'
 
 const DEFAULT_VALUES = {
@@ -31,11 +31,18 @@ const SECTIONS = ['Weather', 'Terrain', 'Location', 'Gauge Thresholds']
 
 export default function SimulationModal({ open, onClose, onSimulate, onExitSimulation, isSimulating, simResult }) {
   const [values, setValues] = useState({ ...DEFAULT_VALUES })
+  const [enabled, setEnabled] = useState({})
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState(null)
 
   if (!open) return null
+
+  const handleToggle = (key) => {
+    setEnabled(prev => ({ ...prev, [key]: !prev[key] }))
+    setErrors(prev => ({ ...prev, [key]: null }))
+    setApiError(null)
+  }
 
   const handleChange = (key, raw) => {
     const num = Number(raw)
@@ -47,6 +54,7 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
   const validate = () => {
     const errs = {}
     for (const f of FIELD_DEFS) {
+      if (!enabled[f.key]) continue
       const v = values[f.key]
       if (v === '' || v === null || v === undefined || isNaN(Number(v))) {
         errs[f.key] = 'Required'
@@ -63,9 +71,12 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
     setLoading(true)
     setApiError(null)
     try {
-      const payload = {}
+      const enabledFields = Object.keys(enabled).filter(k => enabled[k])
+      const payload = { enabled_fields: enabledFields }
       for (const f of FIELD_DEFS) {
-        payload[f.key] = Number(values[f.key])
+        if (enabled[f.key]) {
+          payload[f.key] = Number(values[f.key])
+        }
       }
       const res = await fetch(`${API}/api/disaster/predict-simulate`, {
         method: 'POST',
@@ -88,18 +99,19 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
 
   const handleReset = () => {
     setValues({ ...DEFAULT_VALUES })
+    setEnabled({})
     setErrors({})
     setApiError(null)
   }
 
+  const enabledCount = Object.values(enabled).filter(Boolean).length
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
       <div
-        className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col"
+        className="relative bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
         style={{ border: `1px solid ${COLORS.line}` }}
       >
         {/* Header */}
@@ -109,8 +121,12 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
               <FlaskConical className="w-4 h-4" style={{ color: COLORS.brand }} />
             </div>
             <div>
-              <h3 className="text-[14px] font-semibold">Prediction Simulation</h3>
-              <p className="text-[11px]" style={{ color: COLORS.muted }}>Enter model inputs manually</p>
+              <h3 className="text-[14px] font-medium" style={{ color: COLORS.ink }}>Prediction Simulation</h3>
+              <p className="text-[11px]" style={{ color: COLORS.muted }}>
+                {enabledCount > 0
+                  ? `${enabledCount} field${enabledCount > 1 ? 's' : ''} simulated — others use live data`
+                  : 'Toggle fields to simulate — all use live data'}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
@@ -121,39 +137,81 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {apiError && (
-            <div className="rounded-lg border px-3 py-2 text-[12px] bg-red-50 border-red-200 text-red-700">
+            <div className="rounded-lg px-3 py-2 text-[12px]" style={{ backgroundColor: '#FEF2F2', color: '#991B1B' }}>
               {apiError}
             </div>
           )}
 
           {SECTIONS.map(section => (
             <div key={section}>
-              <p className="text-[10.5px] uppercase tracking-wider font-mono mb-2" style={{ color: COLORS.muted }}>
+              <p className="text-[10.5px] uppercase tracking-wider mb-2" style={{ color: COLORS.muted }}>
                 {section}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {FIELD_DEFS.filter(f => f.section === section).map(f => (
-                  <div key={f.key}>
-                    <label className="text-[11px] font-medium" style={{ color: COLORS.body }}>
-                      {f.label} <span className="font-mono" style={{ color: COLORS.muted }}>({f.unit})</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={values[f.key]}
-                      onChange={e => handleChange(f.key, e.target.value)}
-                      min={f.min}
-                      max={f.max}
-                      step={f.step}
-                      className={`mt-1 w-full rounded-lg border px-3 py-2 text-[13px] font-mono outline-none transition-colors ${
-                        errors[f.key] ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-teal-500'
-                      }`}
-                      style={{ color: COLORS.ink }}
-                    />
-                    {errors[f.key] && (
-                      <p className="text-[10px] text-red-500 mt-0.5">{errors[f.key]}</p>
-                    )}
-                  </div>
-                ))}
+              <div className="space-y-1.5">
+                {FIELD_DEFS.filter(f => f.section === section).map(f => {
+                  const isOn = !!enabled[f.key]
+                  return (
+                    <div key={f.key} className="flex items-center gap-2">
+                      {/* Checkbox */}
+                      <button
+                        onClick={() => handleToggle(f.key)}
+                        className="flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors"
+                        style={{
+                          borderColor: isOn ? COLORS.brand : COLORS.line,
+                          backgroundColor: isOn ? COLORS.brand : 'white',
+                        }}
+                      >
+                        {isOn && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+
+                      {/* Label */}
+                      <label
+                        className="text-[11px] w-[110px] flex-shrink-0 cursor-pointer select-none"
+                        style={{ color: isOn ? COLORS.ink : COLORS.muted }}
+                        onClick={() => handleToggle(f.key)}
+                      >
+                        {f.label}
+                      </label>
+
+                      {/* Input */}
+                      <div className="flex-1 relative">
+                        {isOn ? (
+                          <input
+                            type="number"
+                            value={values[f.key]}
+                            onChange={e => handleChange(f.key, e.target.value)}
+                            min={f.min}
+                            max={f.max}
+                            step={f.step}
+                            className={`w-full rounded-lg border px-3 py-1.5 text-[12px] outline-none transition-colors ${
+                              errors[f.key] ? 'border-red-400' : 'focus:border-teal-500'
+                            }`}
+                            style={{
+                              color: COLORS.ink,
+                              borderColor: errors[f.key] ? '#F87171' : COLORS.line,
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className="w-full rounded-lg border px-3 py-1.5 text-[12px]"
+                            style={{ borderColor: COLORS.line, color: COLORS.muted }}
+                          >
+                            <span className="text-[10px] uppercase tracking-wide">Live</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Unit */}
+                      <span className="text-[10px] w-6 flex-shrink-0 text-right" style={{ color: COLORS.muted }}>
+                        {f.unit}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           ))}
@@ -172,7 +230,7 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
           {isSimulating && (
             <button
               onClick={onExitSimulation}
-              className="px-4 py-2 rounded-lg border text-[12px] font-semibold transition-colors hover:bg-gray-50"
+              className="px-4 py-2 rounded-lg border text-[12px] font-medium transition-colors hover:bg-gray-50"
               style={{ borderColor: COLORS.line, color: COLORS.body }}
             >
               Exit Simulation
@@ -181,7 +239,7 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
           <button
             onClick={handleRun}
             disabled={loading}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             style={{ backgroundColor: COLORS.brand }}
           >
             {loading ? (
@@ -191,7 +249,7 @@ export default function SimulationModal({ open, onClose, onSimulate, onExitSimul
               </>
             ) : (
               <>
-                <Play className="w-3.5 h-3.5" fill="currentColor" /> Run Simulation
+                <Play className="w-3.5 h-3.5" fill="currentColor" /> Run Prediction
               </>
             )}
           </button>

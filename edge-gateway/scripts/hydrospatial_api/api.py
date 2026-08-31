@@ -1,11 +1,29 @@
+from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
-from .service import find_nearest_river_and_station, build_live_payload, build_live_prediction, build_hydrospatial_analysis
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from .service import find_nearest_river_and_station, build_live_payload, build_live_prediction, build_hydrospatial_analysis, build_local_prediction
 from .providers.weather_forecast_location import fetch_forecast_location
 from .providers.live_water_level_api import get_gauge_history
 from digital_elevation_model.elevation_service import get_elevation
 
 
 router = APIRouter()
+
+
+class PredictLocalRequest(BaseModel):
+    rainfall_mm: float = 0.0
+    longitude: float = 0.0
+    latitude: float = 0.0
+    altitude_m: float = 10.0
+    dem_elevation_m: Optional[float] = None
+    nearest_river_m: float = 0.0
+    water_level_m: float = 0.0
+    is_forecast: bool = True
+    gauge_alert_level: float = 2.0
+    gauge_minor_level: float = 3.0
+    gauge_major_level: float = 5.0
+    return_shap: bool = True
 
 
 @router.get("/health")
@@ -33,7 +51,24 @@ def predict(
 ):
     """Run live flood prediction with current gauge data."""
     result, error = build_live_prediction(lat, lon, alt)
-    if error and result is None:
+    if error and (result is None or result.get("prediction") is None):
+        raise HTTPException(status_code=502, detail=error)
+    return result
+
+
+@router.post("/predict-local")
+def predict_local(body: PredictLocalRequest):
+    """Run flood prediction with pre-assembled feature vector (no external API fetches).
+
+    Accepts the complete model input payload directly and runs XGBoost inference
+    without querying ArcGIS, Overpass, or DEM services. Used for simulation mode.
+    """
+    inputs = body.model_dump()
+    if inputs["dem_elevation_m"] is None:
+        inputs["dem_elevation_m"] = inputs["altitude_m"]
+
+    result, error = build_local_prediction(inputs)
+    if error and (result is None or result.get("prediction") is None):
         raise HTTPException(status_code=502, detail=error)
     return result
 

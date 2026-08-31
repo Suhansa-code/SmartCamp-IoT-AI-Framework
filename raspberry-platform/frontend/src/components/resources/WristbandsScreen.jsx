@@ -18,20 +18,16 @@ import {
   ShieldCheck,
   ShieldOff,
 } from "lucide-react";
-import { COLORS, SHADOW_CARD } from "../../lib/tokens";
+import { COLORS, SHADOW_CARD, TONE } from "../../lib/tokens";
 import { API } from "../ui/config";
 import StatCard from "../ui/base/StatCard";
 
-/* ------------------------------------------------------------------ */
-/*  STATUS / SEMANTIC COLOUR MAP                                        */
-/* ------------------------------------------------------------------ */
-
 const STATUS = {
-  success: { color: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
-  error: { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-  pending: { color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  info: { color: "#0284C7", bg: "#F0F9FF", border: "#BAE6FD" },
-  neutral: { color: "#5B6169", bg: "#F5F6F5", border: "#E7E8EA" },
+  success: { color: COLORS.brand, bg: COLORS.brandSoft, border: COLORS.brandMuted },
+  error: { color: TONE.danger.color, bg: TONE.danger.bg, border: TONE.danger.border },
+  pending: { color: TONE.warning.color, bg: TONE.warning.bg, border: TONE.warning.border },
+  info: { color: TONE.info.color, bg: TONE.info.bg, border: TONE.info.border },
+  neutral: { color: COLORS.body, bg: COLORS.grid, border: COLORS.line },
 };
 
 const STATUS_TONE = {
@@ -56,7 +52,7 @@ const STATUS_FILTERS = [
 
 function IconTile({ icon: Icon, color }) {
   return (
-    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border flex items-center justify-center shrink-0" style={{ borderColor: COLORS.line }}>
+    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: COLORS.hairline }}>
       <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" style={{ color: color || COLORS.body }} strokeWidth={1.6} />
     </div>
   );
@@ -247,7 +243,7 @@ function AssignModal({ wristband, onClose, onAssigned }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold truncate" style={{ color: COLORS.ink }}>{p.full_name}</p>
-              <p className="text-[11px] font-mono" style={{ color: COLORS.muted }}>#{p.id} · {p.person_type || "resident"}</p>
+              <p className="text-[11px] " style={{ color: COLORS.muted }}>#{p.id} · {p.person_type || "resident"}</p>
             </div>
             <UserPlus className="w-4 h-4 shrink-0" style={{ color: COLORS.brand }} strokeWidth={1.8} />
           </button>
@@ -333,10 +329,10 @@ function WristbandRow({ wb, onShowQr, onAssign, onUnassign, onStatus, index }) {
       style={{ borderColor: COLORS.hairline }}
     >
       <td className="px-4 sm:px-5 py-3">
-        <p className="text-[13px] font-semibold font-mono" style={{ color: COLORS.ink }}>
+        <p className="text-[13px] font-semibold" style={{ color: COLORS.ink }}>
           {wb.wristband_id}
         </p>
-        <p className="text-[10.5px] font-mono" style={{ color: COLORS.muted }}>
+        <p className="text-[10.5px] " style={{ color: COLORS.muted }}>
           {wb.qr_identifier || "—"}
         </p>
       </td>
@@ -352,7 +348,7 @@ function WristbandRow({ wb, onShowQr, onAssign, onUnassign, onStatus, index }) {
           <span className="text-[12.5px]" style={{ color: COLORS.muted }}>—</span>
         )}
         {wb.assigned_at && (
-          <p className="text-[10.5px] font-mono mt-0.5" style={{ color: COLORS.muted }}>
+          <p className="text-[10.5px]  mt-0.5" style={{ color: COLORS.muted }}>
             {wb.assigned_at}
           </p>
         )}
@@ -533,13 +529,13 @@ export default function WristbandsScreen() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-2 sm:py-7">
           <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>
+            <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>
               Camp operations
             </p>
-            <h1 className="font-serif font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight">
+            <h1 className="font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight">
               Wristband Inventory
             </h1>
-            <p className="text-[12.5px] mt-2" style={{ color: COLORS.muted }}>
+            <p className="text-[12px] mt-2" style={{ color: COLORS.muted }}>
               Pre-print, assign, and track QR wristbands across the camp.
             </p>
           </div>
@@ -552,8 +548,8 @@ export default function WristbandsScreen() {
                 value={batchCount}
                 onChange={(e) => setBatchCount(e.target.value)}
                 aria-label="Number of wristbands to generate"
-                className="w-20 px-2.5 py-2.5 rounded-lg border text-[13px] font-mono focus:outline-none"
-                style={{ borderColor: COLORS.line, color: COLORS.ink, backgroundColor: "#FAFAF9" }}
+                className="w-20 px-2.5 py-2.5 rounded-lg border text-[13px] focus:outline-none"
+                style={{ borderColor: COLORS.line, color: COLORS.ink, backgroundColor: COLORS.grid }}
               />
               <PrimaryButton onClick={handleBatch} loading={batchBusy} loadingText="Printing">
                 <PackagePlus className="w-3.5 h-3.5" /> Print batch
@@ -585,11 +581,11 @@ export default function WristbandsScreen() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search by band, QR, or person…"
               className="w-full pl-10 pr-11 py-2.5 rounded-lg border text-[13px] focus:outline-none transition-colors"
-              style={{ borderColor: COLORS.line, color: COLORS.ink, backgroundColor: "#FAFAF9" }}
+              style={{ borderColor: COLORS.line, color: COLORS.ink, backgroundColor: COLORS.grid }}
             />
             {q && (
               <button onClick={() => setQ("")} aria-label="Clear search" className="absolute inset-y-0 right-3 flex items-center justify-center">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: "#EFEFEE", color: COLORS.body }}>
+                <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: COLORS.hairline, color: COLORS.body }}>
                   <X className="w-3 h-3" />
                 </div>
               </button>
@@ -637,7 +633,7 @@ export default function WristbandsScreen() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="text-[10.5px] font-mono font-semibold uppercase tracking-[0.06em]" style={{ color: COLORS.muted, backgroundColor: "#FAFAF9" }}>
+                <tr className="text-[11px] font-medium uppercase tracking-wider" style={{ color: COLORS.muted, backgroundColor: COLORS.grid }}>
                   <th className="px-4 sm:px-5 py-3">Wristband</th>
                   <th className="px-4 sm:px-5 py-3">Status</th>
                   <th className="px-4 sm:px-5 py-3">Assigned person</th>

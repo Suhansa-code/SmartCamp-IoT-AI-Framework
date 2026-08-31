@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from '../lib/router'
 import { useAuth } from '../lib/AuthContext'
 import Button from './ui/base/Button'
+import { COLORS } from '../lib/tokens'
 
 export default function AuthorizePage() {
   const { navigate } = useRouter()
@@ -52,13 +53,13 @@ export default function AuthorizePage() {
 
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-8 max-w-sm w-full text-center">
-          <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: COLORS.grid }}>
+        <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center">
+          <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">&#x1F510;</span>
           </div>
-          <h2 className="text-lg font-semibold text-slate-800 mb-1">Already Authorized</h2>
-          <p className="text-sm text-slate-500 mb-6">Session active until auto-expiry</p>
+          <h2 className="text-lg font-medium mb-1" style={{ color: COLORS.ink }}>Already Authorized</h2>
+          <p className="text-sm mb-6" style={{ color: COLORS.muted }}>Session active until auto-expiry</p>
           <Button
             variant="danger"
             onClick={() => { logout(); navigate('/authorize') }}
@@ -79,14 +80,14 @@ export default function AuthorizePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-[0_1px_4px_0_rgba(0,0,0,0.04)] p-8 max-w-sm w-full">
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: COLORS.grid }}>
+      <div className="bg-white rounded-2xl p-8 max-w-sm w-full">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto mb-3">
+          <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
             <span className="text-2xl">&#x1F512;</span>
           </div>
-          <h2 className="text-lg font-semibold text-slate-800">Staff Authorization</h2>
-          <p className="text-sm text-slate-500 mt-1">Enter your 6-digit access code</p>
+          <h2 className="text-lg font-medium" style={{ color: COLORS.ink }}>Staff Authorization</h2>
+          <p className="text-sm mt-1" style={{ color: COLORS.muted }}>Enter your 6-digit access code</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -102,14 +103,15 @@ export default function AuthorizePage() {
                 onChange={e => handleChange(i, e.target.value)}
                 onKeyDown={e => handleKeyDown(i, e)}
                 className={`w-11 h-13 text-center text-xl font-bold rounded-lg border outline-none transition
-                  ${error ? 'border-red-400 bg-red-50' : 'border-slate-300 focus:border-blue-500'}
+                  ${error ? 'border-red-400 bg-red-50' : 'focus:border-blue-500'}
                 `}
+                style={{ borderColor: error ? undefined : COLORS.subtle }}
               />
             ))}
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm text-center mb-4">{error}</p>
+            <p className="text-sm text-center mb-4" style={{ color: COLORS.danger }}>{error}</p>
           )}
 
           <Button type="submit" className="w-full">

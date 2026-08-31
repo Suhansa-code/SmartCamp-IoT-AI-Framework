@@ -12,7 +12,7 @@ import fs from 'fs';
 import { env } from '../../config/env.js';
 import {
   isSyncProcessed, logSync, getBehavioralSignals,
-  upsertPerson, upsertCheckin, upsertWristband, upsertDistribution,
+  upsertDevice, upsertPerson, upsertCheckin, upsertWristband, upsertDistribution,
   upsertResource, upsertResourceUsage, upsertAuditLog,
   upsertChild, upsertSession, upsertBehavioralSignal,
   upsertGateDecision, upsertAlert, upsertContentResponse,
@@ -208,6 +208,15 @@ async function handleSyncMessage(topic, buffer) {
     console.warn(`[Sync Receiver] Unknown entity: ${entity}`);
     publishAck(envelope, 'error', `Unknown entity: ${entity}`);
     return;
+  }
+
+  // Auto-register device if we have both device_id and camp_id
+  if (envelope.device_id && camp_id) {
+    try {
+      await upsertDevice(envelope.device_id, camp_id, null);
+    } catch (devErr) {
+      console.warn(`[Sync Receiver] Device registration failed: ${devErr.message}`);
+    }
   }
 
   try {

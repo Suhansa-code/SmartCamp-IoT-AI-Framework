@@ -349,7 +349,7 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <MiniStat label="Children" value={eduTotals.children.toLocaleString()} icon={<Users size={12} />} />
                 <MiniStat label="Sessions" value={eduTotals.sessions.toLocaleString()} icon={<BookOpen size={12} />} />
-                <MiniStat label="Avg Score" value={eduAvg ?? '—'} icon="📊" sub="composite" />
+                <MiniStat label="Avg Score" value={eduAvg ?? '—'}  sub="composite" />
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {chip('flagged sessions', eduTotals.flagged, T.amber)}
@@ -385,14 +385,13 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <MiniStat label="Registered" value={res.population?.total == null ? '—' : res.population.total.toLocaleString()} icon={<Users size={12} />} sub={res.population?.families == null ? '— families' : `${res.population.families} families`} />
                 <MiniStat label="Attendance" value={`${attendance}%`} icon={<CalendarCheck size={12} />} />
-                <MiniStat label="Fed Today" value={`${fedPct}%`} icon="🍽️" />
+                <MiniStat label="Fed Today" value={`${fedPct}%`}/>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', padding: '0.8rem 0.9rem' }}>
                 <div style={{ fontSize: '0.66rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Today's distribution</div>
                 {Object.entries(res.distribution_today).map(([key, d]) => {
                   const pct = d.prepared > 0 ? Math.round((d.served / d.prepared) * 100) : 0
-                  const icon = { breakfast: '☕', lunch: '🍛', dinner: '🍲', water: '💧' }[key] || '🍽️'
-                  return <ProgressBar key={key} icon={icon} label={key.charAt(0).toUpperCase() + key.slice(1)} value={`${d.served}/${d.prepared}`} pct={pct} tone={pct > 85 ? T.green : T.teal} />
+                  return <ProgressBar key={key} label={key.charAt(0).toUpperCase() + key.slice(1)} value={`${d.served}/${d.prepared}`} pct={pct} tone={pct > 85 ? T.green : T.teal} />
                 })}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: T.muted, fontWeight: 600 }}>
