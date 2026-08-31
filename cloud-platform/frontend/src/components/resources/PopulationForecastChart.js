@@ -113,7 +113,7 @@ export default function PopulationForecastChart({ daily = [], current, confidenc
             <ReferenceLine
               y={current} stroke={T.dim} strokeDasharray="5 4"
               label={{
-                value: `today ${current.toLocaleString('en-GB')}`,
+                value: 'Today',
                 position: 'insideTopLeft', fill: T.dim, fontSize: 10.5, dy: -4,
               }}
             />

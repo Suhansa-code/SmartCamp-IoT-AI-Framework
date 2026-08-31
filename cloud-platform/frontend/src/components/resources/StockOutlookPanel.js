@@ -1,52 +1,82 @@
 'use client'
 
 /**
- * Stock outlook — when each commodity runs out, and when to reorder.
+ * Stock outlook — what is running out, when, and what to order.
  *
  * The inventory page answers "how much is left". This one answers "how long
- * does it last", which is a different question: the level test cannot see
+ * does it last", which is a different question: a level test cannot see
  * arrivals, so 500 kg of rice reads healthy right up until a camp fills.
  *
- * Everything here comes from GET /api/resources/stock/outlook, which walks the
- * population forecast day by day against each commodity's share of the basket.
+ * Everything here comes from GET /api/resources/stock/outlook. Nothing in this
+ * file computes a date, a rate or a quantity — it only formats what the API
+ * returned. Days of cover, runout, reorder-by and suggested order quantities
+ * are the backend's, unchanged.
  *
- * The page is laid out as that chain, top to bottom, because every date on it
- * is the product of exactly two things and an operator asked to trust a reorder
- * deadline is entitled to see both:
+ * ── Layout ──────────────────────────────────────────────────────────────────
  *
- *   1. the population forecast   how many people, with an honest band
- *   2. the commodity matching    which share of their food draws THIS item down
- *   3. the resulting dates       cover, runout, reorder-by
+ *   people      how many are being served, and which way the number is moving
+ *   forecast    the curve every date below rests on
+ *   risk        how many items are in trouble, and when the first one lands
+ *   inventory   the operational table — one row per item, details on demand
+ *   coverage    how much of the measured basket this store actually stocks
+ *   method      where the numbers come from, collapsed
  *
- * Steps 1 and 2 used to be a sentence and a line of grey text above a table of
- * step 3. A wrong date was then indistinguishable from a right one, because
- * neither input was visible.
+ * An earlier version stated its own methodology in full on the surface: a
+ * Theil-Sen residual note under the population line, a paragraph under the
+ * chart explaining the shaded band, a provenance essay under the table. All of
+ * it was true and none of it was scannable — the reorder date an operator came
+ * for sat behind four sentences about estimator choice. That material is all
+ * still reachable, in tooltips, expandable rows and the methodology section.
  */
-import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, PackageCheck, RefreshCw, TrendingUp, CalendarClock, Info } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Users, TrendingUp, TrendingDown,
+} from 'lucide-react'
 import { useTheme } from '@/components/common/ThemeProvider'
 import PopulationForecastChart from './PopulationForecastChart'
-import CommodityMatchPanel from './CommodityMatchPanel'
-import { DISASTER_API_BASE } from "@/lib/apiBase";
+import BasketCoverageCard from './BasketCoverageCard'
+import ForecastMethodology from './ForecastMethodology'
+import InfoHint from './InfoHint'
+import { DISASTER_API_BASE } from '@/lib/apiBase'
 
 const API = DISASTER_API_BASE
 
-// Derived from the theme rather than hardcoded, so the badges follow the
-// palette in both light and dark mode. The background is the accent at low
-// alpha, which reads correctly on either ground.
-const statusStyles = (T) => ({
-  CRITICAL:  { fg: T.red,   label: 'Critical' },
-  LOW:       { fg: T.amber, label: 'Low' },
-  AVAILABLE: { fg: T.green, label: 'Available' },
-  UNKNOWN:   { fg: T.muted, label: 'Not forecast' },
-})
+// ── formatting ──────────────────────────────────────────────────────────────
+// Presentation only. Every value below is rendered as the API returned it;
+// these helpers add separators, units and plurals and nothing else.
 
-/** Hex accent -> low-alpha background that works on light or dark. */
-function tint(hex, alpha = 0.15) {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex))
-  if (!m) return 'transparent'
-  const [r, g, b] = m.slice(1).map((v) => parseInt(v, 16))
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+/** Thousands separators, and at most one decimal — 376.7 stays 376.7. */
+function num(v) {
+  if (v == null || !Number.isFinite(Number(v))) return '—'
+  const n = Number(v)
+  return n.toLocaleString('en-GB', { maximumFractionDigits: 1 })
+}
+
+// Unit symbols are invariant: "80 kg", never "80 kgs".
+const INVARIANT_UNITS = new Set(['kg', 'g', 'mg', 'l', 'ml', 'lb', 'oz'])
+
+/**
+ * "1,000 bottles", "120 loaves", "80 kg".
+ *
+ * Naive `unit + "s"` produced "120 loafs" and "3 boxs" on real store lines, so
+ * the handful of English rules that actually bite a unit noun are applied. The
+ * quantity itself is never touched — only the word after it.
+ */
+function pluraliseUnit(unit) {
+  const u = unit.toLowerCase()
+  if (INVARIANT_UNITS.has(u)) return unit
+  if (/(?:leaf|loaf)$/.test(u)) return `${unit.slice(0, -1)}ves`
+  if (/(?:s|x|z|ch|sh)$/.test(u)) return `${unit}es`
+  if (/[^aeiou]y$/.test(u)) return `${unit.slice(0, -1)}ies`
+  return `${unit}s`
+}
+
+/** "1,000 bottles" — the value exactly as the API gave it, with its unit. */
+function qty(value, unit) {
+  if (value == null) return '—'
+  const n = num(value)
+  if (!unit) return n
+  return `${n} ${Number(value) === 1 ? unit : pluraliseUnit(unit)}`
 }
 
 function fmtDate(iso) {
@@ -56,19 +86,172 @@ function fmtDate(iso) {
   })
 }
 
-function Stat({ T, label, value, sub, accent }) {
+/** Hex accent -> low-alpha background that reads on either ground. */
+function tint(hex, alpha = 0.15) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex))
+  if (!m) return 'transparent'
+  const [r, g, b] = m.slice(1).map((v) => parseInt(v, 16))
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+// LOW reads as "Warning" here. The API's vocabulary is unchanged; only the
+// label is, because "Low" beside a "Days left" column invites the reading
+// "low days left", which is the opposite of what the status means.
+const STATUS = (T) => ({
+  CRITICAL:  { fg: T.red,   label: 'Critical' },
+  LOW:       { fg: T.amber, label: 'Warning' },
+  AVAILABLE: { fg: T.green, label: 'Available' },
+  UNKNOWN:   { fg: T.dim,   label: 'Not forecast' },
+})
+
+// Triage order for the table: trouble first, then soonest to run out.
+const TRIAGE_RANK = { CRITICAL: 0, LOW: 1, AVAILABLE: 2, UNKNOWN: 3 }
+
+/** How a store line was matched, in the words an operator would use. */
+const MATCH_LABEL = {
+  exact:          'Exact',
+  alias:          'Alias',
+  token_subset:   'Word match',
+  token_superset: 'Word match',
+}
+
+function StatusBadge({ T, status }) {
+  const s = (STATUS(T))[status] || STATUS(T).UNKNOWN
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      background: tint(s.fg), color: s.fg, borderRadius: '9999px',
+      padding: '3px 10px', fontSize: '0.71rem', fontWeight: 800, whiteSpace: 'nowrap',
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: 9999, background: s.fg }} />
+      {s.label}
+    </span>
+  )
+}
+
+/** One headline number with a short label beneath it. */
+function Metric({ T, value, label, accent, hint, icon }) {
+  return (
+    <div style={{ flex: '1 1 160px', minWidth: 0, padding: '0.15rem 0' }}>
+      <div style={{
+        display: 'flex', alignItems: 'baseline', gap: '0.4rem',
+        fontSize: '1.75rem', fontWeight: 800, lineHeight: 1.1,
+        color: accent || T.textPrimary, fontVariantNumeric: 'tabular-nums',
+      }}>
+        {icon}
+        {value}
+      </div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.3rem',
+        marginTop: '0.3rem', fontSize: '0.75rem', color: T.muted, fontWeight: 600,
+      }}>
+        {label}
+        {hint && <InfoHint text={hint} align="left" placement="bottom" size={12} />}
+      </div>
+    </div>
+  )
+}
+
+/** A risk counter card. Prominent, because these are the decision triggers. */
+function RiskCard({ T, value, label, sub, accent, active }) {
   return (
     <div style={{
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem',
-      padding: '1rem 1.1rem', flex: '1 1 170px', minWidth: 0,
+      flex: '1 1 180px', minWidth: 0,
+      background: active ? tint(accent, 0.09) : T.card,
+      border: `1px solid ${active ? tint(accent, 0.45) : T.border}`,
+      borderRadius: '0.9rem', padding: '0.95rem 1.1rem',
     }}>
-      <p style={{ fontSize: '0.68rem', fontWeight: 800, color: T.muted, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
-        {label}
-      </p>
-      <p style={{ fontSize: '1.6rem', fontWeight: 800, color: accent || T.textPrimary, margin: '0.35rem 0 0' }}>
+      <div style={{
+        fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.15,
+        color: active ? accent : T.textPrimary, fontVariantNumeric: 'tabular-nums',
+      }}>
         {value}
-      </p>
-      {sub && <p style={{ fontSize: '0.74rem', color: T.dim, margin: '0.2rem 0 0' }}>{sub}</p>}
+      </div>
+      <div style={{ marginTop: '0.25rem', fontSize: '0.78rem', fontWeight: 700, color: T.textPrimary }}>
+        {label}
+      </div>
+      {sub && (
+        <div style={{ marginTop: '0.1rem', fontSize: '0.72rem', color: T.dim }}>{sub}</div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The detail an operator only wants for one row at a time: what the line was
+ * read as, how confident that match is, and any warning attached to it.
+ */
+function ItemDetail({ T, item, leadTimeDays }) {
+  const s = item.standardisation ?? {}
+  const names = item.commodities_matched ?? (item.commodity_matched ? [item.commodity_matched] : [])
+  const matchLabel = MATCH_LABEL[s.match_rule]
+  const inferred = s.match_rule === 'token_subset' || s.match_rule === 'token_superset'
+
+  const rows = []
+  if (matchLabel) rows.push(['Match', matchLabel])
+  if (names.length) {
+    rows.push(['Matched commodity', names.length > 1 ? `${names[0]} + ${names.length - 1} more` : names[0]])
+  }
+  if (item.basket_share != null) rows.push(['Share of basket', `${(item.basket_share * 100).toFixed(1)}%`])
+  if (item.runout_earliest && item.runout_latest && item.runout_earliest !== item.runout_latest) {
+    rows.push(['Runs out between', `${fmtDate(item.runout_earliest)} – ${fmtDate(item.runout_latest)}`])
+  }
+  if (item.reorder_by) rows.push(['Lead time', `${leadTimeDays} days`])
+
+  return (
+    <div style={{
+      background: T.cardSoft, borderTop: `1px solid ${T.border}`,
+      padding: '0.9rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.7rem',
+    }}>
+      {rows.length > 0 && (
+        <div style={{
+          display: 'grid', gap: '0.55rem 1.6rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        }}>
+          {rows.map(([k, v]) => (
+            <div key={k}>
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 800, color: T.dim,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}>{k}</div>
+              <div style={{ fontSize: '0.8rem', color: T.ink, marginTop: 2 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {names.length > 1 && (
+        <div style={{ fontSize: '0.74rem', color: T.muted, lineHeight: 1.6 }}>
+          <strong style={{ color: T.textPrimary }}>Covers:</strong> {names.join(', ')}
+        </div>
+      )}
+
+      {inferred && (
+        <div style={{ fontSize: '0.74rem', color: T.blue, lineHeight: 1.6 }}>
+          Matched because the words line up, not because a curated mapping says so. The share is a
+          good guess rather than a stated one.
+        </div>
+      )}
+
+      {item.note
+        ? <div style={{ fontSize: '0.74rem', color: T.muted, lineHeight: 1.6 }}>{item.note}</div>
+        : s.class_note
+          ? <div style={{ fontSize: '0.74rem', color: T.muted, lineHeight: 1.6 }}>{s.class_note}</div>
+          : null}
+
+      {item.warnings?.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          {item.warnings.map((w, i) => (
+            <div key={i} style={{
+              display: 'flex', gap: '0.5rem', alignItems: 'flex-start',
+              fontSize: '0.74rem', color: T.muted, lineHeight: 1.55,
+            }}>
+              <AlertTriangle size={13} style={{ color: T.amber, flexShrink: 0, marginTop: 3 }} />
+              <span>{w}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -79,6 +262,7 @@ export default function StockOutlookPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
   const [days, setDays]       = useState(30)
+  const [expanded, setExpanded] = useState(() => new Set())
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -95,240 +279,322 @@ export default function StockOutlookPanel() {
 
   useEffect(() => { load() }, [load])
 
+  const toggleRow = useCallback((id) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }, [])
+
+  // Items at risk first, then by how soon they run out — the order an operator
+  // would triage in. Purely a sort; no value is recomputed.
+  const items = useMemo(() => {
+    if (!data?.items) return []
+    return [...data.items].sort((a, b) => {
+      const r = (TRIAGE_RANK[a.status] ?? 9) - (TRIAGE_RANK[b.status] ?? 9)
+      if (r !== 0) return r
+      const ac = a.days_cover ?? Infinity
+      const bc = b.days_cover ?? Infinity
+      return ac - bc
+    })
+  }, [data])
+
   if (loading && !data) {
     return <p style={{ color: T.muted, padding: '2rem' }}>Loading stock outlook…</p>
   }
   if (error) {
     return (
-      <div style={{ background: tint(T.red, 0.12), border: `1px solid ${T.red}`, borderRadius: '0.9rem', padding: '1rem', color: T.red }}>
+      <div style={{
+        background: tint(T.red, 0.12), border: `1px solid ${T.red}`,
+        borderRadius: '0.9rem', padding: '1rem', color: T.red,
+      }}>
         <strong>Could not load stock outlook.</strong> {error}
       </div>
     )
   }
 
-  const { summary, population, items, lead_time_days, provenance, allocation } = data
-  const STATUS_STYLE = statusStyles(T)
-  const forecastable = items.filter((i) => i.forecastable)
+  const { summary, population, lead_time_days, provenance, allocation, horizon_days } = data
+  const rising = (population.slope_per_day ?? 0) >= 0
+  const trendColour = rising ? T.amber : T.blue
+  const confColour =
+    population.confidence === 'HIGH' ? T.green
+    : population.confidence === 'MEDIUM' ? T.amber
+    : T.red
+  const confLabel =
+    population.confidence === 'HIGH' ? 'High'
+    : population.confidence === 'MEDIUM' ? 'Medium'
+    : 'Low'
+  const hasBand = population.daily?.some((d) => d.upper !== d.lower)
+
+  // The fitted slope and the drawn curve are NOT the same rate: the backend
+  // damps the trend over the horizon, so a +3.3/day fit projects 161 people in
+  // 30 days rather than a straight-line 245. Headlining the raw slope on its
+  // own invites exactly that wrong extrapolation, so the endpoint it actually
+  // implies is stated alongside it. Neither number is recomputed here.
+  const lastDay = population.daily?.length ? population.daily[population.daily.length - 1] : null
+  const trendHint = lastDay
+    ? `Fitted from recent check-in history. The forecast eases this rate off over time, projecting about ${num(lastDay.population)} people in ${horizon_days} days.`
+    : 'Based on recent registration history.'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
 
-      {/* ── Step 1. The population forecast every date below rests on ──── */}
-      <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem',
-        padding: '1rem 1.1rem 0.6rem',
-      }}>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-          <TrendingUp size={18} style={{ color: T.teal, flexShrink: 0, marginTop: 2 }} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ margin: 0, fontWeight: 700, color: T.textPrimary, fontSize: '0.92rem' }}>
-              {population.current} people now · {population.slope_per_day >= 0 ? '+' : ''}
-              {population.slope_per_day}/day ·{' '}
-              <span style={{ color: population.confidence === 'HIGH' ? T.green : population.confidence === 'MEDIUM' ? T.amber : T.red }}>
-                {population.confidence} confidence
-              </span>
-            </p>
-            <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: T.muted, lineHeight: 1.45 }}>
-              {population.note}
-            </p>
-          </div>
-        </div>
-
-        {/* The band is the honest part. A short history gives a wide band, and
-            a wide band is a real answer — showing only the central line would
-            present a cold-start guess as a measurement. */}
-        <PopulationForecastChart
-          daily={population.daily}
-          current={population.current}
-          confidence={population.confidence}
-        />
-        <p style={{
-          margin: '0 0 0.6rem', fontSize: '0.72rem', color: T.dim,
-          textAlign: 'center', lineHeight: 1.5,
-        }}>
-          {population.daily?.some((d) => d.upper !== d.lower)
-            ? 'Shaded band: lower to upper projection, widening with the horizon. Every runout date below is computed three times — at the lower, central and upper population — which is where the earliest/latest range comes from.'
-            : `No band is drawn: ${population.observations} day(s) of history is too few to estimate a residual spread, so only the central projection is shown.`}
-        </p>
-      </div>
-
-      {/* Headline counters */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <Stat T={T} label="Critical" value={summary.critical}
-              sub={`under ${lead_time_days}d cover`} accent={summary.critical ? T.red : T.textPrimary} />
-        <Stat T={T} label="Low" value={summary.low}
-              sub={`under ${lead_time_days * 2}d cover`} accent={summary.low ? T.amber : T.textPrimary} />
-        <Stat T={T} label="Next runout" value={fmtDate(summary.next_runout)}
-              sub={summary.next_runout ? 'earliest across all items' : 'none within horizon'} />
-        <Stat T={T} label="Tracked" value={`${summary.forecastable}/${summary.total_items}`}
-              sub="items with a daily draw rate" />
-      </div>
-
-      {/* Horizon control */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.78rem', color: T.muted, fontWeight: 700 }}>Horizon</span>
+      {/* ── Controls ─────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.75rem', color: T.muted, fontWeight: 700 }}>Next</span>
         {[14, 30, 60].map((d) => (
           <button key={d} onClick={() => setDays(d)} style={{
-            padding: '0.35rem 0.8rem', borderRadius: '9999px', cursor: 'pointer',
+            padding: '0.32rem 0.75rem', borderRadius: '9999px', cursor: 'pointer',
             border: `1px solid ${days === d ? T.teal : T.border}`,
             background: days === d ? T.tealLight : T.card,
-            color: days === d ? T.tealDim : T.muted, fontWeight: 700, fontSize: '0.78rem',
+            color: days === d ? T.tealDim : T.muted, fontWeight: 700, fontSize: '0.76rem',
           }}>{d} days</button>
         ))}
         <button onClick={load} disabled={loading} style={{
           marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
-          padding: '0.35rem 0.8rem', borderRadius: '9999px', border: `1px solid ${T.border}`,
-          background: T.card, color: T.muted, fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer',
+          padding: '0.32rem 0.75rem', borderRadius: '9999px', border: `1px solid ${T.border}`,
+          background: T.card, color: T.muted, fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer',
         }}>
           <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
           Refresh
         </button>
       </div>
 
-      {/* ── Step 2. Which share of that demand draws each item down ────── */}
-      <CommodityMatchPanel items={items} allocation={allocation} provenance={provenance} />
-
-      {/* ── Step 3. The dates that follow from 1 and 2 ─────────────────── */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: 780 }}>
-            <thead>
-              <tr style={{ background: T.bar }}>
-                {['Resource', 'Status', 'In stock', 'Use / day', 'Cover', 'Runs out', 'Order by', 'Suggested order'].map((h) => (
-                  <th key={h} style={{
-                    textAlign: h === 'Resource' || h === 'Status' ? 'left' : 'right',
-                    padding: '0.7rem 0.9rem', fontSize: '0.68rem', fontWeight: 800,
-                    color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em',
-                    whiteSpace: 'nowrap',
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it) => {
-                const st = STATUS_STYLE[it.status] || STATUS_STYLE.UNKNOWN
-                return (
-                  <tr key={it.id} style={{ borderTop: `1px solid ${T.border}` }}>
-                    <td style={{ padding: '0.7rem 0.9rem', fontWeight: 700, color: T.textPrimary }}>
-                      {it.resource_name}
-                      {/* Say what this line was READ AS, not just what it
-                          matched. The canonical key is what both sides of the
-                          match were reduced to, so when a share looks wrong it
-                          is the first thing worth seeing. */}
-                      {it.commodity_matched && it.commodity_matched !== it.resource_name && (
-                        <span style={{ display: 'block', fontSize: '0.7rem', color: T.dim, fontWeight: 500 }}>
-                          {it.commodity_matched}
-                          {it.commodities_matched?.length > 1 && (
-                            <span title={it.commodities_matched.join(', ')} style={{ cursor: 'help' }}>
-                              {' '}+{it.commodities_matched.length - 1}
-                            </span>
-                          )}
-                          {it.basket_share != null && ` · ${(it.basket_share * 100).toFixed(1)} % of basket`}
-                        </span>
-                      )}
-                      {it.standardisation?.match_rule && it.standardisation.match_confidence !== 'high' && (
-                        <span title={`Matched by ${it.standardisation.match_rule.replace('_', ' ')} — the words line up, but no exact name or curated alias confirms it.`}
-                              style={{ display: 'inline-block', marginTop: 3, fontSize: '0.66rem',
-                                       fontWeight: 800, color: T.blue, cursor: 'help' }}>
-                          word match
-                        </span>
-                      )}
-                      {it.forecastable && it.kind === 'food' && !it.commodity_matched && (
-                        <span title={it.warnings?.join(' ')}
-                              style={{ display: 'inline-block', marginTop: 3, fontSize: '0.66rem',
-                                       fontWeight: 800, color: T.amber, cursor: 'help' }}>
-                          unallocated remainder
-                        </span>
-                      )}
-                      {it.warnings?.length > 0 && (
-                        <span title={it.warnings.join(' ')} style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3,
-                          fontSize: '0.68rem', color: T.amber, fontWeight: 700,
-                        }}>
-                          <AlertTriangle size={11} /> {it.warnings.length} warning{it.warnings.length > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.7rem 0.9rem' }}>
-                      <span style={{
-                        background: tint(st.fg), color: st.fg, borderRadius: '9999px',
-                        padding: '2px 10px', fontSize: '0.72rem', fontWeight: 800, whiteSpace: 'nowrap',
-                      }}>{st.label}</span>
-                    </td>
-                    <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: T.ink }}>
-                      {it.available_quantity} {it.unit}
-                    </td>
-                    <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: T.ink }}>
-                      {it.daily_use_now ?? '—'}
-                    </td>
-                    <td style={{
-                      padding: '0.7rem 0.9rem', textAlign: 'right', fontWeight: 800,
-                      color: it.status === 'CRITICAL' ? T.red : it.status === 'LOW' ? T.amber : T.ink,
-                    }}>
-                      {it.days_cover ?? '—'}{it.days_cover != null && ' d'}
-                    </td>
-                    <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: T.ink, whiteSpace: 'nowrap' }}>
-                      {fmtDate(it.runout_date)}
-                      {it.runout_earliest && it.runout_latest && it.runout_earliest !== it.runout_latest && (
-                        <span style={{ display: 'block', fontSize: '0.68rem', color: T.dim }}>
-                          {fmtDate(it.runout_earliest)} – {fmtDate(it.runout_latest)}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{
-                      padding: '0.7rem 0.9rem', textAlign: 'right', whiteSpace: 'nowrap',
-                      fontWeight: it.status === 'CRITICAL' ? 800 : 600,
-                      color: it.status === 'CRITICAL' ? T.red : T.ink,
-                    }}>
-                      {fmtDate(it.reorder_by)}
-                    </td>
-                    <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: T.ink }}>
-                      {it.suggested_order_qty != null ? `${it.suggested_order_qty} ${it.unit}` : '—'}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        {forecastable.length === 0 && (
-          <p style={{ padding: '1.2rem', color: T.muted, margin: 0, fontSize: '0.85rem' }}>
-            No items have a daily consumption rate, so no runout dates can be projected.
-            Give resources a FOOD or WATER category to include them.
-          </p>
-        )}
-      </div>
-
-      {/* Provenance — what these numbers rest on */}
-      <div style={{
-        background: T.cardSoft, border: `1px solid ${T.border}`, borderRadius: '0.9rem',
-        padding: '0.9rem 1.1rem', display: 'flex', gap: '0.7rem', alignItems: 'flex-start',
+      {/* ── People + forecast ────────────────────────────────────────────── */}
+      <section style={{
+        background: T.card, border: `1px solid ${T.border}`,
+        borderRadius: '0.9rem', padding: '1.15rem 1.15rem 0.5rem',
       }}>
-        <Info size={16} style={{ color: T.muted, flexShrink: 0, marginTop: 2 }} />
-        <div style={{ fontSize: '0.76rem', color: T.muted, lineHeight: 1.55 }}>
-          <strong style={{ color: T.textPrimary }}>How these dates are produced.</strong>{' '}
-          Population is forecast from live check-in history ({provenance.population}); food
-          quantities come from {provenance.food_rates}; water from {provenance.water_rates}; each
-          commodity&apos;s share of the basket is measured from {provenance.commodity_shares}.
-          Store names are standardised and resolved through{' '}
-          {provenance.commodity_aliases
-            ? `a curated alias table (${provenance.commodity_aliases.artifact_id}, ${provenance.commodity_aliases.counts.aliases} entries)`
-            : 'a curated alias table'}{' '}
-          before matching — that table is the one input here that is curated rather than measured,
-          and it decides only WHICH commodity a line refers to, never how much of it is consumed.
-          Reorder dates assume a {lead_time_days}-day resupply lead time.
-          {provenance.matching_note && (
-            <span style={{ display: 'block', marginTop: '0.4rem' }}>
-              <strong style={{ color: T.textPrimary }}>Matching:</strong> {provenance.matching_note}
+        <div style={{
+          display: 'flex', gap: '1.5rem', flexWrap: 'wrap',
+          paddingBottom: '0.9rem', borderBottom: `1px solid ${T.border}`,
+        }}>
+          <Metric
+            T={T}
+            value={num(population.current)}
+            label="People now"
+            icon={<Users size={19} style={{ color: T.dim, marginRight: 2 }} />}
+          />
+          <Metric
+            T={T}
+            value={`${rising ? '+' : ''}${num(population.slope_per_day)}/day`}
+            label="Recent trend"
+            accent={trendColour}
+            hint={trendHint}
+            icon={rising
+              ? <TrendingUp size={19} style={{ color: trendColour, marginRight: 2 }} />
+              : <TrendingDown size={19} style={{ color: trendColour, marginRight: 2 }} />}
+          />
+          <Metric
+            T={T}
+            value={confLabel}
+            label="Forecast confidence"
+            accent={confColour}
+            hint={`Reflects how steady recent arrivals have been. Based on ${population.observations} day${population.observations === 1 ? '' : 's'} of check-in history.`}
+          />
+        </div>
+
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.4rem',
+          paddingTop: '0.85rem', fontSize: '0.7rem', fontWeight: 800,
+          color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em',
+        }}>
+          Population forecast
+          <InfoHint
+            align="left"
+            placement="bottom"
+            text={hasBand
+              ? 'Forecast range based on recent population variation. Each runout date is computed at the low, central and high population.'
+              : `Too little history (${population.observations} day${population.observations === 1 ? '' : 's'}) to estimate a range, so only the central projection is drawn.`}
+          />
+          <span style={{
+            marginLeft: 'auto', textTransform: 'none', letterSpacing: 0,
+            fontWeight: 600, color: T.dim, fontSize: '0.72rem',
+          }}>
+            Next {horizon_days} days
+          </span>
+        </div>
+
+        <PopulationForecastChart
+          daily={population.daily}
+          current={population.current}
+          confidence={population.confidence}
+        />
+
+        {/* Short legend in place of the paragraph that used to sit here. */}
+        <div style={{
+          display: 'flex', gap: '1.1rem', flexWrap: 'wrap', justifyContent: 'center',
+          padding: '0 0 0.75rem', fontSize: '0.72rem', color: T.muted,
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 14, height: 2, background: T.blue, borderRadius: 2 }} />
+            Forecast
+          </span>
+          {hasBand && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 14, height: 9, background: tint(T.blue, 0.28), borderRadius: 2 }} />
+              Expected range
             </span>
           )}
-          {provenance.basis_note && (
-            <span style={{ display: 'block', marginTop: '0.4rem' }}>
-              <strong style={{ color: T.textPrimary }}>Basis:</strong> {provenance.basis_note}
-            </span>
-          )}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 14, borderTop: `2px dashed ${T.dim}` }} />
+            Today
+          </span>
+        </div>
+      </section>
+
+      {/* ── Inventory risk ───────────────────────────────────────────────── */}
+      <div>
+        <h2 style={{
+          margin: '0 0 0.6rem', fontSize: '0.7rem', fontWeight: 800, color: T.muted,
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+        }}>
+          Inventory risk
+        </h2>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <RiskCard
+            T={T} value={summary.critical} label="Critical"
+            sub={`Under ${lead_time_days} days left`}
+            accent={T.red} active={summary.critical > 0}
+          />
+          <RiskCard
+            T={T} value={summary.low} label="Warning"
+            sub={`Under ${lead_time_days * 2} days left`}
+            accent={T.amber} active={summary.low > 0}
+          />
+          <RiskCard
+            T={T}
+            value={summary.next_runout ? fmtDate(summary.next_runout) : 'None'}
+            label="Next runout"
+            sub={summary.next_runout ? 'First item to run out' : `None in ${horizon_days} days`}
+            accent={T.red} active={false}
+          />
         </div>
       </div>
+
+      {/* ── Inventory ────────────────────────────────────────────────────── */}
+      <div>
+        <h2 style={{
+          margin: '0 0 0.6rem', fontSize: '0.7rem', fontWeight: 800, color: T.muted,
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+        }}>
+          Inventory
+        </h2>
+
+        <div style={{
+          background: T.card, border: `1px solid ${T.border}`,
+          borderRadius: '0.9rem', overflow: 'hidden',
+        }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', minWidth: 820 }}>
+              <thead>
+                <tr style={{ background: T.bar }}>
+                  {[
+                    ['Resource', 'left'], ['Status', 'left'], ['Stock', 'right'],
+                    ['Daily use', 'right'], ['Days left', 'right'], ['Runs out', 'right'],
+                    ['Order by', 'right'], ['Order', 'right'], ['', 'right'],
+                  ].map(([h, align], i) => (
+                    <th key={h || i} style={{
+                      textAlign: align, padding: '0.65rem 0.9rem',
+                      fontSize: '0.66rem', fontWeight: 800, color: T.muted,
+                      textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it) => {
+                  const open = expanded.has(it.id)
+                  const critical = it.status === 'CRITICAL'
+                  const warn = it.status === 'LOW'
+                  // days_cover is capped at the horizon; when nothing runs out
+                  // inside it, say so rather than implying an exact figure.
+                  const beyond = it.days_cover != null && it.runout_date == null && it.days_cover >= horizon_days
+                  return (
+                    <tr key={it.id}
+                        onClick={() => toggleRow(it.id)}
+                        style={{ borderTop: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                      <td style={{ padding: '0.7rem 0.9rem', fontWeight: 700, color: T.textPrimary }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {it.resource_name}
+                          {it.warnings?.length > 0 && (
+                            <AlertTriangle size={12} style={{ color: T.amber, flexShrink: 0 }} />
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.7rem 0.9rem' }}>
+                        <StatusBadge T={T} status={it.status} />
+                      </td>
+                      <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: T.ink, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                        {qty(it.available_quantity, it.unit)}
+                      </td>
+                      <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: it.daily_use_now == null ? T.dim : T.ink, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                        {it.daily_use_now == null ? '—' : `${num(it.daily_use_now)}/day`}
+                      </td>
+                      <td style={{
+                        padding: '0.7rem 0.9rem', textAlign: 'right', fontWeight: 800,
+                        whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums',
+                        color: critical ? T.red : warn ? T.amber : it.days_cover == null ? T.dim : T.ink,
+                      }}>
+                        {it.days_cover == null ? '—' : `${num(it.days_cover)}${beyond ? '+' : ''} days`}
+                      </td>
+                      <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: it.runout_date ? T.ink : T.dim, whiteSpace: 'nowrap' }}>
+                        {fmtDate(it.runout_date)}
+                      </td>
+                      <td style={{
+                        padding: '0.7rem 0.9rem', textAlign: 'right', whiteSpace: 'nowrap',
+                        fontWeight: critical ? 800 : 600,
+                        color: critical ? T.red : it.reorder_by ? T.ink : T.dim,
+                      }}>
+                        {fmtDate(it.reorder_by)}
+                      </td>
+                      <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: it.suggested_order_qty ? T.ink : T.dim, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                        {it.suggested_order_qty ? qty(it.suggested_order_qty, it.unit) : '—'}
+                      </td>
+                      <td style={{ padding: '0.7rem 0.7rem', textAlign: 'right', color: T.dim, width: 34 }}>
+                        {open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Detail panels sit outside the scroll container so they wrap
+              normally instead of forcing the table wider. */}
+          {items.filter((it) => expanded.has(it.id)).map((it) => (
+            <div key={`d-${it.id}`}>
+              <div style={{
+                padding: '0.65rem 1.1rem 0', fontSize: '0.72rem', fontWeight: 800,
+                color: T.dim, textTransform: 'uppercase', letterSpacing: '0.08em',
+                background: T.cardSoft, borderTop: `1px solid ${T.border}`,
+              }}>
+                {it.resource_name}
+              </div>
+              <ItemDetail T={T} item={it} leadTimeDays={lead_time_days} />
+            </div>
+          ))}
+
+          <div style={{
+            padding: '0.7rem 1.1rem', borderTop: `1px solid ${T.border}`,
+            fontSize: '0.73rem', color: T.dim,
+          }}>
+            {summary.forecastable} of {summary.total_items} items forecast
+            {summary.forecastable < summary.total_items && ' — the rest have no daily draw rate'}
+            . Select a row for details.
+          </div>
+        </div>
+      </div>
+
+      {/* ── Coverage + methodology ───────────────────────────────────────── */}
+      <BasketCoverageCard items={data.items} allocation={allocation} provenance={provenance} />
+      <ForecastMethodology
+        provenance={provenance}
+        population={population}
+        leadTimeDays={lead_time_days}
+      />
     </div>
   )
 }
