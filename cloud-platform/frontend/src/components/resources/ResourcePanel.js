@@ -318,7 +318,7 @@ function ResourceMap({ locations, T, dark }) {
 
 const COLUMNS = [
   { key: 'resource_name', label: 'Resource', sortable: true, render: (v) => (
-    <span style={{ fontWeight: 700, color: '#16A34A' }}>{v || '—'}</span>
+    <span style={{ fontWeight: 700 }}>{v || '—'}</span>
   )},
   { key: 'category', label: 'Category', sortable: true, render: (v) => {
     const color = CATEGORY_COLORS[v?.toLowerCase()] || '#64748B'
@@ -342,7 +342,7 @@ const COLUMNS = [
     const pct = Math.round((available / total) * 100)
     const color = pct <= 10 ? '#DC2626' : pct <= 30 ? '#D97706' : '#16A34A'
     return (
-      <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color }}>
+      <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
         {available.toLocaleString()}
         <span style={{ fontSize: '0.6rem', color: '#64748B', marginLeft: 4 }}>({pct}%)</span>
       </span>

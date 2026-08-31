@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save, getLatestWaterLevelData, getWaterLevelHistoryData, getWaterLevelStatus, triggerWaterLevelSave, triggerWaterLevelHistoryFetch, clearWaterLevelReadings, refreshWaterLevelReadings, getLatestSensorStatusData, getSensorStatus, triggerSensorStatusSave, getLatestHydrospatialData, getHydrospatialHistoryData, getHydrospatialStatus, triggerHydrospatialSave, getFloodPredictionData, getSimulatedPrediction } from '../../controllers/disaster/disaster.js';
+import { getCamps, getCampById, getPredictionModels, getOverview, getGpsLocation, getCampIdentity, getLatestGpsLocation, getLatestWeatherData, getWeatherStatus, getLatestRainfallData, getRainfallStatus, triggerRainfallSave, getLatestDht11Data, getDht11Status, triggerDht11Save, getLatestWaterLevelData, getWaterLevelHistoryData, getWaterLevelStatus, triggerWaterLevelSave, triggerWaterLevelHistoryFetch, clearWaterLevelReadings, refreshWaterLevelReadings, getLatestSensorStatusData, getSensorStatus, triggerSensorStatusSave, getLatestHydrospatialData, getHydrospatialHistoryData, getHydrospatialStatus, triggerHydrospatialSave, getFloodPredictionData, getSimulatedPrediction, getAlertsData } from '../../controllers/disaster/disaster.js';
 import * as gpsService from '../../services/disaster/gps.js';
 
 const router = express.Router();
@@ -109,5 +109,9 @@ router.get('/analysis', async (req, res) => {
     res.status(502).json({ error: err.message });
   }
 });
+
+// ── Alert history ──────────────────────────────────────────────────────
+
+router.get('/alerts', getAlertsData);
 
 export default router;
