@@ -1,7 +1,7 @@
 import serial
 import time
 
-ports = ['COM3', 'COM4', 'COM5']
+ports = ['/dev/ttyUSB0', '/dev/ttyACM0', '/dev/ttyAMA0']
 bauds = [9600, 115200, 57600, 38400]
 
 for port in ports:
