@@ -10,6 +10,7 @@ import {
 } from 'recharts'
 import { COLORS, SHADOW_CARD, TONE } from '../../lib/tokens'
 import { API } from '../ui/config'
+import DataTable from '../ui/display/DataTable'
 import SimulationModal from './SimulationModal'
 
 const RISK = {
@@ -196,6 +197,11 @@ export default function DisasterMonitorPage() {
   const [isSimulating, setIsSimulating] = useState(false)
   const [simPrediction, setSimPrediction] = useState(null)
 
+  // ── Alert history state ──────────────────────────────────────────
+  const [alerts, setAlerts] = useState([])
+  const [alertsLoading, setAlertsLoading] = useState(true)
+  const [alertsPagination, setAlertsPagination] = useState({ page: 1, limit: 15, total: 0, totalPages: 0 })
+
   // Track last GPS coordinates to detect changes
   const lastGpsRef = useRef(null)
 
@@ -280,6 +286,19 @@ export default function DisasterMonitorPage() {
       .finally(() => setPredLoading(false))
   }, [])
 
+  // ── Fetch escalated alerts ─────────────────────────────────────────
+  const fetchAlerts = useCallback((page = 1) => {
+    setAlertsLoading(true)
+    fetch(`${API}/api/disaster/alerts?page=${page}&limit=15`)
+      .then((r) => r.json())
+      .then((data) => {
+        setAlerts(data.alerts || [])
+        setAlertsPagination(data.pagination || { page: 1, limit: 15, total: 0, totalPages: 0 })
+      })
+      .catch(() => { setAlerts([]) })
+      .finally(() => setAlertsLoading(false))
+  }, [])
+
   // ── GPS polling: detect changes and re-fetch all data ────────────────
   useEffect(() => {
     const pollGps = () => {
@@ -312,9 +331,10 @@ export default function DisasterMonitorPage() {
     }
 
     pollGps() // initial fetch
+    fetchAlerts(1)
     const gpsInterval = setInterval(pollGps, 10000) // poll every 10s
     return () => clearInterval(gpsInterval)
-  }, [fetchAllDisasterData])
+  }, [fetchAllDisasterData, fetchAlerts])
 
   const handleRefresh = () => {
     setRefreshing(true)
@@ -777,6 +797,99 @@ export default function DisasterMonitorPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* ================= ESCALATED ALERTS TABLE ================= */}
+      <div className="mt-6">
+        <div className="rounded-xl border border-black/[.06] overflow-hidden" style={{ background: '#fff', boxShadow: SHADOW_CARD }}>
+          <div className="px-4 sm:px-5 py-3.5 border-b border-black/[.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell className="w-4 h-4" style={{ color: COLORS.brand }} />
+              <h2 className="text-[14px] font-semibold" style={{ fontFamily: 'Poppins, sans-serif' }}>Escalated Alerts</h2>
+            </div>
+            <span className="text-[12px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${COLORS.brand}12`, color: COLORS.brand }}>
+              {alertsPagination.total} total
+            </span>
+          </div>
+          <div className="p-0">
+            <DataTable
+              columns={[
+                {
+                  key: 'severity',
+                  label: 'Severity',
+                  render: (v) => {
+                    const colors = { CRITICAL: '#DC2626', HIGH: '#EA580C', MEDIUM: '#D97706', LOW: '#65A30D' }
+                    return (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold" style={{ backgroundColor: `${colors[v] || '#6B7280'}14`, color: colors[v] || '#6B7280' }}>
+                        {v}
+                      </span>
+                    )
+                  },
+                },
+                { key: 'alert_type', label: 'Type' },
+                { key: 'title', label: 'Title', render: (v) => <span className="text-[12px] line-clamp-1 max-w-[200px]">{v}</span> },
+                {
+                  key: 'flood_probability_percent',
+                  label: 'Prob %',
+                  render: (v) => v != null ? `${Math.round(v)}%` : '-',
+                },
+                {
+                  key: 'water_level',
+                  label: 'Water Lvl',
+                  render: (v) => v != null ? `${Number(v).toFixed(2)} m` : '-',
+                },
+                {
+                  key: 'river_distance_km',
+                  label: 'River Dist',
+                  render: (v) => v != null ? `${Number(v).toFixed(2)} km` : '-',
+                },
+                {
+                  key: 'cloud_sync_status',
+                  label: 'Cloud Sync',
+                  render: (v) => {
+                    const colors = { SYNCED: '#16A34A', PENDING: '#D97706' }
+                    return (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: colors[v] || '#6B7280' }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors[v] || '#6B7280' }} />
+                        {v}
+                      </span>
+                    )
+                  },
+                },
+                {
+                  key: 'created_at',
+                  label: 'Time',
+                  render: (v) => {
+                    const d = new Date(v)
+                    return <span className="text-[11px] whitespace-nowrap">{d.toLocaleDateString()} {d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  },
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: (v) => {
+                    const colors = { ACTIVE: '#DC2626', ACKNOWLEDGED: '#2563EB' }
+                    return (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: colors[v] || '#6B7280' }}>
+                        {v}
+                      </span>
+                    )
+                  },
+                },
+              ]}
+              data={alerts}
+              loading={alertsLoading}
+              pageSize={15}
+              searchKeys={['title', 'alert_type', 'severity', 'camp_name']}
+              searchPlaceholder="Search alerts..."
+              emptyMessage="No escalated alerts recorded yet"
+              filters={[
+                { key: 'severity', label: 'Severity', options: [{ value: 'CRITICAL', label: 'Critical' }, { value: 'HIGH', label: 'High' }, { value: 'MEDIUM', label: 'Medium' }, { value: 'LOW', label: 'Low' }] },
+                { key: 'cloud_sync_status', label: 'Cloud Sync', options: [{ value: 'SYNCED', label: 'Synced' }, { value: 'PENDING', label: 'Pending' }] },
+              ]}
+            />
           </div>
         </div>
       </div>

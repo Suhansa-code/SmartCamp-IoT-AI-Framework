@@ -7,6 +7,7 @@ import { getLatestWaterLevel, getWaterLevelHistory, getWaterLevelStorageStatus, 
 import { getLatestSensorStatus, getSensorStatusStorageStatus, fetchAndSaveSensorStatus } from '../../services/disaster/sensor-status-storage.js';
 import { getLatestHydrospatial, getHydrospatialHistory, getHydrospatialStorageStatus, fetchAndSaveHydrospatial } from '../../services/disaster/hydrospatial-storage.js';
 import { getFloodPrediction } from '../../services/disaster/prediction-service.js';
+import { getAlerts } from '../../services/disaster/alert-evaluator.js';
 import { disasterDb } from '../../config/database.js';
 
 // ── In-memory cache for latest GPS ──────────────────────────────────────
@@ -320,6 +321,21 @@ export async function getFloodPredictionData(req, res) {
   }
 }
 
+// ── Alert history ──────────────────────────────────────────────────────
+
+export function getAlertsData(req, res) {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const { severity, status, alert_type } = req.query;
+
+    const result = getAlerts({ page, limit, severity, status, alert_type });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch alerts' });
+  }
+}
+
 // ── Prediction Simulation (for panel demo) ─────────────────────────────
 // Accepts manual model inputs, sends them directly to Edge Gateway,
 // returns the prediction without touching real sensor data.
@@ -392,6 +408,51 @@ export async function getSimulatedPrediction(req, res) {
       return res.status(400).json({ status: 'error', error: 'latitude and longitude are required (enable Location fields or ensure GPS is active)' });
     }
 
+    // When lat/lon are simulated, fetch live hydrospatial data for that location
+    // (nearest river, gauge station, elevation) to give accurate prediction context
+    let hydrospatialData = null;
+    const locationSimulated = enabled_fields.includes('latitude') || enabled_fields.includes('longitude');
+    if (locationSimulated) {
+      try {
+        const alt = merged.elevation_m || 10;
+        const hsUrl = `${EDGE_API}/hydrospatial/analysis?lat=${merged.latitude}&lon=${merged.longitude}&alt=${alt}`;
+        logger.info(`[SIM] Fetching hydrospatial data for simulated location (${merged.latitude}, ${merged.longitude})`);
+        const hsResponse = await fetch(hsUrl, { signal: AbortSignal.timeout(30_000) });
+        if (hsResponse.ok) {
+          hydrospatialData = await hsResponse.json();
+          // Update merged values with live hydrospatial data
+          if (hydrospatialData.camp_elevation != null) {
+            merged.elevation_m = hydrospatialData.camp_elevation;
+          }
+          if (hydrospatialData.gauge_distance_km != null) {
+            merged.river_distance_km = hydrospatialData.gauge_distance_km;
+          }
+          if (hydrospatialData.gauge_alert_level != null) {
+            merged.gauge_alert_level = hydrospatialData.gauge_alert_level;
+          }
+          if (hydrospatialData.gauge_minor_level != null) {
+            merged.gauge_minor_level = hydrospatialData.gauge_minor_level;
+          }
+          if (hydrospatialData.gauge_major_level != null) {
+            merged.gauge_major_level = hydrospatialData.gauge_major_level;
+          }
+          // Use live water level from gauge if available
+          if (hydrospatialData.live_gauge_data?.water_level != null) {
+            merged.water_level_m = hydrospatialData.live_gauge_data.water_level;
+          }
+          // Use live rainfall from gauge if available
+          if (hydrospatialData.live_gauge_data?.rainfall != null) {
+            merged.rainfall_mm = hydrospatialData.live_gauge_data.rainfall;
+          }
+          logger.info(`[SIM] Hydrospatial data fetched: elevation=${merged.elevation_m}m, river=${merged.river_distance_km}km, water_level=${merged.water_level_m}m`);
+        } else {
+          logger.warn(`[SIM] Hydrospatial fetch failed: ${hsResponse.status}`);
+        }
+      } catch (hsErr) {
+        logger.warn(`[SIM] Hydrospatial fetch error: ${hsErr.message}`);
+      }
+    }
+
     // Map to Edge Gateway format
     const edgeInputs = {
       rainfall_mm: merged.rainfall_mm,
@@ -414,7 +475,7 @@ export async function getSimulatedPrediction(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(edgeInputs),
-      signal: AbortSignal.timeout(120_000),
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {
@@ -433,6 +494,7 @@ export async function getSimulatedPrediction(req, res) {
       simulation: {
         simulated_fields: enabled_fields,
         live_fields: Object.keys(merged).filter(k => !enabled_fields.includes(k)),
+        hydrospatial_fetched: locationSimulated && hydrospatialData != null,
       },
       prediction: {
         flood_probability: pred.probability ?? 0,
@@ -455,7 +517,13 @@ export async function getSimulatedPrediction(req, res) {
         gauge_minor_level: merged.gauge_minor_level,
         gauge_major_level: merged.gauge_major_level,
       },
-      hydrospatial: edgeResult.source_data || null,
+      hydrospatial: hydrospatialData ? {
+        river_name: hydrospatialData.nearest_river?.name ?? hydrospatialData.river_name,
+        station_name: hydrospatialData.station_name,
+        gauge_elevation: hydrospatialData.gauge_elevation,
+        elevation_difference: hydrospatialData.elevation_difference,
+        gauge_distance_km: hydrospatialData.gauge_distance_km,
+      } : (edgeResult.source_data || null),
       data_quality: {
         missing_fields: [],
         stale: false,

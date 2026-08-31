@@ -128,3 +128,52 @@ export function evaluateDht11Thresholds({ temperature, humidity }) {
   disasterDb.prepare('UPDATE disaster_alerts SET mqtt_status = ? WHERE id = ?').run(result.published ? 'PUBLISHED' : 'PENDING', saved.id);
   return { created: true, alert: disasterDb.prepare('SELECT * FROM disaster_alerts WHERE id = ?').get(saved.id), mqtt: result };
 }
+
+// ── Alert history query ────────────────────────────────────────────────
+
+export function getAlerts({ page = 1, limit = 20, severity, status, alert_type } = {}) {
+  const conditions = [];
+  const params = [];
+
+  if (severity) {
+    conditions.push('severity = ?');
+    params.push(severity);
+  }
+  if (status) {
+    conditions.push('status = ?');
+    params.push(status);
+  }
+  if (alert_type) {
+    conditions.push('alert_type = ?');
+    params.push(alert_type);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const offset = (Math.max(1, page) - 1) * limit;
+
+  const countRow = disasterDb.prepare(`SELECT COUNT(*) as total FROM disaster_alerts ${where}`).get(...params);
+  const total = countRow?.total || 0;
+
+  const rows = disasterDb.prepare(
+    `SELECT id, alert_id, event_id, camp_id, camp_name, alert_type, severity, priority,
+            title, message, latitude, longitude, prediction_id,
+            flood_probability, flood_probability_percent, risk_category, forecast_hours,
+            rainfall, camp_elevation, river_distance_km, water_level,
+            station_name, gauge_elevation, elevation_difference, gauge_distance_km,
+            river_name, source, prediction_timestamp, status,
+            mqtt_status, cloud_sync_status, created_at, acknowledged_at
+     FROM disaster_alerts ${where}
+     ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`
+  ).all(...params, limit, offset);
+
+  return {
+    alerts: rows,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
