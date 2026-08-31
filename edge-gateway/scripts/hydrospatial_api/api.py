@@ -33,7 +33,7 @@ def predict(
 ):
     """Run live flood prediction with current gauge data."""
     result, error = build_live_prediction(lat, lon, alt)
-    if error and result is None:
+    if error and (result is None or result.get("prediction") is None):
         raise HTTPException(status_code=502, detail=error)
     return result
 

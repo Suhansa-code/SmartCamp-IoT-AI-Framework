@@ -193,6 +193,7 @@ def build_live_prediction(latitude: float, longitude: float, altitude: float = 1
     try:
         prediction = run_prediction(inputs)
     except Exception as exc:
+        logger.error(f"[PREDICTION] Model prediction failed for ({latitude}, {longitude}): {exc}", exc_info=True)
         return {
             "prediction": None,
             "inputs": inputs,

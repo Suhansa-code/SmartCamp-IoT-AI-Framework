@@ -65,6 +65,8 @@ def run_prediction(inputs):
         dem_elevation_m=None if inputs.get("dem_elevation_m") is None else float(inputs["dem_elevation_m"]),
         nearest_river_m=float(inputs.get("nearest_river_m", 0.0)),
         water_level_m=float(inputs.get("water_level_m", 0.0)),
+        monthly_rainfall_mm=float(inputs.get("monthly_rainfall_mm", 0.0)),
+        drainage_index=float(inputs.get("drainage_index", 0.5)),
         is_forecast=bool(inputs.get("is_forecast", True)),
         gauge_alert_level=float(inputs.get("gauge_alert_level", 2.0)),
         gauge_minor_level=float(inputs.get("gauge_minor_level", 3.0)),
