@@ -96,3 +96,6 @@ export class MqttService extends EventEmitter {
     return this.connected;
   }
 }
+
+// Singleton instance for use across the application
+export const mqttService = new MqttService();

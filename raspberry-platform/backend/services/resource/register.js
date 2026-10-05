@@ -166,7 +166,7 @@ export async function registerPerson(data) {
     let barcode;
     if (providedWristband) {
       barcode = providedWristband.barcode;
-      db.prepare("UPDATE wristbands SET person_id = ?, status = 'ASSIGNED', assigned_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")
+      db.prepare("UPDATE wristbands SET person_id = ?, status = 'ASSIGNED', assigned_at = datetime('now'), updated_at = datetime('now'), synced = 0 WHERE id = ?")
         .run(personId, providedWristband.id);
       db.prepare('INSERT INTO wristband_assignments (wristband_id, person_id) VALUES (?, ?)').run(providedWristband.id, personId);
       audit({ actor: null, action: 'wristband_assign', wristband_id: providedWristband.id, person_id: personId, details: `${barcode} → ${full_name}` });
@@ -258,7 +258,7 @@ export async function getPersonQrCode(id) {
 
   if (!wristband.qr_identifier) {
     wristband.qr_identifier = `CAMP-${wristband.barcode}`;
-    db.prepare("UPDATE wristbands SET qr_identifier = ?, updated_at = datetime('now') WHERE id = ?").run(wristband.qr_identifier, wristband.id);
+    db.prepare("UPDATE wristbands SET qr_identifier = ?, updated_at = datetime('now'), synced = 0 WHERE id = ?").run(wristband.qr_identifier, wristband.id);
   }
 
   const { data_url } = await generateWristbandQRCode(wristband.barcode);
@@ -322,7 +322,7 @@ export function deactivatePerson(id) {
   }
 
   db.prepare('UPDATE persons SET is_active = 0 WHERE id = ?').run(id);
-  db.prepare('UPDATE wristbands SET is_active = 0 WHERE person_id = ?').run(id);
+  db.prepare('UPDATE wristbands SET is_active = 0, synced = 0 WHERE person_id = ?').run(id);
 
   enqueueSyncBatch('persons', [id]);
   enqueueSyncBatch('wristbands', [id]);

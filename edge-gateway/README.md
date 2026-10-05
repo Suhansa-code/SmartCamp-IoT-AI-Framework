@@ -441,10 +441,16 @@ cd edge-gateway/scripts
 pip install -r requirements.txt
 ```
 
-**Additional packages needed** (not in requirements.txt):
+**Additional packages needed** (not in `scripts/requirements.txt`):
 
 ```bash
-pip install fastapi uvicorn pynmea2 numpy rasterio pyproj geopandas networkx xgboost scikit-learn matplotlib seaborn joblib
+pip install rasterio pyproj xgboost scikit-learn matplotlib seaborn joblib
+```
+
+Or install the complete pinned set the container uses:
+
+```bash
+pip install -r edge-gateway/requirements.txt
 ```
 
 ### Run the FastAPI Server
@@ -452,6 +458,40 @@ pip install fastapi uvicorn pynmea2 numpy rasterio pyproj geopandas networkx xgb
 ```bash
 cd edge-gateway/scripts
 uvicorn api:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Run with Docker (deployment)
+
+Runs on the Intel NUC (`linux/amd64`); the image also builds on arm64.
+
+```bash
+cd edge-gateway
+cp .env.example .env          # set GPS_SERIAL_PORT to the real ESP32 device
+docker compose up -d --build
+curl http://localhost:8000/   # {"status":"running"}
+```
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Python 3.11 image; `scripts/`, `prediction-models/` and `resources/` stay siblings under `/app` because the shapefile and model paths are resolved relative to each other. |
+| `docker-compose.yml` | Single `edge-gateway` service — publishes `:8000`, hands the ESP32 serial device through, joins gid 20 (`dialout`). |
+| `requirements.txt` | Complete pinned dependency set. `xgboost-cpu` avoids a 342 MB CUDA wheel; `xgboost 3.2.0` / `scikit-learn 1.4.2` match the committed `.pkl` artifacts and must be bumped together with a retrain. |
+| `.env.example` | `GPS_SERIAL_PORT`, `GPS_BAUDRATE`, `RAINFALL_WIRELESS_TIMEOUT_SECONDS`, `EDGE_PORT`, `DIALOUT_GID`. |
+
+Two things to know about the container:
+
+- **No ESP32 attached?** Comment out the `devices:` block, or compose refuses to
+  start. The API still serves hydrospatial, elevation and prediction, and
+  reports the sensors disconnected.
+- **DEM raster is not in the image** — `digital_elevation_algorithm.py` hardcodes
+  a Windows `.img` path, so `/hydrospatial/elevation` answers from the
+  Open-Elevation API fallback.
+
+The Pi backend must point at this host, not at its own loopback:
+
+```bash
+# raspberry-platform/backend/.env
+EDGE_API_URL=http://<nuc-lan-ip>:8000
 ```
 
 ### Test Individual Modules

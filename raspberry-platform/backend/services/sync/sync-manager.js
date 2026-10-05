@@ -232,6 +232,30 @@ function deletePending(syncId) {
   campDb.prepare('DELETE FROM sync_pending WHERE sync_id = ?').run(syncId);
 }
 
+/**
+ * Take a source row out of the sync queue for good.
+ *
+ * Reached only after MAX_RETRIES *cloud rejections* — the link is up and the
+ * cloud is answering, it simply will not accept this row (a malformed
+ * timestamp, a constraint the record violates). Retrying cannot fix that.
+ * Transport failures never land here: SAAMP buffers those instead.
+ *
+ * synced = -1 means "abandoned, do not retry". Nothing re-selects it — every
+ * query in the codebase tests `synced = 0` or `synced = 1` — it needs no
+ * migration, and it stays distinguishable from a real sync when reading the
+ * table by hand.
+ */
+function markPermanentlyFailed(tableName, localId) {
+  const db = TABLE_DB_MAP[tableName];
+  if (!db) return;
+  const pk = ENTITY_PK[TABLE_TO_ENTITY[tableName]] || 'id';
+  try {
+    db.prepare(`UPDATE ${tableName} SET synced = -1 WHERE ${pk} = ?`).run(localId);
+  } catch (err) {
+    logger.error(`[SYNC] Could not mark ${tableName} id=${localId} as failed: ${err.message}`);
+  }
+}
+
 function ackSuccess(syncId) {
   const row = campDb.prepare('SELECT * FROM sync_pending WHERE sync_id = ?').get(syncId);
   if (!row) return;
@@ -260,6 +284,18 @@ function ackFailed(syncId, errorMsg) {
 
   if (newRetry >= MAX_RETRIES) {
     syncLog('permanently_failed', row.entity, row.local_id, { sync_id: syncId, retries: newRetry, error: errorMsg });
+    // Giving up used to delete the sync_pending row and nothing else. But
+    // fetchPending() selects the SOURCE table `WHERE synced = 0`, and the
+    // source row was still sitting at 0 — so the next cycle re-selected it,
+    // called insertPending() with a fresh sync_id and retry_count = 0, and the
+    // ten retries began again. Forever.
+    //
+    // On the live deployment that loop produced 4342 error ACKs against 75
+    // successes, twelve weather rows accounting for over a thousand of them.
+    // It also starves healthy records: the batch is capped at 50 and ordered
+    // oldest-first, so the poison rows sit permanently at the front of the
+    // queue. Marking the source row is what closes the loop.
+    markPermanentlyFailed(row.table_name, row.local_id);
     deletePending(syncId);
     return;
   }

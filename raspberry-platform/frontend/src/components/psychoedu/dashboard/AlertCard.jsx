@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import AlertBadge from '@/components/psychoedu/ui/AlertBadge'
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export default function AlertCard({ alert, onDismiss }) {
   const [loading,  setLoading]  = useState(false)
   const [actioned, setActioned] = useState(false)
@@ -8,7 +10,7 @@ export default function AlertCard({ alert, onDismiss }) {
   async function handleAction(action) {
     setLoading(true)
     try {
-      await fetch(`/api/alerts/${alert.id}/${action}`, { method: 'POST' })
+      await fetch(`${API}/api/alerts/${alert.id}/${action}`, { method: 'POST' })
       setActioned(true)
       setTimeout(() => onDismiss?.(), 700)
     } catch { /* offline — still dismiss visually */ }

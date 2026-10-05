@@ -493,6 +493,9 @@ CREATE INDEX IF NOT EXISTS idx_disaster_alerts_camp ON disaster_alerts (camp_id,
 ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS device_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_disaster_alerts_device ON disaster_alerts (device_id);
 
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS temperature REAL;
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS humidity REAL;
+
 CREATE TABLE IF NOT EXISTS prediction_requests (
   id              INTEGER PRIMARY KEY,
   request_id      TEXT UNIQUE,

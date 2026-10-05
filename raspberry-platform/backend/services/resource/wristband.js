@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { enqueueSync } from '../sync/sync-notify.js';
 
 const VALID_STATUSES = ['AVAILABLE', 'ASSIGNED', 'LOST', 'DAMAGED', 'INACTIVE'];
+const INACTIVE_STATUSES = ['LOST', 'DAMAGED', 'INACTIVE'];
 
 export function getWristbandInfo(barcode) {
   const wristband = db.prepare('SELECT * FROM wristbands WHERE barcode = ? AND is_active = 1').get(barcode);
@@ -26,10 +27,18 @@ export function getWristbandInfo(barcode) {
     water: givenSet.has('water'),
   };
 
+  // Get total water issued today
+  const waterRow = db.prepare(
+    "SELECT SUM(quantity) as total FROM distributions WHERE wristband_barcode = ? AND resource_type = 'water' AND DATE(distributed_at) = DATE('now')"
+  ).get(barcode);
+  const waterIssued = waterRow?.total || 0;
+
   return {
     person,
     wristband_barcode: barcode,
     today_distributions: todayDistributions,
+    water_issued: waterIssued,
+    water_max: 4,
     daily: getDailyLeft(person, todayDistributions),
   };
 }
@@ -266,7 +275,7 @@ export function updateWristbandStatus(id, status, { actor } = {}) {
     closeOpenAssignment(wristband.id, actor);
   }
 
-  db.prepare("UPDATE wristbands SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, wristband.id);
+  db.prepare("UPDATE wristbands SET status = ?, updated_at = datetime('now'), synced = 0 WHERE id = ?").run(status, wristband.id);
   audit({ actor, action: 'wristband_status', wristband_id: wristband.id, details: `${wristband.barcode} → ${status}` });
   return getWristbandById(wristband.id);
 }
@@ -324,7 +333,7 @@ export function assignWristband(wristbandRef, personId, { actor } = {}) {
     for (const w of held) closeOpenAssignment(w.id, actor);
 
     db.prepare('INSERT INTO wristband_assignments (wristband_id, person_id) VALUES (?, ?)').run(wristband.id, pid);
-    db.prepare("UPDATE wristbands SET status = 'ASSIGNED', person_id = ?, assigned_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")
+    db.prepare("UPDATE wristbands SET status = 'ASSIGNED', person_id = ?, assigned_at = datetime('now'), updated_at = datetime('now'), synced = 0 WHERE id = ?")
       .run(pid, wristband.id);
   });
   assign();
@@ -351,7 +360,7 @@ export function unassignWristband(wristbandRef, { actor } = {}) {
     });
   }
 
-  db.prepare("UPDATE wristbands SET status = 'AVAILABLE', person_id = NULL, assigned_at = NULL, updated_at = datetime('now') WHERE id = ?")
+  db.prepare("UPDATE wristbands SET status = 'AVAILABLE', person_id = NULL, assigned_at = NULL, updated_at = datetime('now'), synced = 0 WHERE id = ?")
     .run(wristband.id);
 
   enqueueSync('wristbands', wristband.id);
@@ -381,4 +390,28 @@ export async function generateWristbandQRCode(idOrRef, { size = 256 } = {}) {
   } catch (err) {
     throw Object.assign(new Error('Failed to generate QR code'), { status: 500 });
   }
+}
+
+/**
+ * Assign a pre-printed wristband (looked up by barcode or QR identifier) to a
+ * person.  Validates that the wristband is AVAILABLE and not currently assigned
+ * to another active person.
+ */
+export function assignWristbandByBarcode(barcode, personId, { actor } = {}) {
+  if (!barcode) throw Object.assign(new Error('Wristband barcode is required.'), { status: 400 });
+
+  const normalized = barcode.trim().toUpperCase();
+  const wristband = db.prepare('SELECT * FROM wristbands WHERE barcode = ? OR qr_identifier = ?').get(normalized, normalized);
+  if (!wristband) throw Object.assign(new Error('Wristband not recognized.'), { status: 404 });
+
+  if (INACTIVE_STATUSES.includes(wristband.status)) {
+    throw Object.assign(new Error('This wristband is inactive and cannot be assigned.'), { status: 400 });
+  }
+
+  const already = db.prepare('SELECT id FROM wristband_assignments WHERE wristband_id = ? AND unassigned_at IS NULL').get(wristband.id);
+  if (already) {
+    throw Object.assign(new Error('This wristband is already assigned to another person.'), { status: 409 });
+  }
+
+  return assignWristband(wristband.id, personId, { actor });
 }

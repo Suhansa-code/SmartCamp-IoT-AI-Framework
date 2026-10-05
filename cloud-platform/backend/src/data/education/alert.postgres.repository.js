@@ -4,6 +4,21 @@
  */
 import { getPool } from '../../config/database.js';
 
+const LEGACY_CAMP_ALIASES = new Map([
+  ['CAMP-B', 'CAMP-B-HOMAGAMA'],
+]);
+
+async function resolveCampId(campId) {
+  const aliasTarget = LEGACY_CAMP_ALIASES.get(campId);
+  if (!aliasTarget) return campId;
+
+  const result = await getPool().query(
+    'SELECT 1 FROM children WHERE camp_id = $1 LIMIT 1',
+    [campId],
+  );
+  return result.rowCount > 0 ? campId : aliasTarget;
+}
+
 export async function getAlerts(status = null, camp = null) {
   const conditions = [];
   const values = [];
@@ -25,36 +40,85 @@ export async function resolveAlert(alertId, notes = null) {
 
 export async function getCampSummaries() {
   const result = await getPool().query(`
-    SELECT c.camp_id AS id, COUNT(DISTINCT c.child_id)::int AS children,
-      COUNT(DISTINCT s.session_id)::int AS sessions,
-      COALESCE(ROUND(AVG(s.composite_score)), 0)::int AS avg_composite,
-      COUNT(DISTINCT a.alert_id)::int AS total_alerts,
-      COUNT(DISTINCT a.alert_id) FILTER (WHERE a.status = 'pending')::int AS pending_alerts,
-      COUNT(DISTINCT bs.signal_id)::int AS total_signals,
-      ROUND(AVG(bs.accuracy_rate)::numeric, 1)::real AS avg_accuracy,
-      ROUND(AVG(bs.avg_reaction_time)::numeric, 1)::real AS avg_reaction_ms,
-      ROUND(AVG(bs.completion_ratio)::numeric, 2)::real AS avg_completion,
-      COUNT(DISTINCT cr.response_id)::int AS total_responses,
-      ROUND(AVG(cr.is_correct)::numeric * 100, 1)::real AS content_accuracy_pct
-    FROM children c
-    LEFT JOIN sessions s ON s.child_id = c.child_id
-    LEFT JOIN alerts a ON a.camp_id = c.camp_id
-    LEFT JOIN pages_behavioral_signals bs ON bs.child_id = c.child_id
-    LEFT JOIN pages_content_responses cr ON cr.child_id = c.child_id
-    GROUP BY c.camp_id ORDER BY c.camp_id
+    WITH child_totals AS (
+      SELECT camp_id, COUNT(*)::int AS children
+      FROM children
+      GROUP BY camp_id
+    ), session_totals AS (
+      SELECT c.camp_id,
+        COUNT(s.session_id)::int AS sessions,
+        COALESCE(ROUND(AVG(s.composite_score)), 0)::int AS avg_composite
+      FROM children c
+      LEFT JOIN sessions s ON s.child_id = c.child_id
+      GROUP BY c.camp_id
+    ), alert_totals AS (
+      SELECT camp_id,
+        COUNT(*)::int AS total_alerts,
+        COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_alerts
+      FROM alerts
+      GROUP BY camp_id
+    ), signal_totals AS (
+      SELECT c.camp_id,
+        COUNT(bs.signal_id)::int AS total_signals,
+        ROUND(AVG(bs.accuracy_rate)::numeric, 1)::real AS avg_accuracy,
+        ROUND(AVG(bs.avg_reaction_time)::numeric, 1)::real AS avg_reaction_ms,
+        ROUND(AVG(bs.completion_ratio)::numeric, 2)::real AS avg_completion
+      FROM children c
+      LEFT JOIN pages_behavioral_signals bs ON bs.child_id = c.child_id
+      GROUP BY c.camp_id
+    ), response_totals AS (
+      SELECT c.camp_id,
+        COUNT(cr.response_id)::int AS total_responses,
+        ROUND(AVG(cr.is_correct)::numeric * 100, 1)::real AS content_accuracy_pct
+      FROM children c
+      LEFT JOIN pages_content_responses cr ON cr.child_id = c.child_id
+      GROUP BY c.camp_id
+    )
+    SELECT ct.camp_id AS id,
+      ct.children,
+      COALESCE(st.sessions, 0)::int AS sessions,
+      COALESCE(st.avg_composite, 0)::int AS avg_composite,
+      COALESCE(at.total_alerts, 0)::int AS total_alerts,
+      COALESCE(at.pending_alerts, 0)::int AS pending_alerts,
+      COALESCE(sigt.total_signals, 0)::int AS total_signals,
+      sigt.avg_accuracy,
+      sigt.avg_reaction_ms,
+      sigt.avg_completion,
+      COALESCE(rt.total_responses, 0)::int AS total_responses,
+      rt.content_accuracy_pct
+    FROM child_totals ct
+    LEFT JOIN session_totals st ON st.camp_id = ct.camp_id
+    LEFT JOIN alert_totals at ON at.camp_id = ct.camp_id
+    LEFT JOIN signal_totals sigt ON sigt.camp_id = ct.camp_id
+    LEFT JOIN response_totals rt ON rt.camp_id = ct.camp_id
+    ORDER BY ct.camp_id
   `);
-  return result.rows;
+  return result.rows.map((row) => ({
+    ...row,
+    id: row.id === 'CAMP-B-HOMAGAMA' ? 'CAMP-B' : row.id,
+  }));
 }
 
 export async function getCampEducation(campId) {
-  const [childrenResult, sessionsResult, alertsResult, signalsResult, responsesResult, decisionsResult] = await Promise.all([
-    getPool().query('SELECT * FROM children WHERE camp_id = $1 ORDER BY child_id', [campId]),
-    getPool().query('SELECT s.* FROM sessions s JOIN children c ON c.child_id = s.child_id WHERE c.camp_id = $1 ORDER BY s.created_at DESC', [campId]),
-    getPool().query('SELECT * FROM alerts WHERE camp_id = $1 ORDER BY triggered_at DESC', [campId]),
-    getPool().query(`SELECT bs.* FROM pages_behavioral_signals bs JOIN children c ON c.child_id = bs.child_id WHERE c.camp_id = $1 ORDER BY bs.session_id`, [campId]),
-    getPool().query(`SELECT cr.* FROM pages_content_responses cr JOIN children c ON c.child_id = cr.child_id WHERE c.camp_id = $1 ORDER BY cr.responded_at DESC`, [campId]),
-    getPool().query(`SELECT pg.* FROM pages_gate_decisions pg JOIN children c ON c.child_id = pg.child_id WHERE c.camp_id = $1 ORDER BY pg.decided_at DESC`, [campId]),
-  ]);
+  const resolvedCampId = await resolveCampId(campId);
+  const childrenResult = await getPool().query(
+    'SELECT * FROM children WHERE camp_id = $1 ORDER BY child_id', [resolvedCampId]
+  );
+  const sessionsResult = await getPool().query(
+    'SELECT s.* FROM sessions s JOIN children c ON c.child_id = s.child_id WHERE c.camp_id = $1 ORDER BY s.created_at DESC', [resolvedCampId]
+  );
+  const alertsResult = await getPool().query(
+    'SELECT * FROM alerts WHERE camp_id = $1 ORDER BY triggered_at DESC', [resolvedCampId]
+  );
+  const signalsResult = await getPool().query(
+    'SELECT bs.* FROM pages_behavioral_signals bs JOIN children c ON c.child_id = bs.child_id WHERE c.camp_id = $1 ORDER BY bs.session_id', [resolvedCampId]
+  );
+  const responsesResult = await getPool().query(
+    'SELECT cr.* FROM pages_content_responses cr JOIN children c ON c.child_id = cr.child_id WHERE c.camp_id = $1 ORDER BY cr.responded_at DESC', [resolvedCampId]
+  );
+  const decisionsResult = await getPool().query(
+    'SELECT pg.* FROM pages_gate_decisions pg JOIN children c ON c.child_id = pg.child_id WHERE c.camp_id = $1 ORDER BY pg.decided_at DESC', [resolvedCampId]
+  );
   if (!childrenResult.rows.length) return null;
   const scores = sessionsResult.rows.map((session) => session.composite_score).filter((score) => score != null);
 

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const EMQX_HOST = process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com';
+const EMQX_HOST = process.env.EMQX_HOST || 'sa60a43c.ala.asia-southeast1.emqxsl.com';
 const EMQX_API_KEY = process.env.EMQX_API_KEY || '';
 const EMQX_API_SECRET = process.env.EMQX_API_SECRET || '';
 const CA_CERT_PATH = process.env.EMQX_CA_CERT || path.join(__dirname, '../..', 'emqxsl-ca.crt');

@@ -1,0 +1,55 @@
+# Edge Gateway — complete, pinned runtime dependency set (used by Dockerfile).
+#
+# scripts/requirements.txt is the loose dev list and is deliberately
+# incomplete: importing scripts/api.py pulls in the DEM reader and the
+# XGBoost model, so rasterio/pyproj/xgboost/scikit-learn/matplotlib are
+# import-time requirements of the API, not optional extras.
+#
+# Two pins are load-bearing and must be bumped together with a retrain:
+#   xgboost      — prediction-models/models/xgboost_model.pkl carries a
+#                  booster serialised by 3.2.0; an older xgboost cannot
+#                  read it, which the API surfaces as a 502 on /predict.
+#   scikit-learn — the random-forest / decision-tree / logistic .pkl
+#                  files are pickled by 1.4.2; a different minor emits
+#                  InconsistentVersionWarning or fails to unpickle.
+# scikit-learn 1.4.2 is built against the numpy 1.x ABI, which is what
+# holds numpy below 2 here.
+
+# ── Web layer ────────────────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# ── ESP32 serial bridge (GPS + DHT11 + rainfall) ─────────────────────
+pyserial==3.5
+pynmea2==1.19.0
+
+# ── Hydrospatial providers ───────────────────────────────────────────
+requests==2.32.3
+geopy==2.4.1
+shapely==2.0.6
+geopandas==1.0.1
+pyogrio==0.10.0
+networkx==3.4.2
+
+# ── Digital elevation model ──────────────────────────────────────────
+rasterio==1.4.4
+pyproj==3.7.0
+
+# ── Flood prediction ─────────────────────────────────────────────────
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.4.2
+joblib==1.4.2
+# xgboost-cpu, NOT xgboost: on x86_64 the default distribution declares
+# nvidia-nccl-cu12, a 342 MB CUDA wheel that a GPU-less NUC downloads and
+# never loads. Same module, same artifact compatibility, wheels for both
+# x86_64 and aarch64.
+xgboost-cpu==3.2.0
+# base_model.py does `import matplotlib.pyplot` at module scope, so the
+# API cannot import without it even though it never draws a chart.
+matplotlib==3.9.4
+# seaborn is only needed by prediction-models/model_comparison.py, and
+# shap only when /hydrospatial/predict is called with return_shap=true
+# (base_model imports it lazily and degrades to {} when missing).
+# seaborn==0.13.2
+# shap==0.46.0

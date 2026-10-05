@@ -8,6 +8,7 @@ import { disasterDb } from '../../config/database.js';
 import C from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 import { nowISO } from '../../utils/helpers.js';
+import { evaluateDht11Thresholds } from './alert-evaluator.js';
 
 const DEVICE_ID = C.DEVICE_ID;
 const EDGE_API = process.env.EDGE_API_URL || 'http://127.0.0.1:8000';
@@ -102,6 +103,18 @@ export async function fetchAndSaveDht11() {
 
     lastSaveTime = Date.now();
     logger.info(`[DHT11] Saved: temp=${data.temperature}°C, humidity=${data.relative_humidity}%`);
+
+    try {
+      const alertResult = evaluateDht11Thresholds({ temperature: data.temperature, humidity: data.relative_humidity });
+      if (alertResult.created) {
+        logger.warn(`[DHT11] ALERT: ${alertResult.alert.alert_type} — ${alertResult.alert.title}`);
+      } else if (alertResult.refreshed) {
+        logger.info(`[DHT11] Alert refreshed: ${alertResult.alert.alert_type}`);
+      }
+    } catch (alertErr) {
+      logger.error(`[DHT11] Alert evaluation failed: ${alertErr.message}`);
+    }
+
     return true;
   } catch (err) {
     logger.error(`[DHT11] DB insert failed: ${err.message}`);

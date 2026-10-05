@@ -1,76 +1,68 @@
-# Edge Gateway — FastAPI service for GPS/DHT11/rainfall sensors, hydrospatial
-# lookups and the XGBoost flood model. Built and run on the Raspberry Pi
-# (linux/arm64); build from THIS directory so resources/ and prediction-models/
-# are in context:
+# Edge Gateway — FastAPI service (:8000) for GPS, DHT11, rainfall,
+# hydrospatial lookups, DEM elevation and XGBoost flood prediction.
 #
-#   docker build -t smartcamp-edge-gateway .
+# Builds for both linux/arm64 (the Pi, alongside the camp backend) and
+# linux/amd64 (a NUC). raspberry-platform's backend reaches it via EDGE_API_URL.
 #
-# Pinned to 3.11 for the same reason as the other Pi images: numpy, scipy,
-# scikit-learn, shapely, pyogrio and xgboost all publish arm64 wheels for cp311,
-# and a newer minor silently falls back to a source build that will not finish
-# on a Pi.
+# Pinned to 3.11 because rasterio, pyogrio, scikit-learn and xgboost all
+# publish cp311 wheels, and a version without one falls back to a source build
+# needing GDAL/GEOS/PROJ headers this image deliberately does not carry.
+#
+# rasterio is pinned at 1.4.4 for exactly that reason: 1.4.3 ships no aarch64
+# wheel, so on the Pi it tries to compile against GDAL and the build dies.
+# 1.4.4 is the first release with a cp311 aarch64 wheel. Do not drop it back.
 FROM python:3.11-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
-    # Headless: base_model imports pyplot at module scope, so without a
-    # non-interactive backend importing the prediction provider fails outright.
+    PYTHONDONTWRITEBYTECODE=1 \
+    # base_model.py imports pyplot at module scope, so the API would try to
+    # pick a GUI backend on import. Agg keeps that headless.
     MPLBACKEND=Agg \
-    MPLCONFIGDIR=/tmp/matplotlib
-
-# libgomp1 is the OpenMP runtime that the xgboost and scikit-learn arm64 wheels
-# link against. It is NOT in the slim base, and without it importing xgboost
-# dies with "libgomp.so.1: cannot open shared object file" — which surfaces as
-# a permanently unavailable /hydrospatial prediction, not a boot failure.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+    # The container runs unprivileged with no writable HOME; without this
+    # matplotlib logs a cache warning on every single import.
+    MPLCONFIGDIR=/tmp/matplotlib \
+    # GPS_PORT defaults to COM5 in sensor_state.py — a Windows dev default
+    # that opens nothing here. Point it at the ESP32 the compose file hands in.
+    GPS_PORT=/dev/ttyUSB1 \
+    GPS_BAUDRATE=115200
 
 WORKDIR /app
 
-COPY scripts/requirements.txt .
-# Long timeout + a persistent pip cache: built on the Pi over the camp uplink,
-# where the geopandas/pyproj/scipy wheels will not arrive inside pip's 15s
-# default. The cache mount is what makes a retry cheap — --no-cache-dir throws
-# away every partial download and restarts each attempt from zero.
-#
-# The second install covers the flood model. These are deliberately not in
-# scripts/requirements.txt, which only lists what the API layer imports; the
-# prediction provider pulls them in lazily at first /hydrospatial call.
+COPY requirements.txt .
+# Long timeout + persistent pip cache: geopandas/rasterio/xgboost pull tens
+# of MB of wheels, and over the camp uplink --no-cache-dir would throw away
+# every partial download so each retry restarted from zero.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --timeout 120 --retries 10 -r requirements.txt \
- && pip install --timeout 120 --retries 10 \
-        xgboost scikit-learn joblib matplotlib
+    pip install --timeout 120 --retries 10 -r requirements.txt
 
-# Copied before scripts/ so that editing the API does not invalidate the model
-# warm-up layer below. river_shapefile.py resolves resources/ as a sibling of
-# scripts/ (parents[3]), so this layout is load-bearing — do not flatten it.
+# This layout is load-bearing, not cosmetic. river_shapefile.py resolves the
+# shapefile as parents[3] of its own path and prediction.py resolves the model
+# package as scripts/../prediction-models, so all three directories MUST stay
+# siblings under the same root or the API imports fine and then 502s at the
+# first river lookup. Copied resources-first: they change least often.
 COPY resources/ ./resources/
 COPY prediction-models/ ./prediction-models/
-
-# No model artifact is committed, so load_model() trains on the 25k-row dataset
-# the first time a prediction is requested — a multi-minute stall on a Pi, paid
-# by whichever request arrives first, and paid again after every restart since
-# the .pkl lives in the container. Training here bakes it into the image.
-# Non-fatal on purpose: the runtime path already falls back to lazy training,
-# so a warm-up failure costs latency, not a broken image.
-RUN python prediction-models/xgboost_model/xgboost_model.py || \
-    echo "WARN: model warm-up failed; the first prediction will train instead"
-
 COPY scripts/ ./scripts/
 
-# The code defaults to COM5 (a Windows dev box). Override to match how the
-# ESP32 enumerates on the Pi — ttyUSB0, ttyACM1, ... See docker run below.
-ENV GPS_PORT=/dev/ttyUSB0 \
-    GPS_BAUDRATE=115200
+# base_model.py runs MODELS_DIR.mkdir(exist_ok=True) at import and joblib.dump
+# on the retrain fallback path (taken when models/*.pkl is missing), so the
+# app tree must be owned by the runtime user rather than left root-owned.
+RUN useradd --create-home --uid 10001 gateway \
+    && chown -R gateway:gateway /app
+USER gateway
 
-# api.py imports its siblings as top-level modules (hydrospatial_api, gps_module,
-# ...), so uvicorn must be started from inside scripts/.
+# api.py imports `hydrospatial_api`, `gps_module`, `sensor_state` as top-level
+# modules, so scripts/ — not /app — has to be the working directory.
 WORKDIR /app/scripts
 
 EXPOSE 8000
 
-# curl is not in the slim base and is not worth a layer just for this.
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)" || exit 1
+# urllib rather than curl: keeps the image free of an extra apt layer.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/', timeout=4).status == 200 else 1)"
 
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Exactly one worker, deliberately. The lifespan hook in api.py starts the
+# background serial reader, and a second worker would open a second reader on
+# the same ESP32 port — the two then steal each other's NMEA lines and both
+# sensors flap between connected and disconnected.
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

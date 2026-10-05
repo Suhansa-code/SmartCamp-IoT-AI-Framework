@@ -19,17 +19,17 @@ export default function QrCardModal({ data, onClose }) {
         </div>
 
         <div className="rounded-lg border p-3" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
-          <p className="text-[14px] font-serif font-medium text-center mb-2" style={{ color: COLORS.ink }}>
+          <p className="text-[14px] font-medium text-center mb-2" style={{ color: COLORS.ink }}>
             {data.full_name}
           </p>
           <div className="flex items-center justify-center bg-white rounded-lg p-2 border" style={{ borderColor: COLORS.line }}>
             <img src={data.data_url} alt={`QR for ${data.full_name}`} style={{ width: 220, height: 220 }} />
           </div>
           <div className="flex items-center justify-center gap-2 mt-2.5">
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-md" style={{ color: COLORS.body, backgroundColor: "#F5F6F5" }}>
+            <span className="text-[11px] px-2 py-0.5 rounded-md" style={{ color: COLORS.body, backgroundColor: "#F5F6F5" }}>
               {data.wristband_barcode}
             </span>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-md" style={{ color: COLORS.muted, backgroundColor: "#F5F6F5" }}>
+            <span className="text-[11px] px-2 py-0.5 rounded-md" style={{ color: COLORS.muted, backgroundColor: "#F5F6F5" }}>
               {data.qr_identifier}
             </span>
           </div>

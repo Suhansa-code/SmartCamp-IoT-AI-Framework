@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { disasterDb } from '../../config/database.js';
 import { getCampId } from '../../config/camp-id.js';
+import C from '../../config/constants.js';
 import * as saamp from '../network/saamp-mqtt.js';
 import { getCampById } from './disaster.js';
 
@@ -71,4 +72,108 @@ export function evaluateFloodPrediction({ prediction, inputs, hydrospatial, pred
   const result = saamp.publish(`smartcamp/alerts/${saved.camp_id}`, compact, 'alert', 'disaster-alert');
   disasterDb.prepare('UPDATE disaster_alerts SET mqtt_status = ? WHERE id = ?').run(result.published ? 'PUBLISHED' : 'PENDING', saved.id);
   return { created: true, alert: disasterDb.prepare('SELECT * FROM disaster_alerts WHERE id = ?').get(saved.id), mqtt: result };
+}
+
+// ── DHT11 Temperature / Humidity Threshold Alerts ──────────────────────
+
+function buildDht11Alert({ alertType, severity, temperature, humidity, threshold, actual, campName }) {
+  const isTemp = alertType === 'TEMPERATURE_CRITICAL';
+  const title = `${severity} ${isTemp ? 'TEMPERATURE' : 'HUMIDITY'} - ${campName}`;
+  const message = isTemp
+    ? `Temperature at ${campName} has reached ${temperature.toFixed(1)}°C, exceeding the ${threshold}°C threshold. Immediate action required.`
+    : `Humidity at ${campName} has reached ${humidity.toFixed(1)}%, exceeding the ${threshold}% threshold. Immediate action required.`;
+  return {
+    alert_id: crypto.randomUUID(), event_id: crypto.randomUUID(),
+    camp_id: getCampId(), camp_name: campName,
+    alert_type: alertType, severity, priority: 'HIGH', status: 'ACTIVE',
+    title, message,
+    temperature: numberOrNull(temperature), humidity: numberOrNull(humidity),
+    source: 'raspberry_pi', schema_version: '1.0',
+    mqtt_status: 'PENDING', cloud_sync_status: 'PENDING',
+  };
+}
+
+export function evaluateDht11Thresholds({ temperature, humidity }) {
+  const tempThreshold = C.DHT11_TEMP_HIGH_THRESHOLD;
+  const humThreshold = C.DHT11_HUMIDITY_HIGH_THRESHOLD;
+  const tempExceeded = temperature != null && temperature > tempThreshold;
+  const humExceeded = humidity != null && humidity > humThreshold;
+  if (!tempExceeded && !humExceeded) return { created: false, reason: 'thresholds_not_exceeded' };
+
+  const camp = getCampById(getCampId()) || {};
+  const campName = camp.name || getCampId();
+  const alertType = tempExceeded ? 'TEMPERATURE_CRITICAL' : 'HUMIDITY_CRITICAL';
+  const actual = tempExceeded ? temperature : humidity;
+  const threshold = tempExceeded ? tempThreshold : humThreshold;
+
+  const active = disasterDb.prepare(
+    `SELECT * FROM disaster_alerts WHERE camp_id = ? AND alert_type = ? AND status IN ('ACTIVE', 'ACKNOWLEDGED') ORDER BY id DESC`
+  ).all(getCampId(), alertType);
+  if (active.length > 0) {
+    disasterDb.prepare(`UPDATE disaster_alerts SET cloud_sync_status = 'PENDING', synced = 0 WHERE id = ?`).run(active[0].id);
+    return { created: false, refreshed: true, alert: active[0] };
+  }
+
+  const alert = buildDht11Alert({ alertType, severity: 'CRITICAL', temperature, humidity, threshold, actual, campName });
+  persistAlert(alert);
+  const saved = disasterDb.prepare('SELECT * FROM disaster_alerts WHERE event_id = ?').get(alert.event_id);
+  const compact = {
+    id: saved.id, event_id: saved.event_id, alert_id: saved.alert_id,
+    camp_id: saved.camp_id, camp_name: saved.camp_name, alert_type: saved.alert_type,
+    severity: saved.severity, priority: saved.priority, title: saved.title,
+    message: saved.message, temperature: saved.temperature, humidity: saved.humidity,
+    created_at: saved.created_at, source: saved.source,
+  };
+  const result = saamp.publish(`smartcamp/alerts/${saved.camp_id}`, compact, 'alert', 'disaster-alert');
+  disasterDb.prepare('UPDATE disaster_alerts SET mqtt_status = ? WHERE id = ?').run(result.published ? 'PUBLISHED' : 'PENDING', saved.id);
+  return { created: true, alert: disasterDb.prepare('SELECT * FROM disaster_alerts WHERE id = ?').get(saved.id), mqtt: result };
+}
+
+// ── Alert history query ────────────────────────────────────────────────
+
+export function getAlerts({ page = 1, limit = 20, severity, status, alert_type } = {}) {
+  const conditions = [];
+  const params = [];
+
+  if (severity) {
+    conditions.push('severity = ?');
+    params.push(severity);
+  }
+  if (status) {
+    conditions.push('status = ?');
+    params.push(status);
+  }
+  if (alert_type) {
+    conditions.push('alert_type = ?');
+    params.push(alert_type);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const offset = (Math.max(1, page) - 1) * limit;
+
+  const countRow = disasterDb.prepare(`SELECT COUNT(*) as total FROM disaster_alerts ${where}`).get(...params);
+  const total = countRow?.total || 0;
+
+  const rows = disasterDb.prepare(
+    `SELECT id, alert_id, event_id, camp_id, camp_name, alert_type, severity, priority,
+            title, message, latitude, longitude, prediction_id,
+            flood_probability, flood_probability_percent, risk_category, forecast_hours,
+            rainfall, camp_elevation, river_distance_km, water_level,
+            station_name, gauge_elevation, elevation_difference, gauge_distance_km,
+            river_name, source, prediction_timestamp, status,
+            mqtt_status, cloud_sync_status, created_at, acknowledged_at
+     FROM disaster_alerts ${where}
+     ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`
+  ).all(...params, limit, offset);
+
+  return {
+    alerts: rows,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }

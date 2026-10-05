@@ -6,6 +6,7 @@
  * import the pool lazily through initDatabase().
  */
 import pg from 'pg';
+import net from 'net';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,14 +17,42 @@ const { Pool } = pg;
 
 let pool = null;
 
+/**
+ * Widens Node's happy-eyeballs per-address handshake budget.
+ *
+ * When a hostname resolves to several addresses, Node races them and allows
+ * each one only 250ms to finish its TCP handshake before moving on. Neon
+ * publishes several A and AAAA records, so from a link whose round trip to the
+ * region exceeds that budget EVERY attempt is abandoned and pg surfaces an
+ * AggregateError of `connect ETIMEDOUT` — one per address. That reads exactly
+ * like a blocked port, which it is not: `nc <host> 5432` connects fine at the
+ * same moment. It bites on a distant workstation and not in the deployment
+ * region, so it looks like a credentials problem on a developer's machine only.
+ *
+ * Must run before the first connection; the setting is process-wide.
+ */
+function widenAddressAttemptTimeout(ms) {
+  if (typeof net.setDefaultAutoSelectFamilyAttemptTimeout !== 'function') return;
+  net.setDefaultAutoSelectFamilyAttemptTimeout(ms);
+}
+
 /** Builds (once) and returns the shared pg Pool. */
 export function getPool() {
   if (pool) return pool;
 
   const { db } = env;
+
+  widenAddressAttemptTimeout(db.connectAttemptTimeoutMs);
+
   const config = db.connectionString
     ? { connectionString: db.connectionString }
     : { host: db.host, port: db.port, database: db.name, user: db.user, password: db.password };
+
+  config.connectionTimeoutMillis = db.connectionTimeoutMs;
+  config.query_timeout = 10000;
+  config.statement_timeout = 10000;
+  config.max = 20;
+  config.idleTimeoutMillis = 30000;
 
   if (db.ssl) config.ssl = { rejectUnauthorized: false };
 

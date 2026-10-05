@@ -101,7 +101,7 @@ export default function QRScanner({ onScan, onCancel }) {
   return (
     <div className="rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] uppercase tracking-[0.1em] font-mono" style={{ color: COLORS.muted }}>
+        <p className="text-[11px] uppercase tracking-[0.1em]" style={{ color: COLORS.muted }}>
           Camera scanner
         </p>
         <button

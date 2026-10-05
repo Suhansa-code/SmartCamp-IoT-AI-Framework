@@ -1,13 +1,10 @@
 // lib/api.js — API call functions to Node.js backend
 // Base URL follows VITE_API_URL (defaults to localhost:5000 for the unified backend)
-// Includes offline-safe wrappers with fallback behaviour
 
-const BASE =
-  import.meta.env.VITE_API_URL ||
-  'http://localhost:5000'
+import { API } from '@/components/ui/config'
 
 async function apiFetch(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${API}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -21,9 +18,7 @@ async function apiFetch(path, options = {}) {
   return res.json()
 }
 
-//Session 
 export async function startSession(personId) {
-  console.log('Starting session for person ID:', personId)
   return apiFetch('/api/session/start', {
     method: 'POST',
     body: JSON.stringify({ person_id: personId }),
@@ -44,68 +39,4 @@ export async function fetchChildEducation(childId) {
 export async function fetchChildDirectory(page = 1, limit = 5) {
   const query = new URLSearchParams({ page: String(page), limit: String(limit) })
   return apiFetch(`/api/child/list?${query.toString()}`)
-}
-
-export async function submitScore(payload) {
-  // payload: { sessionId, score, totalTrials, results }
-  return apiFetch('/api/session/score', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
-}
-
-// Volunteer 
-export async function volunteerLogin(pin) {
-  return apiFetch('/api/volunteer/login', {
-    method: 'POST',
-    body: JSON.stringify({ pin }),
-  })
-}
-
-export async function fetchVolunteerSessions() {
-  return apiFetch('/api/volunteer/sessions')
-}
-
-export async function fetchVolunteerAlerts() {
-  return apiFetch('/api/volunteer/alerts')
-}
-
-// Admin 
-export async function fetchAllCamps() {
-  return apiFetch('/api/admin/camps')
-}
-
-export async function fetchAdminAlerts(campId) {
-  const qs = campId ? `?camp=${campId}` : ''
-  return apiFetch(`/api/admin/alerts${qs}`)
-}
-
-export async function fetchAnalytics() {
-  return apiFetch('/api/admin/analytics')
-}
-
-export async function actionAlert(alertId, action) {
-  // action: 'acknowledge' | 'escalate' | 'resolve'
-  return apiFetch(`/api/alerts/${alertId}/${action}`, { method: 'POST' })
-}
-
-// ── Network Monitoring ──────────────────────────────────────
-export async function fetchNetworkMetrics() {
-  return apiFetch('/api/network/metrics')
-}
-
-export async function fetchNetworkStats() {
-  return apiFetch('/api/network/stats')
-}
-
-export async function fetchNetworkBuffer() {
-  return apiFetch('/api/network/buffer')
-}
-
-export async function fetchNetworkHistory(limit = 100) {
-  return apiFetch(`/api/network/history?limit=${limit}`)
-}
-
-export async function clearNetworkBuffer() {
-  return apiFetch('/api/network/clear-buffer', { method: 'POST' })
 }

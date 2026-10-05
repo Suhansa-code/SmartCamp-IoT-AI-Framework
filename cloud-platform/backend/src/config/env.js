@@ -25,6 +25,12 @@ export const env = {
     password: process.env.DB_PASSWORD || '',
     ssl: process.env.DB_SSL === 'true',
     connectionString: process.env.DATABASE_URL || undefined,
+    // Per-address TCP handshake budget (see database.js). Node's 250ms default
+    // is too tight for a managed database several hundred ms away.
+    connectAttemptTimeoutMs: toInt(process.env.DB_CONNECT_ATTEMPT_TIMEOUT_MS, 5000),
+    // Time allowed for connect + TLS + SCRAM before the pool gives up. A high
+    // RTT link spends several round trips in the handshake alone.
+    connectionTimeoutMs: toInt(process.env.DB_CONNECTION_TIMEOUT_MS, 15000),
   },
 
   mqtt: {
@@ -35,10 +41,10 @@ export const env = {
 
   // EMQX broker — same broker the Pi publishes to
   emqx: {
-    host: process.env.EMQX_HOST || 'i17140d1.ala.asia-southeast1.emqxsl.com',
+    host: process.env.EMQX_HOST || 'sa60a43c.ala.asia-southeast1.emqxsl.com',
     port: toInt(process.env.EMQX_PORT, 8883),
     username: process.env.EMQX_USERNAME || 'admin',
-    password: process.env.EMQX_PASSWORD || 'public',
+    password: process.env.EMQX_PASSWORD || 'admin@123',
     caCertPath:
       process.env.EMQX_CA_CERT || path.join(__dirname, '../../emqxsl-ca.crt'),
   },
@@ -66,6 +72,13 @@ export const env = {
     commoditySharesPath:
       process.env.COMMODITY_SHARES_PATH ||
       path.join(__dirname, '../../../prediction-models/models/lka_v2/commodity_shares.json'),
+    // Alias table read by commodityStandardizer.service.js. Unlike its
+    // neighbours this artifact is hand-curated rather than generated, so it is
+    // checked in rather than rebuilt; scripts/validate_commodity_aliases.py
+    // fails if it drifts out of step with commodity_shares.json.
+    commodityAliasesPath:
+      process.env.COMMODITY_ALIASES_PATH ||
+      path.join(__dirname, '../../../prediction-models/models/lka_v2/commodity_aliases.json'),
     // Days between placing a resupply order and it reaching the camp. Drives
     // the reorder-by date and the forecast-aware stock status thresholds.
     resupplyLeadTimeDays: Number(process.env.RESUPPLY_LEAD_TIME_DAYS || 3),

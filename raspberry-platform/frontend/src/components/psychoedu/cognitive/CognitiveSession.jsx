@@ -4,6 +4,7 @@ import { SUBJECT_COLORS, TASK_TYPE_LABELS, getRandomSession } from '@/components
 import TaskRenderer from './TaskRenderer'
 import Eli from '@/components/psychoedu/child/Eli'
 import LoadingState from '@/components/ui/feedback/LoadingState'
+import { API } from '@/components/ui/config'
 
 //  Confetti burst 
 const CONFETTI_COLORS = ['#FF6B35','#FFD93D','#FF6B9D','#A855F7','#0D9488','#4ADE80','#60A5FA']
@@ -341,7 +342,7 @@ export default function CognitiveSession({ session, childId, lang = 'en', onComp
 
     try {
       // Call backend to complete the session and save scores
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/session/complete`, {
+      const response = await fetch(`${API}/api/session/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

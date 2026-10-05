@@ -14,8 +14,8 @@
  * Within same priority: oldest record first (by created_at / timestamp)
  */
 
-// TEMPORARY: Boost PAGES priority for testing. Revert after testing.
-const PAGES_BOOST = true; // Set to false to revert to original priorities
+// PAGES content-based priority classification (production mode)
+const PAGES_BOOST = false; // Set to true only for testing
 
 const PRIORITY = {
   CRITICAL: 'CRITICAL',

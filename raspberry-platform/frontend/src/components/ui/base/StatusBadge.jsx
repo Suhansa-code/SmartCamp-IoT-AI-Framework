@@ -2,16 +2,14 @@ import { Waves, AlertTriangle } from 'lucide-react'
 
 const BADGE_STYLES = {
   pregnant: {
-    bg: 'bg-violet-50',
-    text: 'text-violet-700',
-    border: 'border-violet-100',
+    bg: '#F5F3FF',
+    text: '#7C3AED',
     icon: Waves,
     label: 'Pregnant',
   },
   chronic: {
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    border: 'border-amber-100',
+    bg: '#FFFBEB',
+    text: '#D97706',
     icon: AlertTriangle,
     label: 'Chronic Illness',
   },
@@ -23,8 +21,11 @@ export default function StatusBadge({ type, className = '' }) {
   const Icon = style.icon
 
   return (
-    <span className={`${style.bg} ${style.text} text-xs font-medium px-2.5 py-1 rounded-md border ${style.border} inline-flex items-center gap-1.5 ${className}`}>
-      <Icon className="w-3.5 h-3.5" />
+    <span
+      className={`text-[11px] font-medium px-2 py-0.5 rounded inline-flex items-center gap-1 ${className}`}
+      style={{ backgroundColor: style.bg, color: style.text }}
+    >
+      <Icon className="w-3 h-3" />
       {style.label}
     </span>
   )

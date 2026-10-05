@@ -13,6 +13,13 @@ export async function checkFlaskHealth() {
   } catch { return false; }
 }
 
+function getAnomalyMode(sessionNumber) {
+  const number = Number(sessionNumber);
+  if (number >= 3 && number <= 7) return 'z';
+  if (number >= 8) return 'if';
+  return 'none';
+}
+
 export async function computeLocalZScore(childId, compositeScore) {
   try {
     const rows = sqliteRetrieve(
@@ -40,8 +47,16 @@ export async function computeLocalZScore(childId, compositeScore) {
   }
 }
 
-export async function getScore(childId, sessionId, taskMetrics, passiveSignals, baselineOverride = null) {
+export async function getScore(
+  childId,
+  sessionId,
+  taskMetrics,
+  passiveSignals,
+  baselineOverride = null,
+  sessionNumber = null,
+) {
   const body = { child_id: childId, session_id: sessionId, taskMetrics, passiveSignals };
+  const anomalyMode = getAnomalyMode(sessionNumber);
 
   // 1. Try cloud ML service first (IF + composite)
   try {
@@ -50,15 +65,19 @@ export async function getScore(childId, sessionId, taskMetrics, passiveSignals, 
       headers: { 'Content-Type': 'application/json' },
     });
     const d = res.data;
-    const localZScore = await computeLocalZScore(childId, d.compositeScore);
+    const localZScore = anomalyMode === 'z'
+      ? await computeLocalZScore(childId, d.compositeScore)
+      : null;
     return {
       compositeScore: round(d.compositeScore, 2),
       taskScore: round(d.taskScore, 2),
       passiveScore: round(d.passiveScore, 2),
       baselineScore: d.baselineScore || null,
       zScore: localZScore,
-      ifScore: d.ifScore ?? null,
-      anomalyFlagged: d.anomalyFlagged ?? false,
+      ifScore: anomalyMode === 'if' ? (d.ifScore ?? null) : null,
+      anomalyFlagged: anomalyMode === 'z'
+        ? localZScore !== null && localZScore < C.ZSCORE_THRESHOLD
+        : anomalyMode === 'if' && d.ifScore !== null && d.ifScore < C.IF_SCORE_THRESHOLD,
       gateDecision: d.gateDecision,
     };
   } catch (err) {
@@ -67,7 +86,9 @@ export async function getScore(childId, sessionId, taskMetrics, passiveSignals, 
 
   // 2. Fallback: local scoring (no IF)
   const fallback = fallbackScore(taskMetrics, passiveSignals, baselineOverride);
-  const localZScore = await computeLocalZScore(childId, fallback.compositeScore);
+  const localZScore = anomalyMode === 'z'
+    ? await computeLocalZScore(childId, fallback.compositeScore)
+    : null;
   const anomalyByZ = localZScore !== null && localZScore < C.ZSCORE_THRESHOLD;
   return {
     ...fallback,
@@ -121,10 +142,12 @@ export function computePassiveScore(passiveSignals) {
   const idleTimeRatio = passiveSignals.idleTimeRatio ?? 0;
   const rapidClickCount = passiveSignals.rapidClickCount ?? 0;
   const completionRatio = passiveSignals.completionRatio ?? 1;
+  const timeToFirstMs = passiveSignals.timeToFirstMs ?? 0;
 
   return (
-    (1 - idleTimeRatio) * 100 * 0.35 +
-    Math.max(0, 1 - rapidClickCount / 10) * 100 * 0.25 +
-    completionRatio * 100 * 0.40
+    (1 - idleTimeRatio) * 100 * 0.30 +
+    Math.max(0, 1 - rapidClickCount / 10) * 100 * 0.20 +
+    completionRatio * 100 * 0.30 +
+    Math.max(0, 1 - timeToFirstMs / 5000) * 100 * 0.20
   );
 }

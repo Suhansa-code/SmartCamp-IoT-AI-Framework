@@ -35,7 +35,7 @@ MODELS_DIR = HERE.parent / 'models'
 SRC_DIR = HERE.parent / 'src'
 sys.path.insert(0, str(SRC_DIR))
 
-EMQX_HOST = 'i17140d1.ala.asia-southeast1.emqxsl.com'
+EMQX_HOST = 'sa60a43c.ala.asia-southeast1.emqxsl.com'
 EMQX_PORT = 8883
 PING_TARGET = '8.8.8.8'
 INTERVAL = 30

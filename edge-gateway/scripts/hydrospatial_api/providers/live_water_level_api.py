@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime, timezone
 
 BASE_URL = "https://services3.arcgis.com/J7ZFXmR8rSmQ3FGf/arcgis/rest/services/gauges_2_view/FeatureServer/0/query"
 
@@ -85,4 +86,44 @@ def get_latest_gauge_data(gauge_name, include_geometry=False):
         result["longitude"] = geom.get("x")
 
     return result
+
+
+def get_gauge_history(gauge_name, hours=24):
+    """
+    Query ArcGIS FeatureServer for historical water level readings.
+    Returns list of {gauge, water_level, timestamp} sorted chronologically (oldest first).
+    """
+    record_count = min(hours * 4 + 20, 500)
+
+    params = {
+        "where": f"gauge='{gauge_name}'",
+        "outFields": "gauge,water_level,EditDate",
+        "orderByFields": "EditDate DESC",
+        "resultRecordCount": str(record_count),
+        "returnGeometry": "false",
+        "f": "json"
+    }
+
+    response = requests.get(BASE_URL, params=params, timeout=15)
+    response.raise_for_status()
+
+    data = response.json()
+    features = data.get("features", [])
+
+    readings = []
+    for feat in features:
+        attr = feat.get("attributes", {})
+        water_level = attr.get("water_level")
+        edit_date = attr.get("EditDate")
+        if water_level is None or edit_date is None:
+            continue
+        ts = datetime.fromtimestamp(edit_date / 1000, tz=timezone.utc).isoformat()
+        readings.append({
+            "gauge": attr.get("gauge"),
+            "water_level": water_level,
+            "timestamp": ts,
+        })
+
+    readings.reverse()
+    return readings
 

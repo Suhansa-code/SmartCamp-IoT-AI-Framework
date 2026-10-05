@@ -14,7 +14,7 @@ DATA_DIR      = Path("./data")
 MODELS_DIR    = Path("./models")
 MIN_SESSIONS  = 8
 CONTAMINATION = 0.10
-IF_THRESHOLD  = -0.10
+IF_THRESHOLD  = 0
 
 
 def load_history():
