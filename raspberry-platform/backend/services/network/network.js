@@ -4,6 +4,9 @@ import { campDb as db } from '../../config/database.js';
 
 let lastMetrics = null;
 let lastUpdatedAt = null;
+const HISTORY_LIMIT = 120;
+const statusListeners = new Set();
+let statusHistory = [];
 
 export function getNetworkState() {
   return saamp.getNetworkState();
@@ -60,6 +63,7 @@ export function getNetworkStatus() {
     buffer_messages: bufferMessages(),
     diagnostics: saamp.getNetworkDiagnostics(),
     reachability: getReachability(),
+    history: statusHistory,
   };
 }
 
@@ -68,6 +72,39 @@ export function setNetworkState(state, metrics, qosPolicy) {
   if (metrics) lastMetrics = metrics;
   if (qosPolicy) saamp.setQosPolicy(qosPolicy);
   lastUpdatedAt = new Date().toISOString();
+
+  // Keep a compact, in-memory signal trail for the operator dashboard. This
+  // is deliberately separate from mqtt_buffer: network observations are
+  // transient diagnostics, not operational data that belongs on an SD card.
+  const diagnostics = saamp.getNetworkDiagnostics();
+  const sample = {
+    at: lastUpdatedAt,
+    state: diagnostics.effective_state,
+    raw_state: diagnostics.raw_state,
+    metrics: lastMetrics,
+    qos_policy: diagnostics.qos_policy,
+    qos_source: diagnostics.qos_source,
+  };
+  statusHistory = [...statusHistory, sample].slice(-HISTORY_LIMIT);
+  notifyStatusListeners();
+}
+
+/** Subscribe an SSE response to current and future monitor observations. */
+export function subscribeToNetworkStatus(listener) {
+  statusListeners.add(listener);
+  return () => statusListeners.delete(listener);
+}
+
+function notifyStatusListeners() {
+  const payload = JSON.stringify(getNetworkStatus());
+  for (const listener of statusListeners) {
+    try {
+      listener(payload);
+    } catch {
+      // A socket can disappear between writes. The response's close handler
+      // removes it; never let a dead dashboard affect SAAMP publishing.
+    }
+  }
 }
 
 // Priority -> a (source, action) pair that classifyMessage maps to it, so a
