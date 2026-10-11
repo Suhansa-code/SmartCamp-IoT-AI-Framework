@@ -31,7 +31,7 @@ __pycache__/
 *.egg-info/
 *.egg/
 *.egg-dist/
-dist/
+raspberry-platform/frontend/dist
 build/
 *.so
 Pillow-*.gif
@@ -165,3 +165,9 @@ temp/
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Disregard the reports
+IT22064868 Proposal Report.pdf
+Individual Thesis Content.pdf
+IT22064868 Individual Thesis.docx
+website_theme/guide
