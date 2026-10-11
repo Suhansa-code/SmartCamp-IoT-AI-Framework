@@ -294,6 +294,7 @@ code,.mono{font-family:var(--font-mono)}
 }
 .hero-desc{color:var(--ink-muted);font-size:.95rem;max-width:560px;margin:0 0 26px}
 .hero-cta{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:36px}
+.camp-password-hint{align-self:center;font-size:.75rem;color:var(--ink-muted)}
 
 .hero-stats{
   display:flex;justify-content:flex-start;flex-wrap:wrap;
@@ -685,6 +686,23 @@ code,.mono{font-family:var(--font-mono)}
 .sup-card a{font-family:var(--font-mono);font-size:.75rem;color:var(--primary)}
 .sup-card a:hover{text-decoration:underline}
 
+/* website objectives — what this site is meant to communicate */
+.site-goals{
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--primary);
+  border-radius:var(--radius-lg);padding:20px 24px;margin:4px 0 34px;
+}
+.sg-k{
+  font-family:var(--font-mono);font-size:.62rem;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--primary);display:block;margin-bottom:13px;
+}
+.sg-list{display:flex;flex-direction:column;gap:10px;list-style:none;margin:0;padding:0}
+.sg-list li{font-size:.87rem;color:var(--ink);padding-left:22px;position:relative;line-height:1.5}
+.sg-list li::before{
+  content:"";position:absolute;left:2px;top:.52em;width:7px;height:7px;border-radius:50%;
+  background:var(--primary);
+}
+.sg-list li b{font-weight:600}
+
 .team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .member-card{
   background:var(--surface);border:1px solid var(--line);
@@ -776,7 +794,7 @@ code,.mono{font-family:var(--font-mono)}
   mask-image:radial-gradient(circle at 50% 45%,#000,transparent 72%);
   -webkit-mask-image:radial-gradient(circle at 50% 45%,#000,transparent 72%);
 }
-.arch-wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.arch-wires{position:absolute;inset:0 0 auto;width:100%;height:428px;pointer-events:none}
 .arch-wires path{fill:none;stroke:var(--line-strong);stroke-width:1.6;stroke-dasharray:5 7;opacity:.85}
 .arch-wires path.hot{stroke:var(--primary);stroke-dasharray:none;opacity:1}
 .arch-wires .pulse{fill:var(--primary);stroke:none}
@@ -837,6 +855,45 @@ code,.mono{font-family:var(--font-mono)}
 .arch-wires circle.w-leaf{fill:var(--leaf)}
 .arch-wires circle.w-heat{fill:var(--heat-1)}
 .arch-wires circle.w-std{fill:var(--line-strong)}
+
+/* implementation-grounded, four-layer architecture detail */
+.arch-detail-map{
+  position:relative;z-index:2;margin-top:24px;padding:20px;
+  background:color-mix(in srgb,var(--surface) 94%,var(--primary) 6%);
+  border:1px solid var(--line);border-radius:18px;
+}
+.arch-detail-title{font-size:.95rem;font-weight:600;color:var(--ink);margin:0 0 4px}
+.arch-detail-intro{font-size:.76rem;color:var(--ink-muted);line-height:1.5;margin:0 0 15px}
+.arch-detail-layers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.arch-detail-layer{
+  min-width:0;padding:13px;background:var(--surface);border:1px solid var(--line);
+  border-top:2px solid var(--layer,var(--primary));border-radius:13px;
+}
+.arch-detail-layer h5{
+  font-family:var(--font-mono);font-size:.62rem;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--layer,var(--primary));margin:0 0 3px;
+}
+.arch-detail-layer .ad-host{font-size:.78rem;font-weight:600;color:var(--ink);margin:0 0 10px}
+.ad-item{
+  padding:8px 9px;margin-top:6px;background:var(--chip);border-radius:8px;
+  font-size:.7rem;font-weight:600;color:var(--ink);line-height:1.35;
+}
+.ad-item small{display:block;margin-top:3px;font-size:.64rem;font-weight:400;color:var(--ink-muted);line-height:1.4}
+.ad-external{border:1px dashed var(--line-strong)}
+.ad-paths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.ad-path{
+  display:flex;align-items:flex-start;gap:8px;padding:9px 11px;
+  background:var(--chip);border:1px solid var(--line);border-radius:9px;
+  font-size:.66rem;color:var(--ink-muted);line-height:1.45;
+}
+.ad-arrow{flex:0 0 auto;font-family:var(--font-mono);font-size:.85rem;font-weight:700;color:var(--primary)}
+.ad-path b{color:var(--ink);font-weight:600}
+.ad-legend{margin:10px 0 0;font-size:.62rem;color:var(--ink-muted);line-height:1.45}
+.ad-note{
+  margin:10px 0 0;padding:8px 10px;border-left:2px solid var(--heat-1);
+  background:color-mix(in srgb,var(--heat-1) 7%,var(--surface));
+  border-radius:0 8px 8px 0;font-size:.66rem;color:var(--ink-muted);line-height:1.45;
+}
 
 /* central box */
 .arch-core{
@@ -990,6 +1047,7 @@ code,.mono{font-family:var(--font-mono)}
 .sdg b{color:var(--ink);font-weight:600;margin-right:4px}
 @media (max-width:1024px){
   .arch-topo{grid-template-columns:1fr;gap:14px;min-height:0}
+  .arch-detail-layers{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tp-col.left,.tp-col.right{align-items:stretch}
   .tp-col.left .node{flex-direction:row;text-align:left}
   .arch-wires{display:none}
@@ -998,6 +1056,8 @@ code,.mono{font-family:var(--font-mono)}
 }
 @media (max-width:760px){
   .al-mods{grid-template-columns:1fr}
+  .arch-detail-map{padding:14px}
+  .arch-detail-layers,.ad-paths{grid-template-columns:1fr}
   .arch-fails{grid-template-columns:1fr}
 }
 
@@ -1111,6 +1171,7 @@ code,.mono{font-family:var(--font-mono)}
               <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
             </span>
             <span class="u">smartrasberry.vercel.app</span>
+            <span class="u">Password hint: 123456</span>
           </a>
           <a href="https://smartcampbox.vercel.app/" target="_blank" rel="noopener" role="menuitem">
             <span class="t">Centralized Disaster Management Center
@@ -1151,6 +1212,7 @@ code,.mono{font-family:var(--font-mono)}
   <a class="ext-link" href="https://smartrasberry.vercel.app/" target="_blank" rel="noopener">
     Camp Management System
     <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+    <small style="display:block;font-size:.72rem;color:var(--ink-muted)">Password hint: 123456</small>
   </a>
   <a class="ext-link" href="https://smartcampbox.vercel.app/" target="_blank" rel="noopener">
     Centralized Disaster Management Center
@@ -1175,6 +1237,7 @@ code,.mono{font-family:var(--font-mono)}
             Camp Management — Live Site
             <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
           </a>
+          <span class="camp-password-hint">Password hint: 123456</span>
           <a class="btn btn-secondary" href="https://smartcampbox.vercel.app/" target="_blank" rel="noopener" title="Live site — Centralized Disaster Management Center · smartcampbox.vercel.app">
             Disaster Center — Live Site
             <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
@@ -1256,7 +1319,8 @@ code,.mono{font-family:var(--font-mono)}
             <div class="col" data-v="29"><span class="amt">29</span><span class="stem" style="--h:40%"></span><span class="cap">Kids</span></div>
           </div>
           <p class="chart-note"><b>Go/No-Go readiness gating</b> — a gamified task scores attention before content unlocks; the offline app logs each session to SQLite.</p>
-          <div class="mod-metrics" style="--c:var(--leaf)">
+          <div class="mod-metrics" style="--c:var(--leaf);grid-template-columns:repeat(2,1fr)">
+            <div class="mm"><span class="v">99.2%</span><span class="l">Completion rate</span></div>
             <div class="mm"><span class="v">94.2%</span><span class="l">Consistency</span></div>
             <div class="mm"><span class="v">580</span><span class="l">Sessions</span></div>
             <div class="mm"><span class="v">0%</span><span class="l">False pos.</span></div>
@@ -1476,23 +1540,23 @@ code,.mono{font-family:var(--font-mono)}
   <div class="content-width">
     <div class="section-header reveal">
       <span class="eyebrow">03 / System Architecture</span>
-      <h2>One Box, Three Layers</h2>
-      <p class="section-lead">Camp admin, child users and edge sensors connect over the device's built-in local WiFi to three on-device modules, each backed by its own SQLite store. An MQTT bridge forwards local data through the EMQX broker into a cloud PostgreSQL layer powering anomaly detection, resource prediction and the administrative dashboard.</p>
+      <h2>Four Layers, One Offline-First System</h2>
+      <p class="section-lead">ESP32 sensor nodes feed an Intel NUC edge gateway and Raspberry Pi 5 camp platform. The Pi runs risk monitoring, PAGES and resource-management services locally, then synchronizes records over SAAMP MQTT through EMQX to cloud APIs, PostgreSQL and dashboards.</p>
     </div>
 
     <div class="arch reveal" id="arch">
       <div class="arch-canvas">
         <svg class="arch-wires" id="arch-wires" viewBox="0 0 900 360" preserveAspectRatio="none" aria-hidden="true"></svg>
         <div class="arch-topo">
-          <!-- 1 · smart camp box (edge) — devices grouped inside by module -->
+          <!-- Raspberry Pi camp platform — local modules and their stores -->
           <div class="arch-core" id="arch-core" data-zone="box">
-            <div class="core-cap">Edge gateway</div>
+            <div class="core-cap">Camp platform</div>
             <h4>Smart Camp Box</h4>
-            <p class="core-sub">Raspberry Pi 5 · offline-first</p>
-            <div class="core-lanes" role="group" aria-label="Modules and their sensors">
+            <p class="core-sub">Raspberry Pi 5 · local services · offline-first</p>
+            <div class="core-lanes" role="group" aria-label="Modules and local data stores">
               <div class="lane" style="--c:var(--primary)">
                 <div class="lane-devs">
-                  <span class="dev-chip">GNSS</span><span class="dev-chip">Rainfall</span><span class="dev-chip">DHT</span>
+                  <span class="dev-chip">disaster.db</span><span class="dev-chip">HTTP from NUC</span>
                 </div>
                 <button class="core-mod m-risk" id="mod-risk" type="button" data-pop="ax-risk" data-to="mqtt-bridge" aria-expanded="false" aria-controls="ax-risk">
                   <span><span class="cm-k">01</span> Risk monitoring</span><span class="cm-go">→</span>
@@ -1508,7 +1572,7 @@ code,.mono{font-family:var(--font-mono)}
               </div>
               <div class="lane" style="--c:var(--heat-1)">
                 <div class="lane-devs">
-                  <span class="dev-chip">Fingerprint</span>
+                  <span class="dev-chip">Fingerprint serial</span><span class="dev-chip">camp.db</span>
                 </div>
                 <button class="core-mod m-saamp" id="mod-saamp" type="button" data-pop="ax-saamp" data-to="mqtt-bridge" aria-expanded="false" aria-controls="ax-saamp">
                   <span><span class="cm-k">03</span> SAAMP &amp; resources</span><span class="cm-go">→</span>
@@ -1523,8 +1587,8 @@ code,.mono{font-family:var(--font-mono)}
             <div class="mqtt-node" id="mqtt-bridge" data-to="cloud-panel">
               <span class="dot em"></span>
               <div class="mqtt-body">
-                <b>EMQX broker</b>
-                <span class="sub">campbox/{camp_id}/{module}/{tier}</span>
+                <b>SAAMP → EMQX broker</b>
+                <span class="sub">smartcamp/sync/{entity}</span>
               </div>
             </div>
             <div class="mqtt-tags">
@@ -1536,12 +1600,89 @@ code,.mono{font-family:var(--font-mono)}
           <div class="tp-col cloud" id="cloud-panel" data-zone="cloud">
             <span class="tp-cap"><span class="zn">2</span> · Cloud · centralized</span>
             <span class="node"><span class="dot em"></span>Multi-camp dashboard<span class="sub">live risk · alerts</span></span>
-            <span class="node"><span class="dot leaf"></span>PostgreSQL sync<span class="sub">JSON envelopes</span></span>
-            <span class="node"><span class="dot heat"></span>Analytics models<span class="sub">anomaly · forecast</span></span>
-            <span class="node"><span class="dot em"></span>Alert notifications<span class="sub">SMS · email · push</span></span>
+            <span class="node"><span class="dot leaf"></span>Sync receiver + PostgreSQL<span class="sub">idempotent record upserts</span></span>
+            <span class="node"><span class="dot heat"></span>Prediction &amp; analytics<span class="sub">flood · resource · education</span></span>
+            <span class="node"><span class="dot em"></span>Alerts &amp; sync services<span class="sub">education · disaster</span></span>
             <span class="node"><span class="dot leaf"></span>Admin console<span class="sub">camps · users</span></span>
             <span class="node"><span class="dot heat"></span>Resource planner<span class="sub">demand forecast</span></span>
           </div>
+        </div>
+
+        <div class="arch-detail-map" role="group" aria-label="Detailed implementation architecture">
+          <h4 class="arch-detail-title">Verified components and end-to-end data paths</h4>
+          <p class="arch-detail-intro">The four tiers below distinguish physical devices, edge processing, camp-local services and cloud services. The connection labels identify the implemented transports.</p>
+
+          <div class="arch-detail-layers">
+            <section class="arch-detail-layer" style="--layer:var(--primary)" aria-label="Disaster camp devices">
+              <h5>01 · Disaster camp</h5>
+              <p class="ad-host">Physical devices &amp; users</p>
+              <div class="ad-item">ESP32 sensor node
+                <small>GNSS (NMEA), DHT11 temperature/humidity, YL-83/FC-37 rain sensor (analog + digital).</small>
+              </div>
+              <div class="ad-item">Fingerprint scanner
+                <small>Enrollment and match events; linked by the local registration service to a person and wristband.</small>
+              </div>
+              <div class="ad-item">Child tablet &amp; staff browser
+                <small>Use the camp platform over local Wi-Fi for PAGES sessions and resource/disaster operations.</small>
+              </div>
+            </section>
+
+            <section class="arch-detail-layer" style="--layer:var(--heat-1)" aria-label="Intel NUC edge gateway">
+              <h5>02 · Edge gateway</h5>
+              <p class="ad-host">Intel NUC · FastAPI</p>
+              <div class="ad-item">Sensor parsing &amp; hydrospatial API
+                <small>Parses serial GNSS/sensor feeds; provides elevation, weather, hydrospatial analysis, nearest-river and prediction endpoints.</small>
+              </div>
+              <div class="ad-item ad-external">External location-aware data
+                <small>GET /hydrospatial/analysis uses GPS location. Nearest named river: OpenStreetMap Overpass. Gauge selection: local river shapefile + station CSV/graph. Latest gauge readings: ArcGIS REST. Elevation: DEM / Open-Elevation; weather: Open-Meteo.</small>
+              </div>
+              <div class="ad-item">Flood prediction
+                <small>Edge XGBoost endpoint scores features assembled from current sensor and hydrospatial data.</small>
+              </div>
+            </section>
+
+            <section class="arch-detail-layer" style="--layer:var(--leaf)" aria-label="Raspberry Pi camp services">
+              <h5>03 · Camp platform</h5>
+              <p class="ad-host">Raspberry Pi 5 · Express + React</p>
+              <div class="ad-item">Environmental risk
+                <small>Sensor + hydrospatial collection → disaster.db → prediction service → edge XGBoost → alert evaluator. The local disaster monitor reads current/history APIs.</small>
+              </div>
+              <div class="ad-item">PAGES learning
+                <small>Child sessions, readiness gating, content responses and welfare signals use education APIs, Flask scoring and pages.db; the local education dashboard shows progress and alerts.</small>
+              </div>
+              <div class="ad-item">Resource management
+                <small>Fingerprint serial service resolves identity; registration, check-in, wristband/QR and distribution APIs use camp.db. Resource transactions and forecasts are synchronized.</small>
+              </div>
+              <div class="ad-item">Local persistence
+                <small>camp.db · pages.db · disaster.db keep camp operations available offline.</small>
+              </div>
+            </section>
+
+            <section class="arch-detail-layer" style="--layer:var(--primary)" aria-label="MQTT broker and cloud platform">
+              <h5>04 · Messaging &amp; cloud</h5>
+              <p class="ad-host">EMQX · cloud platform</p>
+              <div class="ad-item">SAAMP MQTT + sync receiver
+                <small>Pi publishes per-record JSON envelopes on smartcamp/sync/&lt;entity&gt;; cloud subscribes to smartcamp/sync/#, deduplicates and persists records, then publishes smartcamp/sync/ack/&lt;device_id&gt;.</small>
+              </div>
+              <div class="ad-item">Cloud persistence &amp; APIs
+                <small>PostgreSQL stores synchronized resource, education and disaster records; cloud Express APIs serve the dashboards.</small>
+              </div>
+              <div class="ad-item">Cloud dashboards
+                <small>Resources/camp operations, Education (PAGES) and Disaster monitoring. The Next.js frontend reads through cloud APIs; acknowledgements return to the Pi over MQTT.</small>
+              </div>
+            </section>
+          </div>
+
+          <div class="ad-paths" aria-label="Verified system connections">
+            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>UART / serial:</b> ESP32 NMEA and sensor readings are parsed at the Intel NUC; fingerprint events connect by serial to the Pi fingerprint service.</span></div>
+            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">↔</span><span><b>HTTP / REST:</b> Pi hydrospatial storage calls NUC <code>/hydrospatial/analysis</code> with the latest GPS coordinates/altitude; nearest-river, station, latest-gauge and elevation results return to disaster.db. Weather is fetched separately from the NUC weather endpoint. The Pi prediction service posts model features to the NUC prediction API.</span></div>
+            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>MQTT publish:</b> Pi SAAMP sync manager sends queued local records through EMQX on smartcamp/sync/&lt;entity&gt;; criticality and network state control priority, QoS and buffering.</span></div>
+            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>MQTT consume + ACK:</b> Cloud sync receiver persists records to PostgreSQL and returns per-record acknowledgements on smartcamp/sync/ack/&lt;device_id&gt;.</span></div>
+            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>Dashboard reads:</b> Local React pages use Pi APIs/SQLite; cloud Next.js dashboards use cloud Express APIs/PostgreSQL for synchronized multi-camp views.</span></div>
+            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>Risk result:</b> GPS, rainfall, water level and hydrospatial features feed edge XGBoost; prediction and alert records are stored locally, exposed to the disaster monitor and included in sync.</span></div>
+          </div>
+          <p class="ad-note"><b>Terminology:</b> Resource-management code provides fingerprint-backed registration, check-in and distribution services. The distinct messaging layer is SAAMP (Semantic-Aware Adaptive Message Prioritization); no separate service named “SAM” was identified.</p>
+          <p class="ad-legend">Solid arrows mark verified transports/data paths. The dashed card marks external providers queried by the edge hydrospatial service.</p>
         </div>
 
         <!-- compact popovers (shown on module click) -->
@@ -1577,11 +1718,11 @@ code,.mono{font-family:var(--font-mono)}
       </div>
 
       <div class="flow" role="group" aria-label="End-to-end data flow">
-        <button class="flow-step" type="button" data-text="Camp staff register each arrival on the Raspberry Pi; a fingerprint is linked to a single UUID carried as a wristband barcode — the shared identity key used by all three modules and the cloud.">1 · Registration &amp; UUID</button>
+        <button class="flow-step" type="button" data-text="Camp registration links the fingerprint slot to a person in camp.db; wristband and QR identifiers are used by check-in and resource distribution.">1 · Registration &amp; identity</button>
         <button class="flow-step" type="button" data-text="Risk scoring, resource transactions and PAGES sessions run fully offline on the box; each module persists to its own SQLite instance — core local operations need zero internet.">2 · Edge modules + SQLite</button>
         <button class="flow-step" type="button" data-text="Every message is classified Critical / Important / Routine; MQTT QoS and transmission priority are assigned jointly from message criticality and live network state, with priority-ordered flushing on reconnection.">3 · SAAMP tiering</button>
-        <button class="flow-step" type="button" data-text="campbox/{camp_id}/{module}/{tier} topics bridge local buffers to EMQX whenever a connection window opens; no message is dropped silently — critical traffic flushes first.">4 · MQTT bridge → EMQX</button>
-        <button class="flow-step" type="button" data-text="The broker writes JSON envelopes (schema_version, camp_id, module, timestamp, payload) into the shared PostgreSQL store for consolidated multi-camp oversight.">5 · PostgreSQL sync</button>
+        <button class="flow-step" type="button" data-text="The Raspberry Pi SAAMP sync manager publishes individual queued records to smartcamp/sync/<entity> through EMQX; messages remain buffered locally while offline or when network policy defers them.">4 · MQTT publish → EMQX</button>
+        <button class="flow-step" type="button" data-text="The cloud sync receiver subscribes to smartcamp/sync/#, validates and deduplicates each envelope, upserts the mapped entity into PostgreSQL and publishes an ACK to smartcamp/sync/ack/<device_id>.">5 · Cloud consume + ACK</button>
         <button class="flow-step" type="button" data-text="Cloud-side extensions — anomaly detection, resource prediction, disaster notifications and admin tasks — are built by the same owners as their edge modules and serve every deployed camp.">6 · Cloud analytics</button>
       </div>
       <p class="arch-detail" id="arch-detail">Select a step to trace how data moves from camp arrival to the administrator's dashboard — or open a module in the box to see its architecture.</p>
@@ -1772,14 +1913,19 @@ code,.mono{font-family:var(--font-mono)}
       <div class="ms-select-wrap">
         <select id="ms-select">
           <option value="">Select an assessment from the list…</option>
-          <option value="ms-proposal">Project Proposal — March 2026</option>
-          <option value="ms-pp1">Progress Presentation-1</option>
-          <option value="ms-pp2">Progress Presentation-2</option>
-          <option value="ms-paper">Research Paper</option>
-          <option value="ms-final">Final Assessment</option>
-          <option value="ms-viva">Viva</option>
-          <option value="ms-report">Final Report</option>
-          <option value="ms-website">Project Website</option>
+          <option value="ms-proposal">Proposal Submission — 15 March 2026</option>
+          <option value="ms-proposal-presentation">Proposal Presentation — 16–18 March 2026</option>
+          <option value="ms-checklist">Check List Submission — 13 May 2026</option>
+          <option value="ms-pp1">Progress Presentation 1 — 11–13 May 2026</option>
+          <option value="ms-pp2">Progress Presentation 2 — 31 August–2 September 2026</option>
+          <option value="ms-draft-thesis">Draft Thesis Submission — 11 October 2026</option>
+          <option value="ms-website">Website Submission — 11 October 2026</option>
+          <option value="ms-final-checklist">Final Check List Submission — 14 October 2026</option>
+          <option value="ms-final">Final Presentation and Viva — 19–21 October 2026</option>
+          <option value="ms-viva">Website Evaluation and Logbook Submission — 19–21 October 2026</option>
+          <option value="ms-paper">Research Paper Submission — 23 October 2026</option>
+          <option value="ms-report">Final Thesis Submission — 28 October 2026</option>
+          <option value="ms-paper-evidence">Research Paper Publication Evidence — 1 December 2026</option>
         </select>
       </div>
     </div>
@@ -1796,101 +1942,154 @@ code,.mono{font-family:var(--font-mono)}
             <div class="rm-head">
               <h3>Project Proposal</h3>
               <span class="badge done">Completed</span>
-              <span class="badge">March 2026</span>
+              <span class="badge">15 March 2026</span>
             </div>
             <p>Individual research proposals submitted for all three sub-systems under group R26-IT-145.</p>
-            <div class="rm-meta"><span><b>Date</b> March 2026</span><span><b>Marks</b> To be updated</span></div>
+            <div class="rm-meta"><span><b>Date</b> 15 March 2026</span><span><b>Marks</b> To be updated</span></div>
+          </div>
+        </li>
+
+        <li class="rm-item right" id="ms-proposal-presentation">
+          <span class="rm-pin" style="--c:var(--leaf)" aria-hidden="true"><span>2</span></span>
+          <div class="rm-card">
+            <div class="rm-head">
+              <h3>Proposal Presentation</h3>
+              <span class="badge">16–18 March 2026</span>
+            </div>
+            <p>Initial research proposal presentation to the assessment panel.</p>
+            <div class="rm-meta"><span><b>Date</b> 16–18 March 2026</span></div>
+          </div>
+        </li>
+
+        <li class="rm-item left" id="ms-checklist">
+          <span class="rm-pin" style="--c:var(--primary-strong)" aria-hidden="true"><span>3</span></span>
+          <div class="rm-card">
+            <div class="rm-head">
+              <h3>Check List Submission</h3>
+              <span class="badge">13 May 2026</span>
+            </div>
+            <p>Submit the assessment checklist for the progress review.</p>
+            <div class="rm-meta"><span><b>Date</b> 13 May 2026</span></div>
           </div>
         </li>
 
         <li class="rm-item right" id="ms-pp1">
-          <span class="rm-pin" style="--c:var(--leaf)" aria-hidden="true"><span>2</span></span>
+          <span class="rm-pin" style="--c:var(--leaf)" aria-hidden="true"><span>4</span></span>
           <div class="rm-card">
             <div class="rm-head">
-              <h3>Progress Presentation-1</h3>
-              <span class="badge">Upcoming</span>
-              <span class="badge">To be updated</span>
+              <h3>Progress Presentation 1</h3>
+              <span class="badge">11–13 May 2026</span>
             </div>
             <p>First progress review — requirement analysis, architecture and initial prototypes.</p>
-            <div class="rm-meta"><span><b>Date</b> To be updated</span><span><b>Marks</b> To be updated</span></div>
+            <div class="rm-meta"><span><b>Date</b> 11–13 May 2026</span><span><b>Marks</b> To be updated</span></div>
           </div>
         </li>
 
         <li class="rm-item left" id="ms-pp2">
-          <span class="rm-pin" style="--c:var(--primary-strong)" aria-hidden="true"><span>3</span></span>
+          <span class="rm-pin" style="--c:var(--primary-strong)" aria-hidden="true"><span>5</span></span>
           <div class="rm-card">
             <div class="rm-head">
-              <h3>Progress Presentation-2</h3>
-              <span class="badge">Upcoming</span>
-              <span class="badge">To be updated</span>
+              <h3>Progress Presentation 2</h3>
+              <span class="badge">31 August–2 September 2026</span>
             </div>
             <p>Second progress review — model results, integrated system and evaluation setup.</p>
-            <div class="rm-meta"><span><b>Date</b> To be updated</span><span><b>Marks</b> To be updated</span></div>
+            <div class="rm-meta"><span><b>Date</b> 31 August–2 September 2026</span><span><b>Marks</b> To be updated</span></div>
           </div>
         </li>
 
-        <li class="rm-item right" id="ms-paper">
-          <span class="rm-pin" style="--c:var(--heat-1)" aria-hidden="true"><span>4</span></span>
+        <li class="rm-item right" id="ms-draft-thesis">
+          <span class="rm-pin" style="--c:var(--heat-1)" aria-hidden="true"><span>6</span></span>
           <div class="rm-card">
             <div class="rm-head">
-              <h3>Research Paper</h3>
-              <span class="badge">Upcoming</span>
-              <span class="badge">To be updated</span>
+              <h3>Draft Thesis Submission</h3>
+              <span class="badge">11 October 2026</span>
             </div>
-            <p>Peer-reviewed paper covering the integrated Smart Camp Box framework.</p>
-            <div class="rm-meta"><span><b>Date</b> To be updated</span><span><b>Marks</b> To be updated</span></div>
+            <p>Submit the draft thesis for review.</p>
+            <div class="rm-meta"><span><b>Date</b> 11 October 2026</span></div>
+          </div>
+        </li>
+
+        <li class="rm-item left now" id="ms-website">
+          <span class="rm-pin" style="--c:var(--heat-1)" aria-hidden="true"><span>7</span></span>
+          <div class="rm-card">
+            <div class="rm-head">
+              <h3>Website Submission</h3>
+              <span class="badge now">11 October 2026</span>
+            </div>
+            <p>Submit the project website and research portfolio.</p>
+            <div class="rm-meta"><span><b>Date</b> 11 October 2026</span></div>
+          </div>
+        </li>
+
+        <li class="rm-item right" id="ms-final-checklist">
+          <span class="rm-pin" style="--c:var(--primary)" aria-hidden="true"><span>8</span></span>
+          <div class="rm-card">
+            <div class="rm-head">
+              <h3>Final Check List Submission</h3>
+              <span class="badge">14 October 2026</span>
+            </div>
+            <p>Submit the final assessment checklist.</p>
+            <div class="rm-meta"><span><b>Date</b> 14 October 2026</span></div>
           </div>
         </li>
 
         <li class="rm-item left" id="ms-final">
-          <span class="rm-pin" style="--c:var(--leaf)" aria-hidden="true"><span>5</span></span>
+          <span class="rm-pin" style="--c:var(--leaf)" aria-hidden="true"><span>9</span></span>
           <div class="rm-card">
             <div class="rm-head">
-              <h3>Final Assessment</h3>
-              <span class="badge">Upcoming</span>
-              <span class="badge">To be updated</span>
+              <h3>Final Presentation and Viva</h3>
+              <span class="badge">19–21 October 2026</span>
             </div>
-            <p>End-to-end demonstration of all three sub-systems on Smart Camp Box hardware.</p>
-            <div class="rm-meta"><span><b>Date</b> To be updated</span><span><b>Marks</b> To be updated</span></div>
+            <p>Final presentation, viva voce, and end-to-end demonstration of the integrated system.</p>
+            <div class="rm-meta"><span><b>Date</b> 19–21 October 2026</span></div>
           </div>
         </li>
 
         <li class="rm-item right" id="ms-viva">
-          <span class="rm-pin" style="--c:var(--primary)" aria-hidden="true"><span>6</span></span>
+          <span class="rm-pin" style="--c:var(--primary)" aria-hidden="true"><span>10</span></span>
           <div class="rm-card">
             <div class="rm-head">
-              <h3>Viva</h3>
-              <span class="badge">Upcoming</span>
-              <span class="badge">To be updated</span>
+              <h3>Website Evaluation and Logbook Submission</h3>
+              <span class="badge">19–21 October 2026</span>
             </div>
-            <p>Viva voce covering the integrated framework and each researcher's contribution.</p>
-            <div class="rm-meta"><span><b>Date</b> To be updated</span><span><b>Marks</b> To be updated</span></div>
+            <p>Website evaluation and submission of the project logbook.</p>
+            <div class="rm-meta"><span><b>Date</b> 19–21 October 2026</span></div>
           </div>
         </li>
 
-        <li class="rm-item left" id="ms-report">
-          <span class="rm-pin" style="--c:var(--primary-strong)" aria-hidden="true"><span>7</span></span>
+        <li class="rm-item left" id="ms-paper">
+          <span class="rm-pin" style="--c:var(--heat-1)" aria-hidden="true"><span>11</span></span>
           <div class="rm-card">
             <div class="rm-head">
-              <h3>Final Report</h3>
-              <span class="badge">Upcoming</span>
-              <span class="badge">To be updated</span>
+              <h3>Research Paper Submission</h3>
+              <span class="badge">23 October 2026</span>
+            </div>
+            <p>Peer-reviewed paper covering the integrated Smart Camp Box framework.</p>
+            <div class="rm-meta"><span><b>Date</b> 23 October 2026</span></div>
+          </div>
+        </li>
+
+        <li class="rm-item right" id="ms-report">
+          <span class="rm-pin" style="--c:var(--primary-strong)" aria-hidden="true"><span>12</span></span>
+          <div class="rm-card">
+            <div class="rm-head">
+              <h3>Final Thesis Submission</h3>
+              <span class="badge">28 October 2026</span>
             </div>
             <p>Complete dissertation including individual chapters for each researcher.</p>
-            <div class="rm-meta"><span><b>Date</b> To be updated</span><span><b>Marks</b> To be updated</span></div>
+            <div class="rm-meta"><span><b>Date</b> 28 October 2026</span></div>
           </div>
         </li>
 
-        <li class="rm-item right now" id="ms-website">
-          <span class="rm-pin" style="--c:var(--heat-1)" aria-hidden="true"><span>8</span></span>
+        <li class="rm-item left" id="ms-paper-evidence">
+          <span class="rm-pin" style="--c:var(--heat-1)" aria-hidden="true"><span>13</span></span>
           <div class="rm-card">
             <div class="rm-head">
-              <h3>Project Website</h3>
-              <span class="badge now">In progress</span>
-              <span class="badge">This page</span>
+              <h3>Research Paper Publication Evidence</h3>
+              <span class="badge">1 December 2026</span>
             </div>
-            <p>Public research portfolio presenting the project overview and team contributions.</p>
-            <div class="rm-meta"><span><b>Date</b> This page</span><span><b>Marks</b> —</span></div>
+            <p>Submit evidence of research paper publication.</p>
+            <div class="rm-meta"><span><b>Date</b> 1 December 2026</span></div>
           </div>
         </li>
       </ol>
@@ -1908,7 +2107,7 @@ code,.mono{font-family:var(--font-mono)}
     </div>
 
     <div class="doc-list reveal">
-      <a class="doc-row" href="assets/Smart-Camp-Box%20-%20Abstract%20Format.docx" target="_blank" rel="noopener">
+      <a class="doc-row" href="assets/Smart-Camp-Box%20-%20Abstract%20Format.pdf" target="_blank" rel="noopener">
         <span class="doc-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
         </span>
@@ -1916,7 +2115,7 @@ code,.mono{font-family:var(--font-mono)}
           <span class="doc-title">Group Abstract</span>
           <span class="doc-desc">Combined abstract covering the Smart Camp Box framework and its three coupled sub-systems.</span>
         </span>
-        <span class="doc-type">DOCX</span>
+        <span class="doc-type">PDF</span>
         <span class="btn btn-secondary btn-sm">Open</span>
       </a>
 
@@ -2005,7 +2204,7 @@ code,.mono{font-family:var(--font-mono)}
     </div>
 
     <div class="doc-list reveal">
-      <div class="doc-row">
+      <a class="doc-row" href="assets/R26%5BIT-145%5D%20Proposal%20Presentation.pptx" target="_blank" rel="noopener">
         <span class="doc-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M7 8l3 2-3 2"/></svg>
         </span>
@@ -2013,11 +2212,11 @@ code,.mono{font-family:var(--font-mono)}
           <span class="doc-title">Proposal Presentation</span>
           <span class="doc-desc">Initial research proposal presented to the panel for group R26-IT-145.</span>
         </span>
-        <span class="doc-type">SLIDES</span>
-        <span class="badge">Coming soon</span>
-      </div>
+        <span class="doc-type">PPTX</span>
+        <span class="btn btn-secondary btn-sm">Open</span>
+      </a>
 
-      <div class="doc-row">
+      <a class="doc-row" href="assets/R26-IT-145%20PP1.pptx" target="_blank" rel="noopener">
         <span class="doc-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M7 8l3 2-3 2"/></svg>
         </span>
@@ -2025,11 +2224,11 @@ code,.mono{font-family:var(--font-mono)}
           <span class="doc-title">Progress Presentation-1</span>
           <span class="doc-desc">First progress review — requirement analysis, architecture and initial prototypes.</span>
         </span>
-        <span class="doc-type">SLIDES</span>
-        <span class="badge">Coming soon</span>
-      </div>
+        <span class="doc-type">PPTX</span>
+        <span class="btn btn-secondary btn-sm">Open</span>
+      </a>
 
-      <div class="doc-row">
+      <a class="doc-row" href="assets/R26-IT-145%20PP2.pptx" target="_blank" rel="noopener">
         <span class="doc-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M7 8l3 2-3 2"/></svg>
         </span>
@@ -2037,9 +2236,9 @@ code,.mono{font-family:var(--font-mono)}
           <span class="doc-title">Progress Presentation-2</span>
           <span class="doc-desc">Second progress review — model results, integrated system and evaluation setup.</span>
         </span>
-        <span class="doc-type">SLIDES</span>
-        <span class="badge">Coming soon</span>
-      </div>
+        <span class="doc-type">PPTX</span>
+        <span class="btn btn-secondary btn-sm">Open</span>
+      </a>
 
       <div class="doc-row">
         <span class="doc-ico" aria-hidden="true">
@@ -2063,6 +2262,15 @@ code,.mono{font-family:var(--font-mono)}
       <span class="eyebrow">08 / About us</span>
       <h2>Research Team</h2>
       <p class="section-lead">Supervised by the Faculty of Computing at the Sri Lanka Institute of Information Technology, Malabe.</p>
+    </div>
+
+    <div class="site-goals reveal">
+      <span class="sg-k">What this website communicates</span>
+      <ul class="sg-list">
+        <li><b>The research project</b> — context, literature, gaps, problem statement, objectives and methodology behind the Smart Camp Box.</li>
+        <li><b>The three sub-systems</b> — location-aware risk monitoring, PAGES learning, and SAAMP communication &amp; resource management, with each researcher's contribution.</li>
+        <li><b>Progress &amp; outputs</b> — milestones, project documents, presentations, live demos and a way to reach the team.</li>
+      </ul>
     </div>
 
     <p class="team-label">Supervisors</p>
