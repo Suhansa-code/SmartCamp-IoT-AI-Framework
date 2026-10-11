@@ -16,6 +16,9 @@ import {
   getResourceTypes,
 } from '../controllers/distribution/distribution.controller.js';
 import {
+  getStockOutlook, getStockAlerts, getAliasInfo, reloadAliases,
+} from '../controllers/resources/stockRunout.controller.js';
+import {
   listResources,
   getSummary as getResourceSummary,
   getUsageTimeline,
@@ -41,6 +44,14 @@ router.get('/distributions/by-resource', getByResourceType);
 router.get('/distributions/timeline', getTimeline);
 router.get('/distributions/camps', getCampList);
 router.get('/distributions/resource-types', getResourceTypes);
+
+// Stock runout — forecast-driven days of cover, runout and reorder dates.
+router.get('/stock/outlook', getStockOutlook);
+router.get('/stock/alerts', getStockAlerts);
+// Commodity standardisation — inspect the curated alias layer, and dry-run one
+// name through it with ?name=Milk%20Powder before trusting a date to it.
+router.get('/stock/aliases', getAliasInfo);
+router.post('/stock/aliases/reload', reloadAliases);
 
 // Resource inventory — live data from resources table.
 router.get('/inventory', listResources);

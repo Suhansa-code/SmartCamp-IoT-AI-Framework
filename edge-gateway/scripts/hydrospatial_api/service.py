@@ -1,5 +1,6 @@
 import time
 import logging
+import hashlib
 
 from .providers.gauging_station import get_nearest_waterlevel_station
 from .providers.river_lookup import get_nearest_named_river
@@ -19,6 +20,35 @@ logger = logging.getLogger(__name__)
 # In-memory cache: river/station data for a location rarely changes
 _cache = {}
 _CACHE_TTL = 3600  # 1 hour
+
+# Prediction-level caches
+_analysis_cache = {}
+_ANALYSIS_CACHE_TTL = 1800  # 30 minutes — terrain/station data changes slowly
+
+_prediction_cache = {}
+_PREDICTION_CACHE_TTL = 300  # 5 minutes — prediction is expensive, cache short
+
+
+def _cache_key(lat: float, lon: float, alt: float = 10.0) -> str:
+    """Round coordinates to ~11m precision for cache key."""
+    return f"{lat:.4f},{lon:.4f},{alt:.1f}"
+
+
+def _get_cached(cache: dict, key: str, ttl: int):
+    entry = cache.get(key)
+    if entry and (time.time() - entry["ts"] < ttl):
+        return entry["data"]
+    return None
+
+
+def _set_cached(cache: dict, key: str, data, ttl: int = 3600):
+    cache[key] = {"data": data, "ts": time.time()}
+    # Evict stale entries periodically
+    if len(cache) > 200:
+        now = time.time()
+        stale = [k for k, v in cache.items() if now - v["ts"] > ttl * 2]
+        for k in stale[:100]:
+            del cache[k]
 
 
 def find_nearest_gauging_station_detailed(latitude: float, longitude: float):
@@ -161,6 +191,13 @@ def build_live_payload(latitude: float, longitude: float, altitude: float = 10.0
 
 def build_live_prediction(latitude: float, longitude: float, altitude: float = 10.0):
     """Run the live flood prediction model with current gauge data."""
+    # Check prediction cache
+    key = _cache_key(latitude, longitude, altitude)
+    cached = _get_cached(_prediction_cache, key, _PREDICTION_CACHE_TTL)
+    if cached is not None:
+        logger.debug(f"[PREDICTION] Cache hit for ({latitude}, {longitude})")
+        return cached
+
     payload = build_live_payload(latitude, longitude, altitude)
 
     gauge = payload.get("live_gauge_data") or {}
@@ -182,13 +219,18 @@ def build_live_prediction(latitude: float, longitude: float, altitude: float = 1
         "altitude_m": altitude,
         "dem_elevation_m": dem_elevation,
         "nearest_river_m": nearest_river_m,
-        "gauging_station_current_water_level_m": gauge.get("water_level") or 0.0,
+        "water_level_m": gauge.get("water_level") or 0.0,
         "is_forecast": True,
+        "gauge_alert_level": gauge.get("alert_level") or station.get("alert_level") or 2.0,
+        "gauge_minor_level": gauge.get("minor_flood_level") or station.get("minor_level") or 3.0,
+        "gauge_major_level": gauge.get("major_flood_level") or station.get("major_level") or 5.0,
+        "return_shap": True,
     }
 
     try:
         prediction = run_prediction(inputs)
     except Exception as exc:
+        logger.error(f"[PREDICTION] Model prediction failed for ({latitude}, {longitude}): {exc}", exc_info=True)
         return {
             "prediction": None,
             "inputs": inputs,
@@ -204,7 +246,7 @@ def build_live_prediction(latitude: float, longitude: float, altitude: float = 1
             },
         }, {"error": f"Prediction failed: {exc}", "errors": payload.get("errors", {})}
 
-    return {
+    result = {
         "prediction": prediction,
         "inputs": inputs,
         "source_data": {
@@ -214,6 +256,33 @@ def build_live_prediction(latitude: float, longitude: float, altitude: float = 1
             "rainfall": gauge.get("rainfall"),
         },
         "errors": payload.get("errors", {}),
+    }
+    _set_cached(_prediction_cache, key, (result, None), _PREDICTION_CACHE_TTL)
+    return result, None
+
+
+def build_local_prediction(inputs: dict):
+    """Run prediction with a pre-assembled feature vector (no external API fetches).
+
+    Unlike build_live_prediction, this bypasses all data gathering (Overpass, ArcGIS, DEM)
+    and feeds the provided inputs directly to the XGBoost model.
+    """
+    try:
+        prediction = run_prediction(inputs)
+    except Exception as exc:
+        logger.error(f"[PREDICTION] Local prediction failed: {exc}", exc_info=True)
+        return {
+            "prediction": None,
+            "inputs": inputs,
+            "source_data": {},
+            "errors": {"prediction": f"Prediction failed: {exc}"},
+        }, {"error": f"Prediction failed: {exc}"}
+
+    return {
+        "prediction": prediction,
+        "inputs": inputs,
+        "source_data": {},
+        "errors": {},
     }, None
 
 
@@ -227,6 +296,12 @@ def build_hydrospatial_analysis(latitude: float, longitude: float, altitude: flo
     Each Overpass-dependent step runs with an independent timeout so that
     a slow/unresponsive Overpass API does not block the entire analysis.
     """
+    # Check analysis cache (terrain/station data changes slowly)
+    key = _cache_key(latitude, longitude, altitude)
+    cached = _get_cached(_analysis_cache, key, _ANALYSIS_CACHE_TTL)
+    if cached is not None:
+        logger.debug(f"[HYDROSPATIAL] Cache hit for ({latitude}, {longitude})")
+        return cached
     from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
     from geopy.distance import geodesic
 
@@ -342,4 +417,5 @@ def build_hydrospatial_analysis(latitude: float, longitude: float, altitude: flo
         except Exception as exc:
             payload["errors"]["live_gauge_data"] = str(exc)
 
+    _set_cached(_analysis_cache, key, payload, _ANALYSIS_CACHE_TTL)
     return payload

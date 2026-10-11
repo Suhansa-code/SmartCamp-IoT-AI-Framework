@@ -1,25 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Sora:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Poppins:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Libre Baskerville', ui-serif, Georgia, serif;
-  --font-mono: 'Space Mono', ui-monospace, monospace;
+  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+  --font-serif: 'Poppins', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+  --font-mono: 'Poppins', ui-monospace, "SF Mono", "Cascadia Code", monospace;
 
-  --color-ink: #15191C;
-  --color-body: #5B6169;
-  --color-muted: #9AA0A6;
-  --color-line: #E7E8EA;
-  --color-hairline: #F1F2F0;
-  --color-grid: #F0F1EF;
-  --color-track: #EEF0ED;
-  --color-noise: #C7CCC8;
-  --color-chip: #D4D8D5;
+  --color-ink: #111827;
+  --color-body: #4B5563;
+  --color-muted: #9CA3AF;
+  --color-subtle: #D1D5DB;
+  --color-line: #E5E7EB;
+  --color-hairline: #F3F4F6;
+  --color-grid: #F9FAFB;
+  --color-surface: #FFFFFF;
+  --color-background: #F9FAFB;
   --color-brand: #059669;
+  --color-brand-hover: #047857;
   --color-brand-soft: #ECFDF5;
-  --color-trend: #B45309;
+  --color-brand-muted: #D1FAE5;
+  --color-trend: #84CC16;
+  --color-danger: #DC2626;
+  --color-danger-soft: #FEF2F2;
+  --color-warning: #D97706;
+  --color-warning-soft: #FFFBEB;
+  --color-info: #2563EB;
+  --color-info-soft: #EFF6FF;
+}
 
-  --shadow-card: 0 8px 24px rgba(15, 23, 20, 0.08);
+.child-flow,
+.child-flow * {
+  --font-sans: 'Sora', ui-sans-serif, system-ui, sans-serif !important;
+  --font-serif: 'Libre Baskerville', ui-serif, Georgia, serif !important;
+  --font-mono: 'Space Mono', ui-monospace, monospace !important;
 }
 
 @layer base {
@@ -28,5 +41,11 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    background-color: var(--color-background);
+    color: var(--color-ink);
+  }
+
+  * {
+    border-color: var(--color-line);
   }
 }

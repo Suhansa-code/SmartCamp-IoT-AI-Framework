@@ -31,10 +31,15 @@ COPY backend/src ./src
 # file silently downgrades to unverified TLS rather than failing loudly.
 COPY backend/emqxsl-ca.crt ./emqxsl-ca.crt
 
-# Ration rate table + child-intake Ridge artifact. Pinned by env var rather
-# than left to the relative walk above, which lands outside WORKDIR in-image.
+# Resource-model artifacts. Every path env.js resolves with the ../../../ walk
+# must be pinned here: that walk is correct from backend/src/config in the repo
+# but lands at / in-image, where src sits directly under WORKDIR. Adding an
+# artifact to env.js without a line here 500s the endpoint that reads it.
 COPY prediction-models/models ./prediction-models/models
-ENV RATION_RATES_PATH=/app/prediction-models/models/lka_v2/ration_rates.json
+ENV RATION_RATES_PATH=/app/prediction-models/models/lka_v2/ration_rates.json \
+    FOOD_RATES_RAW_PATH=/app/prediction-models/models/lka_v2/food_rates_raw.json \
+    COMMODITY_SHARES_PATH=/app/prediction-models/models/lka_v2/commodity_shares.json \
+    COMMODITY_ALIASES_PATH=/app/prediction-models/models/lka_v2/commodity_aliases.json
 
 # ALERTS_DB_PATH defaults to /app/data/alerts.db — a named volume in compose,
 # since *.db is gitignored and the SQLite file must outlive the container.

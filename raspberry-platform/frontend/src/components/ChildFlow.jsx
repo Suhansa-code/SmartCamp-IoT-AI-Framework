@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { LanguageProvider } from './psychoedu/context/LanguageContext'
-import ChildWelcomePage from '../app/page.jsx'
+import ChildWelcomePage from './childEducation/ChildWelcomePage'
 import AnimalGame from './psychoedu/child/AnimalGame'
 import CognitiveSession from './psychoedu/cognitive/CognitiveSession'
 import BreathingCircle from './psychoedu/child/BreathingCircle'
@@ -65,7 +65,7 @@ function ChildFlowContent() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="child-flow min-h-screen">
       {screen === 'welcome' && <ChildWelcomePage onNavigate={(data) => { setSessionData(data); setScreen('game') }} />}
       {screen === 'game' && (
         <AnimalGame

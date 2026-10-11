@@ -13,13 +13,14 @@ import Navbar from './components/ui/layout/Navbar'
 import ChildFlow from './components/ChildFlow'
 import AuthorizePage from './components/AuthorizePage'
 import ProtectedRoute from './components/ProtectedRoute'
-import ChildcareScreen from './components/childEducation/ChildEducationScreen'
 
 function AdminLayout({ children }) {
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen bg-white" >
       <Navbar />
-      <div className="p-5">{children}</div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {children}
+      </main>
     </div>
   )
 }
@@ -37,7 +38,7 @@ function AdminRoutes() {
           <Route path="/wristbands" element={<WristbandsScreen />} />
           <Route path="/network" element={<NetworkScreen />} />
           <Route path="/devices" element={<DeviceHealthScreen />} />
-          <Route path="/educationscreen" element={<ChildcareScreen />} />
+          <Route path="/educationscreen" element={<ChildEducationScreen />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
       </AdminLayout>

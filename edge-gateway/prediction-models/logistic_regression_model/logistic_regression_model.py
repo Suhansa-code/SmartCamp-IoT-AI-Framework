@@ -35,7 +35,8 @@ if __name__ == "__main__":
     sample = model.predict_one(
         rainfall_mm=160.0, longitude=80.945, latitude=7.507,
         altitude_m=88.0, dem_elevation_m=81.0, nearest_river_m=350.0,
-        gauging_station_current_water_level_m=2.3, is_forecast=True,
+        water_level_m=2.3, is_forecast=True,
+        gauge_alert_level=4.5, gauge_minor_level=5.5, gauge_major_level=7.0,
     )
     print(f"   Flood Possibility: {sample.flood_possibility}")
     print(f"   Risk Category: {sample.category}")

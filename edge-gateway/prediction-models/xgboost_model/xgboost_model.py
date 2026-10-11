@@ -14,7 +14,7 @@ MODEL_SAVE_PATH = MODELS_DIR / "xgboost_model.pkl"
 
 class LocationAwareFloodXGBoostModel(BaseFloodModel):
     def __init__(self):
-        super().__init__(model_name="xgboost_model", source="xgboost_baseline_v1")
+        super().__init__(model_name="xgboost_model", source="xgboost_extended_v2")
 
     def _build_estimator(self):
         return XGBClassifier(
@@ -44,15 +44,32 @@ class LocationAwareFloodXGBoostModel(BaseFloodModel):
 
 if __name__ == "__main__":
     model = LocationAwareFloodXGBoostModel()
+
+    print("Training with extended feature set (10 features)...")
     metrics = model.train()
     print(f"\nTraining Complete")
     print(f"   AUC Score: {round(metrics['roc_auc'], 4)}")
+    print(f"   Features: {metrics.get('features_used', MODEL_FEATURES)}")
     print(f"   Charts saved to: {metrics['charts_output_dir']}")
     print(f"   Model saved to: {MODEL_SAVE_PATH}")
 
+    # Cross-validation
+    print("\nRunning 5-fold stratified cross-validation...")
+    cv_results = model.cross_validate(n_folds=5)
+    agg = cv_results["aggregated"]
+    print(f"   ROC-AUC: {agg['roc_auc']['mean']:.4f} ± {agg['roc_auc']['std']:.4f}")
+    print(f"   Accuracy: {agg['accuracy']['mean']:.4f} ± {agg['accuracy']['std']:.4f}")
+    print(f"   Precision: {agg['precision']['mean']:.4f} ± {agg['precision']['std']:.4f}")
+    print(f"   Recall: {agg['recall']['mean']:.4f} ± {agg['recall']['std']:.4f}")
+    print(f"   F1: {agg['f1']['mean']:.4f} ± {agg['f1']['std']:.4f}")
+
+    # Sample prediction with SHAP
     sample = model.predict_one(
         rainfall_mm=160.0, longitude=80.945, latitude=7.507,
         altitude_m=88.0, dem_elevation_m=81.0, nearest_river_m=350.0,
-        gauging_station_current_water_level_m=2.3, is_forecast=True,
+        water_level_m=2.3, monthly_rainfall_mm=180.0, drainage_index=0.45,
+        is_forecast=True,
+        gauge_alert_level=4.5, gauge_minor_level=5.5, gauge_major_level=7.0,
+        return_shap=True,
     )
-    print(sample)
+    print(f"\nSample prediction: {sample}")

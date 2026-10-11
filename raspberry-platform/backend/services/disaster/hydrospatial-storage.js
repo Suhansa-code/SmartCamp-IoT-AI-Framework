@@ -88,11 +88,15 @@ export async function fetchAndSaveHydrospatial() {
   }
 
   const now = nowISO();
-  const elevation = data.camp_elevation ?? null;
+  // Camp elevation from GPS sensor altitude (not DEM)
+  const elevation = gps.altitude ?? null;
   const riverDistance = data.river_distance_km ?? null;
   const riverName = data.river_name ?? data.nearest_river?.name ?? null;
   const gaugeElevation = data.gauge_elevation ?? null;
-  const elevationDifference = data.elevation_difference ?? null;
+  // Recalculate elevation difference: GPS altitude minus gauge DEM elevation
+  const elevationDifference = (elevation != null && gaugeElevation != null)
+    ? Math.round((elevation - gaugeElevation) * 100) / 100
+    : null;
   const gaugeDistance = data.gauge_distance_km ?? null;
   const gaugeLatitude = data.gauge_latitude ?? data.gauging_station?.gauge_latitude ?? null;
   const gaugeLongitude = data.gauge_longitude ?? data.gauging_station?.gauge_longitude ?? null;

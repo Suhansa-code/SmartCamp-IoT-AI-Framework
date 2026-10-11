@@ -47,6 +47,23 @@ export const MAX_HORIZON_GROWTH_FACTOR = 3.0;
 // camp runs short, the more costly error. Set to 1.0 to disable damping.
 export const TREND_DAMPING = 0.8;
 
+// Fit the trend on this many trailing days rather than the whole history.
+//
+// A camp's history contains its intake ramp -- a steep rise from zero over the
+// first days. Theil-Sen medians ALL pairwise slopes, so once the camp starts
+// emptying those ramp pairs keep dragging the fitted slope upward and the
+// forecast projects growth for a camp that is demobilising. Measured over 60
+// heterogeneous synthetic camps (see prediction-models/data/scenarios):
+//
+//   window   MAE h=7   MAPE h=7   bias h=7
+//   all        53.07     64.6 %    +34.28
+//   7          47.33     55.0 %    +28.10   <- default
+//   5          44.73     51.3 %    +24.95
+//
+// 7 matches MIN_DAYS_FOR_BAND -- the residual band needs that many points to
+// mean anything. Set to null to fit on the entire history.
+export const TREND_WINDOW_DAYS = 7;
+
 // ── helpers ────────────────────────────────────────────────────────────────
 
 function median(values) {
@@ -129,7 +146,13 @@ export function forecastPopulation({
   damping = TREND_DAMPING,
 } = {}) {
   const { days, xs, ys } = normaliseHistory(history);
+  // Confidence is judged on everything observed; the trend is fitted only on
+  // the trailing window, so the intake ramp stops biasing a demobilising camp.
   const n = days.length;
+  const fitXs = TREND_WINDOW_DAYS && xs.length > TREND_WINDOW_DAYS
+    ? xs.slice(-TREND_WINDOW_DAYS) : xs;
+  const fitYs = TREND_WINDOW_DAYS && ys.length > TREND_WINDOW_DAYS
+    ? ys.slice(-TREND_WINDOW_DAYS) : ys;
 
   const current = Number.isFinite(currentPopulation)
     ? Number(currentPopulation)
@@ -153,17 +176,17 @@ export function forecastPopulation({
       'Population held flat at the current headcount. This is a cold-start ' +
       'fallback, not a fitted forecast.';
   } else {
-    slope = theilSenSlope(xs, ys);
-    const intercept = theilSenIntercept(xs, ys, slope);
+    slope = theilSenSlope(fitXs, fitYs);
+    const intercept = theilSenIntercept(fitXs, fitYs, slope);
 
     if (n >= MIN_DAYS_FOR_BAND) {
-      spread = residualSpread(xs, ys, slope, intercept);
+      spread = residualSpread(fitXs, fitYs, slope, intercept);
       method = 'theil_sen_with_band';
       confidence = 'HIGH';
       note =
-        `Theil-Sen trend fitted on ${n} days of registration history ` +
-        `(${slope >= 0 ? '+' : ''}${slope.toFixed(2)} persons/day), with a band ` +
-        'from the median absolute residual.';
+        `Theil-Sen trend fitted on the last ${fitXs.length} of ${n} days of ` +
+        `registration history (${slope >= 0 ? '+' : ''}${slope.toFixed(2)} persons/day), ` +
+        'with a band from the median absolute residual.';
     } else {
       method = 'theil_sen';
       confidence = 'MEDIUM';
@@ -205,6 +228,7 @@ export function forecastPopulation({
     confidence,
     slope_per_day: Math.round(slope * 1000) / 1000,
     observations: n,
+    trend_window: fitXs.length,
     damping,
     horizon_days: horizonDays,
     current_population: Math.round(current),

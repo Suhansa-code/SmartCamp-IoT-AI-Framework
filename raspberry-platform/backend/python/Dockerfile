@@ -8,7 +8,10 @@ WORKDIR /app
 
 # Build context is backend/, so these paths are backend-relative.
 COPY python/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# See prediction-models/Dockerfile: long timeout + a persistent pip cache so
+# a build interrupted by the camp uplink resumes instead of restarting.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --timeout 120 --retries 10 -r requirements.txt
 
 COPY python/ .
 

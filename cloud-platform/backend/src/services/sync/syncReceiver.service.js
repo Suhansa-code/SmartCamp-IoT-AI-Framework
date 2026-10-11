@@ -11,8 +11,8 @@ import mqtt from 'mqtt';
 import fs from 'fs';
 import { env } from '../../config/env.js';
 import {
-  isSyncProcessed, logSync,
-  upsertPerson, upsertCheckin, upsertWristband, upsertDistribution,
+  isSyncProcessed, logSync, getBehavioralSignals,
+  upsertDevice, upsertPerson, upsertCheckin, upsertWristband, upsertDistribution,
   upsertResource, upsertResourceUsage, upsertAuditLog,
   upsertChild, upsertSession, upsertBehavioralSignal,
   upsertGateDecision, upsertAlert, upsertContentResponse,
@@ -20,7 +20,6 @@ import {
   upsertWaterLevelReading, upsertGpsReading, upsertWeatherData,
   upsertHydrospatialData, upsertFloodPrediction, upsertDisasterAlert,
   upsertPredictionRequest,
-  upsertDevice, getDeviceCampId, getBehavioralSignals,
 } from '../../data/sync/sync.postgres.repository.js';
 import { applySyncedPerson, applySyncedWristband } from '../resources/campData.service.js';
 
@@ -71,16 +70,6 @@ const ENTITY_HANDLERS = {
   'disaster-alerts':    upsertDisasterAlert,
   'prediction-requests': upsertPredictionRequest,
 };
-
-/**
- * Entities that affect disaster camp aggregation.
- * After a successful upsert of one of these entities, trigger aggregation.
- */
-const CAMP_AGGREGATION_ENTITIES = new Set([
-  'disaster-events', 'sensor-readings', 'environmental-data',
-  'water-level-readings', 'gps-readings', 'weather-data',
-  'hydrospatial-data', 'flood-predictions', 'disaster-alerts',
-]);
 
 let client = null;
 let isConnected = false;
@@ -199,21 +188,12 @@ async function handleSyncMessage(topic, buffer) {
   }
 
   receivedCount++;
-  const { sync_id, entity, local_id, operation, camp_id, device_id, payload } = envelope;
+  const { sync_id, entity, local_id, operation, camp_id, payload } = envelope;
 
   if (!sync_id || !entity || !payload) {
     console.warn('[Sync Receiver] Invalid envelope: missing sync_id/entity/payload');
     console.warn('[Sync Receiver] Topic:', topic, '| Keys:', Object.keys(envelope).join(','), '| Snippet:', JSON.stringify(envelope).slice(0, 200));
     return;
-  }
-
-  // Auto-register device if unknown
-  if (device_id && camp_id) {
-    try {
-      await upsertDevice(device_id, camp_id);
-    } catch (err) {
-      console.error(`[Sync Receiver] Failed to register device ${device_id}: ${err.message}`);
-    }
   }
 
   // Idempotency check — already persisted, send success ACK again
@@ -230,8 +210,23 @@ async function handleSyncMessage(topic, buffer) {
     return;
   }
 
+  // Auto-register device if we have both device_id and camp_id
+  if (envelope.device_id && camp_id) {
+    try {
+      await upsertDevice(envelope.device_id, camp_id, null);
+    } catch (devErr) {
+      console.warn(`[Sync Receiver] Device registration failed: ${devErr.message}`);
+    }
+  }
+
   try {
-    await handler(payload);
+    // Handlers take (row, ctx). ctx was never passed, so every device_id and
+    // camp_id column the schema added for multi-camp filtering stayed NULL —
+    // and the FK stubs below need the camp id to satisfy children.camp_id.
+    await handler(payload, {
+      device_id: envelope.device_id,
+      camp_id,
+    });
 
     // Keep the in-memory roster in step with what was just written. Guarded
     // so a roster bug can never fail a sync that already committed to Postgres.
@@ -244,56 +239,14 @@ async function handleSyncMessage(topic, buffer) {
       }
     }
 
-    await logSync(sync_id, entity, local_id, camp_id, operation);
+    await logSync(sync_id, entity, local_id, camp_id, operation, envelope.device_id);
     processedCount++;
-    console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} device=${device_id || 'n/a'} (QoS ${envelope.priority})`);
-
-    // Trigger IF scoring for session syncs (auto-trains at session 8+)
-    if (entity === 'sessions' && payload.child_id && payload.composite_score) {
-      triggerIfScoring(payload).catch(() => {});
-    }
-
-    // Trigger CAMPS aggregation for disaster-domain entities
-    if (CAMP_AGGREGATION_ENTITIES.has(entity)) {
-      const resolvedCampId = camp_id || (device_id ? await getDeviceCampId(device_id) : null);
-      if (resolvedCampId) {
-        triggerAggregation(resolvedCampId);
-      }
-    }
-
+    console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} (QoS ${envelope.priority})`);
     publishAck(envelope, 'ok');
   } catch (err) {
     errorCount++;
     console.error(`[Sync Receiver] Failed to persist ${entity} id=${local_id}: ${err.message}`);
     publishAck(envelope, 'error', err.message);
-  }
-}
-
-async function handleAlertMessage(topic, buffer) {
-  let alert;
-  try { alert = JSON.parse(buffer.toString()); } catch { return; }
-  const allowedTypes = new Set(['FLOOD_RISK_HIGH', 'FLOOD_RISK_CRITICAL', 'WATER_LEVEL_CRITICAL', 'RAINFALL_EXTREME', 'RAPID_WATER_LEVEL_RISE', 'SENSOR_FAILURE', 'HYDROSPATIAL_DATA_STALE', 'SYSTEM_OFFLINE']);
-  const allowedLevels = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
-  const probability = Number(alert.flood_probability);
-  if (!alert.id || !alert.event_id || !alert.camp_id || !allowedTypes.has(alert.alert_type)
-      || !allowedLevels.has(alert.severity) || !allowedLevels.has(alert.priority)
-      || (alert.flood_probability != null && (!Number.isFinite(probability) || probability < 0 || probability > 1))) {
-    console.warn('[Alert Receiver] Rejected malformed alert event');
-    return;
-  }
-  try {
-    if (await isSyncProcessed(`alert:${alert.event_id}`)) return;
-    const ctx = { device_id: alert.device_id || null };
-    await upsertDisasterAlert(alert, ctx);
-    await logSync(`alert:${alert.event_id}`, 'disaster-alerts', alert.id, alert.camp_id, 'CREATE', alert.device_id);
-    console.log(`[Alert Receiver] Persisted ${alert.alert_type} event=${alert.event_id} device=${alert.device_id || 'n/a'}`);
-
-    // Trigger CAMPS aggregation for the affected camp
-    if (alert.camp_id) {
-      triggerAggregation(alert.camp_id);
-    }
-  } catch (err) {
-    console.error(`[Alert Receiver] Failed to persist event: ${err.message}`);
   }
 }
 
@@ -318,16 +271,14 @@ export function startSyncReceiver() {
   client.on('connect', () => {
     isConnected = true;
     console.log('[Sync Receiver] Connected to EMQX broker');
-    client.subscribe(['smartcamp/sync/#', 'smartcamp/alerts/#'], { qos: 2 }, (err) => {
+    client.subscribe('smartcamp/sync/#', { qos: 1 }, (err) => {
       if (err) console.error('[Sync Receiver] Subscribe failed:', err.message);
       else console.log('[Sync Receiver] Subscribed to smartcamp/sync/# (QoS 1)');
     });
   });
 
   client.on('message', (topic, message) => {
-    if (topic.startsWith('smartcamp/alerts/')) {
-      handleAlertMessage(topic, message).catch((err) => console.error(`[Alert Receiver] Handler error: ${err.message}`));
-    } else if (topic.startsWith('smartcamp/sync/') && !topic.startsWith('smartcamp/sync/ack/')) {
+    if (topic.startsWith('smartcamp/sync/') && !topic.startsWith('smartcamp/sync/ack/')) {
       handleSyncMessage(topic, message).catch((err) => {
         console.error(`[Sync Receiver] Handler error: ${err.message}`);
       });

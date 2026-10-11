@@ -31,8 +31,9 @@ import {
   Zap,
   BarChart3,
 } from "lucide-react";
+import { API_BASE as API_BASE_URL } from "@/lib/apiBase";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
+const API_BASE = API_BASE_URL;
 
 function campMeta(id) {
   if (CAMP_META[id]) return CAMP_META[id];
@@ -1232,12 +1233,18 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
         </DashboardCard>
       </div>
 
-      {/* ── Recent sessions ── */}
+      {/* ── Learning sessions ── */}
       <DataTable
         columns={[
           { key: "child_id", label: "Child", sortable: true },
           { key: "composite_score", label: "Score", sortable: true, numeric: true, render: (v) => (
             <span style={{ color: scoreTone(T, v), fontWeight: 600 }}>{v != null ? Math.round(v) : "—"}</span>
+          )},
+          { key: "z_score", label: "Z-Score", sortable: true, numeric: true, render: (v) => (
+            <span style={{ color: v != null && v < -2 ? T.red : v != null && v < -1 ? T.amber : T.muted, fontWeight: 600 }}>{v != null ? Number(v).toFixed(2) : "—"}</span>
+          )},
+          { key: "if_score", label: "IF Score", sortable: true, numeric: true, render: (v) => (
+            <span style={{ color: v != null && v < -0.5 ? T.red : v != null && v < 0 ? T.amber : T.muted, fontWeight: 600 }}>{v != null ? Number(v).toFixed(4) : "—"}</span>
           )},
           { key: "anomaly_flagged", label: "Flag", sortable: true, render: (v) => (
             v ? <span style={{ color: T.red, fontWeight: 600 }}>flagged</span> : <span style={{ color: T.green, fontWeight: 600 }}>ok</span>
@@ -1245,7 +1252,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
           { key: "created_at", label: "When", sortable: true, render: (v) => v ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—" },
         ]}
         data={detail.sessions || []}
-        title="Recent Sessions"
+        title="Learning Sessions"
         subtitle="Latest recorded learning sessions"
         searchKeys={["child_id"]}
         searchPlaceholder="Search sessions…"
@@ -1253,86 +1260,7 @@ function DetailView({ detail, meta, trend, ranked, childAvg, onBack }) {
         pageSize={8}
       />
 
-      {/* ── Behavioral Insights ── */}
-      {detail.behavioral && detail.behavioral.signal_count > 0 && (
-        <div className="edu-charts">
-          <DashboardCard
-            title="Behavioral Insights"
-            subtitle={`Aggregated from ${detail.behavioral.signal_count} signals`}
-            right={<Zap size={16} color={T.amber} />}
-            bodyStyle={{ height: 240 }}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', height: '100%' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Avg Accuracy</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: detail.behavioral.avg_accuracy >= 70 ? T.green : detail.behavioral.avg_accuracy >= 50 ? T.amber : T.red }}>{detail.behavioral.avg_accuracy ?? '—'}%</span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 99, background: T.border, marginTop: 6, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, detail.behavioral.avg_accuracy || 0)}%`, height: '100%', borderRadius: 99, background: detail.behavioral.avg_accuracy >= 70 ? T.green : detail.behavioral.avg_accuracy >= 50 ? T.amber : T.red }} />
-                  </div>
-                </div>
-                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Avg Reaction</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: T.teal }}>{detail.behavioral.avg_reaction_ms ?? '—'}</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: T.muted }}>ms</span>
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Completion Rate</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: T.purple }}>{detail.behavioral.avg_completion != null ? `${Math.round(detail.behavioral.avg_completion * 100)}%` : '—'}</span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 99, background: T.border, marginTop: 6, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, Math.round((detail.behavioral.avg_completion || 0) * 100))}%`, height: '100%', borderRadius: 99, background: T.purple }} />
-                  </div>
-                </div>
-                <div style={{ padding: '0.7rem', borderRadius: '0.9rem', background: T.cardSoft, border: `1px solid ${T.border}` }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>False Tap Rate</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: detail.behavioral.avg_false_tap > 0.15 ? T.red : T.green }}>{detail.behavioral.avg_false_tap != null ? `${Math.round(detail.behavioral.avg_false_tap * 100)}%` : '—'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </DashboardCard>
 
-          <DashboardCard
-            title="Content Accuracy"
-            subtitle={`From ${detail.content?.total_responses || 0} responses`}
-            right={<Target size={16} color={T.teal} />}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-              <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
-                <div style={{ fontSize: '2.2rem', fontWeight: 800, color: (detail.content?.accuracy_pct || 0) >= 70 ? T.green : (detail.content?.accuracy_pct || 0) >= 50 ? T.amber : T.red }}>
-                  {detail.content?.accuracy_pct != null ? `${detail.content.accuracy_pct}%` : '—'}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 700 }}>Correct Responses</div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: T.green }}>
-                  <CheckCircle2 size={13} /> {detail.content?.correct || 0} correct
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: T.red }}>
-                  <AlertTriangle size={13} /> {(detail.content?.total_responses || 0) - (detail.content?.correct || 0)} wrong
-                </span>
-              </div>
-              <div style={{ height: 6, borderRadius: 99, background: T.border, overflow: 'hidden' }}>
-                <div style={{ width: `${Math.min(100, detail.content?.accuracy_pct || 0)}%`, height: '100%', borderRadius: 99, background: (detail.content?.accuracy_pct || 0) >= 70 ? T.green : (detail.content?.accuracy_pct || 0) >= 50 ? T.amber : T.red, transition: 'width 0.6s ease' }} />
-              </div>
-              {detail.gate_decisions > 0 && (
-                <div style={{ fontSize: '0.72rem', color: T.muted, fontWeight: 600, textAlign: 'center' }}>
-                  {detail.gate_decisions} gate decisions recorded
-                </div>
-              )}
-            </div>
-          </DashboardCard>
-        </div>
-      )}
 
       {/* ── Camp alerts ── */}
       <DashboardCard

@@ -244,7 +244,7 @@ async function publish(created) {
   const host = process.env.EMQX_HOST;
   const port = process.env.EMQX_PORT || 8883;
   const username = process.env.EMQX_USERNAME || 'admin';
-  const password = process.env.EMQX_PASSWORD || 'public';
+  const password = process.env.EMQX_PASSWORD || 'admin@123';
   if (!host) {
     console.warn('EMQX_HOST is not set — skipping publish. Records are in the local database.');
     return;

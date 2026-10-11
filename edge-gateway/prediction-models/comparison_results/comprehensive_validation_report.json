@@ -1,0 +1,629 @@
+{
+  "training": {
+    "xgboost": {
+      "accuracy": 0.7804,
+      "precision": 0.25123558484349257,
+      "recall": 0.6174089068825911,
+      "f1": 0.35714285714285715,
+      "roc_auc": 0.8089533343755785,
+      "confusion_matrix": [
+        [
+          3597,
+          909
+        ],
+        [
+          189,
+          305
+        ]
+      ]
+    },
+    "random_forest": {
+      "accuracy": 0.7764,
+      "precision": 0.25277337559429475,
+      "recall": 0.645748987854251,
+      "f1": 0.36332574031890663,
+      "roc_auc": 0.8175280462756811,
+      "confusion_matrix": [
+        [
+          3563,
+          943
+        ],
+        [
+          175,
+          319
+        ]
+      ]
+    },
+    "decision_tree": {
+      "accuracy": 0.67,
+      "precision": 0.19895833333333332,
+      "recall": 0.7732793522267206,
+      "f1": 0.31648715824357915,
+      "roc_auc": 0.7967525530511725,
+      "confusion_matrix": [
+        [
+          2968,
+          1538
+        ],
+        [
+          112,
+          382
+        ]
+      ]
+    },
+    "logistic_regression": {
+      "accuracy": 0.7078,
+      "precision": 0.2057212416311625,
+      "recall": 0.6842105263157895,
+      "f1": 0.31633130556855404,
+      "roc_auc": 0.7813230582345446,
+      "confusion_matrix": [
+        [
+          3201,
+          1305
+        ],
+        [
+          156,
+          338
+        ]
+      ]
+    }
+  },
+  "cross_validation": {
+    "xgboost": {
+      "fold_metrics": [
+        {
+          "fold": 1,
+          "roc_auc": 0.8084470368793026,
+          "accuracy": 0.7794,
+          "precision": 0.24518828451882846,
+          "recall": 0.5931174089068826,
+          "f1": 0.3469508584961516
+        },
+        {
+          "fold": 2,
+          "roc_auc": 0.8224486110287498,
+          "accuracy": 0.782,
+          "precision": 0.2561374795417349,
+          "recall": 0.6336032388663968,
+          "f1": 0.36480186480186483
+        },
+        {
+          "fold": 3,
+          "roc_auc": 0.8059631692156747,
+          "accuracy": 0.7758,
+          "precision": 0.24408163265306124,
+          "recall": 0.6052631578947368,
+          "f1": 0.34787667248400234
+        },
+        {
+          "fold": 4,
+          "roc_auc": 0.8038924203186134,
+          "accuracy": 0.7688,
+          "precision": 0.2407843137254902,
+          "recall": 0.6202020202020202,
+          "f1": 0.34689265536723163
+        },
+        {
+          "fold": 5,
+          "roc_auc": 0.8079305821814146,
+          "accuracy": 0.7684,
+          "precision": 0.24597701149425288,
+          "recall": 0.6484848484848484,
+          "f1": 0.3566666666666667
+        }
+      ],
+      "aggregated": {
+        "roc_auc": {
+          "mean": 0.809736363924751,
+          "std": 0.006556113384500531
+        },
+        "accuracy": {
+          "mean": 0.7748800000000001,
+          "std": 0.005494142335251248
+        },
+        "precision": {
+          "mean": 0.24643374438667348,
+          "std": 0.005164702267893477
+        },
+        "recall": {
+          "mean": 0.620134134870977,
+          "std": 0.019678586185598795
+        },
+        "f1": {
+          "mean": 0.35263774356318345,
+          "std": 0.007102289276691426
+        }
+      }
+    },
+    "random_forest": {
+      "fold_metrics": [
+        {
+          "fold": 1,
+          "roc_auc": 0.8298099160633325,
+          "accuracy": 0.784,
+          "precision": 0.26140065146579805,
+          "recall": 0.6497975708502024,
+          "f1": 0.37282229965156793
+        },
+        {
+          "fold": 2,
+          "roc_auc": 0.833650050045733,
+          "accuracy": 0.7816,
+          "precision": 0.2638230647709321,
+          "recall": 0.6761133603238867,
+          "f1": 0.3795454545454545
+        },
+        {
+          "fold": 3,
+          "roc_auc": 0.8256526161249688,
+          "accuracy": 0.7832,
+          "precision": 0.2617124394184168,
+          "recall": 0.6558704453441295,
+          "f1": 0.3741339491916859
+        },
+        {
+          "fold": 4,
+          "roc_auc": 0.813328400542607,
+          "accuracy": 0.7712,
+          "precision": 0.24588880187940484,
+          "recall": 0.6343434343434343,
+          "f1": 0.3544018058690745
+        },
+        {
+          "fold": 5,
+          "roc_auc": 0.8199419276000852,
+          "accuracy": 0.7724,
+          "precision": 0.2528823981552652,
+          "recall": 0.6646464646464646,
+          "f1": 0.366369710467706
+        }
+      ],
+      "aggregated": {
+        "roc_auc": {
+          "mean": 0.8244765820753454,
+          "std": 0.00719479068234658
+        },
+        "accuracy": {
+          "mean": 0.7784799999999998,
+          "std": 0.005521738856555976
+        },
+        "precision": {
+          "mean": 0.25714147113796343,
+          "std": 0.0067592947809148145
+        },
+        "recall": {
+          "mean": 0.6561542551016235,
+          "std": 0.014047657377822353
+        },
+        "f1": {
+          "mean": 0.36945464394509775,
+          "std": 0.008615871515096418
+        }
+      }
+    },
+    "decision_tree": {
+      "fold_metrics": [
+        {
+          "fold": 1,
+          "roc_auc": 0.8141537778688244,
+          "accuracy": 0.7336,
+          "precision": 0.23413705583756345,
+          "recall": 0.7469635627530364,
+          "f1": 0.3565217391304348
+        },
+        {
+          "fold": 2,
+          "roc_auc": 0.8098850655266663,
+          "accuracy": 0.674,
+          "precision": 0.20230607966457023,
+          "recall": 0.7813765182186235,
+          "f1": 0.32139883430474603
+        },
+        {
+          "fold": 3,
+          "roc_auc": 0.8088396757539655,
+          "accuracy": 0.6752,
+          "precision": 0.20480668756530826,
+          "recall": 0.7935222672064778,
+          "f1": 0.32558139534883723
+        },
+        {
+          "fold": 4,
+          "roc_auc": 0.7987596273500823,
+          "accuracy": 0.686,
+          "precision": 0.20515633571036754,
+          "recall": 0.7555555555555555,
+          "f1": 0.32269197584124243
+        },
+        {
+          "fold": 5,
+          "roc_auc": 0.8058359398647965,
+          "accuracy": 0.6996,
+          "precision": 0.213757816941444,
+          "recall": 0.7595959595959596,
+          "f1": 0.3336291038154392
+        }
+      ],
+      "aggregated": {
+        "roc_auc": {
+          "mean": 0.8074948172728671,
+          "std": 0.005117012888582785
+        },
+        "accuracy": {
+          "mean": 0.69368,
+          "std": 0.021983848616654905
+        },
+        "precision": {
+          "mean": 0.21203279514385068,
+          "std": 0.01171055387340555
+        },
+        "recall": {
+          "mean": 0.7674027726659306,
+          "std": 0.01730062279375089
+        },
+        "f1": {
+          "mean": 0.33196460968813984,
+          "std": 0.0129937363399284
+        }
+      }
+    },
+    "logistic_regression": {
+      "fold_metrics": [
+        {
+          "fold": 1,
+          "roc_auc": 0.7731760262070725,
+          "accuracy": 0.7148,
+          "precision": 0.20506329113924052,
+          "recall": 0.6558704453441295,
+          "f1": 0.3124397299903568
+        },
+        {
+          "fold": 2,
+          "roc_auc": 0.7887176072928404,
+          "accuracy": 0.7078,
+          "precision": 0.20714718352513628,
+          "recall": 0.6923076923076923,
+          "f1": 0.31888111888111886
+        },
+        {
+          "fold": 3,
+          "roc_auc": 0.7798077596942269,
+          "accuracy": 0.7258,
+          "precision": 0.2128356254092993,
+          "recall": 0.6578947368421053,
+          "f1": 0.32162295893122217
+        },
+        {
+          "fold": 4,
+          "roc_auc": 0.7679368602787026,
+          "accuracy": 0.6984,
+          "precision": 0.19761194029850745,
+          "recall": 0.6686868686868687,
+          "f1": 0.3050691244239631
+        },
+        {
+          "fold": 5,
+          "roc_auc": 0.7859186762183432,
+          "accuracy": 0.713,
+          "precision": 0.21376370280146162,
+          "recall": 0.7090909090909091,
+          "f1": 0.3284978942442677
+        }
+      ],
+      "aggregated": {
+        "roc_auc": {
+          "mean": 0.7791113859382371,
+          "std": 0.007735659570239894
+        },
+        "accuracy": {
+          "mean": 0.71196,
+          "std": 0.008965177075774907
+        },
+        "precision": {
+          "mean": 0.20728434863472903,
+          "std": 0.005853308430862021
+        },
+        "recall": {
+          "mean": 0.676770130454341,
+          "std": 0.020709732024075337
+        },
+        "f1": {
+          "mean": 0.31730216529418576,
+          "std": 0.00799746540878678
+        }
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Normal conditions",
+      "probability": 0.0,
+      "category": "Low",
+      "flood_possibility": "Unlikely",
+      "shap_values": {
+        "rainfall_7d_mm": -6.573542594909668,
+        "longitude": -0.25983044505119324,
+        "latitude": -0.038765355944633484,
+        "elevation_m": -0.5343365669250488,
+        "distance_to_river_m": 0.09852436929941177,
+        "water_level_m": -0.7449849843978882,
+        "elevation_ratio": 0.0037915275897830725,
+        "river_proximity_score": -0.16720497608184814
+      }
+    },
+    {
+      "name": "Heavy rainfall",
+      "probability": 0.11635354459285735,
+      "category": "Low",
+      "flood_possibility": "Unlikely",
+      "shap_values": {
+        "rainfall_7d_mm": 0.7847861051559448,
+        "longitude": -0.3626462519168854,
+        "latitude": 0.014295973815023899,
+        "elevation_m": -0.46223995089530945,
+        "distance_to_river_m": 0.09245964139699936,
+        "water_level_m": -1.3070226907730103,
+        "elevation_ratio": 0.0017383433878421783,
+        "river_proximity_score": -0.2743387222290039
+      }
+    },
+    {
+      "name": "High water level",
+      "probability": 0.02548993347445503,
+      "category": "Low",
+      "flood_possibility": "Unlikely",
+      "shap_values": {
+        "rainfall_7d_mm": -6.920684814453125,
+        "longitude": -0.15057070553302765,
+        "latitude": -0.20078225433826447,
+        "elevation_m": -0.4448249042034149,
+        "distance_to_river_m": 0.1383301466703415,
+        "water_level_m": -0.012853160500526428,
+        "elevation_ratio": -0.013136954978108406,
+        "river_proximity_score": -0.08796047419309616
+      }
+    },
+    {
+      "name": "Low elevation + rain",
+      "probability": 0.5661479711532593,
+      "category": "Medium",
+      "flood_possibility": "Likely",
+      "shap_values": {
+        "rainfall_7d_mm": 0.46942129731178284,
+        "longitude": -0.08313632756471634,
+        "latitude": -0.04518742114305496,
+        "elevation_m": 0.4948916435241699,
+        "distance_to_river_m": 0.37416887283325195,
+        "water_level_m": -1.1508002281188965,
+        "elevation_ratio": -0.028456585481762886,
+        "river_proximity_score": -0.038015786558389664
+      }
+    },
+    {
+      "name": "High elevation + rain",
+      "probability": 0.13222569704055787,
+      "category": "Low",
+      "flood_possibility": "Unlikely",
+      "shap_values": {
+        "rainfall_7d_mm": 0.7397642731666565,
+        "longitude": -0.30221548676490784,
+        "latitude": 0.1441100537776947,
+        "elevation_m": -0.42455974221229553,
+        "distance_to_river_m": -0.1036854162812233,
+        "water_level_m": -0.922547459602356,
+        "elevation_ratio": -0.05857965350151062,
+        "river_proximity_score": -0.2307906448841095
+      }
+    },
+    {
+      "name": "Near river + high water",
+      "probability": 0.5777627348899841,
+      "category": "Medium",
+      "flood_possibility": "Likely",
+      "shap_values": {
+        "rainfall_7d_mm": -0.6860097050666809,
+        "longitude": -0.09897717088460922,
+        "latitude": -0.21509906649589539,
+        "elevation_m": 0.1040239930152893,
+        "distance_to_river_m": 0.6134277582168579,
+        "water_level_m": 0.0062173837795853615,
+        "elevation_ratio": -0.07251500338315964,
+        "river_proximity_score": 0.2882550358772278
+      }
+    },
+    {
+      "name": "Distant from river",
+      "probability": 0.0,
+      "category": "Low",
+      "flood_possibility": "Unlikely",
+      "shap_values": {
+        "rainfall_7d_mm": 0.05538060516119003,
+        "longitude": -0.364326149225235,
+        "latitude": 0.10838409513235092,
+        "elevation_m": -0.7732445001602173,
+        "distance_to_river_m": -0.41447025537490845,
+        "water_level_m": -1.1561808586120605,
+        "elevation_ratio": -0.029411746188998222,
+        "river_proximity_score": 0.21432626247406006
+      }
+    },
+    {
+      "name": "Flash flood scenario",
+      "probability": 1.0,
+      "category": "High",
+      "flood_possibility": "Likely",
+      "shap_values": {
+        "rainfall_7d_mm": 1.0900624990463257,
+        "longitude": -0.1069980040192604,
+        "latitude": -0.0327099934220314,
+        "elevation_m": 0.5497395992279053,
+        "distance_to_river_m": 0.24847105145454407,
+        "water_level_m": 0.564965009689331,
+        "elevation_ratio": -0.029887545853853226,
+        "river_proximity_score": 0.13145795464515686
+      }
+    },
+    {
+      "name": "Drought conditions",
+      "probability": 0.0,
+      "category": "Low",
+      "flood_possibility": "Unlikely",
+      "shap_values": {
+        "rainfall_7d_mm": -6.37565279006958,
+        "longitude": -0.21310442686080933,
+        "latitude": 0.0055837775580585,
+        "elevation_m": -0.37668144702911377,
+        "distance_to_river_m": -0.2714059054851532,
+        "water_level_m": -0.6560112237930298,
+        "elevation_ratio": -0.001953806495293975,
+        "river_proximity_score": -0.05449323728680611
+      }
+    },
+    {
+      "name": "Coastal flooding",
+      "probability": 0.42707563638687135,
+      "category": "Medium",
+      "flood_possibility": "Unlikely",
+      "shap_values": {
+        "rainfall_7d_mm": -0.053477637469768524,
+        "longitude": -0.13148047029972076,
+        "latitude": -0.1019163578748703,
+        "elevation_m": 0.5483423471450806,
+        "distance_to_river_m": 0.21383853256702423,
+        "water_level_m": -0.8014562129974365,
+        "elevation_ratio": -0.03375132381916046,
+        "river_proximity_score": -0.32175546884536743
+      }
+    }
+  ],
+  "feature_importance": {
+    "rainfall_7d_mm": 0.32665249705314636,
+    "longitude": 0.06370539218187332,
+    "latitude": 0.06585422903299332,
+    "elevation_m": 0.1029563695192337,
+    "distance_to_river_m": 0.08729825168848038,
+    "water_level_m": 0.14849123358726501,
+    "elevation_ratio": 0.08914833515882492,
+    "river_proximity_score": 0.11589369922876358
+  },
+  "ablation": {
+    "baseline": {
+      "features": [
+        "rainfall_7d_mm",
+        "longitude",
+        "latitude",
+        "elevation_m",
+        "distance_to_river_m",
+        "water_level_m",
+        "elevation_ratio",
+        "river_proximity_score"
+      ],
+      "roc_auc": 0.8089533343755785
+    },
+    "rainfall_7d_mm": {
+      "features": [
+        "longitude",
+        "latitude",
+        "elevation_m",
+        "distance_to_river_m",
+        "water_level_m",
+        "elevation_ratio",
+        "river_proximity_score"
+      ],
+      "roc_auc": 0.8033319496631571,
+      "delta": 0.005621384712421351
+    },
+    "longitude": {
+      "features": [
+        "rainfall_7d_mm",
+        "latitude",
+        "elevation_m",
+        "distance_to_river_m",
+        "water_level_m",
+        "elevation_ratio",
+        "river_proximity_score"
+      ],
+      "roc_auc": 0.8094668197688731,
+      "delta": -0.0005134853932946548
+    },
+    "latitude": {
+      "features": [
+        "rainfall_7d_mm",
+        "longitude",
+        "elevation_m",
+        "distance_to_river_m",
+        "water_level_m",
+        "elevation_ratio",
+        "river_proximity_score"
+      ],
+      "roc_auc": 0.8056819427448063,
+      "delta": 0.003271391630772169
+    },
+    "elevation_m": {
+      "features": [
+        "rainfall_7d_mm",
+        "longitude",
+        "latitude",
+        "distance_to_river_m",
+        "water_level_m",
+        "elevation_ratio",
+        "river_proximity_score"
+      ],
+      "roc_auc": 0.8079319791335349,
+      "delta": 0.001021355242043609
+    },
+    "distance_to_river_m": {
+      "features": [
+        "rainfall_7d_mm",
+        "longitude",
+        "latitude",
+        "elevation_m",
+        "water_level_m",
+        "elevation_ratio",
+        "river_proximity_score"
+      ],
+      "roc_auc": 0.8094919774084396,
+      "delta": -0.000538643032861108
+    },
+    "water_level_m": {
+      "features": [
+        "rainfall_7d_mm",
+        "longitude",
+        "latitude",
+        "elevation_m",
+        "distance_to_river_m",
+        "elevation_ratio",
+        "river_proximity_score"
+      ],
+      "roc_auc": 0.802955483556787,
+      "delta": 0.00599785081879145
+    },
+    "elevation_ratio": {
+      "features": [
+        "rainfall_7d_mm",
+        "longitude",
+        "latitude",
+        "elevation_m",
+        "distance_to_river_m",
+        "water_level_m",
+        "river_proximity_score"
+      ],
+      "roc_auc": 0.8099304391265987,
+      "delta": -0.000977104751020197
+    },
+    "river_proximity_score": {
+      "features": [
+        "rainfall_7d_mm",
+        "longitude",
+        "latitude",
+        "elevation_m",
+        "distance_to_river_m",
+        "water_level_m",
+        "elevation_ratio"
+      ],
+      "roc_auc": 0.8104362873793107,
+      "delta": -0.0014829530037322458
+    }
+  }
+}
