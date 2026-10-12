@@ -9,22 +9,15 @@ import {
 } from 'recharts';
 import ErrorState from '../ui/feedback/ErrorState';
 import { API, NETWORK_STATE_DESC } from '../ui/config';
-import { COLORS, SHADOW_CARD, TONE } from '../../lib/tokens';
+import { COLORS } from '../../lib/tokens';
 
-const POLL_MS = 10_000;
-
-const STATE_TONE = {
-  STABLE: 'brand',
-  DEGRADED: 'warning',
-  CRITICAL: 'danger',
-  UNKNOWN: 'neutral',
-};
-
-const STATE_DESC = {
-  STABLE:   'Network healthy — full QoS 2 for critical messages.',
-  DEGRADED: 'Network congested — QoS automatically upgraded to protect delivery.',
-  CRITICAL: 'Network failing — critical messages downgraded to QoS 1, others buffered.',
-  UNKNOWN:  'Waiting for first ML prediction…',
+const FALLBACK_POLL_MS = 15_000;
+const TONE = {
+  brand: { color: COLORS.brand, bg: '#ECFDF5', border: '#A7F3D0' },
+  warning: { color: '#B45309', bg: '#FFFBEB', border: '#FDE68A' },
+  danger: { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
+  info: { color: '#0369A1', bg: '#F0F9FF', border: '#BAE6FD' },
+  neutral: { color: COLORS.body, bg: '#F8FAFC', border: COLORS.line },
 };
 const STATE_TONE = { STABLE: 'brand', DEGRADED: 'warning', CRITICAL: 'danger', UNKNOWN: 'neutral' };
 const PRIORITY_TONE = { CRITICAL: 'danger', HIGH: 'warning', MEDIUM: 'info', LOW: 'neutral' };
@@ -42,12 +35,12 @@ function formatValue(value, digits = 0) {
   return Number.isFinite(number) ? number.toFixed(digits) : '—';
 }
 
-function Card({ children, className = "" }) {
-  return (
-    <div className={`rounded-xl bg-gray-50 p-4 sm:p-6 ${className}`}>
-      {children}
-    </div>
-  );
+function formatAge(iso) {
+  if (!iso) return 'not received';
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(iso)) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  return `${Math.floor(seconds / 3600)}h ago`;
 }
 
 function Card({ children, className = '' }) {
@@ -59,16 +52,8 @@ function Chip({ children, tone = 'neutral' }) {
   return <span className="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold" style={{ color: t.color, background: t.bg, borderColor: t.border }}>{children}</span>;
 }
 
-function SectionHeader({ icon, title, subtitle }) {
-  return (
-    <div className="flex items-center gap-3 mb-3 sm:mb-4">
-      <IconTile icon={icon} />
-      <div>
-        <h2 className="text-[13px] sm:text-[14px] font-medium" style={{ color: COLORS.ink }}>{title}</h2>
-        {subtitle && <p className="text-[11px] sm:text-[11.5px]" style={{ color: COLORS.muted }}>{subtitle}</p>}
-      </div>
-    </div>
-  );
+function SectionTitle({ icon: Icon, title, subtitle, action }) {
+  return <div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-start gap-2.5"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: TONE.brand.bg, color: TONE.brand.color }}><Icon className="h-4 w-4" /></div><div><h2 className="text-sm font-semibold" style={{ color: COLORS.ink }}>{title}</h2>{subtitle && <p className="mt-0.5 text-xs" style={{ color: COLORS.muted }}>{subtitle}</p>}</div></div>{action}</div>;
 }
 
 function Metric({ label, value, unit, icon: Icon, tone = 'neutral' }) {
@@ -143,260 +128,32 @@ export default function NetworkScreen() {
   const buffered = status?.buffered_messages || 0;
 
   return (
-    <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
-      <div className="sm:px-5 lg:px-6 py-2 sm:py-5 space-y-4 sm:space-y-6">
+    <div className="mx-auto min-h-screen max-w-7xl bg-white font-sans" style={{ color: COLORS.ink }}>
+      <div className="space-y-4 py-2 sm:space-y-5 sm:py-5">
+        <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div><p className="text-[11px] font-mono uppercase tracking-[0.14em]" style={{ color: COLORS.muted }}>Camp operations · live telemetry</p><h1 className="mt-1 font-serif text-3xl font-medium tracking-tight">Network QoS Monitor</h1><p className="mt-2 text-sm" style={{ color: COLORS.muted }}>Clear link health, forecast risk, and the exact delivery policy now in effect.</p></div>
+          <div className="flex items-center gap-2 text-xs font-mono" style={{ color: COLORS.muted }}><Radio className={`h-3.5 w-3.5 ${streamConnected ? 'animate-pulse' : ''}`} style={{ color: streamConnected ? COLORS.brand : TONE.warning.color }} /><span>{streamConnected ? 'Live stream connected' : `Snapshot fallback · ${lastAt ? lastAt.toLocaleTimeString() : 'connecting'}`}</span></div>
+        </header>
 
-        {/* ================= TITLE ROW ================= */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>Camp operations</p>
-            <div className="flex items-center gap-3 flex-wrap mt-1.5">
+        {error && <ErrorState title="Network monitor unavailable" message={error} onRetry={fetchStatus} />}
+        {!error && state === 'UNKNOWN' && <div className="flex gap-3 rounded-xl border px-4 py-3 text-sm" style={{ background: TONE.warning.bg, borderColor: TONE.warning.border, color: TONE.warning.color }}><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span><strong>No QoS observation has arrived.</strong> Start <code className="rounded px-1" style={{ background: '#FDE68A' }}>python3 scripts/network_monitor_service.py</code> on the Pi.</span></div>}
 
-              <h1 className="font-medium text-[26px] sm:text-[32px] leading-[1.1] tracking-tight">Network Monitor</h1>
-            </div>
-            <p className="text-[12px] mt-2" style={{ color: COLORS.muted }}>ML-predicted link health and adaptive QoS decisions</p>
-          </div>
-          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: COLORS.muted }}>
-            <RefreshCw className={`w-3.5 h-3.5 ${lastAt ? '' : 'animate-spin'}`} style={{ color: COLORS.brand }} />
-            <span className="font-medium">Refreshes every {POLL_MS / 1000}s</span>
-          </div>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><p className="text-[11px] font-mono font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>Effective delivery state</p><div className="mt-2 flex items-center gap-3"><span className="h-3 w-3 rounded-full animate-pulse" style={{ background: stateTone.color }} /><span className="font-serif text-3xl font-medium" style={{ color: stateTone.color }}>{state}</span><Chip tone={tone}>{diagnostics.stale ? 'transport fallback' : metrics.decision?.source === 'safety_floor' ? 'live safety override' : 'forecast active'}</Chip></div><p className="mt-2 max-w-xl text-sm" style={{ color: COLORS.body }}>{NETWORK_STATE_DESC[state]}</p>{metrics.decision && <p className="mt-1 text-[11px]" style={{ color: COLORS.muted }}>Forecast: {metrics.decision.forecast_state} · observed link: {metrics.decision.observed_state}</p>}</div><div className="rounded-lg border px-3 py-2 text-right" style={{ borderColor: stateTone.border, background: stateTone.bg }}><p className="text-[10px] font-mono uppercase" style={{ color: COLORS.muted }}>last observation</p><p className="mt-1 text-sm font-semibold" style={{ color: stateTone.color }}>{formatAge(status?.updated_at)}</p>{diagnostics.raw_state && diagnostics.raw_state !== state && <p className="mt-1 text-[10px]" style={{ color: COLORS.muted }}>raw: {diagnostics.raw_state} · recovery {diagnostics.recovery_progress}</p>}</div></div>
+            <div className="mt-5 grid grid-cols-2 gap-2 border-t pt-4 sm:grid-cols-4" style={{ borderColor: COLORS.hairline }}><Metric label="Latency" value={formatValue(metrics.rtt_avg)} unit="ms" icon={Gauge} tone={metricTone(metrics.rtt_avg, 200, 500)} /><Metric label="Packet loss" value={formatValue(metrics.packet_loss, 1)} unit="%" icon={Activity} tone={metricTone(metrics.packet_loss, 5, 15)} /><Metric label="Jitter" value={formatValue(metrics.jitter)} unit="ms" icon={Activity} tone={metricTone(metrics.jitter, 30, 80)} /><Metric label="Broker" value={metrics.bridge_alive === false ? 'DOWN' : formatValue(metrics.broker_rtt)} unit={metrics.bridge_alive === false ? '' : 'ms'} icon={Wifi} tone={metrics.bridge_alive === false ? 'danger' : metricTone(metrics.broker_rtt, 300, 1000)} /></div>
+          </Card>
+          <Card>
+            <SectionTitle icon={ShieldCheck} title="Adaptive action" subtitle="Policy used by the publish path" action={<Chip tone={diagnostics.qos_source === 'model' ? 'info' : 'neutral'}>{diagnostics.qos_source || 'rules'}</Chip>} />
+            <div className="space-y-2">{['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((priority) => { const value = policy?.[priority]; const decision = value === -1 ? { buffer: true } : value !== undefined ? { qos: value } : fallbackDecision(priority, state); const pTone = TONE[PRIORITY_TONE[priority]]; return <div className="flex items-center justify-between rounded-lg px-3 py-2" key={priority} style={{ background: COLORS.hairline }}><span className="text-xs font-mono font-semibold" style={{ color: pTone.color }}>{priority}</span><span className="text-xs font-semibold" style={{ color: decision.buffer ? TONE.warning.color : COLORS.body }}>{decision.buffer ? 'Buffer until recovery' : `Publish · QoS ${decision.qos}`}</span></div>; })}</div>
+            <p className="mt-3 text-[11px]" style={{ color: COLORS.muted }}>Policy expires safely if the monitor stops reporting; SAAMP then uses its built-in rules.</p>
+          </Card>
+        </motion.div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2"><SectionTitle icon={Activity} title="Live QoS trend" subtitle="Recent monitor observations · latency and packet loss use separate scales" action={<Chip tone={history.length > 1 ? 'brand' : 'neutral'}>{history.length} samples</Chip>} />{history.length > 1 ? <div className="h-64"><ResponsiveContainer width="100%" height="100%"><AreaChart data={history} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}><defs><linearGradient id="latencyFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#00acf0" stopOpacity={0.25} /><stop offset="100%" stopColor="#00acf0" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" /><XAxis dataKey="time" tick={{ fill: COLORS.muted, fontSize: 10 }} minTickGap={35} axisLine={false} tickLine={false} /><YAxis yAxisId="latency" tick={{ fill: COLORS.muted, fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis yAxisId="loss" orientation="right" domain={[0, 100]} tick={{ fill: COLORS.muted, fontSize: 10 }} axisLine={false} tickLine={false} /><Tooltip contentStyle={{ borderRadius: 8, borderColor: COLORS.line, fontSize: 12 }} formatter={(value, name) => [`${Number(value).toFixed(name === 'Packet loss' ? 1 : 0)}${name === 'Packet loss' ? '%' : ' ms'}`, name]} /><Legend wrapperStyle={{ fontSize: 11 }} /><Area yAxisId="latency" type="monotone" dataKey="rtt_avg" name="Latency" stroke="#00acf0" strokeWidth={2} fill="url(#latencyFill)" /><Area yAxisId="loss" type="monotone" dataKey="packet_loss" name="Packet loss" stroke="#DC2626" strokeWidth={2} fill="transparent" /></AreaChart></ResponsiveContainer></div> : <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed text-center" style={{ borderColor: COLORS.line, color: COLORS.muted }}><RefreshCw className="h-5 w-5" /><p className="mt-2 text-sm">Waiting for two QoS samples</p><p className="mt-1 text-xs">The chart fills as the Pi reports each measurement.</p></div>}</Card>
+          <Card><SectionTitle icon={Clock3} title="State changes" subtitle="Newest first" />{transitions.length ? <ol className="space-y-3">{transitions.map((item, index) => { const itemTone = TONE[STATE_TONE[item.state]]; return <li className="flex gap-3" key={`${item.at}-${index}`}><span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: itemTone.color }} /><div className="min-w-0"><p className="text-xs font-semibold" style={{ color: itemTone.color }}>{item.state}</p><p className="text-[11px]" style={{ color: COLORS.muted }}>{item.at ? new Date(item.at).toLocaleString() : 'time unavailable'} · RTT {formatValue(item.rtt_avg)}ms · loss {formatValue(item.packet_loss, 1)}%</p></div></li>; })}</ol> : <p className="py-8 text-center text-sm" style={{ color: COLORS.muted }}>No transitions recorded yet.</p>}</Card>
         </div>
-
-        {/* ── Warning banners ──────────────────────────── */}
-        {error && (
-          <ErrorState title="Backend unreachable" message={error} onRetry={fetchStatus} />
-        )}
-        {!error && state === 'UNKNOWN' && (
-          <div className="flex items-start gap-3 rounded-xl border px-5 py-4 text-[13px]" style={{ backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border, color: TONE.warning.color }}>
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <div>
-              <span className="font-bold">No ML prediction received yet.</span> Start the monitor service:
-              <br />
-              <code className="px-1.5 py-0.5 rounded text-[11.5px] mt-1 inline-block" style={{ backgroundColor: '#FDE68A' }}>
-                python3 scripts/network_monitor_service.py
-              </code>
-            </div>
-          </div>
-        )}
-
-        {/* ── Live metrics + Adaptive QoS (side by side) ─ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5 ">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-6">
-          <Card className="h-full">
-            <div className="flex flex-col h-full">
-              <div className="flex items-start justify-between gap-6 flex-wrap">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wider mb-2" style={{ color: COLORS.muted }}>
-                    ML-Predicted Network State
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-3.5 h-3.5 rounded-full animate-pulse" style={{ backgroundColor: t.color }} />
-                    <span className="font-medium text-[26px] sm:text-[30px] tracking-tight" style={{ color: t.color }}>{state}</span>
-                    <Chip tone={tone}>Random Forest</Chip>
-                  </div>
-                  <p className="text-[13px] mt-2" style={{ color: COLORS.muted }}>{NETWORK_STATE_DESC[state]}</p>
-                </div>
-                <div className="text-right text-[11px] space-y-1" style={{ color: COLORS.muted }}>
-                  <p>Updated {updatedAt}</p>
-                  <p>{lastAt ? `Polled ${lastAt.toLocaleTimeString()}` : 'Connecting…'}</p>
-                </div>
-              </div>
-              <div className="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t flex flex-col flex-1" style={{ borderColor: COLORS.hairline }}>
-                <SectionHeader icon={Activity} title="Live Network Metrics" />
-                <div className="grid grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-3">
-              {[
-                { label: 'RTT Average',  val: m.rtt_avg,     unit: ' ms',   warn: 200,  crit: 500  },
-                { label: 'RTT Max',      val: m.rtt_max,     unit: ' ms',   warn: 400,  crit: 999  },
-                { label: 'Packet Loss',  val: m.packet_loss, unit: '%',     warn: 5,    crit: 15   },
-                { label: 'Jitter',       val: m.jitter,      unit: ' ms',   warn: 30,   crit: 80   },
-                { label: 'Broker RTT',   val: m.broker_rtt,  unit: ' ms',   warn: 300,  crit: 1000 },
-                { label: 'Queue Depth',  val: m.queue_depth, unit: '',      warn: 50,   crit: 100  },
-                ].map(({ label, val, unit, warn, crit, invert }) => {
-                  const mTone = val !== undefined ? metricTone(val, warn, crit, invert) : 'neutral';
-                  return (
-                    <div key={label} className="flex justify-between items-center border-b pb-2" style={{ borderColor: COLORS.hairline }}>
-                      <span className="text-[12px]" style={{ color: COLORS.muted }}>{label}</span>
-                      <span className="text-[13px] font-medium" style={{ color: val !== undefined ? TONE[mTone].color : COLORS.muted }}>
-                        {val !== undefined ? `${val}${unit}` : '—'}
-                      </span>
-                    </div>
-                );
-              })}
-              <div className="flex justify-between items-center border-b pb-2" style={{ borderColor: COLORS.hairline }}>
-                <span className="text-[12px]" style={{ color: COLORS.muted }}>Broker alive</span>
-                <span
-                  className="text-[13px] font-medium"
-                  style={{ color: m.bridge_alive === true ? COLORS.brand : m.bridge_alive === false ? TONE.danger.color : COLORS.muted }}
-                >
-                  {m.bridge_alive === true ? 'YES' : m.bridge_alive === false ? 'DOWN' : '—'}
-                </span>
-              </div>
-              </div>
-            </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* ── QoS Decision Table ───────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="lg:col-span-6">
-          <Card className="h-full">
-            <SectionHeader icon={Layers} title="Adaptive QoS Decisions" subtitle="Current state highlighted" />
-            <div className="overflow-x-auto">
-            <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-medium mb-2 min-w-[320px]">
-              <div />
-              {['STABLE', 'DEGRADED', 'CRITICAL'].map((s) => {
-                const sTone = TONE[STATE_TONE[s]];
-                const active = state === s;
-                return (
-                  <div
-                    key={s}
-                    className="rounded-lg py-2 border"
-                    style={active
-                      ? { backgroundColor: sTone.bg, color: sTone.color, borderColor: sTone.color, boxShadow: `0 0 0 2px ${sTone.color}22` }
-                      : { backgroundColor: '#F5F6F5', color: COLORS.muted, borderColor: 'transparent' }}
-                  >
-                    {s}
-                  </div>
-                );
-              })}
-            </div>
-            {QOS_TABLE.map((row) => {
-              const rowTone = TONE[row.tone];
-              return (
-                <div key={row.priority} className="grid grid-cols-4 gap-2 text-center text-[11px] mb-2">
-                  <div className="font-bold text-left flex items-center" style={{ color: rowTone.color }}>
-                    {row.priority}
-                  </div>
-                  {(['stable', 'degraded', 'critical']).map((col) => {
-                    const cell = row[col];
-                    const colState = col.toUpperCase();
-                    const isActive = state === colState;
-                    const cellTone = cell.buf ? TONE.warning : TONE.brand;
-                    return (
-                      <div
-                        key={col}
-                        className="rounded-lg py-2 font-medium transition-all"
-                        style={isActive
-                          ? { backgroundColor: cellTone.bg, color: cellTone.color }
-                          : { backgroundColor: COLORS.grid, color: COLORS.muted }}
-                      >
-                        <div>QoS {cell.qos}</div>
-                        {cell.buf && <div className="font-semibold" style={{ color: TONE.warning.color }}>buffer</div>}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-            </div>
-          </Card>
-        </motion.div>
-        </div>
-
-        {/* ── Buffer status ─────────────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card style={{ borderColor: buffered > 0 ? TONE.warning.border : COLORS.line }}>
-            <div className="flex justify-between items-center gap-6 flex-wrap">
-              <div className="flex items-start gap-3">
-                <IconTile icon={Database} tone={buffered > 0 ? 'warning' : 'brand'} size="lg" />
-                <div>
-                  <h2 className="text-[12px] font-medium uppercase tracking-wider" style={{ color: COLORS.ink }}>
-                    Priority Message Buffer
-                  </h2>
-                  <p className="text-[12px] mt-1" style={{ color: COLORS.muted }}>
-                    Held during outage · flushed CRITICAL → HIGH → MEDIUM → LOW on reconnect
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-medium text-[32px] sm:text-[36px]" style={{ color: buffered > 0 ? TONE.warning.color : COLORS.brand }}>
-                  {buffered}
-                </p>
-                <p className="text-[11px]" style={{ color: COLORS.muted }}>buffered</p>
-              </div>
-            </div>
-
-            {/* Flush order. The total alone hides the point — that a CRITICAL
-                message leaves before a MEDIUM one no matter which arrived
-                first. Rows stay visible at zero so the ordering is legible
-                even when the buffer is empty. */}
-            {bufferRows.length > 0 && (
-              <div className="mt-5 pt-4 border-t space-y-2" style={{ borderColor: COLORS.hairline }}>
-                {bufferRows.map(({ priority, flush_position, count, oldest_at }) => {
-                  const t = TONE[PRIORITY_TONE[priority] || 'neutral'];
-                  const share = buffered > 0 ? count / buffered : 0;
-                  return (
-                    <div key={priority} className="flex items-center gap-3">
-                      <span className="text-[11px] w-5 shrink-0" style={{ color: COLORS.muted }}>
-                        {flush_position}
-                      </span>
-                      <span className="text-[12px] font-medium w-[68px] shrink-0" style={{ color: t.color }}>
-                        {priority}
-                      </span>
-                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: COLORS.hairline }}>
-                        <div className="h-full rounded-full transition-all duration-500"
-                             style={{ width: `${Math.round(share * 100)}%`, backgroundColor: t.color }} />
-                      </div>
-                      <span className="text-[12px] w-8 text-right shrink-0"
-                            style={{ color: count > 0 ? t.color : COLORS.muted }}>
-                        {count}
-                      </span>
-                      <span className="text-[11px] w-[62px] text-right shrink-0 hidden sm:block"
-                            style={{ color: COLORS.muted }}>
-                        {count > 0 && oldest_at ? `${Math.max(0, Math.round((Date.now() - new Date(oldest_at.replace(' ', 'T') + 'Z')) / 1000))}s` : ''}
-                      </span>
-                    </div>
-                  );
-                })}
-                <p className="text-[11px] pt-1" style={{ color: COLORS.muted }}>
-                  Numbered in flush order · rightmost column is the oldest held message
-                </p>
-              </div>
-            )}
-
-            {/* The individual held messages, in the exact order they will be
-                sent. Payloads are deliberately not exposed — they carry names
-                and medical notes — so this shows topic and priority only. */}
-            {bufferMsgs.length > 0 && (
-              <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.hairline }}>
-                <SectionHeader icon={Layers} title="Messages waiting, in send order" />
-                <div className="space-y-1.5 mt-1">
-                  {bufferMsgs.map((msg, i) => {
-                    const t = TONE[PRIORITY_TONE[msg.priority] || 'neutral'];
-                    return (
-                      <div key={msg.id} className="flex items-center gap-3 py-1.5 px-2 rounded-md"
-                           style={{ backgroundColor: i % 2 ? 'transparent' : COLORS.hairline + '55' }}>
-                        <span className="text-[11px] w-6 shrink-0" style={{ color: COLORS.muted }}>
-                          {i + 1}
-                        </span>
-                        <span className="text-[11px] font-medium px-1.5 py-0.5 rounded shrink-0 w-[74px] text-center"
-                              style={{ color: t.color, backgroundColor: t.bg }}>
-                          {msg.priority}
-                        </span>
-                        <span className="text-[12px] truncate flex-1" style={{ color: COLORS.body }}>
-                          {msg.topic}
-                        </span>
-                        <span className="text-[11px] shrink-0 hidden sm:block" style={{ color: COLORS.muted }}>
-                          QoS {msg.qos}
-                        </span>
-                        <span className="text-[11px] w-[56px] text-right shrink-0" style={{ color: COLORS.muted }}>
-                          {msg.created_at
-                            ? `${Math.max(0, Math.round((Date.now() - new Date(msg.created_at.replace(' ', 'T') + 'Z')) / 1000))}s`
-                            : ''}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {buffered > bufferMsgs.length && (
-                  <p className="text-[11px] pt-2" style={{ color: COLORS.muted }}>
-                    Showing the first {bufferMsgs.length} of {buffered}
-                  </p>
-                )}
-              </div>
-            )}
-          </Card>
-        </motion.div>
 
         <Card><SectionTitle icon={Database} title="Recovery buffer" subtitle="Messages retained while the link is unsafe, sent by priority after recovery" action={<div className="text-right"><p className="font-mono text-2xl font-semibold" style={{ color: buffered ? TONE.warning.color : COLORS.brand }}>{buffered}</p><p className="text-[10px] uppercase" style={{ color: COLORS.muted }}>held messages</p></div>} /><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{(status?.buffer_by_priority || []).map(({ priority, count, oldest_at, flush_position }) => { const t = TONE[PRIORITY_TONE[priority]]; return <div className="rounded-lg border p-3" key={priority} style={{ borderColor: t.border, background: t.bg }}><div className="flex justify-between"><span className="text-xs font-mono font-semibold" style={{ color: t.color }}>{flush_position}. {priority}</span><span className="font-mono text-lg font-semibold" style={{ color: t.color }}>{count}</span></div><p className="mt-1 text-[10px]" style={{ color: COLORS.muted }}>{count ? `oldest ${formatAge(oldest_at?.replace(' ', 'T') + 'Z')}` : 'nothing queued'}</p></div>; })}</div>{metrics.queue_depth !== undefined && <p className="mt-3 text-xs" style={{ color: COLORS.muted }}>Current publisher queue depth: <strong style={{ color: COLORS.body }}>{metrics.queue_depth}</strong></p>}</Card>
       </div>

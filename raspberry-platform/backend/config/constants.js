@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env.js';
 
 const parseOrigins = (value) => {
   if (typeof value !== 'string' || !value.trim()) return [];

@@ -13,7 +13,7 @@
  *
  * Needs EMQX_API_KEY / EMQX_API_SECRET set, otherwise there is nothing it can do.
  */
-import 'dotenv/config';
+import '../config/load-env.js';
 import { campDb } from '../config/database.js';
 import * as emqx from '../services/network/emqx-manager.js';
 
