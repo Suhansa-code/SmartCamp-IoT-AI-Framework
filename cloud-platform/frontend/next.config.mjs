@@ -9,6 +9,14 @@ const devOrigins = process.env.NEXT_DEV_ALLOWED_ORIGINS
 const nextConfig = {
   output: 'standalone',
   ...(devOrigins ? { allowedDevOrigins: devOrigins } : {}),
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.BACKEND_API_URL || 'http://localhost:3001'}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

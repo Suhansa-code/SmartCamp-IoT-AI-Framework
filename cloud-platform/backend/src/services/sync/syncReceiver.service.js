@@ -20,6 +20,7 @@ import {
   upsertWaterLevelReading, upsertGpsReading, upsertWeatherData,
   upsertHydrospatialData, upsertFloodPrediction, upsertDisasterAlert,
   upsertPredictionRequest,
+  upsertNetworkStatus,
 } from '../../data/sync/sync.postgres.repository.js';
 import { applySyncedPerson, applySyncedWristband } from '../resources/campData.service.js';
 
@@ -69,6 +70,7 @@ const ENTITY_HANDLERS = {
   'flood-predictions':  upsertFloodPrediction,
   'disaster-alerts':    upsertDisasterAlert,
   'prediction-requests': upsertPredictionRequest,
+  'network-status':      upsertNetworkStatus,
 };
 
 let client = null;
@@ -233,13 +235,13 @@ async function handleSyncMessage(topic, buffer) {
     const applyLive = LIVE_STORE_HANDLERS[entity];
     if (applyLive) {
       try {
-        applyLive(payload);
+        applyLive(payload, { camp_id });
       } catch (liveErr) {
         console.error(`[Sync Receiver] Live roster update failed for ${entity} id=${local_id}: ${liveErr.message}`);
       }
     }
 
-    await logSync(sync_id, entity, local_id, camp_id, operation, envelope.device_id);
+    await logSync(sync_id, entity, local_id, camp_id, operation, envelope.device_id, envelope.priority);
     processedCount++;
     console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} (QoS ${envelope.priority})`);
     publishAck(envelope, 'ok');
