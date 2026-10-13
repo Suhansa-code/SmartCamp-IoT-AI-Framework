@@ -82,6 +82,50 @@ export async function listSyncEvents({ priority, campId, limit = 100 } = {}) {
   return result.rows;
 }
 
+export async function upsertNetworkStatus(r, ctx = {}) {
+  const deviceId = ctx.device_id || r.device_id;
+  if (!deviceId) throw new Error('network status is missing device_id');
+
+  const pool = getPool();
+  await pool.query(
+    `INSERT INTO network_status
+      (device_id, camp_id, state, raw_state, metrics, qos_policy, reachability, buffered_messages, observed_at, received_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+     ON CONFLICT (device_id) DO UPDATE SET
+       camp_id = EXCLUDED.camp_id,
+       state = EXCLUDED.state,
+       raw_state = EXCLUDED.raw_state,
+       metrics = EXCLUDED.metrics,
+       qos_policy = EXCLUDED.qos_policy,
+       reachability = EXCLUDED.reachability,
+       buffered_messages = EXCLUDED.buffered_messages,
+       observed_at = EXCLUDED.observed_at,
+       received_at = CURRENT_TIMESTAMP
+     WHERE EXCLUDED.observed_at >= network_status.observed_at`,
+    [
+      deviceId,
+      ctx.camp_id || r.camp_id || null,
+      r.state,
+      r.raw_state || null,
+      r.metrics || null,
+      r.qos_policy || null,
+      r.reachability || null,
+      Number.isInteger(r.buffered_messages) ? r.buffered_messages : 0,
+      ts(r.observed_at) || new Date(),
+    ],
+  );
+}
+
+export async function listNetworkStatuses() {
+  const result = await getPool().query(
+    `SELECT device_id, camp_id, state, raw_state, metrics, qos_policy, reachability,
+            buffered_messages, observed_at, received_at
+     FROM network_status
+     ORDER BY observed_at DESC`,
+  );
+  return result.rows;
+}
+
 // ── Device registry ──────────────────────────────────────────────────────
 
 export async function upsertDevice(deviceId, campId, name) {
@@ -118,8 +162,8 @@ export async function upsertPerson(r, ctx = {}) {
   await pool.query(
     `INSERT INTO persons (id,fingerprint_id,full_name,age,gender,family_unit_id,family_size,
        is_pregnant,has_chronic_illness,medical_notes,person_type,is_active,registration_date,
-       mqtt_client_id,mqtt_password,created_at,device_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        mqtt_client_id,mqtt_password,created_at,device_id,camp_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
      ON CONFLICT (id) DO UPDATE SET fingerprint_id=EXCLUDED.fingerprint_id,
        full_name=EXCLUDED.full_name,age=EXCLUDED.age,gender=EXCLUDED.gender,
        family_unit_id=EXCLUDED.family_unit_id,family_size=EXCLUDED.family_size,
@@ -127,12 +171,12 @@ export async function upsertPerson(r, ctx = {}) {
        medical_notes=EXCLUDED.medical_notes,person_type=EXCLUDED.person_type,
        is_active=EXCLUDED.is_active,registration_date=EXCLUDED.registration_date,
        mqtt_client_id=EXCLUDED.mqtt_client_id,mqtt_password=EXCLUDED.mqtt_password,
-       created_at=EXCLUDED.created_at,device_id=EXCLUDED.device_id`,
+        created_at=EXCLUDED.created_at,device_id=EXCLUDED.device_id,camp_id=EXCLUDED.camp_id`,
     [r.id,r.fingerprint_id,r.full_name,r.age,r.gender||null,r.family_unit_id||null,
      r.family_size||1,r.is_pregnant||0,r.has_chronic_illness||0,r.medical_notes||null,
      r.person_type||'refugee',r.is_active??1,r.registration_date||null,
      r.mqtt_client_id||null,r.mqtt_password||null,ts(r.created_at),
-     ctx.device_id||r.device_id||null]
+      ctx.device_id||r.device_id||null,ctx.camp_id||r.camp_id||null]
   );
 }
 

@@ -7,39 +7,43 @@
 import { computeStockOutlook } from '../../services/resources/stockRunout.service.js';
 import { standardize, getAliasProvenance, reloadAliasTable } from '../../services/resources/commodityStandardizer.service.js';
 import { shareFor, reloadShares } from '../../services/resources/commodityShares.service.js';
-import { getPersons, getPopulationHistory, getOverview } from '../../services/resources/campData.service.js';
-import { listForecastItems } from '../../data/resources/inventory.repository.js';
+import { getPersons, getPopulationHistory } from '../../services/resources/campData.service.js';
+import { listCamps, listForecastItems } from '../../data/resources/inventory.repository.js';
+import { loadPersons } from '../../services/resources/campStore.repository.js';
 import { getResourceInventory } from '../../services/resource/resource.service.js';
 import { env } from '../../config/env.js';
 
-async function loadInventory() {
+async function loadInventory(campId) {
   if (!env.db.enabled) return { data: [] };
 
   // New entries use the normalized Neon inventory table. Existing camps may
   // still only have their Pi-synced stock in `resources`, so retain it as a
   // read-only source until staff enter the first operational inventory item.
-  const items = await listForecastItems();
-  return items.length ? { data: items } : getResourceInventory({ page: 0, limit: 500 });
+  const items = await listForecastItems(campId);
+  if (items.length || campId !== env.resources.defaultCampId) return { data: items };
+  return getResourceInventory({ page: 0, limit: 500 });
 }
 
 async function buildOutlook(query = {}) {
-  const [history, inventory] = await Promise.all([
-    getPopulationHistory(),
-    loadInventory(),
+  const campId = String(query.camp_id || env.resources.defaultCampId);
+  const [history, inventory, storedPersons] = await Promise.all([
+    getPopulationHistory(campId),
+    loadInventory(campId),
+    env.db.enabled ? loadPersons(campId) : Promise.resolve(null),
   ]);
 
-  const persons = getPersons();
-  const overview = getOverview();
+  const persons = storedPersons || getPersons(campId);
   const resources = inventory?.data ?? [];
 
-  return computeStockOutlook({
+  const outlook = computeStockOutlook({
     resources,
     history,
-    currentPopulation: overview?.day?.total_persons ?? persons.length,
+    currentPopulation: persons.length,
     persons,
     horizonDays: Math.min(90, Math.max(7, parseInt(query.days, 10) || 30)),
     leadTimeDays: Math.max(0, parseInt(query.lead_time, 10) || env.resources.resupplyLeadTimeDays),
   });
+  return { ...outlook, camp_id: campId };
 }
 
 /** GET /api/resources/stock/outlook — every item with its runout date. */
@@ -81,6 +85,17 @@ export async function getStockAlerts(req, res) {
   } catch (err) {
     console.error('[StockRunout] getStockAlerts error:', err);
     res.status(500).json({ error: err.message || 'Failed to compute stock alerts' });
+  }
+}
+
+/** GET /api/resources/stock/camps — camps with stock or a synced roster. */
+export async function getStockCamps(_req, res) {
+  try {
+    const camps = env.db.enabled ? await listCamps() : [env.resources.defaultCampId];
+    res.json({ camps: camps.length ? camps : [env.resources.defaultCampId] });
+  } catch (err) {
+    console.error('[StockRunout] getStockCamps error:', err);
+    res.status(500).json({ error: err.message || 'Failed to list camps' });
   }
 }
 

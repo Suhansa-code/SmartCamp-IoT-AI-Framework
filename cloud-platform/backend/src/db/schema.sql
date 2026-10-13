@@ -109,6 +109,9 @@ CREATE INDEX IF NOT EXISTS idx_persons_fingerprint ON persons (fingerprint_id);
 
 ALTER TABLE persons ADD COLUMN IF NOT EXISTS device_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_persons_device ON persons (device_id);
+ALTER TABLE persons ADD COLUMN IF NOT EXISTS camp_id TEXT;
+UPDATE persons SET camp_id = 'SCB-UNIT-01' WHERE camp_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_persons_camp ON persons (camp_id);
 
 CREATE TABLE IF NOT EXISTS camp_checkins (
   id              INTEGER PRIMARY KEY,
@@ -273,6 +276,25 @@ CREATE INDEX IF NOT EXISTS idx_sync_log_entity ON sync_log (entity, local_id);
 CREATE INDEX IF NOT EXISTS idx_sync_log_received ON sync_log (received_at);
 CREATE INDEX IF NOT EXISTS idx_sync_log_device ON sync_log (device_id);
 CREATE INDEX IF NOT EXISTS idx_sync_log_priority_received ON sync_log (priority, received_at DESC);
+
+-- Latest connectivity observation reported by each Raspberry Pi. Network
+-- samples are telemetry, so the dashboard needs the latest value per device,
+-- while sync_log retains the delivery trail.
+CREATE TABLE IF NOT EXISTS network_status (
+  device_id         TEXT PRIMARY KEY,
+  camp_id           TEXT,
+  state             TEXT NOT NULL,
+  raw_state         TEXT,
+  metrics           JSONB,
+  qos_policy        JSONB,
+  reachability      JSONB,
+  buffered_messages INTEGER NOT NULL DEFAULT 0,
+  observed_at       TIMESTAMPTZ NOT NULL,
+  received_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_network_status_camp ON network_status (camp_id);
+CREATE INDEX IF NOT EXISTS idx_network_status_observed ON network_status (observed_at DESC);
 
 -- ── Disaster domain (synced from Raspberry Pi via MQTT) ─────────────────
 
@@ -562,8 +584,18 @@ CREATE TABLE IF NOT EXISTS resource_inventory_items (
   UNIQUE (resource_name, category)
 );
 
+ALTER TABLE resource_inventory_items ADD COLUMN IF NOT EXISTS camp_id TEXT;
+UPDATE resource_inventory_items SET camp_id = 'SCB-UNIT-01' WHERE camp_id IS NULL;
+ALTER TABLE resource_inventory_items ALTER COLUMN camp_id SET NOT NULL;
+ALTER TABLE resource_inventory_items ALTER COLUMN camp_id SET DEFAULT 'SCB-UNIT-01';
+ALTER TABLE resource_inventory_items DROP CONSTRAINT IF EXISTS resource_inventory_items_resource_name_category_key;
+ALTER TABLE resource_inventory_items DROP CONSTRAINT IF EXISTS resource_inventory_items_camp_resource_category_key;
+ALTER TABLE resource_inventory_items ADD CONSTRAINT resource_inventory_items_camp_resource_category_key
+  UNIQUE (camp_id, resource_name, category);
+
 CREATE INDEX IF NOT EXISTS idx_inventory_items_category ON resource_inventory_items (category);
 CREATE INDEX IF NOT EXISTS idx_inventory_items_status ON resource_inventory_items (status);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_camp ON resource_inventory_items (camp_id);
 
 -- Immutable stock ledger.  Adjustments are auditable and provide the resource
 -- consumption series shown by the existing dashboard format.

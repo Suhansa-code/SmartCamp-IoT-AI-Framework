@@ -1,4 +1,4 @@
-import { listSyncEvents } from '../data/sync/sync.postgres.repository.js';
+import { listNetworkStatuses, listSyncEvents } from '../data/sync/sync.postgres.repository.js';
 
 const PRIORITIES = new Set(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
 
@@ -15,5 +15,16 @@ export async function getSyncEvents(req, res) {
   } catch (error) {
     console.error('[Sync] getSyncEvents error:', error);
     res.status(500).json({ error: 'Failed to fetch sync events' });
+  }
+}
+
+/** GET /api/sync/network-status — latest network observation from every Pi. */
+export async function getNetworkStatuses(_req, res) {
+  try {
+    const data = await listNetworkStatuses();
+    res.json({ data, count: data.length });
+  } catch (error) {
+    console.error('[Sync] getNetworkStatuses error:', error);
+    res.status(500).json({ error: 'Failed to fetch network statuses' });
   }
 }

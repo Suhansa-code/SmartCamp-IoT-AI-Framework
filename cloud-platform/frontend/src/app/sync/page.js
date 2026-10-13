@@ -30,6 +30,7 @@ function formatDate(value) {
 export default function SyncPage() {
   const { T } = useTheme()
   const [events, setEvents] = useState([])
+  const [networkStatuses, setNetworkStatuses] = useState([])
   const [priority, setPriority] = useState('ALL')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -39,10 +40,14 @@ export default function SyncPage() {
     setError(null)
     try {
       const query = priority === 'ALL' ? '' : `&priority=${priority}`
-      const response = await fetch(`${API_BASE}/api/sync/events?limit=100${query}`)
-      if (!response.ok) throw new Error(`Request failed (${response.status})`)
-      const body = await response.json()
+      const [eventsResponse, networkResponse] = await Promise.all([
+        fetch(`${API_BASE}/api/sync/events?limit=100${query}`),
+        fetch(`${API_BASE}/api/sync/network-status`),
+      ])
+      if (!eventsResponse.ok || !networkResponse.ok) throw new Error(`Request failed (${eventsResponse.status}/${networkResponse.status})`)
+      const [body, networkBody] = await Promise.all([eventsResponse.json(), networkResponse.json()])
       setEvents(body.data || [])
+      setNetworkStatuses(networkBody.data || [])
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -60,6 +65,17 @@ export default function SyncPage() {
           <HeaderShell><PageHeader /></HeaderShell>
           <div style={{ padding: '0 2rem 2rem', maxWidth: 1320, margin: '0 auto' }}>
             <PageTitle eyebrow="Operations" title="Cloud Sync" subtitle="Priority-tagged messages received from Raspberry Pi devices" />
+            {networkStatuses.length > 0 && <section style={{ marginTop: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+              {networkStatuses.map((status) => {
+                const tone = priorityStyle(T, status.state === 'CRITICAL' ? 'CRITICAL' : status.state === 'DEGRADED' ? 'HIGH' : 'LOW')
+                return <article key={status.device_id} style={{ background: T.card, border: `1px solid ${tone.border}`, borderRadius: 12, padding: '0.9rem 1rem' }}>
+                  <div style={{ color: T.muted, fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em' }}>{status.camp_id || status.device_id}</div>
+                  <div style={{ color: tone.color, fontSize: '1.15rem', fontWeight: 800, marginTop: 5 }}>{status.state}</div>
+                  <div style={{ color: T.muted, fontSize: '0.76rem', marginTop: 7 }}>RTT {status.metrics?.rtt_avg ?? '—'} ms · Loss {status.metrics?.packet_loss ?? '—'}%</div>
+                  <div style={{ color: T.muted, fontSize: '0.72rem', marginTop: 4 }}>{formatDate(status.observed_at)}</div>
+                </article>
+              })}
+            </section>}
             <section style={{ marginTop: '1.25rem', background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '1rem 1.1rem', borderBottom: `1px solid ${T.border}`, display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
                 <select value={priority} onChange={(event) => setPriority(event.target.value)} style={{ background: T.panel, color: T.textPrimary, border: `1px solid ${T.border}`, borderRadius: 8, padding: '0.5rem 0.65rem', fontWeight: 700 }}>

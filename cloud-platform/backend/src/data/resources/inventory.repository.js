@@ -1,4 +1,7 @@
 import { getPool } from '../../config/database.js';
+import { env } from '../../config/env.js';
+
+const DEFAULT_CAMP_ID = env.resources.defaultCampId;
 
 function statusFor(available, minimum) {
   if (available <= 0) return 'UNAVAILABLE';
@@ -14,10 +17,10 @@ function itemColumns(alias = 'i') {
     ${prefix}status, ${prefix}notes, ${prefix}created_at, ${prefix}updated_at`;
 }
 
-export async function listItems({ category, status, search, page = 0, limit = 20 } = {}) {
+export async function listItems({ campId = DEFAULT_CAMP_ID, category, status, search, page = 0, limit = 20 } = {}) {
   const pool = getPool();
-  const conditions = [];
-  const params = [];
+  const conditions = ['i.camp_id = $1'];
+  const params = [campId];
 
   if (category) {
     params.push(category);
@@ -47,7 +50,7 @@ export async function listItems({ category, status, search, page = 0, limit = 20
   return { data: rows, total: Number(countRows[0].count), page, limit };
 }
 
-export async function createItem({ resourceName, category, recordedUnit, baseUnit, available, recordedAvailable, minimum, notes, recordedBy }) {
+export async function createItem({ campId = DEFAULT_CAMP_ID, resourceName, category, recordedUnit, baseUnit, available, recordedAvailable, minimum, notes, recordedBy }) {
   const pool = getPool();
   const client = await pool.connect();
   const status = statusFor(available, minimum);
@@ -56,10 +59,10 @@ export async function createItem({ resourceName, category, recordedUnit, baseUni
     await client.query('BEGIN');
     const { rows } = await client.query(
       `INSERT INTO resource_inventory_items
-        (resource_name, category, recorded_unit, base_unit, available_base_quantity, minimum_base_quantity, status, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        (camp_id, resource_name, category, recorded_unit, base_unit, available_base_quantity, minimum_base_quantity, status, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING ${itemColumns('')}`,
-      [resourceName, category, recordedUnit, baseUnit, available, minimum, status, notes || null],
+      [campId, resourceName, category, recordedUnit, baseUnit, available, minimum, status, notes || null],
     );
     if (available > 0) {
       await client.query(
@@ -168,15 +171,27 @@ export async function getUsageTimeline(days) {
   return rows;
 }
 
-export async function listForecastItems() {
+export async function listForecastItems(campId = DEFAULT_CAMP_ID) {
   const { rows } = await getPool().query(
     `SELECT resource_name, category, base_unit AS unit,
             available_base_quantity AS available_quantity,
             minimum_base_quantity AS minimum_threshold, status
      FROM resource_inventory_items
+     WHERE camp_id = $1
      ORDER BY resource_name ASC`,
+    [campId],
   );
   return rows;
+}
+
+export async function listCamps() {
+  const { rows } = await getPool().query(
+    `SELECT camp_id FROM resource_inventory_items
+     UNION
+     SELECT camp_id FROM persons WHERE camp_id IS NOT NULL
+     ORDER BY camp_id`,
+  );
+  return rows.map((row) => row.camp_id);
 }
 
 export async function savePredictionSnapshot({ horizonDays, householdFeatures, inventoryFeatures, prediction }) {
