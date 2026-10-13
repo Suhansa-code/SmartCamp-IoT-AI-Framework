@@ -402,6 +402,14 @@ try {
 
   const disasterSchemaPath = path.resolve(rootDir, 'db/disaster-schema.sql');
   if (fs.existsSync(disasterSchemaPath)) {
+    // Older deployments created disaster_alerts before the camp-aware index
+    // was introduced. Add this indexed column before applying the schema;
+    // otherwise CREATE INDEX below fails before the normal migration loop can
+    // run and prevents the whole backend from starting.
+    try { disasterDb.exec('ALTER TABLE disaster_alerts ADD COLUMN camp_id TEXT'); } catch (_) {}
+    try { disasterDb.exec('ALTER TABLE disaster_alerts ADD COLUMN risk_category TEXT'); } catch (_) {}
+    try { disasterDb.exec('ALTER TABLE disaster_alerts ADD COLUMN alert_id TEXT'); } catch (_) {}
+    try { disasterDb.exec('ALTER TABLE disaster_alerts ADD COLUMN event_id TEXT'); } catch (_) {}
     const disasterSchema = fs.readFileSync(disasterSchemaPath, 'utf8');
     disasterDb.exec(disasterSchema);
     logger.info('[DISASTER DB] Schema applied successfully');

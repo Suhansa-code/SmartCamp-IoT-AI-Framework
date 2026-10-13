@@ -43,6 +43,7 @@ BACKEND_URL = 'http://localhost:5000'
 PING_COUNT = 5
 BROKER_PROBES = 3
 PRIORITIES = {0: 'LOW', 1: 'MEDIUM', 2: 'HIGH', 3: 'CRITICAL'}
+SEVERITY = {'STABLE': 0, 'DEGRADED': 1, 'CRITICAL': 2}
 BROKER_TIMEOUT = 2.0      # per connect attempt
 BROKER_DEADLINE = 6.0     # total, so a dead broker cannot stall the cycle
 UNREACHABLE_RTT = 4000.0
@@ -198,8 +199,30 @@ def load_model():
     }
 
 
+def observed_safety_state(metrics):
+    """An explainable, fail-safe floor based on the latest real observation.
+
+    A forecast is useful for starting protection early, but it must never make
+    the Pi call a known broker outage or severe loss "healthy". These limits
+    deliberately mirror the delivery risks rather than trying to replace the
+    model: the model supplies lead time, this supplies immediate certainty.
+    """
+    if (not metrics.get('bridge_alive', False)
+            or metrics.get('packet_loss', 0) >= 15
+            or metrics.get('rtt_avg', 0) >= 1000
+            or metrics.get('queue_depth', 0) >= 100):
+        return 'CRITICAL'
+    if (metrics.get('packet_loss', 0) >= 5
+            or metrics.get('rtt_avg', 0) >= 300
+            or metrics.get('jitter', 0) >= 30
+            or metrics.get('broker_rtt', 0) >= 400
+            or metrics.get('queue_depth', 0) >= 50):
+        return 'DEGRADED'
+    return 'STABLE'
+
+
 def predict_state(history, model, scaler, features, thresholds):
-    """Forecast from the recent window and escalate on doubt."""
+    """Forecast from recent history, with a real-observation safety floor."""
     import pandas as pd
     from feature_extraction import engineer_features
     from network_predictor import INV_STATE_MAP, decide_state
@@ -213,8 +236,18 @@ def predict_state(history, model, scaler, features, thresholds):
     proba = model.predict_proba(scaler.transform(X))[0]
     classes = [INV_STATE_MAP[c] for c in model.classes_]
 
-    state = decide_state(proba, classes, thresholds['t_critical'], thresholds['t_degraded'])
-    return state, {c: round(float(p), 3) for c, p in zip(classes, proba)}
+    forecast_state = decide_state(
+        proba, classes, thresholds['t_critical'], thresholds['t_degraded']
+    )
+    observed_state = observed_safety_state(history[-1])
+    state = max((forecast_state, observed_state), key=lambda s: SEVERITY[s])
+    decision = {
+        'forecast_state': forecast_state,
+        'observed_state': observed_state,
+        'source': 'safety_floor' if SEVERITY[observed_state] > SEVERITY[forecast_state]
+                  else 'forecast',
+    }
+    return state, {c: round(float(p), 3) for c, p in zip(classes, proba)}, decision
 
 
 def predict_qos_policy(history, qos_model, qos_scaler, qos_features):
@@ -244,7 +277,7 @@ def predict_qos_policy(history, qos_model, qos_scaler, qos_features):
 
 # ── Backend ───────────────────────────────────────────────────────────────
 
-def push_state(state, metrics, probabilities, qos_policy, backend_url):
+def push_state(state, metrics, probabilities, decision, qos_policy, backend_url):
     payload = {
         'state': state,
         'metrics': {
@@ -256,6 +289,7 @@ def push_state(state, metrics, probabilities, qos_policy, backend_url):
             'bridge_alive': metrics.get('bridge_alive', False),
             'queue_depth': metrics.get('queue_depth', 0),
             'probabilities': probabilities,
+            'decision': decision,
         },
         'qos_policy': qos_policy,
     }
@@ -317,7 +351,9 @@ def run(interval=INTERVAL, backend_url=BACKEND_URL, dry_run=False, simulate=None
             if len(history) > 120:
                 history.pop(0)
 
-            state, probabilities = predict_state(history, model, scaler, features, thresholds)
+            state, probabilities, decision = predict_state(
+                history, model, scaler, features, thresholds
+            )
 
             qos_policy = None
             if qos_model is not None:
@@ -328,12 +364,12 @@ def run(interval=INTERVAL, backend_url=BACKEND_URL, dry_run=False, simulate=None
             print(f'[monitor] {ts}  RTT={metrics["rtt_avg"]:.0f}ms  '
                   f'loss={metrics["packet_loss"]:.1f}%  broker={brok} '
                   f'({metrics["broker_rtt"]:.0f}ms)  q={metrics["queue_depth"]}  '
-                  f'→ {state} {probabilities}{tag}')
+                  f'→ {state} ({decision["source"]}) {probabilities}{tag}')
             if qos_policy:
                 print(f'[monitor] {ts}  QoS policy {qos_policy}')
 
             if not dry_run:
-                ok = push_state(state, metrics, probabilities, qos_policy, backend_url)
+                ok = push_state(state, metrics, probabilities, decision, qos_policy, backend_url)
                 print(f'[monitor] {ts}  State {state} {"pushed" if ok else "PUSH FAILED"}')
 
         except Exception as e:
