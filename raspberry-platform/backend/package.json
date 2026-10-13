@@ -34,6 +34,7 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "jest": "^30.5.2",
     "nodemon": "^3.1.4",
     "supertest": "^7.2.2",
     "vitest": "^4.1.10"
