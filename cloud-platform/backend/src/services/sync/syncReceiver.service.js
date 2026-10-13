@@ -239,7 +239,7 @@ async function handleSyncMessage(topic, buffer) {
       }
     }
 
-    await logSync(sync_id, entity, local_id, camp_id, operation, envelope.device_id);
+    await logSync(sync_id, entity, local_id, camp_id, operation, envelope.device_id, envelope.priority);
     processedCount++;
     console.log(`[Sync Receiver] ${entity} ${operation} id=${local_id} (QoS ${envelope.priority})`);
     publishAck(envelope, 'ok');

@@ -8,13 +8,24 @@ import { computeStockOutlook } from '../../services/resources/stockRunout.servic
 import { standardize, getAliasProvenance, reloadAliasTable } from '../../services/resources/commodityStandardizer.service.js';
 import { shareFor, reloadShares } from '../../services/resources/commodityShares.service.js';
 import { getPersons, getPopulationHistory, getOverview } from '../../services/resources/campData.service.js';
+import { listForecastItems } from '../../data/resources/inventory.repository.js';
 import { getResourceInventory } from '../../services/resource/resource.service.js';
 import { env } from '../../config/env.js';
+
+async function loadInventory() {
+  if (!env.db.enabled) return { data: [] };
+
+  // New entries use the normalized Neon inventory table. Existing camps may
+  // still only have their Pi-synced stock in `resources`, so retain it as a
+  // read-only source until staff enter the first operational inventory item.
+  const items = await listForecastItems();
+  return items.length ? { data: items } : getResourceInventory({ page: 0, limit: 500 });
+}
 
 async function buildOutlook(query = {}) {
   const [history, inventory] = await Promise.all([
     getPopulationHistory(),
-    getResourceInventory({ page: 0, limit: 500 }),
+    loadInventory(),
   ]);
 
   const persons = getPersons();

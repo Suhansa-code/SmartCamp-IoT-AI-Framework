@@ -264,12 +264,15 @@ CREATE TABLE IF NOT EXISTS sync_log (
   device_id     TEXT,
   operation     TEXT NOT NULL,
   status        TEXT DEFAULT 'received',
+  priority      TEXT NOT NULL DEFAULT 'MEDIUM',
   received_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'MEDIUM';
 CREATE INDEX IF NOT EXISTS idx_sync_log_entity ON sync_log (entity, local_id);
 CREATE INDEX IF NOT EXISTS idx_sync_log_received ON sync_log (received_at);
 CREATE INDEX IF NOT EXISTS idx_sync_log_device ON sync_log (device_id);
+CREATE INDEX IF NOT EXISTS idx_sync_log_priority_received ON sync_log (priority, received_at DESC);
 
 -- ── Disaster domain (synced from Raspberry Pi via MQTT) ─────────────────
 
@@ -536,3 +539,60 @@ CREATE TABLE IF NOT EXISTS camp_daily_snapshots (
 );
 
 CREATE INDEX IF NOT EXISTS idx_camp_snapshots_date ON camp_daily_snapshots (date DESC);
+
+-- ── Resource inventory (Neon/PostgreSQL) ──────────────────────────────────
+-- `resources` above is the Raspberry Pi sync mirror.  It cannot safely mix
+-- water recorded in litres with water recorded in millilitres, so operational
+-- stock is kept here.  Every amount is also stored in the forecasting base
+-- unit: food in kg and water in litres.  `recorded_unit` keeps the unit a
+-- staff member used at entry, so the UI never silently changes their form.
+CREATE TABLE IF NOT EXISTS resource_inventory_items (
+  id                        BIGSERIAL PRIMARY KEY,
+  resource_name             TEXT NOT NULL,
+  category                  TEXT NOT NULL CHECK (category IN ('food', 'water')),
+  recorded_unit             TEXT NOT NULL CHECK (recorded_unit IN ('kg', 'L', 'mL')),
+  base_unit                 TEXT NOT NULL CHECK (base_unit IN ('kg', 'L')),
+  available_base_quantity   NUMERIC(14, 3) NOT NULL DEFAULT 0 CHECK (available_base_quantity >= 0),
+  minimum_base_quantity     NUMERIC(14, 3) NOT NULL DEFAULT 0 CHECK (minimum_base_quantity >= 0),
+  status                    TEXT NOT NULL DEFAULT 'AVAILABLE'
+                            CHECK (status IN ('AVAILABLE', 'LOW', 'CRITICAL', 'UNAVAILABLE')),
+  notes                     TEXT,
+  created_at                TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at                TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (resource_name, category)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_items_category ON resource_inventory_items (category);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_status ON resource_inventory_items (status);
+
+-- Immutable stock ledger.  Adjustments are auditable and provide the resource
+-- consumption series shown by the existing dashboard format.
+CREATE TABLE IF NOT EXISTS resource_inventory_movements (
+  id                        BIGSERIAL PRIMARY KEY,
+  inventory_item_id         BIGINT NOT NULL REFERENCES resource_inventory_items(id) ON DELETE CASCADE,
+  quantity_base_change      NUMERIC(14, 3) NOT NULL,
+  recorded_quantity_change  NUMERIC(14, 3) NOT NULL,
+  recorded_unit             TEXT NOT NULL CHECK (recorded_unit IN ('kg', 'L', 'mL')),
+  movement_type             TEXT NOT NULL CHECK (movement_type IN ('opening_balance', 'received', 'issued', 'adjustment')),
+  reason                    TEXT,
+  recorded_by               TEXT,
+  occurred_at               TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_item_time
+  ON resource_inventory_movements (inventory_item_id, occurred_at DESC);
+
+-- An optional reproducible snapshot of the features and forecast used for a
+-- resource decision.  The live endpoint always recalculates from current
+-- inventory and household data; snapshots make past decisions traceable.
+CREATE TABLE IF NOT EXISTS resource_inventory_prediction_snapshots (
+  id                        BIGSERIAL PRIMARY KEY,
+  generated_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  horizon_days              INTEGER NOT NULL,
+  household_features        JSONB NOT NULL,
+  inventory_features        JSONB NOT NULL,
+  prediction                JSONB NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_prediction_snapshots_generated
+  ON resource_inventory_prediction_snapshots (generated_at DESC);

@@ -25,10 +25,26 @@ import {
   getPredictions,
   getCategories,
 } from '../controllers/resource/resource.controller.js';
+import {
+  listInventory, createInventoryItem, adjustInventoryItem, inventorySummary,
+  inventoryCategories, inventoryUsageTimeline, inventoryPredictionDataset,
+  saveInventoryPredictionSnapshot,
+} from '../controllers/resources/inventory.controller.js';
 
 const router = express.Router();
 
 router.get('/overview', getResourceOverview);
+
+// Neon inventory — accepts food only in kg and water in L/mL, then stores the
+// forecast-compatible kg/L value alongside the staff-entered unit.
+router.get('/inventory/items', listInventory);
+router.post('/inventory/items', createInventoryItem);
+router.post('/inventory/items/:id/adjust', adjustInventoryItem);
+router.get('/inventory/summary', inventorySummary);
+router.get('/inventory/categories', inventoryCategories);
+router.get('/inventory/usage-timeline', inventoryUsageTimeline);
+router.get('/inventory/prediction-dataset', inventoryPredictionDataset);
+router.post('/inventory/prediction-snapshots', saveInventoryPredictionSnapshot);
 
 // Distribution planning — food and drinking water only (Sri Lanka rate table model).
 router.get('/distribution/today', getTodayRequirement);

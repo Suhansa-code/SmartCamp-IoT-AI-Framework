@@ -41,14 +41,45 @@ export async function isSyncProcessed(syncId) {
   return result.rowCount > 0;
 }
 
-export async function logSync(syncId, entity, localId, campId, operation, deviceId) {
+export async function logSync(syncId, entity, localId, campId, operation, deviceId, priority) {
   const pool = getPool();
+  const safePriority = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(priority)
+    ? priority
+    : 'MEDIUM';
   await pool.query(
-    `INSERT INTO sync_log (sync_id, entity, local_id, camp_id, device_id, operation, status, received_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 'processed', NOW())
+    `INSERT INTO sync_log (sync_id, entity, local_id, camp_id, device_id, operation, status, priority, received_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'processed', $7, NOW())
      ON CONFLICT (sync_id) DO NOTHING`,
-    [syncId, entity, String(localId), campId || null, deviceId || null, operation]
+    [syncId, entity, String(localId), campId || null, deviceId || null, operation, safePriority]
   );
+}
+
+export async function listSyncEvents({ priority, campId, limit = 100 } = {}) {
+  const pool = getPool();
+  const conditions = [];
+  const params = [];
+
+  if (priority) {
+    params.push(priority);
+    conditions.push(`priority = $${params.length}`);
+  }
+  if (campId) {
+    params.push(campId);
+    conditions.push(`camp_id = $${params.length}`);
+  }
+
+  params.push(limit);
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const result = await pool.query(
+    `SELECT sync_id, entity, local_id, camp_id, device_id, operation, status, priority, received_at
+     FROM sync_log ${where}
+     ORDER BY CASE priority
+       WHEN 'CRITICAL' THEN 0 WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3
+     END, received_at DESC
+     LIMIT $${params.length}`,
+    params,
+  );
+  return result.rows;
 }
 
 // ── Device registry ──────────────────────────────────────────────────────
