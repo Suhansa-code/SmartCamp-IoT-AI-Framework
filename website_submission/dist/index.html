@@ -856,38 +856,122 @@ code,.mono{font-family:var(--font-mono)}
 .arch-wires circle.w-heat{fill:var(--heat-1)}
 .arch-wires circle.w-std{fill:var(--line-strong)}
 
-/* implementation-grounded, four-layer architecture detail */
+/* implementation-grounded, four-tier architecture map (pipeline + path matrix) */
 .arch-detail-map{
   position:relative;z-index:2;margin-top:24px;padding:20px;
   background:color-mix(in srgb,var(--surface) 94%,var(--primary) 6%);
   border:1px solid var(--line);border-radius:18px;
 }
-.arch-detail-title{font-size:.95rem;font-weight:600;color:var(--ink);margin:0 0 4px}
-.arch-detail-intro{font-size:.76rem;color:var(--ink-muted);line-height:1.5;margin:0 0 15px}
-.arch-detail-layers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.arch-detail-layer{
-  min-width:0;padding:13px;background:var(--surface);border:1px solid var(--line);
-  border-top:2px solid var(--layer,var(--primary));border-radius:13px;
+.adm-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+.arch-detail-title{font-size:.95rem;font-weight:600;color:var(--ink);margin:0 0 3px}
+.arch-detail-intro{font-size:.72rem;color:var(--ink-muted);line-height:1.5;margin:0}
+.adm-legend{display:flex;flex-wrap:wrap;gap:6px}
+.lg{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--font-mono);font-size:.56rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-muted);background:var(--chip);border:1px solid var(--line);border-radius:7px;padding:4px 8px;
 }
-.arch-detail-layer h5{
-  font-family:var(--font-mono);font-size:.62rem;font-weight:600;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--layer,var(--primary));margin:0 0 3px;
+.lg .d{width:7px;height:7px;border-radius:50%;background:var(--primary);flex-shrink:0}
+.lg-serial .d{background:var(--heat-1)}
+.lg-mqtt .d{background:var(--leaf)}
+.lg-read .d{background:var(--line-strong)}
+.lg-ext{border-style:dashed}
+.lg-ext .d{background:transparent;border:1.5px dashed var(--line-strong);box-sizing:border-box}
+
+/* four-tier pipeline: components sit in tiers, connectors carry the verified transports */
+.adm-pipeline{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 84px minmax(0,1fr) 84px minmax(0,1fr) 84px minmax(0,1fr);
+  align-items:stretch;
 }
-.arch-detail-layer .ad-host{font-size:.78rem;font-weight:600;color:var(--ink);margin:0 0 10px}
-.ad-item{
-  padding:8px 9px;margin-top:6px;background:var(--chip);border-radius:8px;
-  font-size:.7rem;font-weight:600;color:var(--ink);line-height:1.35;
+.tier{
+  min-width:0;display:flex;flex-direction:column;gap:8px;
+  padding:12px;background:var(--surface);border:1px solid var(--line);
+  border-top:2px solid var(--tier,var(--primary));border-radius:13px;
 }
-.ad-item small{display:block;margin-top:3px;font-size:.64rem;font-weight:400;color:var(--ink-muted);line-height:1.4}
-.ad-external{border:1px dashed var(--line-strong)}
-.ad-paths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
-.ad-path{
-  display:flex;align-items:flex-start;gap:8px;padding:9px 11px;
-  background:var(--chip);border:1px solid var(--line);border-radius:9px;
-  font-size:.66rem;color:var(--ink-muted);line-height:1.45;
+.tier-head{display:flex;align-items:baseline;gap:7px}
+.tier-n{font-family:var(--font-mono);font-size:.68rem;font-weight:700;color:var(--tier,var(--primary))}
+.tier-name{font-size:.78rem;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.tier-host{
+  font-family:var(--font-mono);font-size:.55rem;font-weight:500;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink-muted);margin-top:-6px;
 }
-.ad-arrow{flex:0 0 auto;font-family:var(--font-mono);font-size:.85rem;font-weight:700;color:var(--primary)}
-.ad-path b{color:var(--ink);font-weight:600}
+.tier-nodes{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.tn{
+  background:var(--chip);border:1px solid transparent;border-radius:9px;padding:7px 9px;
+  font-size:.69rem;font-weight:600;color:var(--ink);line-height:1.3;
+  display:flex;flex-direction:column;gap:3px;
+}
+.tn em{
+  font-style:normal;font-family:var(--font-mono);font-size:.55rem;font-weight:500;
+  letter-spacing:.02em;color:var(--ink-muted);line-height:1.4;word-break:break-word;
+}
+.tn .to{color:var(--primary);font-weight:700}
+.tn-ext{border:1px dashed var(--line-strong);background:transparent}
+.tn-store{border-color:var(--line);background:color-mix(in srgb,var(--tier,var(--primary)) 8%,var(--surface))}
+.link{
+  align-self:center;justify-self:center;width:84px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;
+}
+.link-k{
+  font-family:var(--font-mono);font-size:.55rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--lk,var(--primary));
+}
+.link-arrow{position:relative;display:block;width:100%;height:2px;background:var(--lk,var(--primary));border-radius:2px}
+.link-arrow::after{
+  content:"";position:absolute;right:0;top:50%;transform:translateY(-50%);
+  border-left:7px solid var(--lk,var(--primary));border-top:5px solid transparent;border-bottom:5px solid transparent;
+}
+.link.back .link-arrow::before{
+  content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
+  border-right:7px solid var(--lk,var(--primary));border-top:5px solid transparent;border-bottom:5px solid transparent;
+}
+.link-d{font-size:.57rem;color:var(--ink-muted);line-height:1.35}
+
+/* offline-first vs sync zone, drawn under the matching tiers */
+.zone{
+  display:flex;flex-direction:column;gap:3px;margin-top:12px;padding:9px 11px;border-radius:11px;
+  font-size:.63rem;color:var(--ink-muted);line-height:1.45;align-self:start;
+}
+.zone b{
+  font-family:var(--font-mono);font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+}
+.z-off{grid-column:1/6;background:color-mix(in srgb,var(--leaf) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--leaf) 40%,transparent)}
+.z-off b{color:var(--leaf)}
+.z-on{grid-column:6/8;background:color-mix(in srgb,var(--primary) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--primary) 40%,transparent)}
+.z-on b{color:var(--primary)}
+
+/* path matrix: every verified route in one scannable table */
+.adm-sub{
+  font-family:var(--font-mono);font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-muted);margin:18px 0 8px;
+}
+.adm-matrix-wrap{overflow-x:auto}
+.adm-matrix{width:100%;min-width:560px;border-collapse:collapse;font-size:.67rem}
+.adm-matrix th{
+  font-family:var(--font-mono);font-size:.55rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-muted);text-align:left;padding:0 9px 7px;border-bottom:1px solid var(--line-strong);white-space:nowrap;
+}
+.adm-matrix td{padding:8px 9px;border-bottom:1px solid var(--line);color:var(--ink-muted);line-height:1.45;vertical-align:top}
+.adm-matrix tbody tr:last-child td{border-bottom:none}
+.adm-matrix tbody tr:hover td{background:var(--chip)}
+.adm-matrix .pid{font-family:var(--font-mono);font-size:.6rem;font-weight:700;color:var(--primary);width:30px}
+.adm-matrix .route{color:var(--ink);font-weight:600}
+.adm-matrix .route .pt{
+  display:inline-block;font-family:var(--font-mono);font-size:.53rem;font-weight:700;
+  background:var(--chip);color:var(--ink-muted);border-radius:5px;padding:1px 5px;margin:0 2px;
+}
+.adm-matrix .parrow{color:var(--primary);font-weight:700;margin:0 5px}
+.adm-matrix code{
+  font-family:var(--font-mono);font-size:.92em;color:var(--ink);
+  background:var(--chip);border-radius:5px;padding:1px 5px;word-break:break-all;
+}
+.tp{
+  display:inline-block;white-space:nowrap;
+  font-family:var(--font-mono);font-size:.54rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--tpc,var(--primary));background:color-mix(in srgb,var(--tpc,var(--primary)) 13%,transparent);
+  border-radius:6px;padding:3px 7px;
+}
 .ad-legend{margin:10px 0 0;font-size:.62rem;color:var(--ink-muted);line-height:1.45}
 .ad-note{
   margin:10px 0 0;padding:8px 10px;border-left:2px solid var(--heat-1);
@@ -1047,7 +1131,21 @@ code,.mono{font-family:var(--font-mono)}
 .sdg b{color:var(--ink);font-weight:600;margin-right:4px}
 @media (max-width:1024px){
   .arch-topo{grid-template-columns:1fr;gap:14px;min-height:0}
-  .arch-detail-layers{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .adm-pipeline{grid-template-columns:1fr}
+  .link{width:100%;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px;padding:2px 0}
+  .link-arrow{width:2px;height:24px}
+  .link-arrow::after{
+    right:auto;left:50%;top:auto;bottom:0;transform:translateX(-50%);
+    border-left:5px solid transparent;border-right:5px solid transparent;
+    border-top:7px solid var(--lk,var(--primary));border-bottom:0;
+  }
+  .link.back .link-arrow::before{
+    left:50%;top:0;transform:translateX(-50%);
+    border-right:5px solid transparent;border-left:5px solid transparent;
+    border-bottom:7px solid var(--lk,var(--primary));border-top:0;
+  }
+  .z-off,.z-on{grid-column:1/-1;margin-top:0}
+  .z-on{margin-top:8px}
   .tp-col.left,.tp-col.right{align-items:stretch}
   .tp-col.left .node{flex-direction:row;text-align:left}
   .arch-wires{display:none}
@@ -1057,7 +1155,7 @@ code,.mono{font-family:var(--font-mono)}
 @media (max-width:760px){
   .al-mods{grid-template-columns:1fr}
   .arch-detail-map{padding:14px}
-  .arch-detail-layers,.ad-paths{grid-template-columns:1fr}
+  .adm-head{flex-direction:column}
   .arch-fails{grid-template-columns:1fr}
 }
 
@@ -1609,80 +1707,142 @@ code,.mono{font-family:var(--font-mono)}
         </div>
 
         <div class="arch-detail-map" role="group" aria-label="Detailed implementation architecture">
-          <h4 class="arch-detail-title">Verified components and end-to-end data paths</h4>
-          <p class="arch-detail-intro">The four tiers below distinguish physical devices, edge processing, camp-local services and cloud services. The connection labels identify the implemented transports.</p>
-
-          <div class="arch-detail-layers">
-            <section class="arch-detail-layer" style="--layer:var(--primary)" aria-label="Disaster camp devices">
-              <h5>01 · Disaster camp</h5>
-              <p class="ad-host">Physical devices &amp; users</p>
-              <div class="ad-item">ESP32 sensor node
-                <small>GNSS (NMEA), DHT11 temperature/humidity, YL-83/FC-37 rain sensor (analog + digital).</small>
-              </div>
-              <div class="ad-item">Fingerprint scanner
-                <small>Enrollment and match events; linked by the local registration service to a person and wristband.</small>
-              </div>
-              <div class="ad-item">Child tablet &amp; staff browser
-                <small>Use the camp platform over local Wi-Fi for PAGES sessions and resource/disaster operations.</small>
-              </div>
-            </section>
-
-            <section class="arch-detail-layer" style="--layer:var(--heat-1)" aria-label="Intel NUC edge gateway">
-              <h5>02 · Edge gateway</h5>
-              <p class="ad-host">Intel NUC · FastAPI</p>
-              <div class="ad-item">Sensor parsing &amp; hydrospatial API
-                <small>Parses serial GNSS/sensor feeds; provides elevation, weather, hydrospatial analysis, nearest-river and prediction endpoints.</small>
-              </div>
-              <div class="ad-item ad-external">External location-aware data
-                <small>GET /hydrospatial/analysis uses GPS location. Nearest named river: OpenStreetMap Overpass. Gauge selection: local river shapefile + station CSV/graph. Latest gauge readings: ArcGIS REST. Elevation: DEM / Open-Elevation; weather: Open-Meteo.</small>
-              </div>
-              <div class="ad-item">Flood prediction
-                <small>Edge XGBoost endpoint scores features assembled from current sensor and hydrospatial data.</small>
-              </div>
-            </section>
-
-            <section class="arch-detail-layer" style="--layer:var(--leaf)" aria-label="Raspberry Pi camp services">
-              <h5>03 · Camp platform</h5>
-              <p class="ad-host">Raspberry Pi 5 · Express + React</p>
-              <div class="ad-item">Environmental risk
-                <small>Sensor + hydrospatial collection → disaster.db → prediction service → edge XGBoost → alert evaluator. The local disaster monitor reads current/history APIs.</small>
-              </div>
-              <div class="ad-item">PAGES learning
-                <small>Child sessions, readiness gating, content responses and welfare signals use education APIs, Flask scoring and pages.db; the local education dashboard shows progress and alerts.</small>
-              </div>
-              <div class="ad-item">Resource management
-                <small>Fingerprint serial service resolves identity; registration, check-in, wristband/QR and distribution APIs use camp.db. Resource transactions and forecasts are synchronized.</small>
-              </div>
-              <div class="ad-item">Local persistence
-                <small>camp.db · pages.db · disaster.db keep camp operations available offline.</small>
-              </div>
-            </section>
-
-            <section class="arch-detail-layer" style="--layer:var(--primary)" aria-label="MQTT broker and cloud platform">
-              <h5>04 · Messaging &amp; cloud</h5>
-              <p class="ad-host">EMQX · cloud platform</p>
-              <div class="ad-item">SAAMP MQTT + sync receiver
-                <small>Pi publishes per-record JSON envelopes on smartcamp/sync/&lt;entity&gt;; cloud subscribes to smartcamp/sync/#, deduplicates and persists records, then publishes smartcamp/sync/ack/&lt;device_id&gt;.</small>
-              </div>
-              <div class="ad-item">Cloud persistence &amp; APIs
-                <small>PostgreSQL stores synchronized resource, education and disaster records; cloud Express APIs serve the dashboards.</small>
-              </div>
-              <div class="ad-item">Cloud dashboards
-                <small>Resources/camp operations, Education (PAGES) and Disaster monitoring. The Next.js frontend reads through cloud APIs; acknowledgements return to the Pi over MQTT.</small>
-              </div>
-            </section>
+          <div class="adm-head">
+            <div>
+              <h4 class="arch-detail-title">Verified components and end-to-end data paths</h4>
+              <p class="arch-detail-intro">4 tiers · 7 verified paths · offline-first split at the sync boundary.</p>
+            </div>
+            <div class="adm-legend" aria-label="Transport legend">
+              <span class="lg lg-serial"><i class="d"></i>Serial</span>
+              <span class="lg lg-http"><i class="d"></i>HTTP / REST</span>
+              <span class="lg lg-mqtt"><i class="d"></i>MQTT</span>
+              <span class="lg lg-read"><i class="d"></i>Local read</span>
+              <span class="lg lg-ext"><i class="d"></i>External</span>
+            </div>
           </div>
 
-          <div class="ad-paths" aria-label="Verified system connections">
-            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>UART / serial:</b> ESP32 NMEA and sensor readings are parsed at the Intel NUC; fingerprint events connect by serial to the Pi fingerprint service.</span></div>
-            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">↔</span><span><b>HTTP / REST:</b> Pi hydrospatial storage calls NUC <code>/hydrospatial/analysis</code> with the latest GPS coordinates/altitude; nearest-river, station, latest-gauge and elevation results return to disaster.db. Weather is fetched separately from the NUC weather endpoint. The Pi prediction service posts model features to the NUC prediction API.</span></div>
-            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>MQTT publish:</b> Pi SAAMP sync manager sends queued local records through EMQX on smartcamp/sync/&lt;entity&gt;; criticality and network state control priority, QoS and buffering.</span></div>
-            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>MQTT consume + ACK:</b> Cloud sync receiver persists records to PostgreSQL and returns per-record acknowledgements on smartcamp/sync/ack/&lt;device_id&gt;.</span></div>
-            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>Dashboard reads:</b> Local React pages use Pi APIs/SQLite; cloud Next.js dashboards use cloud Express APIs/PostgreSQL for synchronized multi-camp views.</span></div>
-            <div class="ad-path"><span class="ad-arrow" aria-hidden="true">→</span><span><b>Risk result:</b> GPS, rainfall, water level and hydrospatial features feed edge XGBoost; prediction and alert records are stored locally, exposed to the disaster monitor and included in sync.</span></div>
+          <div class="adm-pipeline" aria-label="Four-tier component pipeline">
+            <section class="tier" style="--tier:var(--primary)" aria-label="Tier 1 disaster camp devices">
+              <div class="tier-head"><span class="tier-n">01</span><span class="tier-name">Disaster camp</span></div>
+              <span class="tier-host">Physical devices &amp; users</span>
+              <ul class="tier-nodes">
+                <li class="tn">ESP32 sensor node<em>GNSS NMEA · DHT11 · YL-83 rain <span class="to">→ 02</span></em></li>
+                <li class="tn">Fingerprint scanner<em>enrol / match events <span class="to">→ 03</span></em></li>
+                <li class="tn">Child tablet &amp; staff browser<em>PAGES + operations UI <span class="to">→ 03</span></em></li>
+              </ul>
+            </section>
+
+            <div class="link" style="--lk:var(--heat-1)">
+              <span class="link-k">P1 · Serial</span>
+              <span class="link-arrow"></span>
+              <span class="link-d">NMEA + sensor frames</span>
+            </div>
+
+            <section class="tier" style="--tier:var(--heat-1)" aria-label="Tier 2 edge gateway">
+              <div class="tier-head"><span class="tier-n">02</span><span class="tier-name">Edge gateway</span></div>
+              <span class="tier-host">Intel NUC · FastAPI</span>
+              <ul class="tier-nodes">
+                <li class="tn">Sensor parsing<em>serial → JSON</em></li>
+                <li class="tn">Hydrospatial API<em>/hydrospatial/analysis · weather</em></li>
+                <li class="tn">Flood prediction<em>XGBoost endpoint</em></li>
+                <li class="tn tn-ext">External providers<em>OSM Overpass · ArcGIS · Open-Meteo · DEM <span class="to">→ P4</span></em></li>
+              </ul>
+            </section>
+
+            <div class="link back" style="--lk:var(--primary)">
+              <span class="link-k">P3 · HTTP</span>
+              <span class="link-arrow"></span>
+              <span class="link-d">analysis ⇄ features</span>
+            </div>
+
+            <section class="tier" style="--tier:var(--leaf)" aria-label="Tier 3 camp platform">
+              <div class="tier-head"><span class="tier-n">03</span><span class="tier-name">Camp platform</span></div>
+              <span class="tier-host">Raspberry Pi 5 · Express + React</span>
+              <ul class="tier-nodes">
+                <li class="tn">Environmental risk<em>collect → predict → alert</em></li>
+                <li class="tn">PAGES learning<em>gate · content · welfare</em></li>
+                <li class="tn">Resource management<em>identity · check-in · distribution</em></li>
+                <li class="tn">Local dashboards<em>React over Pi APIs</em></li>
+                <li class="tn tn-store">disaster.db · pages.db · camp.db<em>SQLite · offline</em></li>
+              </ul>
+            </section>
+
+            <div class="link" style="--lk:var(--leaf)">
+              <span class="link-k">P5 · MQTT</span>
+              <span class="link-arrow"></span>
+              <span class="link-d">sync/… ⇄ ack</span>
+            </div>
+
+            <section class="tier" style="--tier:var(--primary)" aria-label="Tier 4 messaging and cloud">
+              <div class="tier-head"><span class="tier-n">04</span><span class="tier-name">Messaging &amp; cloud</span></div>
+              <span class="tier-host">EMQX · cloud platform</span>
+              <ul class="tier-nodes">
+                <li class="tn">SAAMP sync receiver<em>smartcamp/sync/# → dedupe → ACK</em></li>
+                <li class="tn">Cloud Express APIs<em>idempotent entity upserts</em></li>
+                <li class="tn tn-store">PostgreSQL<em>resource · education · disaster</em></li>
+                <li class="tn">Next.js dashboards<em>multi-camp · alerts · forecast</em></li>
+              </ul>
+            </section>
+
+            <span class="zone z-off"><b>Offline-first zone · tiers 01–03</b>Camp operations run with zero internet; SQLite keeps every record locally.</span>
+            <span class="zone z-on"><b>Sync zone · tier 04</b>Reached only through SAAMP MQTT; a dead broker means buffered sync, not data loss.</span>
           </div>
+
+          <h5 class="adm-sub">Path matrix · route → transport → payload</h5>
+          <div class="adm-matrix-wrap">
+            <table class="adm-matrix">
+              <thead>
+                <tr><th>#</th><th>Route</th><th>Transport</th><th>What moves</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="pid">P1</td>
+                  <td class="route"><span class="pt">01</span>ESP32 node<span class="parrow">→</span><span class="pt">02</span>NUC FastAPI</td>
+                  <td><span class="tp" style="--tpc:var(--heat-1)">UART serial</span></td>
+                  <td>GNSS NMEA sentences, DHT11 and rainfall frames parsed to JSON at the gateway.</td>
+                </tr>
+                <tr>
+                  <td class="pid">P2</td>
+                  <td class="route"><span class="pt">01</span>Fingerprint scanner<span class="parrow">→</span><span class="pt">03</span>Pi identity service</td>
+                  <td><span class="tp" style="--tpc:var(--heat-1)">Serial</span></td>
+                  <td>Enrol / match events resolved to a person, wristband and QR identifier.</td>
+                </tr>
+                <tr>
+                  <td class="pid">P3</td>
+                  <td class="route"><span class="pt">03</span>Pi services<span class="parrow">↔</span><span class="pt">02</span>NUC APIs</td>
+                  <td><span class="tp">HTTP / REST</span></td>
+                  <td><code>/hydrospatial/analysis</code>, weather and prediction features out; nearest river, station, gauge, elevation and risk results back into disaster.db.</td>
+                </tr>
+                <tr>
+                  <td class="pid">P4</td>
+                  <td class="route">External providers<span class="parrow">→</span><span class="pt">02</span>NUC hydrospatial</td>
+                  <td><span class="tp" style="--tpc:var(--line-strong)">HTTPS</span></td>
+                  <td>OpenStreetMap Overpass rivers, ArcGIS gauge readings, DEM elevation, Open-Meteo weather.</td>
+                </tr>
+                <tr>
+                  <td class="pid">P5</td>
+                  <td class="route"><span class="pt">03</span>SAAMP sync manager<span class="parrow">→</span><span class="pt">04</span>EMQX broker</td>
+                  <td><span class="tp" style="--tpc:var(--leaf)">MQTT publish</span></td>
+                  <td><code>smartcamp/sync/&lt;entity&gt;</code> per-record envelopes; criticality + network state set QoS, priority and buffering.</td>
+                </tr>
+                <tr>
+                  <td class="pid">P6</td>
+                  <td class="route"><span class="pt">04</span>Cloud sync receiver<span class="parrow">→</span><span class="pt">03</span>Pi send queue</td>
+                  <td><span class="tp" style="--tpc:var(--leaf)">MQTT ACK</span></td>
+                  <td><code>smartcamp/sync/ack/&lt;device_id&gt;</code> returns after the PostgreSQL upsert, releasing the queued record.</td>
+                </tr>
+                <tr>
+                  <td class="pid">P7</td>
+                  <td class="route"><span class="pt">03</span>React → Pi API · SQLite<span class="parrow">|</span><span class="pt">04</span>Next.js → cloud API · PostgreSQL</td>
+                  <td><span class="tp">HTTP read</span></td>
+                  <td>Offline camp views locally; synchronized multi-camp dashboards in the cloud.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <p class="ad-note"><b>Terminology:</b> Resource-management code provides fingerprint-backed registration, check-in and distribution services. The distinct messaging layer is SAAMP (Semantic-Aware Adaptive Message Prioritization); no separate service named “SAM” was identified.</p>
-          <p class="ad-legend">Solid arrows mark verified transports/data paths. The dashed card marks external providers queried by the edge hydrospatial service.</p>
+          <p class="ad-legend">P1–P7 are the implemented transports verified in code. Dashed cards mark external providers queried at the edge.</p>
         </div>
 
         <!-- compact popovers (shown on module click) -->
