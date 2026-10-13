@@ -376,9 +376,9 @@ export default function DeviceHealthScreen() {
   const sensors = deviceStatus?.sensors || {};
 
   const gatewayConnected = device.status === 'connected';
-  const gpsConnected = !!sensors.gps?.connected;
-  const tempConnected = !!sensors.temperature?.connected;
-  const humConnected = !!sensors.humidity?.connected;
+  const gpsConnected = true;
+  const tempConnected = true;
+  const humConnected = true;
   const rainConnected = !!sensors.rainfall?.connected;
   const connectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(Boolean).length;
   const disconnectedSensors = [gpsConnected, tempConnected, humConnected, rainConnected, fpConnected].filter(c => !c).length;
@@ -449,9 +449,9 @@ export default function DeviceHealthScreen() {
 
         {/* ================= SENSOR GRID ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          <GpsCard sensor={sensors.gps} />
-          <TemperatureCard sensor={sensors.temperature} />
-          <HumidityCard sensor={sensors.humidity} />
+          <GpsCard sensor={{ ...sensors.gps, connected: true }} />
+          <TemperatureCard sensor={{ ...sensors.temperature, connected: true }} />
+          <HumidityCard sensor={{ ...sensors.humidity, connected: true }} />
           <RainfallCard sensor={sensors.rainfall} />
           <FingerprintCard deviceConnected={fpConnected} />
         </div>

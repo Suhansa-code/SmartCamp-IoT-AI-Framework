@@ -16,6 +16,33 @@ export function setState(req, res) {
   res.json({ ok: true, state });
 }
 
+/**
+ * Server-Sent Events are a good fit here: measurements only travel from the
+ * Pi to the browser, EventSource reconnects automatically, and it avoids a
+ * second websocket protocol beside the MQTT transport.
+ */
+export function streamStatus(req, res) {
+  res.status(200);
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.flushHeaders?.();
+
+  const send = (payload) => res.write(`event: network\ndata: ${payload}\n\n`);
+  send(JSON.stringify(networkService.getNetworkStatus()));
+  const unsubscribe = networkService.subscribeToNetworkStatus(send);
+  const heartbeat = setInterval(() => res.write(': keep-alive\n\n'), 15_000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    unsubscribe();
+    res.end();
+  });
+}
+
 export async function testPublish(req, res) {
   const priority = (req.body?.priority || 'MEDIUM').toUpperCase();
   try {

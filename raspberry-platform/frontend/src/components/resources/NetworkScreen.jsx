@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Wifi, Layers, Database, RefreshCw, AlertTriangle } from 'lucide-react';
+import {
+  Activity, AlertTriangle, Clock3, Database, Gauge, Radio, RefreshCw,
+  ShieldCheck, Wifi,
+} from 'lucide-react';
+import {
+  Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts';
 import ErrorState from '../ui/feedback/ErrorState';
 import { API, NETWORK_STATE_DESC } from '../ui/config';
 import { COLORS, SHADOW_CARD, TONE } from '../../lib/tokens';
@@ -20,29 +26,21 @@ const STATE_DESC = {
   CRITICAL: 'Network failing — critical messages downgraded to QoS 1, others buffered.',
   UNKNOWN:  'Waiting for first ML prediction…',
 };
+const STATE_TONE = { STABLE: 'brand', DEGRADED: 'warning', CRITICAL: 'danger', UNKNOWN: 'neutral' };
+const PRIORITY_TONE = { CRITICAL: 'danger', HIGH: 'warning', MEDIUM: 'info', LOW: 'neutral' };
+const BASE_QOS = { LOW: 0, MEDIUM: 1, HIGH: 1, CRITICAL: 2 };
 
-// Matches decideAdaptiveQoS in saampMqtt.js
-const QOS_TABLE = [
-  { priority: 'CRITICAL', tone: 'danger',  stable: { qos: 2, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: false } },
-  { priority: 'HIGH',     tone: 'warning', stable: { qos: 1, buf: false }, degraded: { qos: 2, buf: false }, critical: { qos: 1, buf: true  } },
-  { priority: 'MEDIUM',   tone: 'info',    stable: { qos: 1, buf: false }, degraded: { qos: 1, buf: false }, critical: { qos: 1, buf: true  } },
-  { priority: 'LOW',      tone: 'neutral', stable: { qos: 0, buf: false }, degraded: { qos: 1, buf: false }, critical: { qos: 0, buf: true  } },
-];
-
-const PRIORITY_TONE = {
-  CRITICAL: 'danger', HIGH: 'warning', MEDIUM: 'info', LOW: 'neutral',
-};
-
-function metricTone(value, warn, crit, invert = false) {
-  const n = parseFloat(value);
-  if (isNaN(n)) return 'neutral';
-  if (invert) return n < crit ? 'danger' : n < warn ? 'warning' : 'brand';
-  return n > crit ? 'danger' : n > warn ? 'warning' : 'brand';
+function fallbackDecision(priority, state) {
+  if (state === 'CRITICAL') return priority === 'CRITICAL' ? { qos: 1 } : { buffer: true };
+  if (state === 'DEGRADED' && ['HIGH', 'CRITICAL'].includes(priority)) return { qos: 2 };
+  if (state === 'DEGRADED' && priority === 'LOW') return { qos: 1 };
+  return { qos: BASE_QOS[priority] };
 }
 
-/* ------------------------------------------------------------------ */
-/*  LOCAL PRIMITIVES — mirror the FloodWatch / ReliefOps design system  */
-/* ------------------------------------------------------------------ */
+function formatValue(value, digits = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(digits) : '—';
+}
 
 function Card({ children, className = "" }) {
   return (
@@ -52,26 +50,13 @@ function Card({ children, className = "" }) {
   );
 }
 
-function IconTile({ icon: Icon, tone = "brand", size = "md" }) {
-  const t = TONE[tone] || TONE.brand;
-  const dims = size === "lg" ? "w-10 h-10 sm:w-11 sm:h-11" : "w-9 h-9";
-  return (
-    <div className={`${dims} rounded-lg flex items-center justify-center shrink-0 border`} style={{ backgroundColor: t.bg, borderColor: t.border }}>
-      <Icon className={size === "lg" ? "w-5 h-5" : "w-4 h-4"} style={{ color: t.color }} strokeWidth={1.7} />
-    </div>
-  );
+function Card({ children, className = '' }) {
+  return <section className={`rounded-xl border bg-white p-4 sm:p-5 ${className}`} style={{ borderColor: COLORS.line }}>{children}</section>;
 }
 
 function Chip({ children, tone = 'neutral' }) {
   const t = TONE[tone] || TONE.neutral;
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
-      style={{ color: t.color, backgroundColor: t.bg, borderColor: t.border }}
-    >
-      {children}
-    </span>
-  );
+  return <span className="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold" style={{ color: t.color, background: t.bg, borderColor: t.border }}>{children}</span>;
 }
 
 function SectionHeader({ icon, title, subtitle }) {
@@ -86,54 +71,76 @@ function SectionHeader({ icon, title, subtitle }) {
   );
 }
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
+function Metric({ label, value, unit, icon: Icon, tone = 'neutral' }) {
+  const t = TONE[tone] || TONE.neutral;
+  return <div className="rounded-lg border p-3" style={{ borderColor: t.border, background: t.bg }}><div className="flex items-center justify-between gap-2"><span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: COLORS.muted }}>{label}</span><Icon className="h-3.5 w-3.5" style={{ color: t.color }} /></div><p className="mt-2 font-mono text-xl font-semibold" style={{ color: t.color }}>{value}<span className="ml-1 text-xs font-normal">{unit}</span></p></div>;
+}
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-};
+function metricTone(value, warning, critical) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 'neutral';
+  if (n >= critical) return 'danger';
+  if (n >= warning) return 'warning';
+  return 'brand';
+}
 
 export default function NetworkScreen() {
   const [status, setStatus] = useState(null);
-  const [error, setError]   = useState(null);
+  const [error, setError] = useState(null);
+  const [streamConnected, setStreamConnected] = useState(false);
   const [lastAt, setLastAt] = useState(null);
+
+  const acceptStatus = useCallback((next) => {
+    setStatus(next);
+    setError(null);
+    setLastAt(new Date());
+  }, []);
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/network/status`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setStatus(await res.json());
-      setLastAt(new Date());
-      setError(null);
-    } catch (e) {
-      setError(e.message);
+      const response = await fetch(`${API}/api/network/status`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      acceptStatus(await response.json());
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to reach the network monitor');
     }
-  }, []);
+  }, [acceptStatus]);
 
   useEffect(() => {
     fetchStatus();
-    const id = setInterval(fetchStatus, POLL_MS);
-    return () => clearInterval(id);
-  }, [fetchStatus]);
+    const poll = window.setInterval(fetchStatus, FALLBACK_POLL_MS);
+    if (!window.EventSource) return () => window.clearInterval(poll);
 
-  const state    = status?.state || 'UNKNOWN';
-  const tone     = STATE_TONE[state] || 'neutral';
-  const t        = TONE[tone];
-  const m        = status?.metrics   || {};
-  const buffered = status?.buffered_messages ?? 0;
-  const bufferRows = status?.buffer_by_priority ?? [];
-  const bufferMsgs = status?.buffer_messages ?? [];
-  const updatedAt = status?.updated_at
-    ? new Date(status.updated_at).toLocaleTimeString()
-    : '—';
+    const source = new EventSource(`${API}/api/network/stream`);
+    const onNetwork = (event) => {
+      try {
+        acceptStatus(JSON.parse(event.data));
+        setStreamConnected(true);
+      } catch { /* Ignore malformed events and wait for the next sample. */ }
+    };
+    source.addEventListener('network', onNetwork);
+    source.onerror = () => setStreamConnected(false);
+    return () => {
+      window.clearInterval(poll);
+      source.removeEventListener('network', onNetwork);
+      source.close();
+    };
+  }, [acceptStatus, fetchStatus]);
+
+  const state = status?.state || 'UNKNOWN';
+  const tone = STATE_TONE[state] || 'neutral';
+  const stateTone = TONE[tone];
+  const metrics = status?.metrics || {};
+  const diagnostics = status?.diagnostics || {};
+  const history = useMemo(() => (status?.history || []).map((sample) => ({
+    ...sample.metrics,
+    at: sample.at,
+    time: sample.at ? new Date(sample.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—',
+    state: sample.state,
+  })), [status]);
+  const transitions = useMemo(() => history.filter((row, index) => index === 0 || row.state !== history[index - 1].state).slice(-5).reverse(), [history]);
+  const policy = diagnostics.qos_policy || null;
+  const buffered = status?.buffered_messages || 0;
 
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
@@ -391,6 +398,7 @@ export default function NetworkScreen() {
           </Card>
         </motion.div>
 
+        <Card><SectionTitle icon={Database} title="Recovery buffer" subtitle="Messages retained while the link is unsafe, sent by priority after recovery" action={<div className="text-right"><p className="font-mono text-2xl font-semibold" style={{ color: buffered ? TONE.warning.color : COLORS.brand }}>{buffered}</p><p className="text-[10px] uppercase" style={{ color: COLORS.muted }}>held messages</p></div>} /><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{(status?.buffer_by_priority || []).map(({ priority, count, oldest_at, flush_position }) => { const t = TONE[PRIORITY_TONE[priority]]; return <div className="rounded-lg border p-3" key={priority} style={{ borderColor: t.border, background: t.bg }}><div className="flex justify-between"><span className="text-xs font-mono font-semibold" style={{ color: t.color }}>{flush_position}. {priority}</span><span className="font-mono text-lg font-semibold" style={{ color: t.color }}>{count}</span></div><p className="mt-1 text-[10px]" style={{ color: COLORS.muted }}>{count ? `oldest ${formatAge(oldest_at?.replace(' ', 'T') + 'Z')}` : 'nothing queued'}</p></div>; })}</div>{metrics.queue_depth !== undefined && <p className="mt-3 text-xs" style={{ color: COLORS.muted }}>Current publisher queue depth: <strong style={{ color: COLORS.body }}>{metrics.queue_depth}</strong></p>}</Card>
       </div>
     </div>
   );
