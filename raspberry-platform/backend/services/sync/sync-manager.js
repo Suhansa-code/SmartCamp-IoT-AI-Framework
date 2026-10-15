@@ -173,17 +173,22 @@ function insertPending(syncId, entity, tableName, localId, operation, priority, 
 }
 
 /**
- * Is this source row already sitting unpublished in the queue?
+ * Is this source row already sitting in the queue?
  *
  * fetchAllPending() reads the source tables (WHERE synced = 0), and a row is
- * only marked synced after a *successful publish*. Buffering is not a success,
- * so while publishing was degraded every cycle re-selected the same rows and
- * buffered another copy of each — 62 records became 1458 buffered messages.
- * Once a row is queued, the retry path owns it.
+ * only marked synced after the cloud ACKs. A successful MQTT publish does NOT
+ * set synced — it only flips sync_pending.published to 1 and leaves the row
+ * waiting for an ACK. So while the cloud is not consuming (or never ACKs), the
+ * source row stays synced = 0, and if this test only looked at published = 0
+ * every cycle re-queued and re-published the same rows — the exact loop that
+ * produced 270k buffered wristband/resource/person messages on 2026-08-25.
+ *
+ * Any tracked row (published 0 or 1) already owns its delivery: the retry path
+ * resends unacked ones. Do not re-queue it here.
  */
 function isAlreadyQueued(tableName, localId) {
   return !!campDb.prepare(
-    'SELECT 1 FROM sync_pending WHERE table_name = ? AND local_id = ? AND published = 0 LIMIT 1'
+    'SELECT 1 FROM sync_pending WHERE table_name = ? AND local_id = ? LIMIT 1'
   ).get(tableName, String(localId));
 }
 

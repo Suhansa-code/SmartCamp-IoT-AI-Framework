@@ -52,6 +52,9 @@ services:
     build:
       context: ../prediction-models
       dockerfile: Dockerfile
+    # EMQX_HOST/EMQX_PORT come from .env so the broker probe targets the same
+    # broker the backend publishes to.
+    env_file: .env
     # Host networking is load-bearing: on the default bridge, ping measures the
     # NAT path rather than the camp uplink, so the model reads a link that
     # isn't the one SAAMP publishes over. NET_RAW is what lets ping run at all.

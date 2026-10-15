@@ -1,6 +1,9 @@
 import * as saamp from './saamp-mqtt.js';
 import { getReachability } from './connectivity.js';
 import { campDb as db } from '../../config/database.js';
+import { randomUUID } from 'crypto';
+import C from '../../config/constants.js';
+import { getCampId } from '../../config/camp-id.js';
 
 let lastMetrics = null;
 let lastUpdatedAt = null;
@@ -87,6 +90,36 @@ export function setNetworkState(state, metrics, qosPolicy) {
   };
   statusHistory = [...statusHistory, sample].slice(-HISTORY_LIMIT);
   notifyStatusListeners();
+  publishNetworkStatus(sample).catch((error) => {
+    console.error(`[NETWORK] Could not queue cloud status: ${error.message}`);
+  });
+}
+
+async function publishNetworkStatus(sample) {
+  const priority = sample.state === 'CRITICAL'
+    ? 'CRITICAL'
+    : sample.state === 'DEGRADED' ? 'HIGH' : 'LOW';
+  const observedAt = sample.at;
+  const payload = {
+    sync_id: randomUUID(),
+    entity: 'network-status',
+    local_id: `${C.DEVICE_ID}:${observedAt}`,
+    operation: 'UPSERT',
+    priority,
+    camp_id: getCampId(),
+    device_id: C.DEVICE_ID,
+    timestamp: observedAt,
+    payload: {
+      state: sample.state,
+      raw_state: sample.raw_state,
+      metrics: sample.metrics,
+      qos_policy: sample.qos_policy,
+      reachability: getReachability(),
+      buffered_messages: db.prepare('SELECT COUNT(*) AS count FROM mqtt_buffer WHERE flushed = 0').get().count,
+      observed_at: observedAt,
+    },
+  };
+  await saamp.publish('smartcamp/sync/network-status', payload, 'system', 'network_state', priority);
 }
 
 /** Subscribe an SSE response to current and future monitor observations. */

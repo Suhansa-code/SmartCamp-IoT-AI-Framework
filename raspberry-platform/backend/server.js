@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './config/load-env.js';
 import http from 'http';
 import express from 'express';
 import cors from 'cors';

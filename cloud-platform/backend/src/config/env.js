@@ -63,6 +63,7 @@ export const env = {
   // Resources domain — Sri Lanka ration rate table.
   // Built by cloud-platform/prediction-models/scripts/build_lka_rate_table.py
   resources: {
+    defaultCampId: process.env.DEFAULT_CAMP_ID || 'SCB-UNIT-01',
     rationRatesPath:
       process.env.RATION_RATES_PATH ||
       path.join(__dirname, '../../../prediction-models/models/lka_v2/ration_rates.json'),
