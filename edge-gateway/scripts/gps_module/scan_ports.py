@@ -2,8 +2,8 @@ import serial
 import time
 import os
 
-SERIAL_PORT = os.environ.get("GPS_PORT", "/dev/ttyUSB1")
-ports = [SERIAL_PORT, '/dev/ttyACM0', '/dev/ttyAMA0']
+SERIAL_PORT = os.environ["GPS_PORT"]
+ports = [SERIAL_PORT]
 bauds = [9600, 115200, 57600, 38400]
 
 for port in ports:

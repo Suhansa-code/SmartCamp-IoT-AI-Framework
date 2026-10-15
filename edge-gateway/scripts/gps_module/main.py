@@ -1,8 +1,8 @@
 import os
 from .gps_reader import GPSReader
 
-GPS_PORT = os.environ.get("GPS_PORT")
-GPS_BAUD = int(os.environ.get("GPS_BAUDRATE", "115200"))
+GPS_PORT = os.environ["GPS_PORT"]
+GPS_BAUD = int(os.environ["GPS_BAUDRATE"])
 
 gps = GPSReader(GPS_PORT, GPS_BAUD)
 
