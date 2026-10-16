@@ -61,15 +61,16 @@ function DataRow({ label, value, mono = false }) {
 /*  SENSOR CARD — accepts `connected` as explicit prop                  */
 /* ------------------------------------------------------------------ */
 
-function SensorCard({ icon: Icon, name, description, connected, lastUpdated, children }) {
-  const tone = connected ? CONNECTED_TONE : DISCONNECTED_TONE;
+function SensorCard({ icon: Icon, name, description, connected, lastUpdated, chip, children }) {
+  const tone = chip?.tone ?? (connected ? CONNECTED_TONE : DISCONNECTED_TONE);
+  const chipLabel = chip?.label ?? (connected ? 'Connected' : 'Disconnected');
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="h-full">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3">
-            <IconTile icon={Icon} tone={connected ? 'brand' : 'danger'} />
+            <IconTile icon={Icon} tone={tone} />
             <div>
               <h3 className="text-[13px] sm:text-[14px] font-medium leading-tight" style={{ color: COLORS.ink }}>{name}</h3>
               <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>{description}</p>
@@ -77,7 +78,7 @@ function SensorCard({ icon: Icon, name, description, connected, lastUpdated, chi
           </div>
           <div className="flex items-center gap-2 sm:self-start">
             <span className={`w-2 h-2 rounded-full ${connected ? 'animate-pulse' : ''}`} style={{ backgroundColor: TONE[tone].color }} />
-            <Chip tone={tone}>{connected ? 'Connected' : 'Disconnected'}</Chip>
+            <Chip tone={tone}>{chipLabel}</Chip>
           </div>
         </div>
 
@@ -141,6 +142,7 @@ function DeviceStatusCard({ device }) {
 
 function GpsCard({ sensor }) {
   const connected = !!sensor?.connected;
+  const noFix = !connected && sensor?.status === 'no_fix';
   const [geo, setGeo] = useState({ name: '', district: '', loading: false, done: false });
 
   useEffect(() => {
@@ -173,7 +175,14 @@ function GpsCard({ sensor }) {
   }, [connected, sensor?.latitude, sensor?.longitude, sensor?.location_name, sensor?.district]);
 
   return (
-    <SensorCard icon={Satellite} name="GPS Sensor" description="Camp location & disaster-response tracking" connected={connected} lastUpdated={sensor?.timestamp}>
+    <SensorCard
+      icon={Satellite}
+      name="GPS Sensor"
+      description="Camp location & disaster-response tracking"
+      connected={connected}
+      lastUpdated={sensor?.timestamp}
+      chip={noFix ? { label: 'No Fix', tone: 'warning' } : undefined}
+    >
       {connected ? (
         <>
           <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3">
@@ -204,7 +213,7 @@ function GpsCard({ sensor }) {
           </div>
         </>
       ) : (
-        <p className="text-[12.5px]" style={{ color: COLORS.muted }}>Device is not connected</p>
+        <p className="text-[12.5px]" style={{ color: noFix ? TONE.warning.color : COLORS.muted }}>{sensor?.error ?? 'Device is not connected'}</p>
       )}
     </SensorCard>
   );

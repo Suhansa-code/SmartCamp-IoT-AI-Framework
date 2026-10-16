@@ -95,6 +95,7 @@ class SensorState:
         self.connected = False
         self.consecutive_failures = 0
         self.last_success_at: float = 0.0
+        self.last_input_at: float = 0.0
         self.last_value: dict | None = None
         self.stale_seconds = stale_seconds
 
@@ -103,6 +104,7 @@ class SensorState:
             self.connected = True
             self.consecutive_failures = 0
             self.last_success_at = time.time()
+            self.last_input_at = self.last_success_at
             self.last_value = value
 
     def record_failure(self):
@@ -111,10 +113,22 @@ class SensorState:
             if self.consecutive_failures >= CONSECUTIVE_FAILURES:
                 self.connected = False
 
+    def record_no_fix(self):
+        """Sensor is transmitting, but the payload carries no usable value
+        (e.g. GPS NMEA sentences arriving without a position fix — antenna
+        covered or obstructed). Marks input as seen so callers can tell this
+        apart from a truly silent/dead sensor."""
+        with self._lock:
+            self.consecutive_failures += 1
+            if self.consecutive_failures >= CONSECUTIVE_FAILURES:
+                self.connected = False
+            self.last_input_at = time.time()
+
     def get_status(self) -> dict:
         with self._lock:
             now = time.time()
             seconds_since = now - self.last_success_at if self.last_success_at > 0 else None
+            seconds_since_input = now - self.last_input_at if self.last_input_at > 0 else None
 
             if self.connected and seconds_since is not None and seconds_since > self.stale_seconds:
                 self.connected = False
@@ -123,6 +137,7 @@ class SensorState:
                 "connected": self.connected,
                 "consecutive_failures": self.consecutive_failures,
                 "seconds_since_last_read": round(seconds_since, 1) if seconds_since is not None else None,
+                "seconds_since_input": round(seconds_since_input, 1) if seconds_since_input is not None else None,
                 "last_value": self.last_value,
             }
 
@@ -217,6 +232,7 @@ def _background_loop():
 
         # ── Read a batch of lines from the persistent connection ──────
         gps_data = None
+        gps_no_fix = False
         dht11_data = None
         rain_data = None
         _debug_lines = []
@@ -234,8 +250,9 @@ def _background_loop():
                 # if len(_debug_lines) < 5:
                 #     _debug_lines.append(line)
 
-                # GPS: NMEA sentence ($GPGGA, $GNGGA, $GNRMC, etc.)
-                if line.startswith('$GPGGA') or line.startswith('$GNGGA'):
+                # GPS: GGA sentence from ANY talker (GP/GN/GL/GB/GA/GQ...).
+                # GPS modules may emit non-GP talkers when multi-constellation.
+                if re.match(r'^\$[A-Z]{2}GGA', line):
                     try:
                         msg = pynmea2.parse(line)
                         if msg.latitude and msg.longitude:
@@ -248,8 +265,13 @@ def _background_loop():
                                 "location_name": loc or "",
                                 "district": dist or "",
                             }
+                        else:
+                            # NMEA arriving but no position fix (antenna covered/blocked)
+                            gps_no_fix = True
                     except Exception:
-                        pass
+                        # GGA line arrived but unparseable (e.g. corrupted by
+                        # interleaved TEMP/RAIN prints) — module IS transmitting
+                        gps_no_fix = True
                     continue
 
                 # DHT11: TEMP:29.40|HUM:68.00
@@ -284,6 +306,8 @@ def _background_loop():
         # ── Update sensor states ────────────────────────────────────────
         if gps_data:
             gps_state.record_success(gps_data)
+        elif gps_no_fix:
+            gps_state.record_no_fix()
         else:
             gps_state.record_failure()
 
