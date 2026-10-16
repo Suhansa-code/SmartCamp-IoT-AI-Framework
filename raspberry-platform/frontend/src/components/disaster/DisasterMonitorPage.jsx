@@ -507,11 +507,9 @@ export default function DisasterMonitorPage() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>
-              Flood monitoring
-            </p>
+
             <h1 className="font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight mt-1.5">
-              Smart Camp — {latestGps?.location_name ?? "Unknown Location"}
+              Flood monitoring — {latestGps?.location_name ?? "Unknown Location"}
             </h1>
             <p className="flex items-center gap-1.5 text-[12px] mt-2" style={{ color: COLORS.muted }}>
               <MapPin className="w-3.5 h-3.5" />

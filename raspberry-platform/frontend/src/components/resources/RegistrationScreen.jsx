@@ -59,20 +59,13 @@ function stateStep(scanState) {
 /* ------------------------------------------------------------------ */
 
 function Card({ children, className = "" }) {
-  return (
-    <div className={`rounded-xl bg-gray-50/80 ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`rounded-xl bg-gray-50/80 ${className}`}>{children}</div>;
 }
 
 function Chip({ children, tone = "neutral" }) {
   const t = TONE[tone] || TONE.neutral;
   return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium"
-      style={{ color: t.color, backgroundColor: t.bg }}
-    >
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium" style={{ color: t.color, backgroundColor: t.bg }}>
       {children}
     </span>
   );
@@ -90,7 +83,12 @@ function IconTile({ icon: Icon, tone = "brand", size = "md" }) {
 
 function Avatar({ name, size = "md" }) {
   const dims = size === "sm" ? "w-8 h-8 text-[11px]" : size === "lg" ? "w-16 h-16 text-[20px]" : "w-11 h-11 text-[14px]";
-  const initials = (name || "").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const initials = (name || "")
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
   return (
     <div
       className={`${dims} rounded-lg flex items-center justify-center shrink-0 font-medium`}
@@ -103,9 +101,10 @@ function Avatar({ name, size = "md" }) {
 
 function Button({ variant = "primary", size = "md", loading, loadingText, children, className = "", ...props }) {
   const sizeCls = size === "sm" ? "text-[11.5px] py-1.5 px-3" : size === "lg" ? "text-[13.5px] py-3 px-5" : "text-[12.5px] py-2.5 px-4";
-  const style = variant === "primary"
-    ? { backgroundColor: COLORS.brand, color: "#fff" }
-    : { backgroundColor: "transparent", color: COLORS.body, border: `1px solid ${COLORS.line}` };
+  const style =
+    variant === "primary"
+      ? { backgroundColor: COLORS.brand, color: "#fff" }
+      : { backgroundColor: "transparent", color: COLORS.body, border: `1px solid ${COLORS.line}` };
   return (
     <button
       {...props}
@@ -113,7 +112,13 @@ function Button({ variant = "primary", size = "md", loading, loadingText, childr
       className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors disabled:opacity-40 ${sizeCls} ${className}`}
       style={style}
     >
-      {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {loadingText || "Working…"}</> : children}
+      {loading ? (
+        <>
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> {loadingText || "Working…"}
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }
@@ -178,7 +183,10 @@ function StepIndicator({ current }) {
               >
                 {done ? <Check className="w-4 h-4" strokeWidth={3} /> : <Icon className="w-4 h-4" />}
               </div>
-              <span className="mt-1.5 text-[10px] sm:text-[11px] font-medium tracking-wide" style={{ color: active || done ? COLORS.brand : COLORS.muted }}>
+              <span
+                className="mt-1.5 text-[10px] sm:text-[11px] font-medium tracking-wide"
+                style={{ color: active || done ? COLORS.brand : COLORS.muted }}
+              >
                 {step.label}
               </span>
             </div>
@@ -201,19 +209,24 @@ function StepIndicator({ current }) {
 
 function ScanningVisual({ scanState }) {
   const ring =
-    scanState === "scanning" ? { borderColor: `${COLORS.brand}55`, backgroundColor: `${COLORS.brand}0A` } :
-    scanState === "found" ? { borderColor: `${COLORS.brand}66`, backgroundColor: `${COLORS.brand}0F` } :
-    scanState === "not_found" ? { borderColor: TONE.warning.border, backgroundColor: TONE.warning.bg } :
-    scanState === "success" ? { borderColor: `${COLORS.brand}55`, backgroundColor: `${COLORS.brand}0F` } :
-    { borderColor: COLORS.line, backgroundColor: COLORS.grid };
+    scanState === "scanning"
+      ? { borderColor: `${COLORS.brand}55`, backgroundColor: `${COLORS.brand}0A` }
+      : scanState === "found"
+        ? { borderColor: `${COLORS.brand}66`, backgroundColor: `${COLORS.brand}0F` }
+        : scanState === "not_found"
+          ? { borderColor: TONE.warning.border, backgroundColor: TONE.warning.bg }
+          : scanState === "success"
+            ? { borderColor: `${COLORS.brand}55`, backgroundColor: `${COLORS.brand}0F` }
+            : { borderColor: COLORS.line, backgroundColor: COLORS.grid };
 
   const iconColor =
-    scanState === "scanning" || scanState === "found" || scanState === "success" ? COLORS.brand :
-    scanState === "not_found" ? COLORS.warning : COLORS.muted;
+    scanState === "scanning" || scanState === "found" || scanState === "success"
+      ? COLORS.brand
+      : scanState === "not_found"
+        ? COLORS.warning
+        : COLORS.muted;
 
-  const titleColor =
-    scanState === "found" || scanState === "success" ? COLORS.brand :
-    scanState === "not_found" ? COLORS.warning : COLORS.ink;
+  const titleColor = scanState === "found" || scanState === "success" ? COLORS.brand : scanState === "not_found" ? COLORS.warning : COLORS.ink;
 
   return (
     <div className="flex flex-col items-center w-full">
@@ -286,7 +299,11 @@ function ScanningVisual({ scanState }) {
 
 function SensorStatus({ status, streamOnline }) {
   if (!status) {
-    return <Chip tone="neutral"><WifiOff className="w-3.5 h-3.5" /> Scanner status unknown</Chip>;
+    return (
+      <Chip tone="neutral">
+        <WifiOff className="w-3.5 h-3.5" /> Scanner status unknown
+      </Chip>
+    );
   }
   if (status.device?.connected) {
     return (
@@ -319,7 +336,9 @@ function EnrollProgress({ step, slot }) {
       <div className="min-w-0">
         <p className="text-[13px] font-semibold">{ENROLL_STEP_LABEL[step] || "Capturing fingerprint…"}</p>
         {slot != null && (
-          <p className="text-[11px]  mt-0.5" style={{ color: COLORS.muted }}>Sensor slot #{slot}</p>
+          <p className="text-[11px]  mt-0.5" style={{ color: COLORS.muted }}>
+            Sensor slot #{slot}
+          </p>
         )}
       </div>
     </div>
@@ -335,10 +354,18 @@ function Field({ label, required, children, hint }) {
     <div>
       <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: COLORS.muted }}>
         {label}
-        {required && <span className="ml-0.5" style={{ color: COLORS.brand }}>*</span>}
+        {required && (
+          <span className="ml-0.5" style={{ color: COLORS.brand }}>
+            *
+          </span>
+        )}
       </label>
       {children}
-      {hint && <p className="mt-1 text-[11px]" style={{ color: COLORS.muted }}>{hint}</p>}
+      {hint && (
+        <p className="mt-1 text-[11px]" style={{ color: COLORS.muted }}>
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
@@ -353,9 +380,17 @@ function Field({ label, required, children, hint }) {
  * age or wristband into the next registration is how duplicate records happen.
  */
 const EMPTY_PERSON_FORM = {
-  full_name: "", age: "", gender: "M", person_type: "refugee",
-  family_size: 1, is_pregnant: 0, has_chronic_illness: 0, medical_notes: "",
-  wristband_qr: "", grade: 3, school_going: 1,
+  full_name: "",
+  age: "",
+  gender: "M",
+  person_type: "refugee",
+  family_size: 1,
+  is_pregnant: 0,
+  has_chronic_illness: 0,
+  medical_notes: "",
+  wristband_qr: "",
+  grade: 3,
+  school_going: 1,
 };
 
 function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error }) {
@@ -393,35 +428,38 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
    * (the screen then clears the field and this runs again). `skip` avoids handing
    * back the code the desk just rejected.
    */
-  const fetchNextWristband = useCallback(async ({ skip } = {}) => {
-    setPoolLoading(true);
-    setErrors((e) => ({ ...e, wristband_qr: undefined }));
-    try {
-      const res = await fetch(`${API}/api/wristbands/available`);
-      const data = await res.json();
-      const rows = data.wristbands || [];
-      setPoolLeft(rows.length);
+  const fetchNextWristband = useCallback(
+    async ({ skip } = {}) => {
+      setPoolLoading(true);
+      setErrors((e) => ({ ...e, wristband_qr: undefined }));
+      try {
+        const res = await fetch(`${API}/api/wristbands/available`);
+        const data = await res.json();
+        const rows = data.wristbands || [];
+        setPoolLeft(rows.length);
 
-      const codeOf = (w) => w.qr_identifier || w.wristband_id || w.barcode || "";
-      const next = rows.map(codeOf).find((c) => c && c !== skip);
+        const codeOf = (w) => w.qr_identifier || w.wristband_id || w.barcode || "";
+        const next = rows.map(codeOf).find((c) => c && c !== skip);
 
-      if (!next) {
-        setForm((f) => ({ ...f, wristband_qr: "" }));
+        if (!next) {
+          setForm((f) => ({ ...f, wristband_qr: "" }));
+          setAutoAssigned(false);
+          return null;
+        }
+        setForm((f) => ({ ...f, wristband_qr: next }));
+        setAutoAssigned(true);
+        return next;
+      } catch {
+        setPoolLeft(null);
         setAutoAssigned(false);
+        setErrors((e) => ({ ...e, wristband_qr: "Could not reach the wristband pool — enter or scan a code" }));
         return null;
+      } finally {
+        setPoolLoading(false);
       }
-      setForm((f) => ({ ...f, wristband_qr: next }));
-      setAutoAssigned(true);
-      return next;
-    } catch {
-      setPoolLeft(null);
-      setAutoAssigned(false);
-      setErrors((e) => ({ ...e, wristband_qr: "Could not reach the wristband pool — enter or scan a code" }));
-      return null;
-    } finally {
-      setPoolLoading(false);
-    }
-  }, [setForm]);
+    },
+    [setForm],
+  );
 
   // Pull a code as the form opens, unless the desk already scanned a printed card.
   const autoFetchedRef = useRef(false);
@@ -473,8 +511,12 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
       <div className="flex items-center gap-3 pb-4 border-b" style={{ borderColor: COLORS.hairline }}>
         <IconTile icon={UserPlus} />
         <div>
-          <h2 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>New Registration</h2>
-          <p className="text-[12px]" style={{ color: COLORS.muted }}>No fingerprint match — enroll this person</p>
+          <h2 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>
+            New Registration
+          </h2>
+          <p className="text-[12px]" style={{ color: COLORS.muted }}>
+            No fingerprint match — enroll this person
+          </p>
         </div>
       </div>
 
@@ -483,7 +525,10 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
       <div className="grid grid-cols-2 gap-3">
         {form.wristband_qr && (
           <div className="col-span-2">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border text-[12.5px] font-medium" style={{ color: TONE.brand.color, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border text-[12.5px] font-medium"
+              style={{ color: TONE.brand.color, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}
+            >
               <QrCode className="w-4 h-4 shrink-0" />
               <span className="flex-1">
                 Wristband <span className="font-semibold">{form.wristband_qr}</span>
@@ -496,23 +541,25 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
         <div className="col-span-2">
           <Field
             label="Printed Wristband QR"
-            hint={form.wristband_qr
-              ? `Will assign wristband ${form.wristband_qr} on registration${autoAssigned && poolLeft != null ? ` · ${poolLeft} in the pool` : ""}`
-              : poolLeft === 0
-                ? "Printed pool is empty — a new wristband will be issued automatically on registration"
-                : "Auto-filled from the printed pool — or scan the card, type a code, or leave blank to auto-issue"}
+            hint={
+              form.wristband_qr
+                ? `Will assign wristband ${form.wristband_qr} on registration${autoAssigned && poolLeft != null ? ` · ${poolLeft} in the pool` : ""}`
+                : poolLeft === 0
+                  ? "Printed pool is empty — a new wristband will be issued automatically on registration"
+                  : "Auto-filled from the printed pool — or scan the card, type a code, or leave blank to auto-issue"
+            }
           >
             {scanningQr ? (
-              <QRScanner
-                onScan={verifyAndSetWristband}
-                onCancel={() => setScanningQr(false)}
-              />
+              <QRScanner onScan={verifyAndSetWristband} onCancel={() => setScanningQr(false)} />
             ) : (
               <div className="flex gap-2">
                 <input
                   placeholder={poolLoading ? "Fetching next code…" : "e.g. CAMP-WB-0001"}
                   value={form.wristband_qr || ""}
-                  onChange={(e) => { setAutoAssigned(false); update("wristband_qr", e.target.value); }}
+                  onChange={(e) => {
+                    setAutoAssigned(false);
+                    update("wristband_qr", e.target.value);
+                  }}
                   className={inputClassBase}
                 />
                 <button
@@ -526,13 +573,26 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
                 >
                   <RefreshCw className={`w-4 h-4 ${poolLoading ? "animate-spin" : ""}`} />
                 </button>
-                <Button type="button" variant="secondary" onClick={() => { setErrors((e) => ({ ...e, wristband_qr: undefined })); setScanningQr(true); }} className="shrink-0 px-3" aria-label="Scan QR">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setErrors((e) => ({ ...e, wristband_qr: undefined }));
+                    setScanningQr(true);
+                  }}
+                  className="shrink-0 px-3"
+                  aria-label="Scan QR"
+                >
                   <Camera className="w-4 h-4" />
                 </Button>
                 {form.wristband_qr && (
                   <button
                     type="button"
-                    onClick={() => { setAutoAssigned(false); update("wristband_qr", ""); setErrors((e) => ({ ...e, wristband_qr: undefined })); }}
+                    onClick={() => {
+                      setAutoAssigned(false);
+                      update("wristband_qr", "");
+                      setErrors((e) => ({ ...e, wristband_qr: undefined }));
+                    }}
                     aria-label="Clear QR"
                     className="shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center"
                     style={{ borderColor: COLORS.line, color: COLORS.muted }}
@@ -543,19 +603,44 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
               </div>
             )}
           </Field>
-          {errors.wristband_qr && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.wristband_qr}</p>}
+          {errors.wristband_qr && (
+            <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}>
+              <AlertTriangle className="w-3 h-3" /> {errors.wristband_qr}
+            </p>
+          )}
         </div>
 
         <div className="col-span-2">
           <Field label="Full Name" required>
-            <input placeholder="e.g. John Doe" value={form.full_name} onChange={(e) => update("full_name", e.target.value)} className={inputClassBase} />
-            {errors.full_name && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.full_name}</p>}
+            <input
+              placeholder="e.g. John Doe"
+              value={form.full_name}
+              onChange={(e) => update("full_name", e.target.value)}
+              className={inputClassBase}
+            />
+            {errors.full_name && (
+              <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}>
+                <AlertTriangle className="w-3 h-3" /> {errors.full_name}
+              </p>
+            )}
           </Field>
         </div>
 
         <Field label="Age" required>
-          <input type="number" min={0} max={130} placeholder="Years" value={form.age} onChange={(e) => update("age", e.target.value)} className={inputClassBase} />
-          {errors.age && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.age}</p>}
+          <input
+            type="number"
+            min={0}
+            max={130}
+            placeholder="Years"
+            value={form.age}
+            onChange={(e) => update("age", e.target.value)}
+            className={inputClassBase}
+          />
+          {errors.age && (
+            <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}>
+              <AlertTriangle className="w-3 h-3" /> {errors.age}
+            </p>
+          )}
         </Field>
 
         <Field label="Gender" required>
@@ -573,7 +658,11 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
                 type="button"
                 onClick={() => update("school_going", form.school_going ? 0 : 1)}
                 className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all active:scale-[0.98] w-full"
-                style={form.school_going ? { backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border, color: TONE.brand.color } : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }}
+                style={
+                  form.school_going
+                    ? { backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border, color: TONE.brand.color }
+                    : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }
+                }
               >
                 <GraduationCap className="w-4 h-4" /> {form.school_going ? "School Going" : "Not School Going"}
               </button>
@@ -589,13 +678,20 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
                   value={form.grade}
                   onChange={(e) => {
                     const v = e.target.value;
-                    if (v === "") { update("grade", ""); return; }
+                    if (v === "") {
+                      update("grade", "");
+                      return;
+                    }
                     const n = Number(v);
                     if (n >= 1 && n <= 12) update("grade", n);
                   }}
                   className={inputClassBase}
                 />
-                {errors.grade && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.grade}</p>}
+                {errors.grade && (
+                  <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}>
+                    <AlertTriangle className="w-3 h-3" /> {errors.grade}
+                  </p>
+                )}
               </Field>
             ) : (
               <div />
@@ -629,7 +725,9 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
               >
                 −
               </button>
-              <span className="text-[17px] font-bold w-8 text-center tabular-nums" style={{ color: COLORS.ink }}>{form.family_size || 1}</span>
+              <span className="text-[17px] font-bold w-8 text-center tabular-nums" style={{ color: COLORS.ink }}>
+                {form.family_size || 1}
+              </span>
               <button
                 type="button"
                 onClick={() => update("family_size", Math.min(20, Number(form.family_size || 1) + 1))}
@@ -640,40 +738,60 @@ function NewPersonForm({ form, setForm, onSubmit, onCancel, submitting, error })
                 +
               </button>
             </div>
-            {errors.family_size && <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}><AlertTriangle className="w-3 h-3" /> {errors.family_size}</p>}
+            {errors.family_size && (
+              <p className="mt-1 text-[11px] flex items-center gap-1" style={{ color: TONE.danger.color }}>
+                <AlertTriangle className="w-3 h-3" /> {errors.family_size}
+              </p>
+            )}
           </Field>
         </div>
 
         {Number(form.age) >= 18 && (
-        <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => update("is_pregnant", form.is_pregnant ? 0 : 1)}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all active:scale-[0.98]"
-            style={form.is_pregnant ? { backgroundColor: TONE.violet.bg, borderColor: TONE.violet.border, color: TONE.violet.color } : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }}
-          >
-            <Waves className="w-4 h-4" /> Pregnant
-          </button>
-          <button
-            type="button"
-            onClick={() => update("has_chronic_illness", form.has_chronic_illness ? 0 : 1)}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all active:scale-[0.98]"
-            style={form.has_chronic_illness ? { backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border, color: TONE.warning.color } : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }}
-          >
-            <AlertTriangle className="w-4 h-4" /> Chronic Illness
-          </button>
-        </div>
+          <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => update("is_pregnant", form.is_pregnant ? 0 : 1)}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all active:scale-[0.98]"
+              style={
+                form.is_pregnant
+                  ? { backgroundColor: TONE.violet.bg, borderColor: TONE.violet.border, color: TONE.violet.color }
+                  : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }
+              }
+            >
+              <Waves className="w-4 h-4" /> Pregnant
+            </button>
+            <button
+              type="button"
+              onClick={() => update("has_chronic_illness", form.has_chronic_illness ? 0 : 1)}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all active:scale-[0.98]"
+              style={
+                form.has_chronic_illness
+                  ? { backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border, color: TONE.warning.color }
+                  : { backgroundColor: "#fff", borderColor: COLORS.line, color: COLORS.muted }
+              }
+            >
+              <AlertTriangle className="w-4 h-4" /> Chronic Illness
+            </button>
+          </div>
         )}
 
         <div className="col-span-2">
           <Field label="Medical Notes" hint="Optional — e.g. pregnancy stage, medication, allergies">
-            <textarea rows={2} placeholder="e.g. Diabetes type 2, on insulin" value={form.medical_notes} onChange={(e) => update("medical_notes", e.target.value)} className={`${inputClassBase} resize-none`} />
+            <textarea
+              rows={2}
+              placeholder="e.g. Diabetes type 2, on insulin"
+              value={form.medical_notes}
+              onChange={(e) => update("medical_notes", e.target.value)}
+              className={`${inputClassBase} resize-none`}
+            />
           </Field>
         </div>
       </div>
 
       <div className="flex gap-3 pt-3">
-        <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">Cancel</Button>
+        <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
+          Cancel
+        </Button>
         <Button type="button" loading={submitting} loadingText="Enrolling…" onClick={handleSubmit} className="flex-2">
           Enroll &amp; Issue Wristband <ArrowRight className="w-4 h-4" />
         </Button>
@@ -698,7 +816,9 @@ function Barcode({ value }) {
           <div key={i} style={{ width: b.w, marginRight: b.gap, backgroundColor: COLORS.ink }} className="h-full" />
         ))}
       </div>
-      <div className="mt-2 text-[12px] font-bold tracking-widest" style={{ color: COLORS.ink }}>{value}</div>
+      <div className="mt-2 text-[12px] font-bold tracking-widest" style={{ color: COLORS.ink }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -710,11 +830,16 @@ function Barcode({ value }) {
 function NoMatchDecision({ onNew, onReturning, detail }) {
   return (
     <div className="flex flex-col items-center justify-center text-center h-full space-y-6">
-      <div className="w-16 h-16 rounded-full flex items-center justify-center border" style={{ backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border }}>
+      <div
+        className="w-16 h-16 rounded-full flex items-center justify-center border"
+        style={{ backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border }}
+      >
         <AlertTriangle className="w-7 h-7" style={{ color: TONE.warning.color }} />
       </div>
       <div>
-        <h3 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>No Fingerprint Match</h3>
+        <h3 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>
+          No Fingerprint Match
+        </h3>
         <p className="text-[13px] mt-1 max-w-xs" style={{ color: COLORS.muted }}>
           {detail || "This fingerprint was not found in the camp database."}
         </p>
@@ -746,7 +871,9 @@ function NoMatchDecision({ onNew, onReturning, detail }) {
           </div>
           <div>
             <div>Returning member</div>
-            <div className="text-[11.5px] font-normal" style={{ color: COLORS.muted }}>Fingerprint failed — search existing records</div>
+            <div className="text-[11.5px] font-normal" style={{ color: COLORS.muted }}>
+              Fingerprint failed — search existing records
+            </div>
           </div>
           <ArrowRight className="w-4 h-4 ml-auto" style={{ color: COLORS.muted }} />
         </button>
@@ -765,14 +892,26 @@ function ReturningSearch({ query, setQuery, results, onSearch, onSelect, searchi
       <div className="flex items-center gap-3 pb-4 border-b" style={{ borderColor: COLORS.hairline }}>
         <IconTile icon={UserCheck} />
         <div className="flex-1 min-w-0">
-          <h2 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>Returning Member</h2>
-          <p className="text-[12px] truncate" style={{ color: COLORS.muted }}>Search by name, fingerprint ID, or wristband</p>
+          <h2 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>
+            Returning Member
+          </h2>
+          <p className="text-[12px] truncate" style={{ color: COLORS.muted }}>
+            Search by name, fingerprint ID, or wristband
+          </p>
         </div>
-        <button onClick={onBack} className="text-[12px] font-semibold transition-colors" style={{ color: COLORS.muted }}>Back</button>
+        <button onClick={onBack} className="text-[12px] font-semibold transition-colors" style={{ color: COLORS.muted }}>
+          Back
+        </button>
       </div>
 
       <form onSubmit={onSearch} className="space-y-3">
-        <SearchField value={query} onChange={setQuery} onClear={() => setQuery("")} placeholder="e.g. Kasun Perera, FP_0001, WB000001" searching={searching} />
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          onClear={() => setQuery("")}
+          placeholder="e.g. Kasun Perera, FP_0001, WB000001"
+          searching={searching}
+        />
         <Button type="submit" loading={searching} loadingText="Searching…" disabled={!query.trim()} className="w-full">
           <Search className="w-4 h-4" /> Search Records
         </Button>
@@ -783,7 +922,9 @@ function ReturningSearch({ query, setQuery, results, onSearch, onSelect, searchi
       <div className="flex-1 overflow-y-auto space-y-2 max-h-75">
         {!searching && results.length === 0 && !error && (
           <div className="text-center py-8">
-            <p className="text-[13px]" style={{ color: COLORS.muted }}>{selected ? "No results — adjust your search" : "Search to find an existing record"}</p>
+            <p className="text-[13px]" style={{ color: COLORS.muted }}>
+              {selected ? "No results — adjust your search" : "Search to find an existing record"}
+            </p>
           </div>
         )}
         {results.map((p) => (
@@ -795,8 +936,12 @@ function ReturningSearch({ query, setQuery, results, onSearch, onSelect, searchi
           >
             <Avatar name={p.full_name} />
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold truncate" style={{ color: COLORS.ink }}>{p.full_name}</div>
-              <div className="text-[11px]" style={{ color: COLORS.muted }}>{p.age}y · {p.gender} · {p.wristband_barcode || "no wristband"}</div>
+              <div className="text-[13px] font-semibold truncate" style={{ color: COLORS.ink }}>
+                {p.full_name}
+              </div>
+              <div className="text-[11px]" style={{ color: COLORS.muted }}>
+                {p.age}y · {p.gender} · {p.wristband_barcode || "no wristband"}
+              </div>
             </div>
             <ArrowRight className="w-4 h-4 shrink-0" style={{ color: COLORS.muted }} />
           </button>
@@ -817,7 +962,9 @@ function ProfileTile({ icon: Icon, label, value, className = "" }) {
         <Icon className="w-3.5 h-3.5" />
         <span className="text-[10px] font-semibold uppercase tracking-wider">{label}</span>
       </div>
-      <p className="text-[15px] font-semibold capitalize" style={{ color: COLORS.ink }}>{value}</p>
+      <p className="text-[15px] font-semibold capitalize" style={{ color: COLORS.ink }}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -879,18 +1026,30 @@ function RegistrationScreen() {
     setPersonsLoading(true);
     setPersonsError("");
     fetch(`${API}/api/register`, { signal: controller.signal })
-      .then((r) => { if (!r.ok) throw new Error("Failed to load"); return r.json(); })
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load");
+        return r.json();
+      })
       .then((data) => {
-        setPersons((data.persons || []).map((p) => ({
-          ...p,
-          enrollment_status: p.fingerprint_slot != null ? "enrolled" : "not_enrolled",
-        })));
+        setPersons(
+          (data.persons || []).map((p) => ({
+            ...p,
+            enrollment_status: p.fingerprint_slot != null ? "enrolled" : "not_enrolled",
+          })),
+        );
         setPersonsLoading(false);
       })
-      .catch((err) => { if (err.name !== "AbortError") { setPersonsError(err.message || "Failed to load registrations"); setPersonsLoading(false); } });
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setPersonsError(err.message || "Failed to load registrations");
+          setPersonsLoading(false);
+        }
+      });
   }, []);
 
-  useEffect(() => { fetchPersons(); }, [fetchPersons]);
+  useEffect(() => {
+    fetchPersons();
+  }, [fetchPersons]);
 
   const applyScanResult = useCallback((data) => {
     if (data.matched && data.person) {
@@ -906,46 +1065,53 @@ function RegistrationScreen() {
     }
   }, []);
 
-  const finishEnroll = useCallback((data) => {
-    const context = enrollContextRef.current;
+  const finishEnroll = useCallback(
+    (data) => {
+      const context = enrollContextRef.current;
 
-    // A cancel, a clear or a skip drops the context. The sensor still reports the
-    // aborted capture a moment later, and without this guard that late frame
-    // repaints a red "enrollment failed" over a screen that has already moved on.
-    if (context == null) return;
+      // A cancel, a clear or a skip drops the context. The sensor still reports the
+      // aborted capture a moment later, and without this guard that late frame
+      // repaints a red "enrollment failed" over a screen that has already moved on.
+      if (context == null) return;
 
-    setEnrolling(false);
-    setEnrollStep(null);
-    setEnrollSlot(null);
-    enrollContextRef.current = null;
+      setEnrolling(false);
+      setEnrollStep(null);
+      setEnrollSlot(null);
+      enrollContextRef.current = null;
 
-    if (!data.success) {
-      const text = `Enrollment failed: ${data.error || "sensor error"}`;
-      setStatusMessage(text);
-      setEnrollNotice({ tone: "danger", text });
-      addToast(data.error || "Enrollment failed", "error");
-      // On the registration path the person and wristband already exist, so the
-      // desk stays on the fingerprint step to retry or skip — never loses them.
-      return;
-    }
+      if (!data.success) {
+        const text = `Enrollment failed: ${data.error || "sensor error"}`;
+        setStatusMessage(text);
+        setEnrollNotice({ tone: "danger", text });
+        addToast(data.error || "Enrollment failed", "error");
+        // On the registration path the person and wristband already exist, so the
+        // desk stays on the fingerprint step to retry or skip — never loses them.
+        return;
+      }
 
-    if (data.person) setProfile(data.person);
-    setStatusMessage(`Fingerprint enrolled on slot #${data.slot}`);
-    setEnrollNotice({ tone: "brand", text: `Fingerprint enrolled on slot #${data.slot}`, icon: CheckCircle });
-    addToast(`Fingerprint enrolled on slot #${data.slot}`, "success");
-    fetchPersons();
+      if (data.person) setProfile(data.person);
+      setStatusMessage(`Fingerprint enrolled on slot #${data.slot}`);
+      setEnrollNotice({ tone: "brand", text: `Fingerprint enrolled on slot #${data.slot}`, icon: CheckCircle });
+      addToast(`Fingerprint enrolled on slot #${data.slot}`, "success");
+      fetchPersons();
 
-    if (context === "register") {
-      setStatusMessage(`Wristband assigned: ${wristbandRef.current}`);
-      setScanState("success");
-    } else if (context === "reenroll") {
-      setReturningPerson(null);
-      setNotFoundView("decision");
-      setScanState("found");
-    }
-  }, [addToast, fetchPersons]);
+      if (context === "register") {
+        setStatusMessage(`Wristband assigned: ${wristbandRef.current}`);
+        setScanState("success");
+      } else if (context === "reenroll") {
+        setReturningPerson(null);
+        setNotFoundView("decision");
+        setScanState("found");
+      }
+    },
+    [addToast, fetchPersons],
+  );
 
-  const { status: deviceStatus, streamOnline, deviceConnected } = useFingerprintDevice({
+  const {
+    status: deviceStatus,
+    streamOnline,
+    deviceConnected,
+  } = useFingerprintDevice({
     onScanResult: (data) => {
       // The pad can be touched at any moment — only act when the desk is waiting.
       if (scanStateRef.current !== "scanning" && scanStateRef.current !== "idle") return;
@@ -961,10 +1127,7 @@ function RegistrationScreen() {
     onDeviceEvent: (data) => {
       // Keep the raw frames: with unverified firmware this is the only way to see
       // what the sensor actually says.
-      setDeviceLog((log) => [
-        { at: new Date().toLocaleTimeString(), raw: JSON.stringify(data) },
-        ...log,
-      ].slice(0, 60));
+      setDeviceLog((log) => [{ at: new Date().toLocaleTimeString(), raw: JSON.stringify(data) }, ...log].slice(0, 60));
     },
   });
 
@@ -1090,8 +1253,12 @@ function RegistrationScreen() {
     try {
       const res = await fetch(`${API}/api/fingerprint/search?q=${encodeURIComponent(searchQuery.trim())}`);
       const data = await res.json();
-      if (data.error) { setSearchError(data.error); setSearchResults([]); }
-      else { setSearchResults(data.results || []); }
+      if (data.error) {
+        setSearchError(data.error);
+        setSearchResults([]);
+      } else {
+        setSearchResults(data.results || []);
+      }
     } catch (err) {
       setSearchError("Search failed: " + err.message);
       setSearchResults([]);
@@ -1296,12 +1463,15 @@ function RegistrationScreen() {
   return (
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
       <div className="sm:px-5 lg:px-6 sm:py-7 space-y-4 sm:space-y-6">
-
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 sm:gap-3">
           <div>
-            <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.12em]" style={{ color: COLORS.muted }}>Camp operations</p>
-            <h1 className="font-medium text-[22px] sm:text-[26px] lg:text-[32px] leading-[1.1] tracking-tight mt-1" style={{ color: COLORS.ink }}>Registration</h1>
+            <h1 className="font-medium text-[22px] sm:text-[26px] lg:text-[32px] leading-[1.1] tracking-tight mt-1" style={{ color: COLORS.ink }}>
+              Registration
+            </h1>
+            <p className="text-[12px] my-2" style={{ color: COLORS.muted }}>
+              Use the fingerprint scanner or scan a wristband QR code to begin.
+            </p>
           </div>
           <div className="hidden sm:flex items-center gap-1.5 text-[12px]" style={{ color: COLORS.muted }}>
             <CalendarDays className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
@@ -1340,7 +1510,8 @@ function RegistrationScreen() {
                   </InlineBanner>
                   <div className="grid grid-cols-2 gap-2">
                     <Button
-                      variant="secondary" size="sm"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => profile && startEnroll(profile.id, "profile")}
                       disabled={!profile}
                       className="w-full"
@@ -1366,15 +1537,22 @@ function RegistrationScreen() {
               )}
               {!enrolling && scanState === "idle" && import.meta.env.DEV && (
                 <Button
-                  variant="secondary" size="lg"
-                  onClick={() => { setScanState("not_found"); setNotFoundView("new"); setStatusMessage(""); }}
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => {
+                    setScanState("not_found");
+                    setNotFoundView("new");
+                    setStatusMessage("");
+                  }}
                   className="mt-3 w-full"
                 >
                   <UserPlus className="w-4 h-4" /> Test Registration
                 </Button>
               )}
               {!enrolling && scanState !== "idle" && (
-                <Button variant="secondary" size="lg" onClick={reset} className="mt-7 w-full">Reset</Button>
+                <Button variant="secondary" size="lg" onClick={reset} className="mt-7 w-full">
+                  Reset
+                </Button>
               )}
             </Card>
           </motion.div>
@@ -1385,15 +1563,28 @@ function RegistrationScreen() {
                 {(scanState === "idle" || scanState === "scanning") && (
                   <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
                     {qrScanning ? (
-                      <QRScanner onScan={wristbandScanForCheckin ? handleCheckinWristbandScan : handleQrScan} onCancel={() => { setQrScanning(false); setWristbandScanForCheckin(false); }} />
+                      <QRScanner
+                        onScan={wristbandScanForCheckin ? handleCheckinWristbandScan : handleQrScan}
+                        onCancel={() => {
+                          setQrScanning(false);
+                          setWristbandScanForCheckin(false);
+                        }}
+                      />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-center h-full space-y-5">
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center border" style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line }}>
+                        <div
+                          className="w-20 h-20 rounded-full flex items-center justify-center border"
+                          style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line }}
+                        >
                           <ShieldCheck className="w-8 h-8" style={{ color: "#D4D8D5" }} />
                         </div>
                         <div>
-                          <h3 className="text-[15px] font-semibold" style={{ color: COLORS.muted }}>Awaiting Input</h3>
-                          <p className="text-[13px] mt-1 max-w-xs" style={{ color: COLORS.muted }}>Scan a fingerprint or a wristband QR code to pull up a profile or create a new registration.</p>
+                          <h3 className="text-[15px] font-semibold" style={{ color: COLORS.muted }}>
+                            Awaiting Input
+                          </h3>
+                          <p className="text-[13px] mt-1 max-w-xs" style={{ color: COLORS.muted }}>
+                            Scan a fingerprint or a wristband QR code to pull up a profile or create a new registration.
+                          </p>
                         </div>
                         {scanState === "scanning" && (
                           <div className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: COLORS.brand }}>
@@ -1402,7 +1593,9 @@ function RegistrationScreen() {
                           </div>
                         )}
                         {scanState === "idle" && statusMessage && (
-                          <div className="w-full"><InlineBanner tone="danger">{statusMessage}</InlineBanner></div>
+                          <div className="w-full">
+                            <InlineBanner tone="danger">{statusMessage}</InlineBanner>
+                          </div>
                         )}
                       </div>
                     )}
@@ -1410,97 +1603,152 @@ function RegistrationScreen() {
                 )}
 
                 {scanState === "found" && profile && (
-                  <motion.div key="found" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} className="space-y-4 sm:space-y-6">
+                  <motion.div
+                    key="found"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -16 }}
+                    className="space-y-4 sm:space-y-6"
+                  >
                     {qrScanning ? (
-                      <QRScanner onScan={handleCheckinWristbandScan} onCancel={() => { setQrScanning(false); setWristbandScanForCheckin(false); }} />
-                    ) : (<>
-                    <div className="flex items-start gap-3 sm:gap-5">
-                      <Avatar name={profile.full_name} size="lg" />
-                      <div>
-                        <h2 className="font-medium text-[17px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>{profile.full_name}</h2>
-                        <div className="mt-1.5">
-                          {qrBound ? (
-                            <Chip tone="brand"><QrCode className="w-3.5 h-3.5" /> Profile Loaded{qrCode ? ` · ${qrCode}` : ""}</Chip>
-                          ) : (
-                            <Chip tone="brand"><CheckCircle className="w-3.5 h-3.5" /> Identity Verified</Chip>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <ProfileTile icon={User} label="Age & Gender" value={`${profile.age} yrs · ${profile.gender}`} />
-                      <ProfileTile icon={Users} label="Family" value={`${profile.family_size} Members`} />
-                      {profile.person_type && (
-                        <ProfileTile className="col-span-2" icon={BadgeCheck} label="Person Type" value={profile.person_type.replace(/_/g, " ")} />
-                      )}
-                      <ProfileTile
-                        className="col-span-2"
-                        icon={Fingerprint}
-                        label="Fingerprint"
-                        value={profile.fingerprint_slot != null ? `Sensor slot #${profile.fingerprint_slot}` : "Not enrolled"}
+                      <QRScanner
+                        onScan={handleCheckinWristbandScan}
+                        onCancel={() => {
+                          setQrScanning(false);
+                          setWristbandScanForCheckin(false);
+                        }}
                       />
-                    </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-3 sm:gap-5">
+                          <Avatar name={profile.full_name} size="lg" />
+                          <div>
+                            <h2 className="font-medium text-[17px] sm:text-[20px] tracking-tight" style={{ color: COLORS.ink }}>
+                              {profile.full_name}
+                            </h2>
+                            <div className="mt-1.5">
+                              {qrBound ? (
+                                <Chip tone="brand">
+                                  <QrCode className="w-3.5 h-3.5" /> Profile Loaded{qrCode ? ` · ${qrCode}` : ""}
+                                </Chip>
+                              ) : (
+                                <Chip tone="brand">
+                                  <CheckCircle className="w-3.5 h-3.5" /> Identity Verified
+                                </Chip>
+                              )}
+                            </div>
+                          </div>
+                        </div>
 
-                    {profile.fingerprint_slot == null && !enrolling && (
-                      <Button variant="secondary" onClick={() => startEnroll(profile.id, "profile")} className="w-full">
-                        <Fingerprint className="w-4 h-4" /> Enroll Fingerprint for this Person
-                      </Button>
+                        <div className="grid grid-cols-2 gap-3">
+                          <ProfileTile icon={User} label="Age & Gender" value={`${profile.age} yrs · ${profile.gender}`} />
+                          <ProfileTile icon={Users} label="Family" value={`${profile.family_size} Members`} />
+                          {profile.person_type && (
+                            <ProfileTile
+                              className="col-span-2"
+                              icon={BadgeCheck}
+                              label="Person Type"
+                              value={profile.person_type.replace(/_/g, " ")}
+                            />
+                          )}
+                          <ProfileTile
+                            className="col-span-2"
+                            icon={Fingerprint}
+                            label="Fingerprint"
+                            value={profile.fingerprint_slot != null ? `Sensor slot #${profile.fingerprint_slot}` : "Not enrolled"}
+                          />
+                        </div>
+
+                        {profile.fingerprint_slot == null && !enrolling && (
+                          <Button variant="secondary" onClick={() => startEnroll(profile.id, "profile")} className="w-full">
+                            <Fingerprint className="w-4 h-4" /> Enroll Fingerprint for this Person
+                          </Button>
+                        )}
+
+                        {(profile.is_pregnant || profile.has_chronic_illness) && (
+                          <div className="flex flex-wrap gap-2">
+                            {profile.is_pregnant && (
+                              <Chip tone="violet">
+                                <Waves className="w-3.5 h-3.5" /> Pregnant
+                              </Chip>
+                            )}
+                            {profile.has_chronic_illness && (
+                              <Chip tone="warning">
+                                <AlertTriangle className="w-3.5 h-3.5" /> Chronic Illness
+                              </Chip>
+                            )}
+                          </div>
+                        )}
+
+                        {profile.medical_notes && (
+                          <div
+                            className="text-[12.5px] rounded-lg px-4 py-3 border"
+                            style={{ color: COLORS.body, backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border }}
+                          >
+                            <span className="font-semibold" style={{ color: TONE.warning.color }}>
+                              Notes:{" "}
+                            </span>
+                            {profile.medical_notes}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          {qrBound ? (
+                            <Button onClick={reset} className="w-full">
+                              Done — Next Person
+                            </Button>
+                          ) : (
+                            <Button onClick={handleCheckin} loading={submitting} loadingText="Processing…" className="w-full">
+                              Scan Wristband &amp; Check-in <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="secondary"
+                            onClick={() => openPersonQr(profile.id)}
+                            loading={qrLoading}
+                            loadingText="…"
+                            className="px-3"
+                            aria-label="Show QR"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </>
                     )}
-
-                    {(profile.is_pregnant || profile.has_chronic_illness) && (
-                      <div className="flex flex-wrap gap-2">
-                        {profile.is_pregnant && <Chip tone="violet"><Waves className="w-3.5 h-3.5" /> Pregnant</Chip>}
-                        {profile.has_chronic_illness && <Chip tone="warning"><AlertTriangle className="w-3.5 h-3.5" /> Chronic Illness</Chip>}
-                      </div>
-                    )}
-
-                    {profile.medical_notes && (
-                      <div className="text-[12.5px] rounded-lg px-4 py-3 border" style={{ color: COLORS.body, backgroundColor: TONE.warning.bg, borderColor: TONE.warning.border }}>
-                        <span className="font-semibold" style={{ color: TONE.warning.color }}>Notes: </span>{profile.medical_notes}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-[1fr_auto] gap-2">
-                      {qrBound ? (
-                        <Button onClick={reset} className="w-full">Done — Next Person</Button>
-                      ) : (
-                        <Button onClick={handleCheckin} loading={submitting} loadingText="Processing…" className="w-full">
-                          Scan Wristband &amp; Check-in <ArrowRight className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <Button variant="secondary" onClick={() => openPersonQr(profile.id)} loading={qrLoading} loadingText="…" className="px-3" aria-label="Show QR">
-                        <QrCode className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    </>)}
                   </motion.div>
                 )}
 
                 {scanState === "not_found" && (
                   <motion.div key="not_found" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="h-full">
                     {notFoundView === "decision" && (
-                      <NoMatchDecision
-                        onNew={() => setNotFoundView("new")}
-                        onReturning={() => setNotFoundView("returning")}
-                        detail={statusMessage}
-                      />
+                      <NoMatchDecision onNew={() => setNotFoundView("new")} onReturning={() => setNotFoundView("returning")} detail={statusMessage} />
                     )}
 
                     {notFoundView === "new" && (
                       <NewPersonForm
-                        form={newPersonForm} setForm={setNewPersonForm} onSubmit={handleRegisterNew}
-                        onCancel={() => { setNotFoundView("decision"); setRegError(""); }}
-                        submitting={submitting} error={regError}
+                        form={newPersonForm}
+                        setForm={setNewPersonForm}
+                        onSubmit={handleRegisterNew}
+                        onCancel={() => {
+                          setNotFoundView("decision");
+                          setRegError("");
+                        }}
+                        submitting={submitting}
+                        error={regError}
                       />
                     )}
 
                     {notFoundView === "returning" && (
                       <ReturningSearch
-                        query={searchQuery} setQuery={setSearchQuery} results={searchResults}
-                        onSearch={handleSearch} onSelect={handleSelectReturning}
-                        searching={searching} error={searchError}
-                        onBack={() => setNotFoundView("decision")} selected={returningPerson}
+                        query={searchQuery}
+                        setQuery={setSearchQuery}
+                        results={searchResults}
+                        onSearch={handleSearch}
+                        onSelect={handleSelectReturning}
+                        searching={searching}
+                        error={searchError}
+                        onBack={() => setNotFoundView("decision")}
+                        selected={returningPerson}
                       />
                     )}
 
@@ -1509,24 +1757,51 @@ function RegistrationScreen() {
                         <div className="flex items-start gap-5">
                           <Avatar name={profile.full_name} size="lg" />
                           <div>
-                            <h2 className="font-medium text-[20px] tracking-tight" style={{ color: COLORS.ink }}>{profile.full_name}</h2>
-                            <div className="mt-1.5"><Chip tone="warning"><UserCheck className="w-3.5 h-3.5" /> Returning Member Found</Chip></div>
-                            <p className="text-[11.5px] mt-1.5" style={{ color: COLORS.muted }}>Fingerprint failed — re-enroll to bind this person to a new fingerprint</p>
+                            <h2 className="font-medium text-[20px] tracking-tight" style={{ color: COLORS.ink }}>
+                              {profile.full_name}
+                            </h2>
+                            <div className="mt-1.5">
+                              <Chip tone="warning">
+                                <UserCheck className="w-3.5 h-3.5" /> Returning Member Found
+                              </Chip>
+                            </div>
+                            <p className="text-[11.5px] mt-1.5" style={{ color: COLORS.muted }}>
+                              Fingerprint failed — re-enroll to bind this person to a new fingerprint
+                            </p>
                           </div>
                         </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <ProfileTile icon={User} label="Age & Gender" value={`${profile.age} yrs · ${profile.gender}`} />
                           <ProfileTile icon={Users} label="Family" value={`${profile.family_size} Members`} />
                         </div>
 
-                        <Button onClick={() => setShowReenrollConfirm(true)} disabled={enrolling} loading={enrolling} loadingText="Capturing fingerprint…" className="w-full">
+                        <Button
+                          onClick={() => setShowReenrollConfirm(true)}
+                          disabled={enrolling}
+                          loading={enrolling}
+                          loadingText="Capturing fingerprint…"
+                          className="w-full"
+                        >
                           <Link2 className="w-4 h-4" /> Re-enroll Fingerprint
                         </Button>
-                        <Button variant="secondary" onClick={() => openPersonQr(profile.id)} loading={qrLoading} loadingText="Loading QR…" className="w-full">
+                        <Button
+                          variant="secondary"
+                          onClick={() => openPersonQr(profile.id)}
+                          loading={qrLoading}
+                          loadingText="Loading QR…"
+                          className="w-full"
+                        >
                           <QrCode className="w-4 h-4" /> Show QR
                         </Button>
-                        <Button variant="secondary" onClick={() => { setReturningPerson(null); setNotFoundView("returning"); }} className="w-full">
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setReturningPerson(null);
+                            setNotFoundView("returning");
+                          }}
+                          className="w-full"
+                        >
                           Not this person — search again
                         </Button>
                       </div>
@@ -1535,11 +1810,19 @@ function RegistrationScreen() {
                 )}
 
                 {scanState === "enrolling" && (
-                  <motion.div key="enrolling" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+                  <motion.div
+                    key="enrolling"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-6"
+                  >
                     <div className="flex items-center gap-3 pb-4 border-b" style={{ borderColor: COLORS.hairline }}>
                       <IconTile icon={Fingerprint} />
                       <div className="min-w-0">
-                        <h2 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>Enrol Fingerprint</h2>
+                        <h2 className="text-[15px] font-semibold" style={{ color: COLORS.ink }}>
+                          Enrol Fingerprint
+                        </h2>
                         <p className="text-[12px] truncate" style={{ color: COLORS.muted }}>
                           {profile ? `${profile.full_name} is registered — capture their fingerprint to finish` : "Capturing fingerprint"}
                         </p>
@@ -1547,7 +1830,10 @@ function RegistrationScreen() {
                     </div>
 
                     {wristband && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border text-[12.5px] font-medium" style={{ color: TONE.brand.color, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border text-[12.5px] font-medium"
+                        style={{ color: TONE.brand.color, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}
+                      >
                         <CheckCircle className="w-4 h-4 shrink-0" />
                         Wristband <span className="font-semibold">{wristband}</span> is reserved and will be issued next.
                       </div>
@@ -1594,16 +1880,24 @@ function RegistrationScreen() {
                     </div>
 
                     <p className="text-[11.5px]" style={{ color: COLORS.muted }}>
-                      Skipping is fine for infants or injured hands. The person stays registered and
-                      appears as <span className="font-semibold">Not enrolled</span> in the roster.
+                      Skipping is fine for infants or injured hands. The person stays registered and appears as{" "}
+                      <span className="font-semibold">Not enrolled</span> in the roster.
                     </p>
                   </motion.div>
                 )}
 
                 {scanState === "success" && (
-                  <motion.div key="success" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="flex flex-col items-center text-center space-y-3 sm:space-y-5">
+                  <motion.div
+                    key="success"
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    className="flex flex-col items-center text-center space-y-3 sm:space-y-5"
+                  >
                     <motion.div
-                      initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 18 }}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 260, damping: 18 }}
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center border"
                       style={{ backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}
                     >
@@ -1611,27 +1905,47 @@ function RegistrationScreen() {
                     </motion.div>
 
                     <div>
-                      <h2 className="font-medium text-[17px] sm:text-[20px]" style={{ color: COLORS.ink }}>Ready to Go</h2>
-                      <p className="text-[12px] sm:text-[13px] mt-1.5 sm:mt-2 px-3 sm:px-5 py-2 rounded-lg border font-medium" style={{ color: COLORS.brand, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}>{statusMessage}</p>
+                      <h2 className="font-medium text-[17px] sm:text-[20px]" style={{ color: COLORS.ink }}>
+                        Ready to Go
+                      </h2>
+                      <p
+                        className="text-[12px] sm:text-[13px] mt-1.5 sm:mt-2 px-3 sm:px-5 py-2 rounded-lg border font-medium"
+                        style={{ color: COLORS.brand, backgroundColor: TONE.brand.bg, borderColor: TONE.brand.border }}
+                      >
+                        {statusMessage}
+                      </p>
                     </div>
 
                     {qrData && qrData.data_url ? (
                       <div className="scale-90 sm:scale-100 origin-top flex flex-col items-center">
                         <img src={qrData.data_url} alt="Wristband QR" className="w-40 h-40 sm:w-48 sm:h-48" />
-                        <p className="mt-2 text-[11px] font-semibold tracking-wide" style={{ color: COLORS.ink }}>{qrData.qr_identifier}</p>
+                        <p className="mt-2 text-[11px] font-semibold tracking-wide" style={{ color: COLORS.ink }}>
+                          {qrData.qr_identifier}
+                        </p>
                       </div>
                     ) : wristband ? (
-                      <div className="text-[12px] font-medium px-3 py-2 rounded-lg border" style={{ color: COLORS.ink, borderColor: COLORS.line }}>{wristband}</div>
+                      <div className="text-[12px] font-medium px-3 py-2 rounded-lg border" style={{ color: COLORS.ink, borderColor: COLORS.line }}>
+                        {wristband}
+                      </div>
                     ) : null}
 
                     {profile && (
-                      <p className="text-[11px] sm:text-[12px]" style={{ color: COLORS.muted }}>Registered: <span className="font-semibold" style={{ color: COLORS.ink }}>{profile.full_name}</span></p>
+                      <p className="text-[11px] sm:text-[12px]" style={{ color: COLORS.muted }}>
+                        Registered:{" "}
+                        <span className="font-semibold" style={{ color: COLORS.ink }}>
+                          {profile.full_name}
+                        </span>
+                      </p>
                     )}
 
                     {profile && profile.fingerprint_slot != null ? (
-                      <Chip tone="brand"><Fingerprint className="w-3.5 h-3.5" /> Fingerprint on slot #{profile.fingerprint_slot}</Chip>
+                      <Chip tone="brand">
+                        <Fingerprint className="w-3.5 h-3.5" /> Fingerprint on slot #{profile.fingerprint_slot}
+                      </Chip>
                     ) : (
-                      <Chip tone="warning"><AlertTriangle className="w-3.5 h-3.5" /> No fingerprint on file</Chip>
+                      <Chip tone="warning">
+                        <AlertTriangle className="w-3.5 h-3.5" /> No fingerprint on file
+                      </Chip>
                     )}
 
                     {qosInfo && (
@@ -1640,7 +1954,9 @@ function RegistrationScreen() {
                       </div>
                     )}
 
-                    <Button onClick={reset} className="w-full sm:w-auto">Process Next Person</Button>
+                    <Button onClick={reset} className="w-full sm:w-auto">
+                      Process Next Person
+                    </Button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1650,14 +1966,13 @@ function RegistrationScreen() {
 
         {/* ================= LIVE SENSOR FEED ================= */}
         <Card className="p-4 sm:p-5">
-          <button
-            onClick={() => setShowFeed((v) => !v)}
-            className="w-full flex items-center justify-between gap-3 text-left"
-          >
+          <button onClick={() => setShowFeed((v) => !v)} className="w-full flex items-center justify-between gap-3 text-left">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <IconTile icon={Activity} />
               <div>
-                <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>Live Sensor Feed</h2>
+                <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>
+                  Live Sensor Feed
+                </h2>
                 <p className="text-[10.5px] sm:text-[11px]" style={{ color: COLORS.muted }}>
                   {deviceLog.length === 0
                     ? "Nothing received from the scanner yet"
@@ -1677,9 +1992,7 @@ function RegistrationScreen() {
                 style={{ backgroundColor: "#0F1720", color: "#7EE2B8" }}
               >
                 {deviceLog.length === 0 ? (
-                  <div style={{ color: "#64748B" }}>
-                    &gt; waiting for the scanner… touch the pad or press Initiate Scan
-                  </div>
+                  <div style={{ color: "#64748B" }}>&gt; waiting for the scanner… touch the pad or press Initiate Scan</div>
                 ) : (
                   deviceLog.map((entry, i) => (
                     <div key={`${entry.at}-${i}`}>
@@ -1694,7 +2007,9 @@ function RegistrationScreen() {
                   Exactly what the firmware sent, before interpretation — use it to confirm the sensor is talking.
                 </p>
                 {deviceLog.length > 0 && (
-                  <Button variant="secondary" size="sm" onClick={() => setDeviceLog([])}>Clear</Button>
+                  <Button variant="secondary" size="sm" onClick={() => setDeviceLog([])}>
+                    Clear
+                  </Button>
                 )}
               </div>
             </div>
@@ -1702,18 +2017,29 @@ function RegistrationScreen() {
         </Card>
 
         {/* ================= REGISTERED USERS TABLE ================= */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} >
-          <Card className="p-4 sm:p-5 lg:p-6 bg-white" >
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card className="p-4 sm:p-5 lg:p-6 bg-white">
             {viewingPersonId ? (
-              <PersonProfileScreen personId={viewingPersonId} onBack={() => { setViewingPersonId(null); fetchPersons(); }} onUpdated={() => fetchPersons()} />
+              <PersonProfileScreen
+                personId={viewingPersonId}
+                onBack={() => {
+                  setViewingPersonId(null);
+                  fetchPersons();
+                }}
+                onUpdated={() => fetchPersons()}
+              />
             ) : (
               <>
                 <div className="flex items-center justify-between mb-3 sm:mb-4 ">
                   <div className="flex items-center gap-2.5 sm:gap-3">
                     <IconTile icon={List} />
                     <div>
-                      <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>Registered Users</h2>
-                      <p className="text-[10.5px] sm:text-[11px]" style={{ color: COLORS.muted }}>{persons.length} total in camp</p>
+                      <h2 className="text-[13.5px] sm:text-[14px] font-semibold" style={{ color: COLORS.ink }}>
+                        Registered Users
+                      </h2>
+                      <p className="text-[10.5px] sm:text-[11px]" style={{ color: COLORS.muted }}>
+                        {persons.length} total in camp
+                      </p>
                     </div>
                   </div>
                   <Button variant="secondary" size="sm" onClick={fetchPersons}>
@@ -1724,43 +2050,64 @@ function RegistrationScreen() {
 
                 {personsError && (
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="flex-1"><InlineBanner tone="danger">{personsError}</InlineBanner></div>
-                    <Button variant="secondary" size="sm" onClick={fetchPersons}><RefreshCw className="w-3 h-3" /> Retry</Button>
+                    <div className="flex-1">
+                      <InlineBanner tone="danger">{personsError}</InlineBanner>
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={fetchPersons}>
+                      <RefreshCw className="w-3 h-3" /> Retry
+                    </Button>
                   </div>
                 )}
 
                 <DataTable
                   columns={[
                     {
-                      key: "full_name", label: "Name",
+                      key: "full_name",
+                      label: "Name",
                       render: (val) => (
                         <div className="flex items-center gap-2.5">
                           <Avatar name={val} size="sm" />
-                          <span className="font-medium" style={{ color: COLORS.ink }}>{val}</span>
+                          <span className="font-medium" style={{ color: COLORS.ink }}>
+                            {val}
+                          </span>
                         </div>
                       ),
                     },
                     { key: "age", label: "Age" },
                     { key: "gender", label: "Gender", render: (val) => (val === "M" ? "Male" : val === "F" ? "Female" : "Other") },
                     {
-                      key: "person_type", label: "Type",
+                      key: "person_type",
+                      label: "Type",
                       render: (val) => <Chip>{val?.replace(/_/g, " ") || "—"}</Chip>,
                     },
                     { key: "family_size", label: "Family" },
                     { key: "wristband_barcode", label: "Wristband", render: (val) => <span className="text-[12px]">{val || "—"}</span> },
                     {
-                      key: "fingerprint_slot", label: "Fingerprint",
-                      render: (val) => (val != null
-                        ? <Chip tone="brand"><Fingerprint className="w-3 h-3" /> #{val}</Chip>
-                        : <Chip tone="warning"><AlertTriangle className="w-3 h-3" /> Not enrolled</Chip>),
+                      key: "fingerprint_slot",
+                      label: "Fingerprint",
+                      render: (val) =>
+                        val != null ? (
+                          <Chip tone="brand">
+                            <Fingerprint className="w-3 h-3" /> #{val}
+                          </Chip>
+                        ) : (
+                          <Chip tone="warning">
+                            <AlertTriangle className="w-3 h-3" /> Not enrolled
+                          </Chip>
+                        ),
                     },
                     {
-                      key: "pre_registered", label: "Status",
+                      key: "pre_registered",
+                      label: "Status",
                       render: (val) => <Chip tone={val ? "brand" : "info"}>{val ? "Pre-registered" : "New"}</Chip>,
                     },
                     {
-                      key: "created_at", label: "Registered",
-                      render: (val) => (val ? new Date(val).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"),
+                      key: "created_at",
+                      label: "Registered",
+                      render: (val) =>
+                        val
+                          ? new Date(val).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                          : "—",
                     },
                   ]}
                   data={persons}
@@ -1769,14 +2116,16 @@ function RegistrationScreen() {
                   searchKeys={["full_name", "fingerprint_id"]}
                   filters={[
                     {
-                      key: "enrollment_status", label: "All Fingerprints",
+                      key: "enrollment_status",
+                      label: "All Fingerprints",
                       options: [
                         { value: "not_enrolled", label: "Not enrolled" },
                         { value: "enrolled", label: "Enrolled" },
                       ],
                     },
                     {
-                      key: "person_type", label: "All Types",
+                      key: "person_type",
+                      label: "All Types",
                       options: [
                         { value: "refugee", label: "Refugee" },
                         { value: "asylum_seeker", label: "Asylum Seeker" },
@@ -1796,20 +2145,30 @@ function RegistrationScreen() {
                       <Avatar name={row.full_name} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[13px] font-semibold truncate" style={{ color: COLORS.ink }}>{row.full_name}</span>
+                          <span className="text-[13px] font-semibold truncate" style={{ color: COLORS.ink }}>
+                            {row.full_name}
+                          </span>
                           <Chip tone={row.pre_registered ? "brand" : "info"}>{row.pre_registered ? "Pre" : "New"}</Chip>
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[11px]" style={{ color: COLORS.muted }}>
-                          <span>{row.age}y · {row.gender === "M" ? "M" : row.gender === "F" ? "F" : "O"}</span>
+                          <span>
+                            {row.age}y · {row.gender === "M" ? "M" : row.gender === "F" ? "F" : "O"}
+                          </span>
                           <span style={{ color: COLORS.line }}>·</span>
                           <span className="capitalize">{row.person_type?.replace(/_/g, " ")}</span>
                           <span style={{ color: COLORS.line }}>·</span>
                           <span>Fam: {row.family_size}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          {row.wristband_barcode && <span className="text-[10px]" style={{ color: COLORS.muted }}>{row.wristband_barcode}</span>}
+                          {row.wristband_barcode && (
+                            <span className="text-[10px]" style={{ color: COLORS.muted }}>
+                              {row.wristband_barcode}
+                            </span>
+                          )}
                           {row.fingerprint_slot == null && (
-                            <span className="text-[10px] font-semibold" style={{ color: TONE.warning.color }}>No fingerprint</span>
+                            <span className="text-[10px] font-semibold" style={{ color: TONE.warning.color }}>
+                              No fingerprint
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1825,7 +2184,10 @@ function RegistrationScreen() {
         <ConfirmDialog
           open={showReenrollConfirm}
           onCancel={() => setShowReenrollConfirm(false)}
-          onConfirm={() => { setShowReenrollConfirm(false); handleReenroll(); }}
+          onConfirm={() => {
+            setShowReenrollConfirm(false);
+            handleReenroll();
+          }}
           title="Re-enroll Fingerprint?"
           message="The sensor will capture a new template and bind it to this person, replacing any existing fingerprint link."
           confirmLabel="Re-enroll"

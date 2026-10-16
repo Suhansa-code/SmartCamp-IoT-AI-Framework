@@ -35,7 +35,7 @@ function formatDate(value) {
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl bg-white p-4 sm:p-5 lg:p-6 ${className}`}>
+    <div className={`rounded-xl bg-white p-4 border sm:p-5 lg:p-6 ${className}`}>
       {children}
     </div>
   );
@@ -161,7 +161,7 @@ function StatCard({ label, value, icon: Icon, tone }) {
 
 function FieldRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between rounded-lg px-3 py-2" style={{ backgroundColor: COLORS.grid }}>
+    <div className="flex items-center justify-between rounded-lg px-3 py-2 border border-gray-200">
       <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: COLORS.muted }}>
         {label}
       </span>
@@ -362,7 +362,7 @@ function ChildEducationScreen() {
                 <SectionHeader icon={AlertTriangle} title="Alert Overview" subtitle="Triggered alerts" />
                 <div className="space-y-2">
                   {alerts.length === 0 ? (
-                    <div className="rounded-xl border border-dashed p-6 text-center" style={{ borderColor: COLORS.line, backgroundColor: "#FAFAF9" }}>
+                    <div className="rounded-xl border border-dashed p-6 text-center" style={{ borderColor: COLORS.line}}>
                       <CheckCircle className="w-5 h-5 mx-auto mb-2" style={{ color: COLORS.brand }} />
                       <p className="text-[12.5px]" style={{ color: COLORS.muted }}>
                         No alerts for this child
@@ -398,8 +398,8 @@ function ChildEducationScreen() {
               <div className="overflow-x-auto rounded-xl border" style={{ borderColor: COLORS.line }}>
                 <table className="min-w-full text-left text-[12.5px]">
                   <thead style={{ backgroundColor: "#FAFAF9" }}>
-                    <tr className="border-b" style={{ borderColor: COLORS.hairline }}>
-                      {["Session", "Date / Time", "Gate", "Z-Score", "Flags", "Sync"].map((h) => (
+                    <tr className="border-b " style={{ borderColor: COLORS.hairline }}>
+                      {["Session", "Date", "Gate", "Z-Score", "Flags", "Sync"].map((h) => (
                         <th
                           key={h}
                           className="px-3 sm:px-4 py-3 font-medium text-[11px] uppercase tracking-wider"

@@ -529,13 +529,10 @@ export default function WristbandsScreen() {
         {/* ================= TITLE ROW ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:py-7">
           <div>
-            <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>
-              Camp operations
-            </p>
             <h1 className="font-medium text-[26px] sm:text-[32px] lg:text-[36px] leading-[1.1] tracking-tight">
               Wristband Inventory
             </h1>
-            <p className="text-[12px] mt-2" style={{ color: COLORS.muted }}>
+            <p className="text-[12px] my-2" style={{ color: COLORS.muted }}>
               Pre-print, assign, and track QR wristbands across the camp.
             </p>
           </div>
