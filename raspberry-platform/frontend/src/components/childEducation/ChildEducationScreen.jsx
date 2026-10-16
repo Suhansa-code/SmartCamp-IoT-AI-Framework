@@ -15,6 +15,7 @@ import {
   Search,
   SlidersHorizontal,
   ArrowLeft,
+  Activity,
 } from "lucide-react";
 import DataTable from "../ui/display/DataTable";
 import ErrorState from "../ui/feedback/ErrorState";
@@ -34,11 +35,7 @@ function formatDate(value) {
 /* ------------------------------------------------------------------ */
 
 function Card({ children, className = "" }) {
-  return (
-    <div className={`rounded-xl bg-white p-4 border sm:p-5 lg:p-6 ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`rounded-xl bg-white p-4 border sm:p-5 lg:p-6 ${className}`}>{children}</div>;
 }
 
 function IconTile({ icon: Icon, tone = "brand", size = "md" }) {
@@ -252,25 +249,29 @@ function ChildEducationScreen() {
         {/* ================= HEADER + SEARCH ================= */}
         <div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 justify-between">
               <div>
                 <h1 className="font-medium text-[24px] sm:text-[28px] leading-[1.1] tracking-tight">Child Education</h1>
                 <p className="text-[12px] mt-1" style={{ color: COLORS.muted }}>
                   {child ? child.child_id : "Session history, alerts & profile details"}
                 </p>
               </div>
+              {child && (
+                <button
+                  onClick={() => {
+                    setPayload(null);
+                    setChildId("");
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[12.5px] font-semibold transition-colors hover:opacity-80 self-start"
+                  style={{ borderColor: COLORS.line, color: COLORS.body, backgroundColor: "transparent" }}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
+                  Back
+                </button>
+              )}
             </div>
 
-            {child ? (
-              <button
-                onClick={() => { setPayload(null); setChildId(""); }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[12.5px] font-semibold transition-colors hover:opacity-80 self-start"
-                style={{ borderColor: COLORS.line, color: COLORS.body, backgroundColor: "transparent" }}
-              >
-                <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
-                Back
-              </button>
-            ) : (
+            {!child && (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <div className="relative flex-1 sm:flex-initial">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -325,12 +326,17 @@ function ChildEducationScreen() {
         {/* ================= CHILD PROFILE ================= */}
         {child ? (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-4 sm:space-y-6">
-
             {/* Stats Row */}
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
               <StatCard label="Total Sessions" value={stats.total_sessions ?? child.total_sessions ?? 0} icon={BookOpen} tone="brand" />
               <StatCard label="Pending Alerts" value={alertSummary.pending} icon={AlertTriangle} tone="warning" />
               <StatCard label="Resolved" value={alertSummary.resolved} icon={CheckCircle} tone="info" />
+              <StatCard
+                label="Latest Z-Score"
+                value={latestZScore != null ? Number(latestZScore).toFixed(2) : "—"}
+                icon={Activity}
+                tone={latestZScore == null ? "neutral" : latestZScore < -2.0 ? "danger" : latestZScore < -1.0 ? "warning" : "brand"}
+              />
             </div>
 
             {/* Profile + Alerts Grid */}
@@ -362,7 +368,7 @@ function ChildEducationScreen() {
                 <SectionHeader icon={AlertTriangle} title="Alert Overview" subtitle="Triggered alerts" />
                 <div className="space-y-2">
                   {alerts.length === 0 ? (
-                    <div className="rounded-xl border border-dashed p-6 text-center" style={{ borderColor: COLORS.line}}>
+                    <div className="rounded-xl border border-dashed p-6 text-center" style={{ borderColor: COLORS.line }}>
                       <CheckCircle className="w-5 h-5 mx-auto mb-2" style={{ color: COLORS.brand }} />
                       <p className="text-[12.5px]" style={{ color: COLORS.muted }}>
                         No alerts for this child
@@ -400,11 +406,7 @@ function ChildEducationScreen() {
                   <thead style={{ backgroundColor: "#FAFAF9" }}>
                     <tr className="border-b " style={{ borderColor: COLORS.hairline }}>
                       {["Session", "Date", "Gate", "Z-Score", "Flags", "Sync"].map((h) => (
-                        <th
-                          key={h}
-                          className="px-3 sm:px-4 py-3 font-medium text-[11px] uppercase tracking-wider"
-                          style={{ color: COLORS.muted }}
-                        >
+                        <th key={h} className="px-3 sm:px-4 py-3 font-medium text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>
                           {h}
                         </th>
                       ))}
@@ -448,7 +450,9 @@ function ChildEducationScreen() {
                                 {Number(s.z_score).toFixed(2)}
                               </span>
                             ) : (
-                              <span className="text-[12px]" style={{ color: COLORS.muted }}>-</span>
+                              <span className="text-[12px]" style={{ color: COLORS.muted }}>
+                                -
+                              </span>
                             )}
                           </td>
                           <td className="px-3 sm:px-4 py-3">
