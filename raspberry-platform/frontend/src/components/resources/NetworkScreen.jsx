@@ -129,7 +129,7 @@ export default function NetworkScreen() {
 
   return (
     <div className="mx-auto min-h-screen max-w-7xl bg-white font-sans" style={{ color: COLORS.ink }}>
-      <div className="space-y-4 py-2 sm:space-y-5 sm:py-5">
+      <div className="space-y-4 sm:space-y-5 sm:py-5">
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div><p className="text-[11px] font-mono uppercase tracking-[0.14em]" style={{ color: COLORS.muted }}>Camp operations · live telemetry</p><h1 className="mt-1 font-serif text-3xl font-medium tracking-tight">Network QoS Monitor</h1><p className="mt-2 text-sm" style={{ color: COLORS.muted }}>Clear link health, forecast risk, and the exact delivery policy now in effect.</p></div>
           <div className="flex items-center gap-2 text-xs font-mono" style={{ color: COLORS.muted }}><Radio className={`h-3.5 w-3.5 ${streamConnected ? 'animate-pulse' : ''}`} style={{ color: streamConnected ? COLORS.brand : TONE.warning.color }} /><span>{streamConnected ? 'Live stream connected' : `Snapshot fallback · ${lastAt ? lastAt.toLocaleTimeString() : 'connecting'}`}</span></div>

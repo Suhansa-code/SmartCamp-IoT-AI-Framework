@@ -527,7 +527,7 @@ export default function WristbandsScreen() {
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
       <div className="sm:px-5 lg:px-6">
         {/* ================= TITLE ROW ================= */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-2 sm:py-7">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:py-7">
           <div>
             <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>
               Camp operations
