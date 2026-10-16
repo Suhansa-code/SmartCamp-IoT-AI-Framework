@@ -11,6 +11,7 @@ import NetworkScreen from './components/resources/NetworkScreen'
 import DeviceHealthScreen from './components/resources/DeviceHealthScreen'
 import Navbar from './components/ui/layout/Navbar'
 import ChildFlow from './components/ChildFlow'
+import AdultFlow from './components/adult/AdultFlow'
 import AuthorizePage from './components/AuthorizePage'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -50,6 +51,9 @@ function AppContent() {
   const { path } = useRouter()
   if (path.startsWith('/child')) {
     return <ChildFlow />
+  }
+  if (path.startsWith('/adult')) {
+    return <AdultFlow />
   }
   if (path === '/authorize') {
     return <AuthorizePage />

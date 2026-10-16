@@ -4,6 +4,8 @@ api.py — FastAPI application for the Edge Gateway.
 Starts the persistent ESP32 background reader on import.
 Registers shutdown hook to cleanly release the serial port.
 """
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
