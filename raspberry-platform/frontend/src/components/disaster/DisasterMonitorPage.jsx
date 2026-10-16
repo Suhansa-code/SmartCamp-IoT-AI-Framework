@@ -179,7 +179,7 @@ function IconTile({ icon: Icon }) {
 
 function FieldBox({ label, value, icon: Icon }) {
   return (
-    <div className="rounded-lg px-3.5 py-3 flex items-center justify-between" style={{ backgroundColor: COLORS.grid }}>
+    <div className="rounded-lg px-3.5 py-3 flex items-center justify-between" style={{ backgroundColor: COLORS.surface }}>
       <div>
         <p className="text-[11px]" style={{ color: COLORS.muted }}>
           {label}
@@ -502,10 +502,10 @@ export default function DisasterMonitorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
-      <div className="sm:px-5 lg:px-6">
+    <div style={{ color: COLORS.ink }}>
+      <div className="space-y-4 sm:space-y-6">
         {/* ================= TITLE ROW ================= */}
-        <div className="py-2 sm:py-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>
               Flood monitoring
@@ -533,10 +533,10 @@ export default function DisasterMonitorPage() {
         </div>
 
         {/* =================  WEATHER + Locaion ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 pb-4 sm:pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
 
           <div className="lg:col-span-7 rounded-xl p-4 sm:p-6" style={{ backgroundColor: COLORS.grid }}>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between mb-4 sm:mb-5">
               <div className="flex items-center gap-3">
                 <IconTile icon={CloudRain} />
                 <div>
@@ -551,7 +551,7 @@ export default function DisasterMonitorPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-5">
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
               <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
                 <p className="text-[14px] sm:text-[15px] font-semibold">{weather?.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : "—"}</p>
                 <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
@@ -583,8 +583,8 @@ export default function DisasterMonitorPage() {
             )}
           </div>
           {/* Location Card */}
-          <div className="lg:col-span-5 py-4">
-            <div className="flex items-center gap-3 mb-3">
+          <div className="lg:col-span-5 rounded-xl p-4 sm:p-6" style={{ backgroundColor: COLORS.grid }}>
+            <div className="flex items-center gap-3 mb-4 sm:mb-5">
               <IconTile icon={Navigation} />
               <h2 className="text-[13px] sm:text-[14px] font-medium">Location</h2>
             </div>
@@ -598,8 +598,8 @@ export default function DisasterMonitorPage() {
         </div>
 
         {/* ================= WATER LEVEL: GAUGE + HISTORY ================= */}
-        <div className="rounded-xl p-4 sm:p-6 mb-4 sm:mb-6" style={{ backgroundColor: COLORS.grid }}>
-          <div className="flex items-center justify-between mb-4 sm:mb-5">
+        <div className="rounded-xl p-4 sm:p-6" style={{ backgroundColor: COLORS.grid }}>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-5">
             <div className="flex items-center gap-3">
               <IconTile icon={GaugeIcon} />
               <div>
@@ -645,7 +645,7 @@ export default function DisasterMonitorPage() {
               <p className="text-[13px]">Awaiting water level data from gauging station...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-center">
               <div className="lg:col-span-4 flex justify-center">
                 <LevelGauge waterLevel={wl} alertLevel={al} minorFloodLevel={mf} majorFloodLevel={Mf} risk={risk} />
               </div>
@@ -665,8 +665,8 @@ export default function DisasterMonitorPage() {
         </div>
 
         {/* ================= FLOOD PREDICTION ================= */}
-        <div className="rounded-xl p-4 sm:p-6 mb-4 sm:mb-6" style={{ backgroundColor: COLORS.grid }}>
-          <div className="flex items-center justify-between mb-4 sm:mb-5">
+        <div className="rounded-xl p-4 sm:p-6" style={{ backgroundColor: COLORS.grid }}>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-5">
             <div className="flex items-center gap-3">
               <IconTile icon={Activity} />
               <div>
@@ -796,7 +796,7 @@ export default function DisasterMonitorPage() {
                 )}
                 {prediction.hydrospatial.station_name && (
                   <span className="flex items-center gap-1.5 text-[12px]">
-                    <Gauge className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
+                    <GaugeIcon className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
                     <span style={{ color: COLORS.muted }}>Gauging Station:</span>
                     <span className="font-medium" style={{ color: COLORS.ink }}>
                       {prediction.hydrospatial.station_name}
@@ -928,7 +928,7 @@ export default function DisasterMonitorPage() {
         </div>
 
         {/* ================= LIVE READINGS + DEVICE STATUS ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 pb-6 sm:pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           <div className="lg:col-span-7">
             <div className="flex items-center gap-3 mb-3">
               <IconTile icon={Mountain} />
@@ -981,39 +981,42 @@ export default function DisasterMonitorPage() {
               </div>
             )}
           </div>
-                  {readings.length > 0 && (
-          <div className="pb-4 sm:pb-6 w-full lg:col-span-5">
-            <h2 className="text-[13px] sm:text-[14px] font-medium mb-3">Live readings</h2>
-            <div className="rounded-xl divide-y" style={{ backgroundColor: COLORS.grid }}>
-              {readings.map((r) => (
-                <div
-                  key={r.title}
-                  className="flex items-center gap-3 sm:gap-3.5 px-3.5 sm:px-5 py-3.5 sm:py-4"
-                  style={{ borderColor: COLORS.hairline }}
-                >
-                  <IconTile icon={r.icon} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] sm:text-[13px] font-medium truncate">{r.title}</p>
-                    <p className="text-[11px] sm:text-[12px] truncate mt-0.5" style={{ color: COLORS.muted }}>
-                      {r.meta}
-                    </p>
+          {readings.length > 0 && (
+            <div className="w-full lg:col-span-5">
+              <div className="flex items-center gap-3 mb-3">
+                <IconTile icon={Droplets} />
+                <h2 className="text-[13px] sm:text-[14px] font-medium">Live readings</h2>
+              </div>
+              <div className="rounded-xl divide-y" style={{ backgroundColor: COLORS.grid }}>
+                {readings.map((r) => (
+                  <div
+                    key={r.title}
+                    className="flex items-center gap-3 sm:gap-3.5 px-3.5 sm:px-5 py-3.5 sm:py-4"
+                    style={{ borderColor: COLORS.hairline }}
+                  >
+                    <IconTile icon={r.icon} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] sm:text-[13px] font-medium truncate">{r.title}</p>
+                      <p className="text-[11px] sm:text-[12px] truncate mt-0.5" style={{ color: COLORS.muted }}>
+                        {r.meta}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[13px] sm:text-[14px] font-semibold">{r.value}</p>
+                      <p className="text-[11px] sm:text-[11px]" style={{ color: COLORS.muted }}>
+                        {r.note}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[13px] sm:text-[14px] font-semibold">{r.value}</p>
-                    <p className="text-[11px] sm:text-[11px]" style={{ color: COLORS.muted }}>
-                      {r.note}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
       </div>
 
       {/* ================= ESCALATED ALERTS TABLE ================= */}
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         <div className="rounded-xl  overflow-hidden" style={{ background: "#fff", boxShadow: SHADOW_CARD }}>
           <div className="px-4 sm:px-5 py-3.5 border-b border-black/[.06] flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1026,7 +1029,7 @@ export default function DisasterMonitorPage() {
               {alertsPagination.total} total
             </span>
           </div>
-          <div className="py-4">
+          <div className="px-4 sm:px-5 py-4">
             <DataTable
               columns={[
                 {
@@ -1133,7 +1136,7 @@ export default function DisasterMonitorPage() {
       {/* ================= FLOATING SIMULATION BUTTON ================= */}
       <button
         onClick={() => setShowSimModal(true)}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full text-[13px] font-medium text-white transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full text-[13px] font-medium text-white transition-all hover:scale-105 active:scale-95"
         style={{ backgroundColor: isSimulating ? "#D97706" : COLORS.brand }}
         title="Open prediction simulation"
       >

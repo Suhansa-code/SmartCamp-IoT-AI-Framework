@@ -179,12 +179,9 @@ function VulnerableRow({ icon: Icon, tone, label, value }) {
 function InsightRow({ icon: Icon, tone, label, value, sub }) {
   const t = TONE[tone] || TONE.neutral;
   return (
-    <div className="flex items-start gap-3 py-2.5" style={{ borderBottom: `1px solid ${COLORS.hairline}` }}>
-      <IconTile icon={Icon} tone={tone} size="sm" />
+    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: `1px solid ${COLORS.hairline}` }}>
+      <IconTile icon={Icon} tone={tone} size="lg" />
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: COLORS.muted }}>
-          {label}
-        </p>
         <p className="text-[13px] font-medium mt-0.5" style={{ color: COLORS.ink }}>
           {value}
         </p>
@@ -430,11 +427,9 @@ export default function DashboardPage() {
               {campId || "Camp"}
             </p>
             <h1 className="text-[24px] sm:text-[28px] font-semibold leading-tight tracking-tight">Camp Dashboard</h1>
-            <p className="text-[12px] mt-1" style={{ color: COLORS.muted }}>
-              Live overview of population, distribution &amp; readiness
-            </p>
+
           </div>
-          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: COLORS.muted }}>
+          <div className="flex -mt-1 items-center gap-1.5 text-[12px]" style={{ color: COLORS.muted }}>
             <CalendarDays className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
             <span className="font-medium">{today}</span>
           </div>
@@ -451,7 +446,7 @@ export default function DashboardPage() {
         {/* ================= DISTRIBUTION + SIDE CARDS ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 ">
           <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-            <Card delay={0.1} className="lg:col-span-2 w-full h-fit ">
+            <Card delay={0.1} className="lg:col-span-2 w-full h-fit bg-white border border-gray-200">
               <SectionLabel>Today's Distribution</SectionLabel>
               <DistributionRow label="Breakfast" data={dist.breakfast} />
               <DistributionRow label="Lunch" data={dist.lunch} />
@@ -460,7 +455,7 @@ export default function DashboardPage() {
             </Card>
 
             {/* Resource Usage */}
-            <Card delay={0.25}>
+            <Card delay={0.25} className=" bg-white border border-gray-200">
               <SectionLabel>Resource Usage</SectionLabel>
               <div className="space-y-0">
                 {MOCK_RESOURCE_USAGE.map((item) => (
@@ -490,13 +485,15 @@ export default function DashboardPage() {
             </Card>
 
             {/* Donut Chart for population of camp */}
-            <Card delay={0.2}>
+            <Card delay={0.2} className=" bg-white border border-gray-200">
               <SectionLabel>Population Distribution</SectionLabel>
               <DonutChart data={MOCK_POPULATION} />
             </Card>
           </div>
-          <div className="space-y-3 sm:space-y-4 h-full">
-            <Card delay={0.15} className="h-auto">
+
+          {/* Vulnerable Card */}
+          <div className="space-y-3 sm:space-y-4 h-full ">
+            <Card delay={0.15} className="h-auto bg-white border border-gray-200">
               <SectionLabel>Vulnerable</SectionLabel>
               <div className="space-y-3">
                 <VulnerableRow icon={Baby} tone="violet" label="Pregnant" value={vuln.pregnant} />
@@ -505,7 +502,8 @@ export default function DashboardPage() {
               </div>
             </Card>
 
-            <Card delay={0.2} className="h-42">
+{/* Network Card */}
+            <Card delay={0.2} className="h-42 bg-white border border-gray-200">
               <div className="flex items-center justify-between mb-3">
                 <SectionLabel>Network</SectionLabel>
                 <Chip tone={netTone}>
@@ -544,7 +542,8 @@ export default function DashboardPage() {
               </div>
             </Card>
 
-            <Card delay={0.25} className="h-auto">
+            {/* Tomorrow Prediction */}
+            <Card delay={0.25} className="h-auto bg-white border border-gray-200">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
                 <SectionLabel>Tomorrow</SectionLabel>
@@ -574,7 +573,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ================= DISASTER INSIGHT ================= */}
-        <Card delay={0.3}>
+        <Card delay={0.3} className="bg-white border border-gray-200">
           <SectionLabel>Disaster Insight</SectionLabel>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Flood Prediction */}
@@ -691,7 +690,7 @@ export default function DashboardPage() {
 
         {/* ================= EDUCATIONAL INSIGHTS ================= */}
         {eduInsights && (
-          <Card delay={0.3}>
+          <Card delay={0.3} className="bg-white border border-gray-200">
             <SectionLabel>Education Programme (PAGES)</SectionLabel>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               <StatCard
