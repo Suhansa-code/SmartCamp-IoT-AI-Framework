@@ -60,10 +60,10 @@ export async function distributeResource(barcode, resourceType, quantity) {
     }
   }
 
-  db.prepare('INSERT INTO distributions (wristband_barcode, resource_type, quantity) VALUES (?, ?, ?)')
+  const inserted = db.prepare('INSERT INTO distributions (wristband_barcode, resource_type, quantity) VALUES (?, ?, ?)')
     .run(barcode, resourceType, quantity || quantities[resourceType]);
 
-  enqueueSync('distributions', barcode);
+  enqueueSync('distributions', inserted.lastInsertRowid);
 
   const wristband = db.prepare('SELECT * FROM wristbands WHERE barcode = ?').get(barcode);
   const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(wristband.person_id);
