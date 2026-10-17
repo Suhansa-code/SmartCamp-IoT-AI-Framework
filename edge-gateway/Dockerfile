@@ -23,7 +23,7 @@ ENV PYTHONUNBUFFERED=1 \
     MPLCONFIGDIR=/tmp/matplotlib \
     # GPS_PORT defaults to COM5 in sensor_state.py — a Windows dev default
     # that opens nothing here. Point it at the ESP32 the compose file hands in.
-    GPS_PORT=/dev/ttyUSB1 \
+    GPS_PORT=/dev/ttyUSB0 \
     GPS_BAUDRATE=115200
 
 WORKDIR /app
