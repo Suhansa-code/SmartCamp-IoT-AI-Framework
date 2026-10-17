@@ -16,6 +16,7 @@ import {
   Radar,
   Layers,
   Cpu,
+  Users,
 } from "lucide-react";
 import { COLORS } from "../../../lib/tokens";
 import { API } from "../config";

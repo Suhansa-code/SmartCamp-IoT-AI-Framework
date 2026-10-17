@@ -9,6 +9,7 @@
     "dev": "node --watch server.js",
     "db:seed-tasks": "node db/seed/tasks.js",
     "db:seed-children": "node db/seed/children.js",
+    "db:seed-distributions": "node scripts/seed-distribution-history.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

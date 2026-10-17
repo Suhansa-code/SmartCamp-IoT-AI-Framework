@@ -4,6 +4,8 @@ api.py — FastAPI application for the Edge Gateway.
 Starts the persistent ESP32 background reader on import.
 Registers shutdown hook to cleanly release the serial port.
 """
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -63,9 +65,17 @@ def get_device_status():
             "timestamp": now,
         }
     else:
+        # Distinguish "module transmitting but no position fix" (antenna
+        # covered / obstructed) from a truly silent GPS (no NMEA at all).
+        seconds_since_input = gps_snapshot.get("seconds_since_input")
+        receiving_nmea = (
+            seconds_since_input is not None
+            and seconds_since_input <= gps_state.stale_seconds
+        )
+
         gps_sensor = {
             "connected": False,
-            "status": "disconnected",
+            "status": "no_fix" if receiving_nmea else "disconnected",
             "latitude": None,
             "longitude": None,
             "altitude": None,
@@ -73,9 +83,16 @@ def get_device_status():
             "location_name": None,
             "district": None,
             "is_mock": False,
-            "source": "UNAVAILABLE",
+            "source": "GPS_SENSOR" if receiving_nmea else "UNAVAILABLE",
             "timestamp": now,
         }
+        if receiving_nmea:
+            gps_sensor["error"] = (
+                "GPS module is sending NMEA data but has no position fix — "
+                "antenna may be covered or obstructed"
+            )
+        else:
+            gps_sensor["error"] = "No data from GPS sensor"
 
     # ── DHT11 (from background cache) ──────────────────────────
     dht_snapshot = dht11_state.get_status()

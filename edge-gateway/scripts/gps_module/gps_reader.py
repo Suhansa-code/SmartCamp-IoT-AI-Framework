@@ -2,11 +2,12 @@ import serial
 import pynmea2
 import os
 
-
+PORT = os.environ["GPS_PORT"]
+BAUDRATE = int(os.environ["GPS_BAUDRATE"])
 
 class GPSReader:
 
-    def __init__(self, port='/dev/ttyUSB1', baudrate=115200):
+    def __init__(self, port=PORT, baudrate=BAUDRATE):
         self.serial_port = serial.Serial(
             port,
             baudrate,

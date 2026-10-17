@@ -109,6 +109,9 @@ CREATE INDEX IF NOT EXISTS idx_persons_fingerprint ON persons (fingerprint_id);
 
 ALTER TABLE persons ADD COLUMN IF NOT EXISTS device_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_persons_device ON persons (device_id);
+ALTER TABLE persons ADD COLUMN IF NOT EXISTS camp_id TEXT;
+UPDATE persons SET camp_id = 'SCB-UNIT-01' WHERE camp_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_persons_camp ON persons (camp_id);
 
 CREATE TABLE IF NOT EXISTS camp_checkins (
   id              INTEGER PRIMARY KEY,
@@ -169,6 +172,16 @@ CREATE TABLE IF NOT EXISTS resources (
   created_at          TIMESTAMPTZ,
   updated_at          TIMESTAMPTZ
 );
+
+-- Resources are also created directly at the donation hub, while synced
+-- records retain their source IDs through the existing upsert path.
+CREATE SEQUENCE IF NOT EXISTS resources_id_seq;
+SELECT setval(
+  'resources_id_seq',
+  COALESCE((SELECT MAX(id) FROM resources), 1),
+  (SELECT COUNT(*) > 0 FROM resources)
+);
+ALTER TABLE resources ALTER COLUMN id SET DEFAULT nextval('resources_id_seq');
 
 CREATE TABLE IF NOT EXISTS resource_usage (
   id            INTEGER PRIMARY KEY,
@@ -264,12 +277,34 @@ CREATE TABLE IF NOT EXISTS sync_log (
   device_id     TEXT,
   operation     TEXT NOT NULL,
   status        TEXT DEFAULT 'received',
+  priority      TEXT NOT NULL DEFAULT 'MEDIUM',
   received_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'MEDIUM';
 CREATE INDEX IF NOT EXISTS idx_sync_log_entity ON sync_log (entity, local_id);
 CREATE INDEX IF NOT EXISTS idx_sync_log_received ON sync_log (received_at);
 CREATE INDEX IF NOT EXISTS idx_sync_log_device ON sync_log (device_id);
+CREATE INDEX IF NOT EXISTS idx_sync_log_priority_received ON sync_log (priority, received_at DESC);
+
+-- Latest connectivity observation reported by each Raspberry Pi. Network
+-- samples are telemetry, so the dashboard needs the latest value per device,
+-- while sync_log retains the delivery trail.
+CREATE TABLE IF NOT EXISTS network_status (
+  device_id         TEXT PRIMARY KEY,
+  camp_id           TEXT,
+  state             TEXT NOT NULL,
+  raw_state         TEXT,
+  metrics           JSONB,
+  qos_policy        JSONB,
+  reachability      JSONB,
+  buffered_messages INTEGER NOT NULL DEFAULT 0,
+  observed_at       TIMESTAMPTZ NOT NULL,
+  received_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_network_status_camp ON network_status (camp_id);
+CREATE INDEX IF NOT EXISTS idx_network_status_observed ON network_status (observed_at DESC);
 
 -- ── Disaster domain (synced from Raspberry Pi via MQTT) ─────────────────
 
@@ -536,3 +571,70 @@ CREATE TABLE IF NOT EXISTS camp_daily_snapshots (
 );
 
 CREATE INDEX IF NOT EXISTS idx_camp_snapshots_date ON camp_daily_snapshots (date DESC);
+
+-- ── Resource inventory (Neon/PostgreSQL) ──────────────────────────────────
+-- `resources` above is the Raspberry Pi sync mirror.  It cannot safely mix
+-- water recorded in litres with water recorded in millilitres, so operational
+-- stock is kept here.  Every amount is also stored in the forecasting base
+-- unit: food in kg and water in litres.  `recorded_unit` keeps the unit a
+-- staff member used at entry, so the UI never silently changes their form.
+CREATE TABLE IF NOT EXISTS resource_inventory_items (
+  id                        BIGSERIAL PRIMARY KEY,
+  resource_name             TEXT NOT NULL,
+  category                  TEXT NOT NULL CHECK (category IN ('food', 'water')),
+  recorded_unit             TEXT NOT NULL CHECK (recorded_unit IN ('kg', 'L', 'mL')),
+  base_unit                 TEXT NOT NULL CHECK (base_unit IN ('kg', 'L')),
+  available_base_quantity   NUMERIC(14, 3) NOT NULL DEFAULT 0 CHECK (available_base_quantity >= 0),
+  minimum_base_quantity     NUMERIC(14, 3) NOT NULL DEFAULT 0 CHECK (minimum_base_quantity >= 0),
+  status                    TEXT NOT NULL DEFAULT 'AVAILABLE'
+                            CHECK (status IN ('AVAILABLE', 'LOW', 'CRITICAL', 'UNAVAILABLE')),
+  notes                     TEXT,
+  created_at                TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at                TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (resource_name, category)
+);
+
+ALTER TABLE resource_inventory_items ADD COLUMN IF NOT EXISTS camp_id TEXT;
+UPDATE resource_inventory_items SET camp_id = 'SCB-UNIT-01' WHERE camp_id IS NULL;
+ALTER TABLE resource_inventory_items ALTER COLUMN camp_id SET NOT NULL;
+ALTER TABLE resource_inventory_items ALTER COLUMN camp_id SET DEFAULT 'SCB-UNIT-01';
+ALTER TABLE resource_inventory_items DROP CONSTRAINT IF EXISTS resource_inventory_items_resource_name_category_key;
+ALTER TABLE resource_inventory_items DROP CONSTRAINT IF EXISTS resource_inventory_items_camp_resource_category_key;
+ALTER TABLE resource_inventory_items ADD CONSTRAINT resource_inventory_items_camp_resource_category_key
+  UNIQUE (camp_id, resource_name, category);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_items_category ON resource_inventory_items (category);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_status ON resource_inventory_items (status);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_camp ON resource_inventory_items (camp_id);
+
+-- Immutable stock ledger.  Adjustments are auditable and provide the resource
+-- consumption series shown by the existing dashboard format.
+CREATE TABLE IF NOT EXISTS resource_inventory_movements (
+  id                        BIGSERIAL PRIMARY KEY,
+  inventory_item_id         BIGINT NOT NULL REFERENCES resource_inventory_items(id) ON DELETE CASCADE,
+  quantity_base_change      NUMERIC(14, 3) NOT NULL,
+  recorded_quantity_change  NUMERIC(14, 3) NOT NULL,
+  recorded_unit             TEXT NOT NULL CHECK (recorded_unit IN ('kg', 'L', 'mL')),
+  movement_type             TEXT NOT NULL CHECK (movement_type IN ('opening_balance', 'received', 'issued', 'adjustment')),
+  reason                    TEXT,
+  recorded_by               TEXT,
+  occurred_at               TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_item_time
+  ON resource_inventory_movements (inventory_item_id, occurred_at DESC);
+
+-- An optional reproducible snapshot of the features and forecast used for a
+-- resource decision.  The live endpoint always recalculates from current
+-- inventory and household data; snapshots make past decisions traceable.
+CREATE TABLE IF NOT EXISTS resource_inventory_prediction_snapshots (
+  id                        BIGSERIAL PRIMARY KEY,
+  generated_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  horizon_days              INTEGER NOT NULL,
+  household_features        JSONB NOT NULL,
+  inventory_features        JSONB NOT NULL,
+  prediction                JSONB NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_prediction_snapshots_generated
+  ON resource_inventory_prediction_snapshots (generated_at DESC);

@@ -218,6 +218,7 @@ function initializeCampDb() {
 
   backfillCampData();
   seedResources();
+  normalizeResourceUnits();
 
   const count = campDb.prepare('SELECT COUNT(*) as c FROM persons').get().c;
   if (count === 0) {
@@ -295,11 +296,11 @@ function seedResources() {
   if (count > 0) return;
 
   const defaults = [
-    { name: 'Rice',         category: 'Food',        unit: 'portion', total: 500, threshold: 50 },
+    { name: 'Rice',         category: 'Food',        unit: 'kg',      total: 500, threshold: 50 },
     { name: 'Chicken',      category: 'Food',        unit: 'portion', total: 200, threshold: 30 },
-    { name: 'Vegetables',   category: 'Food',        unit: 'portion', total: 300, threshold: 40 },
-    { name: 'Water',        category: 'Beverage',    unit: 'bottle',  total: 1000, threshold: 100 },
-    { name: 'Milk',         category: 'Beverage',    unit: 'packet',  total: 150, threshold: 25 },
+    { name: 'Vegetables',   category: 'Food',        unit: 'kg',      total: 300, threshold: 40 },
+    { name: 'Water',        category: 'Water',       unit: 'L',       total: 1000, threshold: 100 },
+    { name: 'Milk Powder',  category: 'Food',        unit: 'packet',  total: 150, threshold: 25 },
     { name: 'Bread',        category: 'Food',        unit: 'loaf',    total: 120, threshold: 20 },
     { name: 'Paracetamol',  category: 'Medicine',    unit: 'strip',   total: 80, threshold: 15 },
   ];
@@ -313,6 +314,40 @@ function seedResources() {
   });
   seed();
   logger.info('[CAMP DB] Seeded default resource catalog.');
+}
+
+function normalizeResourceUnits() {
+  // Water bottles are one litre each, so the stored quantities are unchanged.
+  const water = campDb.prepare(`
+    UPDATE resources
+    SET unit = 'L', category = 'Water', updated_at = datetime('now'), synced = 0
+    WHERE lower(resource_name) IN ('water', 'drinking water')
+      AND lower(unit) IN ('bottle', 'bottles')
+  `).run();
+
+  // Camp milk is supplied as powder packets, not liquid milk.
+  const milk = campDb.prepare(`
+    UPDATE resources
+    SET resource_name = 'Milk Powder', category = 'Food', unit = 'packet',
+        status = CASE WHEN status = 'INACTIVE' THEN 'AVAILABLE' ELSE status END,
+        updated_at = datetime('now'), synced = 0
+    WHERE lower(resource_name) IN ('milk', 'milk powder', 'powdered milk')
+      AND lower(unit) IN ('packet', 'packets')
+      AND (resource_name != 'Milk Powder' OR category != 'Food' OR unit != 'packet' OR status = 'INACTIVE')
+  `).run();
+
+  if (water.changes || milk.changes) {
+    logger.info(`[CAMP DB] Normalized ${water.changes} water resource(s) and restored ${milk.changes} milk-powder packet resource(s).`);
+  }
+
+  // The existing rice and vegetable quantities are stored as kilogram amounts.
+  const produce = campDb.prepare(`
+    UPDATE resources
+    SET unit = 'kg', updated_at = datetime('now'), synced = 0
+    WHERE lower(resource_name) IN ('rice', 'vegetables')
+      AND lower(unit) IN ('portion', 'portions')
+  `).run();
+  if (produce.changes) logger.info(`[CAMP DB] Normalized ${produce.changes} rice or vegetable resource(s) to kilograms.`);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

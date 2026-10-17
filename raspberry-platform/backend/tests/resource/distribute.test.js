@@ -4,8 +4,10 @@ const mockGet = vi.fn();
 const mockRun = vi.fn();
 const mockAll = vi.fn();
 const mockDb = { prepare: vi.fn(() => ({ get: mockGet, run: mockRun, all: mockAll })) };
+const mockEnqueueSync = vi.fn();
 
 vi.mock('../../config/database.js', () => ({ campDb: mockDb }));
+vi.mock('../../services/sync/sync-notify.js', () => ({ enqueueSync: mockEnqueueSync }));
 
 vi.mock('../../services/network/saamp-mqtt.js', () => ({
   publishAsClient: vi.fn(() => Promise.resolve({ published: true, action: 'publish' })),
@@ -37,7 +39,7 @@ describe('distributeResource', () => {
       .mockReturnValueOnce({ barcode: 'WB001', person_id: 10 })
       .mockReturnValueOnce({ id: 10, full_name: 'Kasun', mqtt_client_id: mqttCreds?.id || null, mqtt_password: mqttCreds?.pass || null });
     mockAll.mockReturnValue(todayDists);
-    mockRun.mockReturnValue({});
+    mockRun.mockReturnValue({ lastInsertRowid: 42 });
   }
 
   it('distributes a valid resource type', async () => {
@@ -61,27 +63,31 @@ describe('distributeResource', () => {
     await distribute.distributeResource('WB001', 'lunch');
     const sqlCalls = mockDb.prepare.mock.calls.map(c => c[0]);
     expect(sqlCalls.some(s => s.includes('INSERT INTO distributions'))).toBe(true);
+    expect(mockEnqueueSync).toHaveBeenCalledWith('distributions', 42);
   });
 
-  it('uses publishAsClient when mqtt credentials exist', async () => {
-    mockDistributeSetup({ id: 'cli-1', pass: 'pass' });
-    await distribute.distributeResource('WB001', 'water');
-    const saamp = await import('../../services/network/saamp-mqtt.js');
-    expect(saamp.publishAsClient).toHaveBeenCalled();
-  });
-
-  it('uses publish when no mqtt credentials', async () => {
-    mockDistributeSetup();
+  it('publishes water distributions through the shared connection', async () => {
+    mockGet
+      .mockReturnValueOnce({ total: 0 })
+      .mockReturnValueOnce({ barcode: 'WB001', person_id: 10 })
+      .mockReturnValueOnce({ id: 10, full_name: 'Kasun' })
+      .mockReturnValueOnce({ total: 2 });
+    mockAll.mockReturnValue([{ resource_type: 'water' }]);
+    mockRun.mockReturnValue({ lastInsertRowid: 43 });
     await distribute.distributeResource('WB001', 'water');
     const saamp = await import('../../services/network/saamp-mqtt.js');
     expect(saamp.publish).toHaveBeenCalled();
+    expect(mockEnqueueSync).toHaveBeenCalledWith('distributions', 43);
   });
 
   it('returns correct today_distributions state', async () => {
-    mockDistributeSetup(null, [{ resource_type: 'breakfast' }, { resource_type: 'water' }, { resource_type: 'dinner' }]);
-    const result = await distribute.distributeResource('WB001', 'dinner');
+    mockDistributeSetup(null, [
+      { resource_type: 'breakfast' }, { resource_type: 'lunch' },
+      { resource_type: 'water' }, { resource_type: 'dinner' },
+    ]);
+    const result = await distribute.distributeResource('WB001', 'lunch');
     expect(result.today_distributions.breakfast).toBe(true);
-    expect(result.today_distributions.lunch).toBe(false);
+    expect(result.today_distributions.lunch).toBe(true);
     expect(result.today_distributions.dinner).toBe(true);
     expect(result.today_distributions.water).toBe(true);
   });

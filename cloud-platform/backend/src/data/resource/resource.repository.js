@@ -43,6 +43,25 @@ export async function getResourceInventory({ category, status, search, page = 0,
   return { data: dataResult.rows, total, page, limit };
 }
 
+export async function createResource({ resourceName, category, unit, quantity, minimumThreshold }) {
+  const status = quantity <= 0
+    ? 'UNAVAILABLE'
+    : minimumThreshold > 0 && quantity <= minimumThreshold * 0.5
+      ? 'CRITICAL'
+      : minimumThreshold > 0 && quantity <= minimumThreshold
+        ? 'LOW'
+        : 'AVAILABLE';
+  const { rows } = await getPool().query(
+    `INSERT INTO resources
+      (resource_name, category, unit, total_quantity, available_quantity, minimum_threshold, status, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+     RETURNING id, resource_name, category, unit, total_quantity, available_quantity,
+               minimum_threshold, status, created_at, updated_at`,
+    [resourceName, category, unit, quantity, minimumThreshold, status],
+  );
+  return rows[0];
+}
+
 /**
  * Resource summary — aggregate stats across all resources.
  */

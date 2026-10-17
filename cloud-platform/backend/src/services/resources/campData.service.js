@@ -34,6 +34,8 @@ function freshDayCounters() {
   };
 }
 
+const DEFAULT_CAMP_ID = env.resources.defaultCampId;
+
 // ── In-memory store ────────────────────────────────────────────────────────
 
 const store = {
@@ -328,7 +330,7 @@ export const _store = store;
 // {person, wristband_barcode} envelope that onRegistration() handles.
 
 /** Mirror a synced persons row into the live roster. */
-export function applySyncedPerson(row) {
+export function applySyncedPerson(row, { camp_id: campId = DEFAULT_CAMP_ID } = {}) {
   if (!row?.id) return;
 
   // is_active is 0/1 from SQLite on the Pi; loadPersons() filters on it, so the
@@ -349,6 +351,7 @@ export function applySyncedPerson(row) {
     // A wristband may sync before or after its person; never let the person
     // row blank out a barcode already recorded.
     wristband_barcode: existing.wristband_barcode,
+    camp_id: campId,
   };
 
   store.persons.set(row.id, merged);
@@ -356,7 +359,7 @@ export function applySyncedPerson(row) {
 }
 
 /** Attach a synced wristbands row to its person in the live roster. */
-export function applySyncedWristband(row) {
+export function applySyncedWristband(row, { camp_id: campId = DEFAULT_CAMP_ID } = {}) {
   if (!row?.barcode || !row.person_id) return;
 
   if (Number(row.is_active ?? 1) !== 1) {
@@ -371,7 +374,7 @@ export function applySyncedWristband(row) {
   // The person may not have arrived yet — record the barcode so the person
   // handler above can pick it up when it does.
   const person = store.persons.get(row.person_id) || { id: row.person_id };
-  const merged = { ...person, wristband_barcode: row.barcode };
+  const merged = { ...person, wristband_barcode: row.barcode, camp_id: campId };
   store.persons.set(row.person_id, merged);
   store.wristbandPerson.set(row.barcode, merged);
 }
@@ -379,25 +382,25 @@ export function applySyncedWristband(row) {
 // ── Accessors for the Distribution domain ──────────────────────────────────
 
 /** Live person records, for cohort derivation. */
-export function getPersons() {
-  return Array.from(store.persons.values());
+export function getPersons(campId = DEFAULT_CAMP_ID) {
+  return Array.from(store.persons.values()).filter((person) => (person.camp_id || DEFAULT_CAMP_ID) === campId);
 }
 
 /**
  * Cumulative population history, oldest first, as
  * [{ date: 'YYYY-MM-DD', population }] — the shape forecastPopulation() wants.
  */
-export async function getPopulationHistory() {
+export async function getPopulationHistory(campId = DEFAULT_CAMP_ID) {
   // Primary: cumulative registrations by date, derived from the roster. This
   // is exact and survives restarts, backfills and out-of-order delivery.
-  const fromRoster = await loadPopulationHistory();
+  const fromRoster = await loadPopulationHistory(campId);
   if (fromRoster.length) {
     const today = todayDate();
     const last = fromRoster[fromRoster.length - 1];
     if (last.date !== today) {
-      fromRoster.push({ date: today, population: store.persons.size || last.population });
+      fromRoster.push({ date: today, population: getPersons(campId).length || last.population });
     } else {
-      last.population = Math.max(last.population, store.persons.size);
+      last.population = Math.max(last.population, getPersons(campId).length);
     }
     return fromRoster;
   }
@@ -409,7 +412,7 @@ export async function getPopulationHistory() {
   }));
   const today = todayDate();
   if (!history.some((row) => row.date === today)) {
-    history.push({ date: today, population: store.persons.size });
+    history.push({ date: today, population: getPersons(campId).length });
   }
   return history;
 }

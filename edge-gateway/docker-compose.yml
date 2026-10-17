@@ -5,7 +5,8 @@
 #   docker compose -f docker-compose.yml \
 #                  -f docker-compose.sensors.yml up -d --build   # with the ESP32
 #
-# No .env is required: every value below has a default.
+# A .env IS required (fail-first): GPS_SERIAL_PORT and GPS_BAUDRATE must be
+# defined or compose aborts. Copy .env.example to .env and adjust.
 #
 # The Pi's backend reaches this over the camp LAN, so EDGE_API_URL in
 # raspberry-platform/backend/.env must be http://<this-host>:8000 — its
@@ -15,16 +16,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # Optional: compose still starts with no .env, falling back to the
-    # defaults interpolated below.
+    # Optional: compose still starts with no .env for the OPTIONAL values,
+    # but GPS_SERIAL_PORT / GPS_BAUDRATE below abort the run if missing.
     env_file:
       - path: .env
         required: false
     environment:
       # sensor_state.py opens this port ONCE at startup and owns it for the
       # process lifetime; every endpoint reads its in-memory cache.
-      GPS_PORT: ${GPS_SERIAL_PORT:-/dev/ttyUSB1}
-      GPS_BAUDRATE: ${GPS_BAUDRATE:-115200}
+      # No defaults (fail-first): :? aborts compose if unset, and the app
+      # crashes at import if the vars are missing inside the container.
+      GPS_PORT: ${GPS_SERIAL_PORT:?GPS_SERIAL_PORT is not set in .env}
+      GPS_BAUDRATE: ${GPS_BAUDRATE:?GPS_BAUDRATE is not set in .env}
       # The rainfall ESP32 posts over WiFi instead of serial, so its
       # freshness is decided by a timeout rather than by the port state.
       RAINFALL_WIRELESS_TIMEOUT_SECONDS: ${RAINFALL_WIRELESS_TIMEOUT_SECONDS:-30}

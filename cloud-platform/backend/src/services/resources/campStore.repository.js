@@ -80,7 +80,7 @@ export async function savePerson(person) {
  * wristband_barcode is the one field camp_persons had that persons lacks; it
  * lives in wristbands, joined here so the shape callers receive is unchanged.
  */
-export async function loadPersons() {
+export async function loadPersons(campId = env.resources.defaultCampId) {
   const db = pool();
   if (!db) return [];
   try {
@@ -93,7 +93,8 @@ export async function loadPersons() {
         LEFT JOIN wristbands w
                ON w.person_id = p.id AND w.is_active = 1
        WHERE COALESCE(p.is_active, 1) = 1
-    `);
+         AND COALESCE(p.camp_id, $1) = $1
+    `, [campId]);
     return rows;
   } catch (err) {
     console.error('[Camp Store] loadPersons failed:', err.message);
@@ -159,24 +160,26 @@ export async function loadSnapshots(limit = 30) {
  * are treated as present from the beginning (added to every cumulative point)
  * rather than dropped, so the series still ends at the true headcount.
  */
-export async function loadPopulationHistory() {
+export async function loadPopulationHistory(campId = env.resources.defaultCampId) {
   const db = pool();
   if (!db) return [];
   try {
     const { rows: dated } = await db.query(`
       SELECT to_char(created_at::date, 'YYYY-MM-DD') AS date, COUNT(*)::int AS arrivals
       FROM persons
-      WHERE created_at IS NOT NULL
-        AND COALESCE(is_active, 1) = 1
-      GROUP BY created_at::date
-      ORDER BY created_at::date
-    `);
+       WHERE created_at IS NOT NULL
+         AND COALESCE(is_active, 1) = 1
+         AND COALESCE(camp_id, $1) = $1
+       GROUP BY created_at::date
+       ORDER BY created_at::date
+    `, [campId]);
 
     if (!dated.length) return [];
 
     const { rows } = await db.query(
-      `SELECT COUNT(*)::int AS undated FROM persons
-        WHERE created_at IS NULL AND COALESCE(is_active, 1) = 1`,
+       `SELECT COUNT(*)::int AS undated FROM persons
+         WHERE created_at IS NULL AND COALESCE(is_active, 1) = 1
+           AND COALESCE(camp_id, $1) = $1`, [campId],
     );
 
     let running = rows[0]?.undated || 0;

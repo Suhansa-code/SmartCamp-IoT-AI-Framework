@@ -16,7 +16,7 @@ import {
   getResourceTypes,
 } from '../controllers/distribution/distribution.controller.js';
 import {
-  getStockOutlook, getStockAlerts, getAliasInfo, reloadAliases,
+  getStockOutlook, getStockAlerts, getStockCamps, getAliasInfo, reloadAliases,
 } from '../controllers/resources/stockRunout.controller.js';
 import {
   listResources,
@@ -24,11 +24,28 @@ import {
   getUsageTimeline,
   getPredictions,
   getCategories,
+  createResource,
 } from '../controllers/resource/resource.controller.js';
+import {
+  listInventory, createInventoryItem, adjustInventoryItem, inventorySummary,
+  inventoryCategories, inventoryUsageTimeline, inventoryPredictionDataset,
+  saveInventoryPredictionSnapshot,
+} from '../controllers/resources/inventory.controller.js';
 
 const router = express.Router();
 
 router.get('/overview', getResourceOverview);
+
+// Neon inventory — accepts food only in kg and water in L/mL, then stores the
+// forecast-compatible kg/L value alongside the staff-entered unit.
+router.get('/inventory/items', listInventory);
+router.post('/inventory/items', createInventoryItem);
+router.post('/inventory/items/:id/adjust', adjustInventoryItem);
+router.get('/inventory/summary', inventorySummary);
+router.get('/inventory/categories', inventoryCategories);
+router.get('/inventory/usage-timeline', inventoryUsageTimeline);
+router.get('/inventory/prediction-dataset', inventoryPredictionDataset);
+router.post('/inventory/prediction-snapshots', saveInventoryPredictionSnapshot);
 
 // Distribution planning — food and drinking water only (Sri Lanka rate table model).
 router.get('/distribution/today', getTodayRequirement);
@@ -48,6 +65,7 @@ router.get('/distributions/resource-types', getResourceTypes);
 // Stock runout — forecast-driven days of cover, runout and reorder dates.
 router.get('/stock/outlook', getStockOutlook);
 router.get('/stock/alerts', getStockAlerts);
+router.get('/stock/camps', getStockCamps);
 // Commodity standardisation — inspect the curated alias layer, and dry-run one
 // name through it with ?name=Milk%20Powder before trusting a date to it.
 router.get('/stock/aliases', getAliasInfo);
@@ -55,6 +73,7 @@ router.post('/stock/aliases/reload', reloadAliases);
 
 // Resource inventory — live data from resources table.
 router.get('/inventory', listResources);
+router.post('/inventory', createResource);
 router.get('/resource-summary', getResourceSummary);
 router.get('/usage-timeline', getUsageTimeline);
 router.get('/predictions', getPredictions);

@@ -40,6 +40,7 @@ raspberry-platform/
         ├── components/
         │   ├── resources/      ← Camp ops UI (dashboard, registration, wristband scan)
         │   ├── psychoedu/      ← PAGES child education flow
+        │   ├── adult/          ← Adult QR-gated self-service flow
         │   └── ...             ← Auth, navbar, routing
         └── lib/                ← Router, auth context
 ```
@@ -80,6 +81,29 @@ raspberry-platform/
 | **Fail-Safe** | `failFast` on PAGES DB init failure. MQTT publish timeout (8s) triggers buffer fallback. Fallback scoring returns safe defaults (compositeScore=50, gate=PASS) if even Node.js computation fails. |
 | **Deployment** | Node >= 20 required (ESM modules). `.gitignore` excludes `node_modules/`, `.env`, `*.db`, `python/venv/`, `models/`. Seeded sample data (4 persons) on first run for immediate demo. |
 | **Scalability** | Stateless Express design — horizontal scaling behind a reverse proxy is straightforward. Frontend is fully static (Vite build) and can be served by nginx or CDN. |
+
+---
+
+## Frontend Flows
+
+### Adult Flow (`/adult`)
+
+Self-service kiosk flow for adult residents — accessible from the **Adult** navbar tab or the `/adult` URL. Nothing is persisted: reloading the page (or pressing **Exit**) returns to the login gate.
+
+```
+QR Login ──validate──► My Resources ──► Guidance
+   ▲        (camp.db)        ▲             │
+   └───────── Exit ──────────┴─────────────┘
+```
+
+| Step | Behaviour |
+|------|-----------|
+| **1. QR Login** | Camera scan (reuses `resources/QRScanner`) or manual code entry. Payload may be a plain wristband code, a QR identifier/barcode, or a JSON QR — child QRs are rejected with a message directing to the children's programme. |
+| **2. Local DB validation** | `GET /api/qr/:code` → `services/resource/qr.js resolveQR` checks wristband `qr_identifier`/barcode against **camp.db**: inactive wristband → rejected, already assigned → rejected, no active person → rejected. No valid scan ⇒ no access (no backend changes required — the endpoint has no auth middleware for kiosk use). |
+| **3. My Resources** | Personal view from the login payload: daily ration entitlements (`given`/`left`), meal flags, itemised receipts, water issued vs. max — plus camp inventory from `GET /api/resources/summary`, cached in `localStorage` (`adult:inventory`) so the page still renders offline. |
+| **4. Guidance** | Offline-first guidance carousel (auto-rotates every 7s) with bundled mock items covering recovery, livelihoods, health, schooling, wellbeing, and assistance — intended to read as camp guidance. Data comes from `components/adult/guidanceData.js getGuidanceItems()`; swapping the mock for fetched data is a single fetch call (documented in that file). |
+
+**Files:** `frontend/src/components/adult/` — `AdultFlow.jsx` (session guard + segmented nav), `AdultLoginPage.jsx`, `AdultResourcesPage.jsx`, `AdultGuidancePage.jsx`, `guidanceData.js`; routed in `App.jsx`, tab in `components/ui/layout/Navbar.jsx`.
 
 ---
 

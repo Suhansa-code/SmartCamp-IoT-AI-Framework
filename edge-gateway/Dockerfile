@@ -20,11 +20,11 @@ ENV PYTHONUNBUFFERED=1 \
     MPLBACKEND=Agg \
     # The container runs unprivileged with no writable HOME; without this
     # matplotlib logs a cache warning on every single import.
-    MPLCONFIGDIR=/tmp/matplotlib \
-    # GPS_PORT defaults to COM5 in sensor_state.py — a Windows dev default
-    # that opens nothing here. Point it at the ESP32 the compose file hands in.
-    GPS_PORT=/dev/ttyUSB1 \
-    GPS_BAUDRATE=115200
+    MPLCONFIGDIR=/tmp/matplotlib
+
+# GPS_PORT and GPS_BAUDRATE have NO defaults (fail-first): sensor_state.py
+# reads them with os.environ[...] and the app refuses to start without them.
+# Supply them via compose (.env) — pointing GPS_PORT at the ESP32 device.
 
 WORKDIR /app
 

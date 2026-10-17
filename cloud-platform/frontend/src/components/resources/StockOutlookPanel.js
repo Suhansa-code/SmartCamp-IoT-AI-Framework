@@ -262,12 +262,14 @@ export default function StockOutlookPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
   const [days, setDays]       = useState(30)
+  const [campId, setCampId]   = useState('SCB-UNIT-01')
+  const [camps, setCamps]     = useState(['SCB-UNIT-01'])
   const [expanded, setExpanded] = useState(() => new Set())
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const res = await fetch(`${API}/api/resources/stock/outlook?days=${days}`)
+      const res = await fetch(`${API}/api/resources/stock/outlook?days=${days}&camp_id=${encodeURIComponent(campId)}`)
       if (!res.ok) throw new Error(`Request failed (${res.status})`)
       setData(await res.json())
     } catch (err) {
@@ -275,9 +277,26 @@ export default function StockOutlookPanel() {
     } finally {
       setLoading(false)
     }
-  }, [days])
+  }, [campId, days])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    async function loadCamps() {
+      try {
+        const res = await fetch(`${API}/api/resources/stock/camps`)
+        if (!res.ok) return
+        const body = await res.json()
+        if (Array.isArray(body.camps) && body.camps.length) {
+          setCamps(body.camps)
+          if (!body.camps.includes(campId)) setCampId(body.camps[0])
+        }
+      } catch {
+        // The default camp remains usable if the list endpoint is unavailable.
+      }
+    }
+    loadCamps()
+  }, [])
 
   const toggleRow = useCallback((id) => {
     setExpanded((prev) => {
@@ -342,6 +361,16 @@ export default function StockOutlookPanel() {
 
       {/* ── Controls ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <label style={{ fontSize: '0.75rem', color: T.muted, fontWeight: 700 }}>
+          Camp
+          <select
+            value={campId}
+            onChange={(event) => setCampId(event.target.value)}
+            style={{ marginLeft: '0.45rem', padding: '0.32rem 0.55rem', borderRadius: '0.45rem', border: `1px solid ${T.border}`, background: T.card, color: T.ink, fontWeight: 700 }}
+          >
+            {camps.map((camp) => <option key={camp} value={camp}>{camp}</option>)}
+          </select>
+        </label>
         <span style={{ fontSize: '0.75rem', color: T.muted, fontWeight: 700 }}>Next</span>
         {[14, 30, 60].map((d) => (
           <button key={d} onClick={() => setDays(d)} style={{
