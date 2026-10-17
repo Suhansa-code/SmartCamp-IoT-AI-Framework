@@ -168,6 +168,7 @@ function ResourcesContent() {
                   >
                     <DistributionForecastPanel />
                   </div>
+
                 </>
               )}
 

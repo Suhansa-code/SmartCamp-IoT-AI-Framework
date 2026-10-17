@@ -266,9 +266,13 @@ export async function upsertResource(r) {
        category=EXCLUDED.category,unit=EXCLUDED.unit,total_quantity=EXCLUDED.total_quantity,
        available_quantity=EXCLUDED.available_quantity,minimum_threshold=EXCLUDED.minimum_threshold,
        status=EXCLUDED.status,created_at=EXCLUDED.created_at,updated_at=EXCLUDED.updated_at`,
-    [r.id,r.resource_name,r.category||null,r.unit||'portion',r.total_quantity||0,
-     r.available_quantity||0,r.minimum_threshold||0,r.status||'AVAILABLE',
-     ts(r.created_at),ts(r.updated_at)]
+     [r.id,r.resource_name,r.category||null,r.unit||'portion',r.total_quantity||0,
+      r.available_quantity||0,r.minimum_threshold||0,r.status||'AVAILABLE',
+      ts(r.created_at),ts(r.updated_at)]
+  );
+  // Keep donation-hub inserts above any resource IDs imported from the edge.
+  await pool.query(
+    "SELECT setval('resources_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM resources), 1), true)",
   );
 }
 

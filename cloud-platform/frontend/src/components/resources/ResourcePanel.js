@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { Package, AlertTriangle, Activity, RefreshCw, Filter, Waves, MapPin } from 'lucide-react'
+import { Package, AlertTriangle, Activity, RefreshCw, Filter, MapPin, Plus } from 'lucide-react'
 import * as MapLibreGL from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import DashboardCard from '@/components/dashboard/DashboardCard'
@@ -10,7 +10,7 @@ import DataTable from '@/components/common/DataTable/DataTable'
 import Button from '@/components/common/Button'
 import { useTheme } from '@/components/common/ThemeProvider'
 import {
-  MOCK_RESOURCES, MOCK_TIMELINE, MOCK_PREDICTIONS, MOCK_RESOURCE_LOCATIONS,
+  MOCK_RESOURCES, MOCK_TIMELINE, MOCK_RESOURCE_LOCATIONS,
   MOCK_CATEGORIES, computeMockSummary,
 } from '@/data/resources.data'
 import { DISASTER_API_BASE } from "@/lib/apiBase";
@@ -42,6 +42,7 @@ const RESOURCE_STATUS_COLOR = {
 }
 
 const COLOMBO_HUB = { name: 'Disaster Management Center', lat: 6.905756541552449, lng: 79.87149345240267 }
+const DONATION_CATEGORIES = ['water', 'food', 'medical', 'hygiene', 'shelter', 'other']
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
 
@@ -106,63 +107,6 @@ function UsageTimelineChart({ data, theme: T }) {
         ))}
       </BarChart>
     </ResponsiveContainer>
-  )
-}
-
-// ── Prediction Card ────────────────────────────────────────────────────────
-
-function PredictionCard({ pred, T }) {
-  const prob = pred.flood_probability != null ? Math.round(Number(pred.flood_probability) * 100) : 0
-  const cat = pred.flood_category || 'Unknown'
-  const catColor = cat === 'HIGH' ? T.red : cat === 'MEDIUM' ? T.amber : cat === 'LOW' ? T.green : T.muted
-
-  return (
-    <div style={{
-      padding: '0.85rem 1rem', borderRadius: '0.85rem',
-      background: T.card, border: `1px solid ${T.border}`,
-      display: 'flex', flexDirection: 'column', gap: 6,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{
-          fontSize: '0.6rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999,
-          background: `${catColor}14`, border: `1px solid ${catColor}44`, color: catColor,
-          textTransform: 'uppercase', letterSpacing: '0.06em',
-        }}>
-          {cat}
-        </span>
-        <span style={{ fontSize: '0.68rem', color: T.muted, fontWeight: 600 }}>
-          {pred.forecast_hours != null ? `${pred.forecast_hours}h forecast` : '—'}
-        </span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-        <span style={{ fontSize: '1.2rem', fontWeight: 800, color: catColor, fontFamily: "'Inter',sans-serif" }}>
-          {prob}%
-        </span>
-        <span style={{ fontSize: '0.68rem', color: T.muted, fontWeight: 600 }}>probability</span>
-      </div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-        {pred.rainfall != null && (
-          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: T.inkSoft, background: T.cardSoft || T.panelSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: '2px 8px' }}>
-            Rain: {Math.round(Number(pred.rainfall))}mm
-          </span>
-        )}
-        {pred.elevation != null && (
-          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: T.inkSoft, background: T.cardSoft || T.panelSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: '2px 8px' }}>
-            Elev: {Math.round(Number(pred.elevation))}m
-          </span>
-        )}
-        {pred.river_distance != null && (
-          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: T.inkSoft, background: T.cardSoft || T.panelSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: '2px 8px' }}>
-            River: {Number(pred.river_distance).toFixed(1)}km
-          </span>
-        )}
-      </div>
-      {pred.predicted_at && (
-        <div style={{ fontSize: '0.62rem', color: T.muted, fontWeight: 600 }}>
-          {new Date(pred.predicted_at).toLocaleString()}
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -379,7 +323,6 @@ export default function ResourcePanel() {
   const [resources, setResources] = useState([])
   const [summary, setSummary] = useState(null)
   const [timeline, setTimeline] = useState([])
-  const [predictions, setPredictions] = useState([])
   const [categories, setCategories] = useState([])
 
   // UI state
@@ -387,6 +330,10 @@ export default function ResourcePanel() {
   const [selectedStatus, setSelectedStatus] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [donation, setDonation] = useState({ resource_name: '', category: 'water', unit: 'litres', quantity: '', minimum_threshold: '' })
+  const [donationError, setDonationError] = useState('')
+  const [donationSuccess, setDonationSuccess] = useState('')
+  const [submittingDonation, setSubmittingDonation] = useState(false)
 
   // Reset state when toggling modes
   useEffect(() => {
@@ -397,7 +344,6 @@ export default function ResourcePanel() {
     setResources([])
     setSummary(null)
     setTimeline([])
-    setPredictions([])
     setCategories([])
     setLoading(true)
     setError('')
@@ -414,11 +360,10 @@ export default function ResourcePanel() {
       params.set('page', '0')
       params.set('limit', '100')
 
-      const [invRes, sumRes, timeRes, predRes, catRes] = await Promise.all([
+      const [invRes, sumRes, timeRes, catRes] = await Promise.all([
         fetch(`${API}/api/resources/inventory?${params}`),
         fetch(`${API}/api/resources/resource-summary`),
         fetch(`${API}/api/resources/usage-timeline?days=30`),
-        fetch(`${API}/api/resources/predictions?limit=10`),
         fetch(`${API}/api/resources/categories`),
       ])
 
@@ -427,20 +372,17 @@ export default function ResourcePanel() {
       const invData = await invRes.json()
       const sumData = await sumRes.json()
       const timeData = await timeRes.json()
-      const predData = await predRes.json()
       const catData = catRes.ok ? await catRes.json() : []
 
       setResources(invData.data || [])
       setSummary(sumData)
       setTimeline(timeData)
-      setPredictions(predData)
       setCategories(catData)
     } catch (err) {
       setError(err.message || 'Failed to load data')
       setResources([])
       setSummary(null)
       setTimeline([])
-      setPredictions([])
     } finally {
       setLoading(false)
     }
@@ -455,7 +397,6 @@ export default function ResourcePanel() {
       setResources(MOCK_RESOURCES)
       setSummary(computeMockSummary())
       setTimeline(MOCK_TIMELINE)
-      setPredictions(MOCK_PREDICTIONS)
       setCategories(MOCK_CATEGORIES)
       setLoading(false)
     }, 300)
@@ -503,6 +444,57 @@ export default function ResourcePanel() {
     // For now, use mock locations as placeholder until camp API is wired
     return MOCK_RESOURCE_LOCATIONS
   }, [useMockData])
+
+  const updateDonation = (field, value) => {
+    setDonation((current) => ({ ...current, [field]: value }))
+    setDonationError('')
+    setDonationSuccess('')
+  }
+
+  const submitDonation = async (event) => {
+    event.preventDefault()
+    const quantity = Number(donation.quantity)
+    const minimumThreshold = donation.minimum_threshold === '' ? 0 : Number(donation.minimum_threshold)
+    if (!donation.resource_name.trim() || !donation.unit.trim() || quantity <= 0 || minimumThreshold < 0) {
+      setDonationError('Enter a resource name, unit, quantity greater than zero, and a valid minimum level.')
+      return
+    }
+
+    setSubmittingDonation(true)
+    setDonationError('')
+    try {
+      if (useMockData) {
+        const donatedItem = {
+          id: `donation-${Date.now()}`,
+          resource_name: donation.resource_name.trim(),
+          category: donation.category,
+          unit: donation.unit.trim(),
+          total_quantity: quantity,
+          available_quantity: quantity,
+          minimum_threshold: minimumThreshold,
+          status: 'AVAILABLE',
+        }
+        const nextResources = [donatedItem, ...resources]
+        setResources(nextResources)
+        setSummary(computeMockSummary(nextResources))
+      } else {
+        const response = await fetch(`${API}/api/resources/inventory`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...donation, quantity, minimum_threshold: minimumThreshold }),
+        })
+        const payload = await response.json()
+        if (!response.ok) throw new Error(payload.error || 'Could not add the donation')
+        await fetchLiveData()
+      }
+      setDonationSuccess(`${donation.resource_name.trim()} was added to the collection hub.`)
+      setDonation({ resource_name: '', category: donation.category, unit: donation.unit, quantity: '', minimum_threshold: '' })
+    } catch (err) {
+      setDonationError(err.message || 'Could not add the donation')
+    } finally {
+      setSubmittingDonation(false)
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -603,6 +595,61 @@ export default function ResourcePanel() {
         </div>
       )}
 
+      {/* ── Donation collection hub ─────────────────────────────── */}
+      <form onSubmit={submitDonation} style={{
+        padding: '1.25rem', borderRadius: '1.25rem', background: `linear-gradient(135deg, ${T.green}0d, ${T.card})`,
+        border: `1px solid ${T.green}44`, display: 'flex', flexDirection: 'column', gap: '1rem',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: T.green, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              <Plus size={15} /> Donation Collection Hub
+            </div>
+            <div style={{ color: T.ink, fontSize: '1rem', fontWeight: 800, marginTop: 5 }}>Record incoming supplies in one place</div>
+            <div style={{ color: T.muted, fontSize: '0.74rem', marginTop: 3 }}>Water, food, medical, hygiene, shelter, and other essential donations are all supported.</div>
+          </div>
+          {donationSuccess && <span role="status" style={{ color: T.green, fontSize: '0.74rem', fontWeight: 700 }}>{donationSuccess}</span>}
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+          {DONATION_CATEGORIES.map((category) => {
+            const active = donation.category === category
+            const color = CATEGORY_COLORS[category]
+            return <button key={category} type="button" onClick={() => updateDonation('category', category)} style={{
+              padding: '0.38rem 0.7rem', borderRadius: 999, cursor: 'pointer', font: 'inherit', fontSize: '0.7rem', fontWeight: 800,
+              textTransform: 'capitalize', color: active ? '#fff' : color, background: active ? color : `${color}12`, border: `1px solid ${color}${active ? '' : '44'}`,
+            }}>{category}</button>
+          })}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.65rem', alignItems: 'end' }}>
+          {[
+            ['resource_name', 'Resource name', 'e.g. Bottled water'],
+            ['unit', 'Unit', 'e.g. litres, packs, pieces'],
+            ['quantity', 'Quantity received', '0'],
+            ['minimum_threshold', 'Minimum level', '0 (optional)'],
+          ].map(([field, label, placeholder]) => (
+            <label key={field} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+              <span style={{ fontSize: '0.66rem', color: T.muted, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+              <input
+                type={field === 'quantity' || field === 'minimum_threshold' ? 'number' : 'text'}
+                min={field === 'quantity' ? '0.01' : field === 'minimum_threshold' ? '0' : undefined}
+                step={field === 'quantity' || field === 'minimum_threshold' ? 'any' : undefined}
+                value={donation[field]}
+                onChange={(event) => updateDonation(field, event.target.value)}
+                placeholder={placeholder}
+                required={field === 'resource_name' || field === 'unit' || field === 'quantity'}
+                style={{ width: '100%', padding: '0.62rem 0.7rem', borderRadius: 8, border: `1px solid ${T.border}`, background: T.panelSoft || T.card, color: T.ink, font: 'inherit', fontSize: '0.78rem' }}
+              />
+            </label>
+          ))}
+          <Button type="submit" variant="green" circleIcon={false} disabled={submittingDonation} icon={<Plus size={14} />} style={{ whiteSpace: 'nowrap', minHeight: 38 }}>
+            {submittingDonation ? 'Adding...' : 'Add donation'}
+          </Button>
+        </div>
+        {donationError && <div role="alert" style={{ color: T.red, fontSize: '0.74rem', fontWeight: 700 }}>{donationError}</div>}
+      </form>
+
       {/* ── Empty state ─────────────────────────────────────────── */}
       {!loading && !error && !useMockData && resources.length === 0 && (
         <div style={{
@@ -677,26 +724,6 @@ export default function ResourcePanel() {
           )}
         </DashboardCard>
 
-        <DashboardCard
-          title="Flood Predictions"
-          subtitle={useMockData ? 'Simulated forecasts for demonstration' : 'Active forecasts from IoT sensors'}
-          right={
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Waves size={14} color={T.blue} />
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: T.blue }}>{predictions.length} active</span>
-            </span>
-          }
-          style={{ flex: '1 1 320px' }}
-          bodyStyle={{ gap: '0.6rem' }}
-        >
-          {predictions.length === 0 ? (
-            <div style={{ fontSize: '0.8rem', color: T.muted, textAlign: 'center', padding: '1rem 0', fontWeight: 600 }}>
-              No active flood predictions
-            </div>
-          ) : (
-            predictions.map((pred) => <PredictionCard key={pred.id} pred={pred} T={T} />)
-          )}
-        </DashboardCard>
       </div>
 
       {/* ── Resource Inventory Table ─────────────────────────────── */}

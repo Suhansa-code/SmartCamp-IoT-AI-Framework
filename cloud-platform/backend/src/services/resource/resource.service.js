@@ -4,6 +4,10 @@ export async function getResourceInventory(params) {
   return repo.getResourceInventory(params);
 }
 
+export async function createResource(resource) {
+  return repo.createResource(resource);
+}
+
 export async function getResourceSummary() {
   return repo.getResourceSummary();
 }

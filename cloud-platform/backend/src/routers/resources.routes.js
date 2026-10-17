@@ -24,6 +24,7 @@ import {
   getUsageTimeline,
   getPredictions,
   getCategories,
+  createResource,
 } from '../controllers/resource/resource.controller.js';
 import {
   listInventory, createInventoryItem, adjustInventoryItem, inventorySummary,
@@ -72,6 +73,7 @@ router.post('/stock/aliases/reload', reloadAliases);
 
 // Resource inventory — live data from resources table.
 router.get('/inventory', listResources);
+router.post('/inventory', createResource);
 router.get('/resource-summary', getResourceSummary);
 router.get('/usage-timeline', getUsageTimeline);
 router.get('/predictions', getPredictions);
