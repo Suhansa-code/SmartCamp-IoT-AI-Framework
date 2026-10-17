@@ -27,7 +27,7 @@ export function getAuditLogs({ action, person_id, limit = 100 } = {}) {
 
 // ── Resource catalog ───────────────────────────────────────────────────
 export function getAllResources({ q, category, low_stock } = {}) {
-  const conditions = [];
+  const conditions = ["status != 'INACTIVE'"];
   const params = [];
   if (q) { conditions.push('resource_name LIKE ?'); params.push(`%${q}%`); }
   if (category) { conditions.push('category = ?'); params.push(category); }

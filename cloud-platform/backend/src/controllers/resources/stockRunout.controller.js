@@ -13,6 +13,30 @@ import { loadPersons } from '../../services/resources/campStore.repository.js';
 import { getResourceInventory } from '../../services/resource/resource.service.js';
 import { env } from '../../config/env.js';
 
+function normalizeLegacyInventory(items) {
+  return items
+    .filter((item) => {
+      const name = String(item.resource_name || '').toLowerCase();
+      const unit = String(item.unit || '').toLowerCase();
+      const isMilkPowder = ['milk', 'milk powder', 'powdered milk'].includes(name)
+        && ['packet', 'packets'].includes(unit);
+      return item.status !== 'INACTIVE' || isMilkPowder;
+    })
+    .map((item) => {
+      const name = String(item.resource_name || '').toLowerCase();
+      const unit = String(item.unit || '').toLowerCase();
+      if (['milk', 'milk powder', 'powdered milk'].includes(name) && ['packet', 'packets'].includes(unit)) {
+        return { ...item, resource_name: 'Milk Powder', category: 'Food', unit: 'packet', status: 'AVAILABLE' };
+      }
+      // The camp's water bottles hold one litre, so no quantity conversion is needed.
+      return ['water', 'drinking water'].includes(name) && ['bottle', 'bottles'].includes(unit)
+        ? { ...item, unit: 'L' }
+        : ['rice', 'vegetables'].includes(name) && ['portion', 'portions'].includes(unit)
+          ? { ...item, unit: 'kg' }
+          : item;
+    });
+}
+
 async function loadInventory(campId) {
   if (!env.db.enabled) return { data: [] };
 
@@ -20,8 +44,9 @@ async function loadInventory(campId) {
   // still only have their Pi-synced stock in `resources`, so retain it as a
   // read-only source until staff enter the first operational inventory item.
   const items = await listForecastItems(campId);
-  if (items.length || campId !== env.resources.defaultCampId) return { data: items };
-  return getResourceInventory({ page: 0, limit: 500 });
+  if (items.length || campId !== env.resources.defaultCampId) return { data: normalizeLegacyInventory(items) };
+  const inventory = await getResourceInventory({ page: 0, limit: 500 });
+  return { ...inventory, data: normalizeLegacyInventory(inventory.data) };
 }
 
 async function buildOutlook(query = {}) {

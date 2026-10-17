@@ -173,6 +173,16 @@ CREATE TABLE IF NOT EXISTS resources (
   updated_at          TIMESTAMPTZ
 );
 
+-- Resources are also created directly at the donation hub, while synced
+-- records retain their source IDs through the existing upsert path.
+CREATE SEQUENCE IF NOT EXISTS resources_id_seq;
+SELECT setval(
+  'resources_id_seq',
+  COALESCE((SELECT MAX(id) FROM resources), 1),
+  (SELECT COUNT(*) > 0 FROM resources)
+);
+ALTER TABLE resources ALTER COLUMN id SET DEFAULT nextval('resources_id_seq');
+
 CREATE TABLE IF NOT EXISTS resource_usage (
   id            INTEGER PRIMARY KEY,
   person_id     INTEGER REFERENCES persons(id),

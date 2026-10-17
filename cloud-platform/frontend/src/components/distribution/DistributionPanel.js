@@ -20,6 +20,8 @@ const RESOURCE_COLORS = {
   medical: '#8B5CF6',
 }
 
+const TIMELINE_RESOURCE_TYPES = ['breakfast', 'lunch', 'dinner', 'water']
+
 function StatCard({ label, value, icon: Icon, color, subtitle }) {
   const { T } = useTheme()
   return (
@@ -40,6 +42,25 @@ function StatCard({ label, value, icon: Icon, color, subtitle }) {
 }
 
 function DistributionTimelineChart({ data, theme: T }) {
+  const grouped = useMemo(() => {
+    const byDate = {}
+    const today = new Date()
+    for (let offset = 29; offset >= 0; offset -= 1) {
+      const day = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - offset))
+      const date = day.toISOString().slice(0, 10)
+      byDate[date] = { date, breakfast: 0, lunch: 0, dinner: 0, water: 0 }
+    }
+
+    data?.forEach((row) => {
+      const date = row.date?.slice(0, 10) || 'Unknown'
+      const type = row.resource_type?.toLowerCase()
+      if (byDate[date] && TIMELINE_RESOURCE_TYPES.includes(type)) {
+        byDate[date][type] += parseFloat(row.total_quantity) || 0
+      }
+    })
+    return Object.values(byDate)
+  }, [data])
+
   if (!data || data.length === 0) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 250, color: T.muted, fontSize: 12, fontWeight: 600 }}>
@@ -48,33 +69,18 @@ function DistributionTimelineChart({ data, theme: T }) {
     )
   }
 
-  const grouped = useMemo(() => {
-    const byDate = {}
-    data.forEach((row) => {
-      const date = row.date?.slice(0, 10) || 'Unknown'
-      if (!byDate[date]) byDate[date] = { date }
-      byDate[date][row.resource_type] = parseFloat(row.total_quantity) || 0
-    })
-    return Object.values(byDate).slice(-14)
-  }, [data])
-
-  const resourceTypes = useMemo(() => {
-    const types = new Set(data.map((r) => r.resource_type).filter(Boolean))
-    return Array.from(types)
-  }, [data])
-
   return (
     <ResponsiveContainer width="100%" height={250}>
       <BarChart data={grouped} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
-        <XAxis dataKey="date" tick={{ fontSize: 10, fill: T.muted }} tickFormatter={(v) => v?.slice(5)} />
+        <XAxis dataKey="date" interval={4} tick={{ fontSize: 10, fill: T.muted }} tickFormatter={(v) => v?.slice(5)} />
         <YAxis tick={{ fontSize: 10, fill: T.muted }} />
         <Tooltip
           contentStyle={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }}
           labelStyle={{ color: T.ink }}
         />
         <Legend wrapperStyle={{ fontSize: 10 }} />
-        {resourceTypes.map((type) => (
+        {TIMELINE_RESOURCE_TYPES.map((type) => (
           <Bar key={type} dataKey={type} fill={RESOURCE_COLORS[type] || '#64748B'} radius={[4, 4, 0, 0]} />
         ))}
       </BarChart>
