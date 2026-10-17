@@ -19,6 +19,7 @@ import { TrendChart } from '@/components/disaster/DisasterVisuals'
 import { API_BASE as API_BASE_URL } from "@/lib/apiBase";
 
 const API_BASE = API_BASE_URL
+console.log('API_BASE:', API_BASE)
 
 function eduCode(id) {
   return EDU_CODE_MAP[id] || id.replace(/^CAMP-B-/, '').slice(0, 3).toUpperCase()

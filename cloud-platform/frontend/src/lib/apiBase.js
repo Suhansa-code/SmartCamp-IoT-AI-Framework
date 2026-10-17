@@ -33,7 +33,7 @@
  * Set NEXT_PUBLIC_API_URL only to override that — running `next dev` on :3000
  * with no nginx in front, where the API is a separate origin on :3001.
  */
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /**
  * The disaster pages were given their own variable that was never unified with
