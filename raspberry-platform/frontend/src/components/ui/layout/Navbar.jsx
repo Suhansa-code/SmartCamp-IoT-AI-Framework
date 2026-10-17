@@ -16,6 +16,7 @@ import {
   Radar,
   Layers,
   Cpu,
+  Users,
 } from "lucide-react";
 import { COLORS } from "../../../lib/tokens";
 import { API } from "../config";
@@ -26,6 +27,7 @@ const tabs = [
   { id: "wristband", label: "Distribution", path: "/wristband", icon: ScanBarcode },
   { id: "wristbands", label: "Wristbands", path: "/wristbands", icon: Layers },
   { id: "educationscreen", label: "Education", path: "/educationscreen", icon: BrainCircuit },
+  { id: "adult", label: "Adult", path: "/adult", icon: Users },
   { id: "network", label: "Network", path: "/network", icon: Activity },
   { id: "disaster", label: "Disaster", path: "/disaster", icon: Map },
 ];

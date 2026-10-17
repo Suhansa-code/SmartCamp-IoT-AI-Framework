@@ -47,7 +47,7 @@ router.get('/device-status', async (_req, res) => {
       camp_id: gpsService.getDynamicCampId(),
       device: { id: 'edge-gateway', status: 'disconnected', uptime_note: err.message },
       sensors: {
-        gps:        { connected: false, status: 'disconnected', latitude: null, longitude: null, altitude: null, satellites: 0, location_name: null, district: null, is_mock: false, source: 'UNAVAILABLE', timestamp: ts },
+        gps:        { connected: false, status: 'disconnected', latitude: null, longitude: null, altitude: null, satellites: 0, location_name: null, district: null, is_mock: false, source: 'UNAVAILABLE', error: 'Edge gateway unreachable', timestamp: ts },
         temperature:{ connected: false, status: 'disconnected', value: null, unit: 'C', error: 'Edge gateway unreachable', timestamp: ts },
         humidity:   { connected: false, status: 'disconnected', value: null, unit: '%', error: 'Edge gateway unreachable', timestamp: ts },
         rainfall:   { connected: false, status: 'disconnected', rain_analog: null, rain_digital: null, rain_status: null, wetness_level: null, error: 'Edge gateway unreachable', source: 'UNAVAILABLE', timestamp: ts },

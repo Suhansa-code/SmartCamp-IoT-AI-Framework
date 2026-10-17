@@ -11,6 +11,7 @@ import NetworkScreen from './components/resources/NetworkScreen'
 import DeviceHealthScreen from './components/resources/DeviceHealthScreen'
 import Navbar from './components/ui/layout/Navbar'
 import ChildFlow from './components/ChildFlow'
+import AdultFlow from './components/adult/AdultFlow'
 import AuthorizePage from './components/AuthorizePage'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -18,7 +19,7 @@ function AdminLayout({ children }) {
   return (
     <div className="min-h-screen bg-white" >
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 sm:py-8">
         {children}
       </main>
     </div>
@@ -50,6 +51,9 @@ function AppContent() {
   const { path } = useRouter()
   if (path.startsWith('/child')) {
     return <ChildFlow />
+  }
+  if (path.startsWith('/adult')) {
+    return <AdultFlow />
   }
   if (path === '/authorize') {
     return <AuthorizePage />

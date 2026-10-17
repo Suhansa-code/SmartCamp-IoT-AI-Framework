@@ -53,8 +53,8 @@ const TABS = [
 ];
 
 const TAB_META = {
-  distribute: { eyebrow: "Camp operations", title: "Distribution Hub", subtitle: "Scan wristbands to allocate daily resources safely" },
-  predict: { eyebrow: "Camp operations", title: "Distribution Prediction", subtitle: "Resource allocation forecast, projected 7 days ahead" },
+  distribute: { title: "Distribution Hub", subtitle: "Scan wristbands to allocate daily resources safely" },
+  predict: { title: "Distribution Prediction", subtitle: "Resource allocation forecast, projected 7 days ahead" },
 };
 
 /* ------------------------------------------------------------------ */
@@ -987,7 +987,7 @@ export default function WristbandScanScreen() {
     <div className="min-h-screen bg-white font-sans max-w-7xl mx-auto" style={{ color: COLORS.ink }}>
       <div className="sm:px-5 lg:px-6">
         {/* ================= TITLE ROW ================= */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-2 sm:py-7">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:py-7">
           <div>
             <p className="text-[11px] uppercase tracking-wider" style={{ color: COLORS.muted }}>
               {meta.eyebrow}
@@ -1006,7 +1006,7 @@ export default function WristbandScanScreen() {
                 </motion.h1>
               </AnimatePresence>
             </div>
-            <p className="text-[12px] mt-2" style={{ color: COLORS.muted }}>
+            <p className="text-[12px] my-2" style={{ color: COLORS.muted }}>
               {meta.subtitle}
             </p>
           </div>
