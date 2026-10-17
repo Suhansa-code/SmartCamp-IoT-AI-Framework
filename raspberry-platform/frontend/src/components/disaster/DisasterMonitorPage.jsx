@@ -194,6 +194,80 @@ function FieldBox({ label, value, icon: Icon }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  FETCHED LOCATION NAME (backend name, else Nominatim reverse geocode) */
+/* ------------------------------------------------------------------ */
+
+function LocationName({ gps }) {
+  const lat = gps?.latitude;
+  const lng = gps?.longitude;
+  const backendName = gps?.location_name || "";
+  const backendDistrict = gps?.location_district || "";
+  const looksLikeCoords = /^-?\d+\.?\d*\s*[,]\s*-?\d+\.?\d*$/.test(backendName);
+  const [geo, setGeo] = useState({ name: "", district: "", loading: false });
+
+  useEffect(() => {
+    if (lat == null || lng == null) return;
+    if (backendName && !looksLikeCoords) {
+      setGeo({ name: backendName, district: backendDistrict, loading: false });
+      return;
+    }
+    let cancelled = false;
+    setGeo((g) => ({ ...g, loading: true }));
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14`, {
+      signal: AbortSignal.timeout(8000),
+      headers: { "Accept-Language": "en" },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const a = data.address || {};
+        setGeo({
+          name: a.village || a.town || a.city || a.hamlet || a.suburb || a.county || "",
+          district: a.district || a.state_district || a.state || "",
+          loading: false,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setGeo((g) => ({ ...g, loading: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lat, lng, backendName, backendDistrict, looksLikeCoords]);
+
+  return (
+    <div className="mt-3 pt-3 border-t flex items-start gap-2" style={{ borderColor: COLORS.hairline }}>
+      <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: COLORS.brand }} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: COLORS.muted }}>
+          Location
+        </p>
+        {geo.loading ? (
+          <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.muted }}>
+            Fetching location…
+          </p>
+        ) : geo.name ? (
+          <>
+            <p className="text-[12.5px] font-medium mt-0.5 break-words" style={{ color: COLORS.ink }}>
+              {geo.name}
+            </p>
+            {geo.district && (
+              <p className="text-[11px] mt-0.5 break-words" style={{ color: COLORS.muted }}>
+                {geo.district}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.muted }}>
+            Location unavailable
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  PAGE                                                                */
 /* ------------------------------------------------------------------ */
 
@@ -204,6 +278,7 @@ export default function DisasterMonitorPage() {
   const [gpsLoading, setGpsLoading] = useState(true);
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
+  const [sensor, setSensor] = useState(null);
   const [waterLevel, setWaterLevel] = useState(null);
   const [waterLevelLoading, setWaterLevelLoading] = useState(true);
   const [waterHistory, setWaterHistory] = useState([]);
@@ -370,6 +445,21 @@ export default function DisasterMonitorPage() {
     return () => clearInterval(gpsInterval);
   }, [fetchAllDisasterData, fetchAlerts]);
 
+  // ── DHT11 sensor readings (temperature / humidity from ESP32) ────────
+  useEffect(() => {
+    const pollSensor = () => {
+      fetch(`${API}/api/disaster/dht11/latest`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.available) setSensor(data);
+        })
+        .catch(() => {});
+    };
+    pollSensor();
+    const id = setInterval(pollSensor, 10000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetch(`${API}/api/disaster/latest-gps`)
@@ -534,30 +624,25 @@ export default function DisasterMonitorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
 
           <div className="lg:col-span-7 rounded-xl p-4 sm:p-6" style={{ backgroundColor: COLORS.grid }}>
-            <div className="flex items-start justify-between mb-4 sm:mb-5">
-              <div className="flex items-center gap-3">
-                <IconTile icon={CloudRain} />
-                <div>
-                  <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
-                    Weather Forecast
-                  </p>
-                  <p className="text-[13px] sm:text-[14px] font-medium mt-0.5">{weather?.condition || "Weather data unavailable"}</p>
-                </div>
+            <div className="flex items-center gap-3 mb-4 sm:mb-5">
+              <IconTile icon={CloudRain} />
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
+                  Weather Forecast
+                </p>
+                <p className="text-[13px] sm:text-[14px] font-medium mt-0.5 break-words">{weather?.condition || "Weather data unavailable"}</p>
               </div>
-              <p className="font-medium text-[28px] sm:text-[30px] leading-none tracking-tight">
-                {weather?.temperature != null ? `${Math.round(weather.temperature)}°` : "—"}
-              </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
               <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
-                <p className="text-[14px] sm:text-[15px] font-semibold">{weather?.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : "—"}</p>
+                <p className="text-[13px] sm:text-[15px] font-semibold">{weather?.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : "—"}</p>
                 <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
                   Rainfall
                 </p>
               </div>
               <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
-                <p className="text-[14px] sm:text-[15px] font-semibold">
+                <p className="text-[13px] sm:text-[15px] font-semibold">
                   {weather?.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : "—"}
                 </p>
                 <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
@@ -565,12 +650,42 @@ export default function DisasterMonitorPage() {
                 </p>
               </div>
               <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
-                <p className="text-[14px] sm:text-[15px] font-semibold">
+                <p className="text-[13px] sm:text-[15px] font-semibold">
                   {weather?.precipitation != null ? `${weather.precipitation.toFixed(1)} mm` : "—"}
                 </p>
                 <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
                   Precipitation
                 </p>
+              </div>
+            </div>
+
+            {/* Sensor readings — temperature & humidity reported by the DHT11 sensor */}
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: COLORS.hairline }}>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
+                <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
+                  Sensor Readings
+                </p>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ color: COLORS.muted, backgroundColor: COLORS.surface }}>
+                  from DHT11 sensor
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
+                  <p className="text-[13px] sm:text-[15px] font-semibold">
+                    {sensor?.temperature != null ? `${Number(sensor.temperature).toFixed(1)}°C` : "—"}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
+                    Temperature · Sensor
+                  </p>
+                </div>
+                <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
+                  <p className="text-[13px] sm:text-[15px] font-semibold">
+                    {sensor?.humidity != null ? `${Number(sensor.humidity).toFixed(1)}%` : "—"}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
+                    Humidity · Sensor
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -592,6 +707,7 @@ export default function DisasterMonitorPage() {
               <FieldBox label="Altitude" value={latestGps?.altitude != null ? `${latestGps.altitude} m` : "—"} />
               <FieldBox label="Source" value={latestGps?.source ?? "—"} />
             </div>
+            <LocationName gps={latestGps} />
           </div>
         </div>
 
