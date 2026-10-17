@@ -120,7 +120,7 @@ export async function getDistributionTimeline(campId, days = 30) {
 
   const result = await pool.query(
     `SELECT
-       DATE(d.distributed_at) as date,
+       TO_CHAR(DATE(d.distributed_at), 'YYYY-MM-DD') as date,
        d.resource_type,
        COUNT(*) as count,
        SUM(d.quantity) as total_quantity
