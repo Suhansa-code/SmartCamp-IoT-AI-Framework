@@ -1,0 +1,8 @@
+# Optional Raspberry Pi hardware access. The default stack remains runnable on
+# development machines and on Pi nodes without an attached fingerprint reader.
+services:
+  backend:
+    devices:
+      - "${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}:${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}"
+    group_add:
+      - "20"

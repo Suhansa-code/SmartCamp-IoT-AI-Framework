@@ -109,19 +109,49 @@ QR Login ──validate──► My Resources ──► Guidance
 
 ## Quick Start
 
+### Recommended: separate managed services
+
+Run Express, Flask ML, and the network prediction monitor as independent
+containers. A failure or restart in one service does not terminate the others.
+
 ```bash
-# Backend
+cd raspberry-platform/backend
+cp .env.example .env
+npm run stack:start
+npm run stack:logs
+```
+
+The default stack uses fingerprint simulation and does not require a serial
+device. On a Raspberry Pi with the ESP32/R503 attached, enable the hardware
+override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.hardware.yml up -d --build
+```
+
+### Native development
+
+Native processes must be started separately. `npm start` intentionally starts
+only Express; it is not a Python process supervisor.
+
+```bash
+# Terminal 1: Express API
 cd raspberry-platform/backend
 cp .env.example .env
 npm install
 npm start
 
-# Python scoring service (separate terminal)
+# Terminal 2: Flask scoring model
 cd raspberry-platform/backend/python
 pip install -r requirements.txt
 python app.py
 
-# Frontend
+# Terminal 3: network prediction monitor
+cd raspberry-platform/prediction-models
+pip install -r requirements.txt
+python3 scripts/network_monitor_service.py --backend http://localhost:5000
+
+# Terminal 4: frontend
 cd raspberry-platform/frontend
 npm install
 npm run dev
@@ -131,4 +161,5 @@ npm run dev
 |---------|------|-------------|
 | Express API | 5000 | Camp operations + PAGES education API |
 | Flask ML | 5001 | Anomaly detection / scoring service |
+| Network monitor | — | Measures connectivity, runs the network/QoS models, and pushes state to Express |
 | Frontend (Vite) | 5173 | React camp dashboard UI |

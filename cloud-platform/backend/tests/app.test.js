@@ -56,6 +56,30 @@ test('GET /api/resources/overview returns overview shape', async () => {
   assert.ok(body.population);
 });
 
+test('public donation endpoints expose needs without private donor data', async () => {
+  const configResult = await api('/api/donations/config');
+  assert.equal(configResult.status, 200);
+  assert.ok(Array.isArray(configResult.body.currencies));
+  assert.equal(configResult.body.googleClientId, null);
+
+  const needsResult = await api('/api/donations/needs');
+  assert.equal(needsResult.status, 200);
+  assert.ok(Array.isArray(needsResult.body.resources));
+  assert.ok(needsResult.body.resources.length > 0);
+  assert.equal(needsResult.body.resources[0].donor_email, undefined);
+});
+
+test('Sri Lanka resource pledges can be submitted in demo mode', async () => {
+  const { status, body } = await api('/api/donations/in-kind', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ resource_name: 'Rice', category: 'food', quantity: 20, unit: 'kg', country: 'Sri Lanka' }),
+  });
+  assert.equal(status, 201);
+  assert.equal(body.donation.country, 'Sri Lanka');
+  assert.equal(body.donation.status, 'PLEDGED');
+});
+
 test('alerts flow: create, list, resolve', async () => {
   // The alerts table has an FK to children, so sync the child first.
   await fetch(`${baseUrl}/api/alerts/sync/children`, {

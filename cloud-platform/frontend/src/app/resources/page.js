@@ -43,7 +43,7 @@ function ResourcesContent() {
     stock: {
       label: "Stock Runout",
       title: "Stock Runout",
-      subtitle: "Inventory forecast based on current population trends",
+      subtitle: "See what will run out and what to reorder",
     },
   };
   const requestedView = searchParams.get("view");
