@@ -16,6 +16,13 @@ services:
       CLOUD_ML_URL: http://python-service:5001
     ports:
       - "5000:5000"
+    # Fingerprint reader USB passthrough (was docker-compose.hardware.yml).
+    # Compose refuses to START if the device path is missing, so the reader
+    # must be plugged in (or FINGERPRINT_SERIAL_PORT adjusted in .env).
+    devices:
+      - "${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}:${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}"
+    group_add:
+      - "20"
     # camp.db / pages.db / disaster.db live here. WITHOUT this bind mount they
     # are written inside the container, so `up -d --build` silently discards
     # every registration, distribution and buffered SAAMP message. The schema
