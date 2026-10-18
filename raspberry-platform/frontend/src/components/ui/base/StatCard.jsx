@@ -14,7 +14,7 @@ export default function StatCard({ label, value, icon: Icon, hint, accent }) {
   const tone = TONE[toneKey] || TONE.brand
 
   return (
-    <div className="p-4 bg-gray-50 rounded-lg">
+    <div className="p-4 border border-gray-200 rounded-lg">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: COLORS.muted }}>
           {label}

@@ -1,0 +1,329 @@
+{
+  "generated_at": "2026-10-18T01:22:53.447097+00:00",
+  "model_artifact": "xgboost_model_improved.pkl",
+  "artifact_threshold": 0.2999999999999999,
+  "artifact_stored_metrics": {
+    "accuracy": 0.9168,
+    "precision": 0.5629032258064516,
+    "recall": 0.7064777327935222,
+    "f1": 0.6265709156193896,
+    "f2": 0.6721879815100154,
+    "roc_auc": 0.9510050477006815,
+    "pr_auc": 0.5492364689705175,
+    "brier": 0.05841965228319168,
+    "fnr": 0.2935222672064777,
+    "fpr": 0.06014203284509543
+  },
+  "n_real_flood_events": 30,
+  "n_controls": 500,
+  "scenario_definitions": {
+    "during_event": {
+      "rainfall_7d_mm": 169.225,
+      "meaning": "Q75 rainfall of flood-positive training rows (proxy for conditions during a flood event)"
+    },
+    "pre_event": {
+      "rainfall_7d_mm": 63.9,
+      "meaning": "median rainfall of flood-negative training rows (proxy for baseline before rainfall)"
+    }
+  },
+  "internal_validation_from_reports": {
+    "comprehensive_validation_report.json": {
+      "accuracy": 0.7804,
+      "precision": 0.25123558484349257,
+      "recall": 0.6174089068825911,
+      "f1": 0.35714285714285715,
+      "roc_auc": 0.8089533343755785,
+      "confusion_matrix": [
+        [
+          3597,
+          909
+        ],
+        [
+          189,
+          305
+        ]
+      ]
+    },
+    "improved_validation_report.json": {
+      "accuracy": 0.7712,
+      "precision": 0.2412420382165605,
+      "recall": 0.6133603238866396,
+      "f1": 0.3462857142857143,
+      "roc_auc": 0.8095701457885213,
+      "pr_auc": 0.28801838790549045,
+      "brier": 0.14665988087654114
+    }
+  },
+  "external_validation": {
+    "during_event": {
+      "at_artifact_threshold": {
+        "threshold": 0.2999999999999999,
+        "roc_auc": 0.4955666666666666,
+        "average_precision": 0.06337037289491097,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "confusion_matrix": [
+          [
+            492,
+            8
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "classification_report": {
+          "0.0": {
+            "precision": 0.9425287356321839,
+            "recall": 0.984,
+            "f1-score": 0.9628180039138943,
+            "support": 500.0
+          },
+          "1.0": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 30.0
+          },
+          "accuracy": 0.9283018867924528,
+          "macro avg": {
+            "precision": 0.47126436781609193,
+            "recall": 0.492,
+            "f1-score": 0.48140900195694714,
+            "support": 530.0
+          },
+          "weighted avg": {
+            "precision": 0.8891780524831923,
+            "recall": 0.9283018867924528,
+            "f1-score": 0.9083188716168814,
+            "support": 530.0
+          }
+        }
+      },
+      "at_threshold_0_5": {
+        "threshold": 0.5,
+        "roc_auc": 0.4955666666666666,
+        "average_precision": 0.06337037289491097,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "confusion_matrix": [
+          [
+            499,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "classification_report": {
+          "0.0": {
+            "precision": 0.943289224952741,
+            "recall": 0.998,
+            "f1-score": 0.9698736637512148,
+            "support": 500.0
+          },
+          "1.0": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 30.0
+          },
+          "accuracy": 0.9415094339622642,
+          "macro avg": {
+            "precision": 0.4716446124763705,
+            "recall": 0.499,
+            "f1-score": 0.4849368318756074,
+            "support": 530.0
+          },
+          "weighted avg": {
+            "precision": 0.8898954952384349,
+            "recall": 0.9415094339622642,
+            "f1-score": 0.9149751544822781,
+            "support": 530.0
+          }
+        }
+      },
+      "event_detection_rate_artifact_thr": 0.0,
+      "event_detection_rate_0_5": 0.0,
+      "mean_prob_events": 0.01757793124480587,
+      "mean_prob_controls": 0.015563346164068207
+    },
+    "pre_event": {
+      "at_artifact_threshold": {
+        "threshold": 0.2999999999999999,
+        "roc_auc": 0.49860000000000004,
+        "average_precision": 0.0577472841623785,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "confusion_matrix": [
+          [
+            500,
+            0
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "classification_report": {
+          "0.0": {
+            "precision": 0.9433962264150944,
+            "recall": 1.0,
+            "f1-score": 0.970873786407767,
+            "support": 500.0
+          },
+          "1.0": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 30.0
+          },
+          "accuracy": 0.9433962264150944,
+          "macro avg": {
+            "precision": 0.4716981132075472,
+            "recall": 0.5,
+            "f1-score": 0.4854368932038835,
+            "support": 530.0
+          },
+          "weighted avg": {
+            "precision": 0.8899964400142399,
+            "recall": 0.9433962264150944,
+            "f1-score": 0.9159186664224217,
+            "support": 530.0
+          }
+        }
+      },
+      "at_threshold_0_5": {
+        "threshold": 0.5,
+        "roc_auc": 0.49860000000000004,
+        "average_precision": 0.0577472841623785,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "confusion_matrix": [
+          [
+            500,
+            0
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "classification_report": {
+          "0.0": {
+            "precision": 0.9433962264150944,
+            "recall": 1.0,
+            "f1-score": 0.970873786407767,
+            "support": 500.0
+          },
+          "1.0": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 30.0
+          },
+          "accuracy": 0.9433962264150944,
+          "macro avg": {
+            "precision": 0.4716981132075472,
+            "recall": 0.5,
+            "f1-score": 0.4854368932038835,
+            "support": 530.0
+          },
+          "weighted avg": {
+            "precision": 0.8899964400142399,
+            "recall": 0.9433962264150944,
+            "f1-score": 0.9159186664224217,
+            "support": 530.0
+          }
+        }
+      },
+      "event_detection_rate_artifact_thr": 0.0,
+      "event_detection_rate_0_5": 0.0,
+      "mean_prob_events": 9.014255030908519e-05,
+      "mean_prob_controls": 0.0011738084574074797
+    }
+  },
+  "worked_examples": [
+    {
+      "station": "Nagalagam Street",
+      "river": "Kelani Ganga",
+      "latitude": 6.960272421,
+      "longitude": 79.87858327,
+      "gauge_alert_level": 1.2192,
+      "gauge_minor_level": 1.524,
+      "static_proxy_elevation_m": 423.0,
+      "static_proxy_river_m": 356.9,
+      "rainfall_dry_baseline_mm": 63.9,
+      "prob_dry_baseline": 0.0,
+      "risk_dry_baseline": "Low",
+      "rainfall_wet_conditions_mm": 169.2,
+      "prob_wet_conditions": 0.01940639317035675,
+      "risk_wet_conditions": "Low",
+      "rainfall_extreme_rainfall_mm": 240.2,
+      "prob_extreme_rainfall": 0.20999330033858618,
+      "risk_extreme_rainfall": "Low"
+    },
+    {
+      "station": "Rathnapura",
+      "river": "Kalu Ganga",
+      "latitude": 6.689859894,
+      "longitude": 80.38027646,
+      "gauge_alert_level": 5.2,
+      "gauge_minor_level": 7.5,
+      "static_proxy_elevation_m": 591.0,
+      "static_proxy_river_m": 537.2,
+      "rainfall_dry_baseline_mm": 63.9,
+      "prob_dry_baseline": 0.0,
+      "risk_dry_baseline": "Low",
+      "rainfall_wet_conditions_mm": 169.2,
+      "prob_wet_conditions": 0.0,
+      "risk_wet_conditions": "Low",
+      "rainfall_extreme_rainfall_mm": 240.2,
+      "prob_extreme_rainfall": 0.0004967709925646583,
+      "risk_extreme_rainfall": "Low"
+    },
+    {
+      "station": "Badalgama",
+      "river": "Maha Oya",
+      "latitude": 7.293127961,
+      "longitude": 79.97767925,
+      "gauge_alert_level": 5.0,
+      "gauge_minor_level": 6.2,
+      "static_proxy_elevation_m": 174.0,
+      "static_proxy_river_m": 514.3,
+      "rainfall_dry_baseline_mm": 63.9,
+      "prob_dry_baseline": 0.0,
+      "risk_dry_baseline": "Low",
+      "rainfall_wet_conditions_mm": 169.2,
+      "prob_wet_conditions": 0.0,
+      "risk_wet_conditions": "Low",
+      "rainfall_extreme_rainfall_mm": 240.2,
+      "prob_extreme_rainfall": 0.028131589603920776,
+      "risk_extreme_rainfall": "Low"
+    },
+    {
+      "station": "Baddegama",
+      "river": "Gin Ganga",
+      "latitude": 6.177477312,
+      "longitude": 80.18051836,
+      "gauge_alert_level": 3.5,
+      "gauge_minor_level": 4.0,
+      "static_proxy_elevation_m": 9.0,
+      "static_proxy_river_m": 1919.5,
+      "rainfall_dry_baseline_mm": 63.9,
+      "prob_dry_baseline": 0.0,
+      "risk_dry_baseline": "Low",
+      "rainfall_wet_conditions_mm": 169.2,
+      "prob_wet_conditions": 0.046970764795939125,
+      "risk_wet_conditions": "Low",
+      "rainfall_extreme_rainfall_mm": 240.2,
+      "prob_extreme_rainfall": 0.21034198005994162,
+      "risk_extreme_rainfall": "Low"
+    }
+  ]
+}

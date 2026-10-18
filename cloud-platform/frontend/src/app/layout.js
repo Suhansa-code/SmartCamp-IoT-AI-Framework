@@ -1,7 +1,5 @@
 import "./globals.css";
-import { SideNavProvider } from "@/components/common/SideNav";
-import { ThemeProvider } from "@/components/common/ThemeProvider";
-import { NotificationsProvider } from "@/components/common/NotificationsContext";
+import AppProviders from "@/components/common/AppProviders";
 
 export const metadata = {
   title: "Smart Camp Box",
@@ -24,13 +22,8 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body style={{ fontFamily: "'Inter', 'Noto Sans Sinhala', sans-serif", margin: 0, padding: 0, WebkitTapBackgroundColor: 'transparent' }} className="min-h-full flex flex-col">
-        <ThemeProvider>
-          <NotificationsProvider>
-            <SideNavProvider>{children}</SideNavProvider>
-          </NotificationsProvider>
-        </ThemeProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
 }
-

@@ -17,25 +17,21 @@
  *   people      how many are being served, and which way the number is moving
  *   forecast    the curve every date below rests on
  *   risk        how many items are in trouble, and when the first one lands
- *   inventory   the operational table — one row per item, details on demand
- *   coverage    how much of the measured basket this store actually stocks
- *   method      where the numbers come from, collapsed
+ *   inventory   the operational table — one row per item
  *
  * An earlier version stated its own methodology in full on the surface: a
  * Theil-Sen residual note under the population line, a paragraph under the
  * chart explaining the shaded band, a provenance essay under the table. All of
  * it was true and none of it was scannable — the reorder date an operator came
  * for sat behind four sentences about estimator choice. That material is all
- * still reachable, in tooltips, expandable rows and the methodology section.
+ * still available from the API for audit and reporting workflows.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Users, TrendingUp, TrendingDown,
+  AlertTriangle, RefreshCw, Users, TrendingUp, TrendingDown,
 } from 'lucide-react'
 import { useTheme } from '@/components/common/ThemeProvider'
 import PopulationForecastChart from './PopulationForecastChart'
-import BasketCoverageCard from './BasketCoverageCard'
-import ForecastMethodology from './ForecastMethodology'
 import InfoHint from './InfoHint'
 import { DISASTER_API_BASE } from '@/lib/apiBase'
 
@@ -107,14 +103,6 @@ const STATUS = (T) => ({
 // Triage order for the table: trouble first, then soonest to run out.
 const TRIAGE_RANK = { CRITICAL: 0, LOW: 1, AVAILABLE: 2, UNKNOWN: 3 }
 
-/** How a store line was matched, in the words an operator would use. */
-const MATCH_LABEL = {
-  exact:          'Exact',
-  alias:          'Alias',
-  token_subset:   'Word match',
-  token_superset: 'Word match',
-}
-
 function StatusBadge({ T, status }) {
   const s = (STATUS(T))[status] || STATUS(T).UNKNOWN
   return (
@@ -177,97 +165,19 @@ function RiskCard({ T, value, label, sub, accent, active }) {
   )
 }
 
-/**
- * The detail an operator only wants for one row at a time: what the line was
- * read as, how confident that match is, and any warning attached to it.
- */
-function ItemDetail({ T, item, leadTimeDays }) {
-  const s = item.standardisation ?? {}
-  const names = item.commodities_matched ?? (item.commodity_matched ? [item.commodity_matched] : [])
-  const matchLabel = MATCH_LABEL[s.match_rule]
-  const inferred = s.match_rule === 'token_subset' || s.match_rule === 'token_superset'
-
-  const rows = []
-  if (matchLabel) rows.push(['Match', matchLabel])
-  if (names.length) {
-    rows.push(['Matched commodity', names.length > 1 ? `${names[0]} + ${names.length - 1} more` : names[0]])
-  }
-  if (item.basket_share != null) rows.push(['Share of basket', `${(item.basket_share * 100).toFixed(1)}%`])
-  if (item.runout_earliest && item.runout_latest && item.runout_earliest !== item.runout_latest) {
-    rows.push(['Runs out between', `${fmtDate(item.runout_earliest)} – ${fmtDate(item.runout_latest)}`])
-  }
-  if (item.reorder_by) rows.push(['Lead time', `${leadTimeDays} days`])
-
-  return (
-    <div style={{
-      background: T.cardSoft, borderTop: `1px solid ${T.border}`,
-      padding: '0.9rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.7rem',
-    }}>
-      {rows.length > 0 && (
-        <div style={{
-          display: 'grid', gap: '0.55rem 1.6rem',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        }}>
-          {rows.map(([k, v]) => (
-            <div key={k}>
-              <div style={{
-                fontSize: '0.66rem', fontWeight: 800, color: T.dim,
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-              }}>{k}</div>
-              <div style={{ fontSize: '0.8rem', color: T.ink, marginTop: 2 }}>{v}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {names.length > 1 && (
-        <div style={{ fontSize: '0.74rem', color: T.muted, lineHeight: 1.6 }}>
-          <strong style={{ color: T.textPrimary }}>Covers:</strong> {names.join(', ')}
-        </div>
-      )}
-
-      {inferred && (
-        <div style={{ fontSize: '0.74rem', color: T.blue, lineHeight: 1.6 }}>
-          Matched because the words line up, not because a curated mapping says so. The share is a
-          good guess rather than a stated one.
-        </div>
-      )}
-
-      {item.note
-        ? <div style={{ fontSize: '0.74rem', color: T.muted, lineHeight: 1.6 }}>{item.note}</div>
-        : s.class_note
-          ? <div style={{ fontSize: '0.74rem', color: T.muted, lineHeight: 1.6 }}>{s.class_note}</div>
-          : null}
-
-      {item.warnings?.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-          {item.warnings.map((w, i) => (
-            <div key={i} style={{
-              display: 'flex', gap: '0.5rem', alignItems: 'flex-start',
-              fontSize: '0.74rem', color: T.muted, lineHeight: 1.55,
-            }}>
-              <AlertTriangle size={13} style={{ color: T.amber, flexShrink: 0, marginTop: 3 }} />
-              <span>{w}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function StockOutlookPanel() {
   const { T } = useTheme()
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
   const [days, setDays]       = useState(30)
-  const [expanded, setExpanded] = useState(() => new Set())
+  const [campId, setCampId]   = useState('SCB-UNIT-01')
+  const [camps, setCamps]     = useState(['SCB-UNIT-01'])
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const res = await fetch(`${API}/api/resources/stock/outlook?days=${days}`)
+      const res = await fetch(`${API}/api/resources/stock/outlook?days=${days}&camp_id=${encodeURIComponent(campId)}`)
       if (!res.ok) throw new Error(`Request failed (${res.status})`)
       setData(await res.json())
     } catch (err) {
@@ -275,16 +185,25 @@ export default function StockOutlookPanel() {
     } finally {
       setLoading(false)
     }
-  }, [days])
+  }, [campId, days])
 
   useEffect(() => { load() }, [load])
 
-  const toggleRow = useCallback((id) => {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
-      return next
-    })
+  useEffect(() => {
+    async function loadCamps() {
+      try {
+        const res = await fetch(`${API}/api/resources/stock/camps`)
+        if (!res.ok) return
+        const body = await res.json()
+        if (Array.isArray(body.camps) && body.camps.length) {
+          setCamps(body.camps)
+          if (!body.camps.includes(campId)) setCampId(body.camps[0])
+        }
+      } catch {
+        // The default camp remains usable if the list endpoint is unavailable.
+      }
+    }
+    loadCamps()
   }, [])
 
   // Items at risk first, then by how soon they run out — the order an operator
@@ -301,7 +220,17 @@ export default function StockOutlookPanel() {
   }, [data])
 
   if (loading && !data) {
-    return <p style={{ color: T.muted, padding: '2rem' }}>Loading stock outlook…</p>
+    return (
+      <div role="status" style={{
+        minHeight: 240, display: 'grid', placeItems: 'center',
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.9rem', color: T.muted,
+      }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.84rem', fontWeight: 700 }}>
+          <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} />
+          Loading stock outlook
+        </span>
+      </div>
+    )
   }
   if (error) {
     return (
@@ -309,12 +238,17 @@ export default function StockOutlookPanel() {
         background: tint(T.red, 0.12), border: `1px solid ${T.red}`,
         borderRadius: '0.9rem', padding: '1rem', color: T.red,
       }}>
-        <strong>Could not load stock outlook.</strong> {error}
+        <div><strong>Could not load stock outlook.</strong> {error}</div>
+        <button type="button" onClick={load} style={{
+          marginTop: '0.75rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem',
+          border: `1px solid ${T.red}`, background: 'transparent', color: T.red,
+          fontWeight: 700, cursor: 'pointer',
+        }}>Try again</button>
       </div>
     )
   }
 
-  const { summary, population, lead_time_days, provenance, allocation, horizon_days } = data
+  const { summary, population, lead_time_days, horizon_days } = data
   const rising = (population.slope_per_day ?? 0) >= 0
   const trendColour = rising ? T.amber : T.blue
   const confColour =
@@ -341,23 +275,36 @@ export default function StockOutlookPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
 
       {/* ── Controls ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <div role="group" aria-label="Forecast controls" style={{
+        display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: '0.8rem', padding: '0.65rem 0.75rem',
+      }}>
+        <label style={{ fontSize: '0.75rem', color: T.muted, fontWeight: 700 }}>
+          Camp
+          <select
+            value={campId}
+            onChange={(event) => setCampId(event.target.value)}
+            style={{ marginLeft: '0.45rem', padding: '0.32rem 0.55rem', borderRadius: '0.45rem', border: `1px solid ${T.border}`, background: T.card, color: T.ink, fontWeight: 700 }}
+          >
+            {camps.map((camp) => <option key={camp} value={camp}>{camp}</option>)}
+          </select>
+        </label>
         <span style={{ fontSize: '0.75rem', color: T.muted, fontWeight: 700 }}>Next</span>
         {[14, 30, 60].map((d) => (
-          <button key={d} onClick={() => setDays(d)} style={{
+          <button type="button" key={d} onClick={() => setDays(d)} aria-pressed={days === d} style={{
             padding: '0.32rem 0.75rem', borderRadius: '9999px', cursor: 'pointer',
             border: `1px solid ${days === d ? T.teal : T.border}`,
             background: days === d ? T.tealLight : T.card,
             color: days === d ? T.tealDim : T.muted, fontWeight: 700, fontSize: '0.76rem',
           }}>{d} days</button>
         ))}
-        <button onClick={load} disabled={loading} style={{
+        <button type="button" onClick={load} disabled={loading} aria-label="Refresh stock outlook" style={{
           marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
           padding: '0.32rem 0.75rem', borderRadius: '9999px', border: `1px solid ${T.border}`,
           background: T.card, color: T.muted, fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer',
         }}>
           <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-          Refresh
+          {loading ? 'Refreshing' : 'Refresh'}
         </button>
       </div>
 
@@ -475,25 +422,28 @@ export default function StockOutlookPanel() {
 
       {/* ── Inventory ────────────────────────────────────────────────────── */}
       <div>
-        <h2 style={{
-          margin: '0 0 0.6rem', fontSize: '0.7rem', fontWeight: 800, color: T.muted,
-          textTransform: 'uppercase', letterSpacing: '0.1em',
-        }}>
-          Inventory
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.6rem' }}>
+          <h2 style={{
+            margin: 0, fontSize: '0.7rem', fontWeight: 800, color: T.muted,
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+          }}>
+            Inventory
+          </h2>
+          <span style={{ fontSize: '0.72rem', color: T.dim }}>{items.length} items, highest risk first</span>
+        </div>
 
         <div style={{
           background: T.card, border: `1px solid ${T.border}`,
           borderRadius: '0.9rem', overflow: 'hidden',
         }}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', minWidth: 820 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', minWidth: 760 }}>
               <thead>
                 <tr style={{ background: T.bar }}>
                   {[
                     ['Resource', 'left'], ['Status', 'left'], ['Stock', 'right'],
-                    ['Daily use', 'right'], ['Days left', 'right'], ['Runs out', 'right'],
-                    ['Order by', 'right'], ['Order', 'right'], ['', 'right'],
+                    ['Days left', 'right'], ['Runs out', 'right'],
+                    ['Order by', 'right'], ['Order amount', 'right'],
                   ].map(([h, align], i) => (
                     <th key={h || i} style={{
                       textAlign: align, padding: '0.65rem 0.9rem',
@@ -505,21 +455,23 @@ export default function StockOutlookPanel() {
               </thead>
               <tbody>
                 {items.map((it) => {
-                  const open = expanded.has(it.id)
                   const critical = it.status === 'CRITICAL'
                   const warn = it.status === 'LOW'
                   // days_cover is capped at the horizon; when nothing runs out
                   // inside it, say so rather than implying an exact figure.
                   const beyond = it.days_cover != null && it.runout_date == null && it.days_cover >= horizon_days
                   return (
-                    <tr key={it.id}
-                        onClick={() => toggleRow(it.id)}
-                        style={{ borderTop: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                    <tr key={it.id} style={{ borderTop: `1px solid ${T.border}` }}>
                       <td style={{ padding: '0.7rem 0.9rem', fontWeight: 700, color: T.textPrimary }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {it.resource_name}
                           {it.warnings?.length > 0 && (
-                            <AlertTriangle size={12} style={{ color: T.amber, flexShrink: 0 }} />
+                            <AlertTriangle
+                              size={12}
+                              aria-label={it.warnings.join(' ')}
+                              title={it.warnings.join(' ')}
+                              style={{ color: T.amber, flexShrink: 0 }}
+                            />
                           )}
                         </div>
                       </td>
@@ -528,9 +480,6 @@ export default function StockOutlookPanel() {
                       </td>
                       <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: T.ink, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                         {qty(it.available_quantity, it.unit)}
-                      </td>
-                      <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: it.daily_use_now == null ? T.dim : T.ink, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                        {it.daily_use_now == null ? '—' : `${num(it.daily_use_now)}/day`}
                       </td>
                       <td style={{
                         padding: '0.7rem 0.9rem', textAlign: 'right', fontWeight: 800,
@@ -552,49 +501,29 @@ export default function StockOutlookPanel() {
                       <td style={{ padding: '0.7rem 0.9rem', textAlign: 'right', color: it.suggested_order_qty ? T.ink : T.dim, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                         {it.suggested_order_qty ? qty(it.suggested_order_qty, it.unit) : '—'}
                       </td>
-                      <td style={{ padding: '0.7rem 0.7rem', textAlign: 'right', color: T.dim, width: 34 }}>
-                        {open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                      </td>
                     </tr>
                   )
                 })}
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: T.muted }}>
+                      No inventory items are available for this camp.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-
-          {/* Detail panels sit outside the scroll container so they wrap
-              normally instead of forcing the table wider. */}
-          {items.filter((it) => expanded.has(it.id)).map((it) => (
-            <div key={`d-${it.id}`}>
-              <div style={{
-                padding: '0.65rem 1.1rem 0', fontSize: '0.72rem', fontWeight: 800,
-                color: T.dim, textTransform: 'uppercase', letterSpacing: '0.08em',
-                background: T.cardSoft, borderTop: `1px solid ${T.border}`,
-              }}>
-                {it.resource_name}
-              </div>
-              <ItemDetail T={T} item={it} leadTimeDays={lead_time_days} />
-            </div>
-          ))}
 
           <div style={{
             padding: '0.7rem 1.1rem', borderTop: `1px solid ${T.border}`,
             fontSize: '0.73rem', color: T.dim,
           }}>
-            {summary.forecastable} of {summary.total_items} items forecast
-            {summary.forecastable < summary.total_items && ' — the rest have no daily draw rate'}
-            . Select a row for details.
+            Forecast available for {summary.forecastable} of {summary.total_items} items
+            {summary.forecastable < summary.total_items && '; remaining items have no daily usage rate'}.
           </div>
         </div>
       </div>
-
-      {/* ── Coverage + methodology ───────────────────────────────────────── */}
-      <BasketCoverageCard items={data.items} allocation={allocation} provenance={provenance} />
-      <ForecastMethodology
-        provenance={provenance}
-        population={population}
-        leadTimeDays={lead_time_days}
-      />
     </div>
   )
 }

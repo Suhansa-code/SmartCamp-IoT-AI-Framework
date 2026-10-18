@@ -7,9 +7,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test \"tests/**/*.test.js\"",
+    "test": "node --test tests",
     "db:init": "node src/db/init.js",
-    "db:seed": "node src/db/seed.js"
+    "db:seed": "node src/db/seed.js",
+    "db:seed:relief": "node src/db/seed-relief.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

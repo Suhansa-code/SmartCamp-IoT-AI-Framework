@@ -11,8 +11,18 @@ services:
       context: .
       dockerfile: dockerfile
     env_file: .env
+    environment:
+      # Compose DNS resolves this service name. Native npm start uses localhost.
+      CLOUD_ML_URL: http://python-service:5001
     ports:
       - "5000:5000"
+    # Fingerprint reader USB passthrough (was docker-compose.hardware.yml).
+    # Compose refuses to START if the device path is missing, so the reader
+    # must be plugged in (or FINGERPRINT_SERIAL_PORT adjusted in .env).
+    devices:
+      - "${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}:${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}"
+    group_add:
+      - "20"
     # camp.db / pages.db / disaster.db live here. WITHOUT this bind mount they
     # are written inside the container, so `up -d --build` silently discards
     # every registration, distribution and buffered SAAMP message. The schema
@@ -20,19 +30,16 @@ services:
     # boot, so a fresh clone starts empty and correct.
     volumes:
       - ./db:/usr/src/app/db
-    # Hand the ESP32 + R503 fingerprint scanner through to the container.
-    # Override the host path with FINGERPRINT_SERIAL_PORT if it enumerates
-    # differently (ttyACM1, ttyUSB0, ...). Comment this block out when no
-    # scanner is attached — the backend then falls back to simulation.
-    devices:
-      - "${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}:${FINGERPRINT_SERIAL_PORT:-/dev/ttyACM0}"
-    # /dev/tty* is root:dialout 0660 and the image runs as the unprivileged
-    # `node` user, so the container process must join gid 20 (dialout).
-    group_add:
-      - "20"
     restart: unless-stopped
     depends_on:
-      - python-service
+      python-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
 
   python-service:
     build:
@@ -47,11 +54,20 @@ services:
       - ./python/models:/app/models
       - ./python/data:/app/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
 
   network-monitor:
     build:
       context: ../prediction-models
       dockerfile: Dockerfile
+    # EMQX_HOST/EMQX_PORT come from .env so the broker probe targets the same
+    # broker the backend publishes to.
+    env_file: .env
     # Host networking is load-bearing: on the default bridge, ping measures the
     # NAT path rather than the camp uplink, so the model reads a link that
     # isn't the one SAAMP publishes over. NET_RAW is what lets ping run at all.
@@ -66,7 +82,8 @@ services:
       --interval 30
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   frontend-service:
     build:
