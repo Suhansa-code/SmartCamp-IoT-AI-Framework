@@ -8,7 +8,8 @@ app = create_app(Config())
 
 
 if __name__ == '__main__':
-    port = Config.FLASK_PORT
+    # Railway/Render inject $PORT; fall back to FLASK_PORT for local runs
+    port = int(os.environ.get('PORT', Config.FLASK_PORT))
     debug = Config.FLASK_DEBUG
 
     app.run(
