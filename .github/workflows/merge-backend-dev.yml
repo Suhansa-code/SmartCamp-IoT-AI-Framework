@@ -1,0 +1,25 @@
+name: Merge backend-dev to main
+
+on:
+  push:
+    branches:
+      - backend-dev
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge backend-dev into main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git merge origin/backend-dev -m "Merge backend-dev into main"
+          git push origin main
