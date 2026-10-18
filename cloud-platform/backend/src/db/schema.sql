@@ -638,3 +638,255 @@ CREATE TABLE IF NOT EXISTS resource_inventory_prediction_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_inventory_prediction_snapshots_generated
   ON resource_inventory_prediction_snapshots (generated_at DESC);
+
+-- Public donations are pledges until money clears or staff physically receive
+-- the offered goods. They never mutate operational inventory directly.
+CREATE TABLE IF NOT EXISTS donations (
+  id                  UUID PRIMARY KEY,
+  donor_google_id     TEXT NOT NULL,
+  donor_email         TEXT NOT NULL,
+  donor_name          TEXT NOT NULL,
+  donation_type       TEXT NOT NULL CHECK (donation_type IN ('MONEY', 'IN_KIND')),
+  status              TEXT NOT NULL CHECK (status IN ('PENDING_PAYMENT', 'PAID', 'EXPIRED', 'PLEDGED', 'RECEIVED', 'CANCELLED')),
+  currency            TEXT,
+  amount_minor        BIGINT CHECK (amount_minor IS NULL OR amount_minor > 0),
+  resource_name       TEXT,
+  resource_category   TEXT,
+  quantity            NUMERIC(14, 3) CHECK (quantity IS NULL OR quantity > 0),
+  unit                TEXT,
+  country             TEXT,
+  message             TEXT,
+  provider_reference  TEXT UNIQUE,
+  payment_reference   TEXT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_donations_donor ON donations (donor_google_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_donations_status ON donations (status, created_at DESC);
+
+-- ── Relief Portal (donations → supermarket purchases → delivery → receipt) ──
+-- Transactional store for the public relief marketplace. etcd is NOT used:
+-- this repo has no etcd deployment and none of these rows are distributed
+-- configuration; they are money/inventory-bearing transactions that belong in
+-- PostgreSQL alongside the existing donations and inventory tables.
+
+-- Staff roles for the relief portal: ADMIN, PARTNER (supermarket),
+-- COLLECTION_CENTRE, CAMP_MANAGER. Donors keep using the existing Google
+-- donor session (donations auth) and are not stored here.
+CREATE TABLE IF NOT EXISTS relief_staff_users (
+  id            UUID PRIMARY KEY,
+  email         TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  display_name  TEXT NOT NULL,
+  role          TEXT NOT NULL CHECK (role IN ('ADMIN', 'PARTNER', 'COLLECTION_CENTRE', 'CAMP_MANAGER')),
+  org_code      TEXT,                       -- partner key, centre code, or camp id
+  is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Partner supermarket catalogue. Rows are written by adapter sync or seeded;
+-- availability_source records how fresh/trustworthy the data is so the UI can
+-- label unverified stock honestly instead of fabricating availability.
+CREATE TABLE IF NOT EXISTS relief_products (
+  id                  BIGSERIAL PRIMARY KEY,
+  partner_code        TEXT NOT NULL CHECK (partner_code IN ('KEELLS', 'CARGILLS', 'ARPICO', 'SPAR')),
+  sku                 TEXT NOT NULL,
+  name                TEXT NOT NULL,
+  category            TEXT NOT NULL CHECK (category IN ('food', 'water', 'medicine', 'hygiene', 'shelter', 'other')),
+  unit                TEXT NOT NULL,
+  unit_price_lkr      NUMERIC(12, 2) NOT NULL CHECK (unit_price_lkr >= 0),
+  currency            TEXT NOT NULL DEFAULT 'LKR',
+  stock_quantity      INTEGER,              -- NULL = unknown; never invent a number
+  stock_status        TEXT NOT NULL DEFAULT 'UNKNOWN'
+                      CHECK (stock_status IN ('IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'UNKNOWN')),
+  availability_source TEXT NOT NULL DEFAULT 'MANUAL'
+                      CHECK (availability_source IN ('LIVE_API', 'SANDBOX', 'MANUAL')),
+  is_active           BOOLEAN NOT NULL DEFAULT TRUE,
+  last_synced_at      TIMESTAMPTZ,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (partner_code, sku)
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_products_partner ON relief_products (partner_code, is_active);
+
+-- Donation / purchase orders. status: CREATED → AWAITING_PAYMENT → PAID →
+-- CONFIRMED_WITH_PARTNER → OUT_FOR_DELIVERY → DELIVERED → RECEIVED, with
+-- CANCELLED/EXPIRED side paths. A row can never reach PAID without a verified
+-- relief_payment (enforced in payment.service.js + tests).
+CREATE TABLE IF NOT EXISTS relief_orders (
+  id                UUID PRIMARY KEY,
+  reference         TEXT NOT NULL UNIQUE,          -- public tracking code e.g. SRO-2026-000123
+  donor_google_id   TEXT NOT NULL,
+  donor_email       TEXT NOT NULL,
+  donor_name        TEXT NOT NULL,
+  kind              TEXT NOT NULL CHECK (kind IN ('MONEY_DONATION', 'RESOURCE_PURCHASE')),
+  partner_code      TEXT CHECK (partner_code IS NULL OR partner_code IN ('KEELLS', 'CARGILLS', 'ARPICO', 'SPAR')),
+  status            TEXT NOT NULL DEFAULT 'CREATED'
+                    CHECK (status IN ('CREATED', 'AWAITING_PAYMENT', 'PAID', 'CONFIRMED_WITH_PARTNER',
+                                      'OUT_FOR_DELIVERY', 'DELIVERED', 'RECEIVED', 'CANCELLED', 'EXPIRED')),
+  subtotal_lkr      NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  delivery_lkr      NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  total_lkr         NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (total_lkr >= 0),
+  destination_type  TEXT CHECK (destination_type IN ('COLLECTION_CENTRE', 'CAMP')),
+  destination_code  TEXT,
+  destination_name  TEXT,
+  message           TEXT,
+  idempotency_key   TEXT UNIQUE,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_orders_donor ON relief_orders (donor_google_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_relief_orders_status ON relief_orders (status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS relief_order_items (
+  id             BIGSERIAL PRIMARY KEY,
+  order_id       UUID NOT NULL REFERENCES relief_orders(id) ON DELETE CASCADE,
+  partner_code   TEXT NOT NULL,
+  sku            TEXT NOT NULL,
+  name           TEXT NOT NULL,
+  category       TEXT NOT NULL,
+  unit           TEXT NOT NULL,
+  unit_price_lkr NUMERIC(12, 2) NOT NULL,
+  quantity       INTEGER NOT NULL CHECK (quantity > 0),
+  line_total_lkr NUMERIC(14, 2) NOT NULL,
+  CHECK (line_total_lkr = unit_price_lkr * quantity)
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_order_items_order ON relief_order_items (order_id);
+
+-- Payment attempts. provider_reference is the gateway's checkout/txn id and is
+-- UNIQUE so a retried webhook can never create a second row.
+CREATE TABLE IF NOT EXISTS relief_payments (
+  id                 UUID PRIMARY KEY,
+  order_id           UUID NOT NULL REFERENCES relief_orders(id) ON DELETE CASCADE,
+  provider           TEXT NOT NULL CHECK (provider IN ('PAYHERE', 'STRIPE', 'BANK_TRANSFER', 'LANKAQR', 'SANDBOX')),
+  status             TEXT NOT NULL DEFAULT 'PENDING'
+                     CHECK (status IN ('PENDING', 'AWAITING_CONFIRMATION', 'VERIFIED', 'FAILED', 'EXPIRED', 'CANCELLED')),
+  amount_lkr         NUMERIC(14, 2) NOT NULL CHECK (amount_lkr >= 0),
+  currency           TEXT NOT NULL DEFAULT 'LKR',
+  provider_reference TEXT UNIQUE,
+  payer_reference    TEXT,                  -- bank slip / LR no. for manual methods
+  verified_by        TEXT,                  -- staff email for manual confirmation
+  verified_at        TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_payments_order ON relief_payments (order_id);
+
+-- Webhook / callback event log. event_id is UNIQUE: duplicate deliveries and
+-- retries are recorded once and acknowledged without re-processing.
+CREATE TABLE IF NOT EXISTS relief_payment_events (
+  id            BIGSERIAL PRIMARY KEY,
+  event_id      TEXT NOT NULL UNIQUE,
+  payment_id    UUID REFERENCES relief_payments(id) ON DELETE SET NULL,
+  provider      TEXT NOT NULL,
+  event_type    TEXT,
+  payload       JSONB,
+  signature_ok  BOOLEAN NOT NULL DEFAULT FALSE,
+  process_result TEXT,
+  received_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_payment_events_payment ON relief_payment_events (payment_id, received_at DESC);
+
+-- Delivery bookings (Uber / PickMe / manual fallback).
+CREATE TABLE IF NOT EXISTS relief_deliveries (
+  id                 UUID PRIMARY KEY,
+  order_id           UUID NOT NULL REFERENCES relief_orders(id) ON DELETE CASCADE,
+  provider           TEXT NOT NULL CHECK (provider IN ('UBER', 'PICKME', 'MANUAL')),
+  status             TEXT NOT NULL DEFAULT 'REQUESTED'
+                     CHECK (status IN ('REQUESTED', 'QUOTED', 'BOOKED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED', 'FAILED')),
+  quote_estimate_lkr NUMERIC(14, 2),
+  provider_reference TEXT UNIQUE,           -- Uber trip id / PickMe job id / manual waybill no.
+  tracking_url       TEXT,
+  manual_reference   TEXT,                  -- courier name + waybill typed by staff
+  pickup_note        TEXT,
+  booked_by          TEXT,                  -- staff email
+  booked_at          TIMESTAMPTZ,
+  delivered_at       TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_deliveries_order ON relief_deliveries (order_id);
+
+CREATE TABLE IF NOT EXISTS relief_delivery_events (
+  id            BIGSERIAL PRIMARY KEY,
+  delivery_id   UUID NOT NULL REFERENCES relief_deliveries(id) ON DELETE CASCADE,
+  status        TEXT NOT NULL,
+  provider_reference TEXT,
+  note          TEXT,
+  actor         TEXT,
+  occurred_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_delivery_events_delivery ON relief_delivery_events (delivery_id, occurred_at DESC);
+
+-- Confirms a delivery physically arrived. Only this confirmation (by
+-- COLLECTION_CENTRE or CAMP_MANAGER or ADMIN) may post inventory movements.
+CREATE TABLE IF NOT EXISTS relief_receipts (
+  id            UUID PRIMARY KEY,
+  delivery_id   UUID NOT NULL UNIQUE REFERENCES relief_deliveries(id) ON DELETE CASCADE,
+  order_id      UUID NOT NULL REFERENCES relief_orders(id) ON DELETE CASCADE,
+  received_by   TEXT NOT NULL,             -- staff email
+  received_role TEXT NOT NULL,
+  condition     TEXT NOT NULL DEFAULT 'INTACT' CHECK (condition IN ('INTACT', 'PARTIAL', 'DAMAGED')),
+  item_count    INTEGER,
+  notes         TEXT,
+  inventory_applied BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Camp resource requests raised by camp managers (shortages → admin → order).
+CREATE TABLE IF NOT EXISTS relief_camp_requests (
+  id            UUID PRIMARY KEY,
+  camp_id       TEXT NOT NULL,
+  requested_by  TEXT NOT NULL,
+  resource_name TEXT NOT NULL,
+  category      TEXT NOT NULL,
+  quantity      NUMERIC(14, 3) NOT NULL CHECK (quantity > 0),
+  unit          TEXT NOT NULL,
+  priority      TEXT NOT NULL DEFAULT 'NORMAL' CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT')),
+  status        TEXT NOT NULL DEFAULT 'OPEN'
+                CHECK (status IN ('OPEN', 'APPROVED', 'ORDERED', 'FULFILLED', 'CANCELLED')),
+  notes         TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_camp_requests_status ON relief_camp_requests (status, priority);
+
+-- Campaign progress shown on the public transparency dashboard. Figures are
+-- derived from verified payments and receipts, never entered by hand.
+CREATE TABLE IF NOT EXISTS relief_campaigns (
+  id            UUID PRIMARY KEY,
+  slug          TEXT NOT NULL UNIQUE,
+  title         TEXT NOT NULL,
+  description   TEXT,
+  goal_amount_lkr NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  status        TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'CLOSED')),
+  starts_at     TIMESTAMPTZ,
+  ends_at       TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Append-only audit trail for relief actions (payments verified, receipts
+-- posted, status changes). Distinct from the Raspberry audit_logs table.
+CREATE TABLE IF NOT EXISTS relief_audit_logs (
+  id          BIGSERIAL PRIMARY KEY,
+  actor       TEXT NOT NULL,
+  actor_role  TEXT,
+  action      TEXT NOT NULL,
+  entity_type TEXT,
+  entity_id   TEXT,
+  details     JSONB,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_relief_audit_action ON relief_audit_logs (action, created_at DESC);
