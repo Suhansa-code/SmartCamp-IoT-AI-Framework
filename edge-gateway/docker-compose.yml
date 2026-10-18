@@ -21,6 +21,9 @@ services:
     env_file:
       - path: .env
         required: false
+    devices:
+      - "${GPS_SERIAL_PORT:?GPS_SERIAL_PORT is not set in .env}:${GPS_SERIAL_PORT:?GPS_SERIAL_PORT is not set in .env}"
+
     environment:
       # sensor_state.py opens this port ONCE at startup and owns it for the
       # process lifetime; every endpoint reads its in-memory cache.
