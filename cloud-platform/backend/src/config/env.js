@@ -1,6 +1,7 @@
 import { config as loadEnv } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,7 +14,18 @@ function toInt(value, fallback) {
 }
 
 export const env = {
+  nodeEnv: process.env.NODE_ENV || 'development',
   port: toInt(process.env.PORT, 3001),
+
+  donations: {
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    // An omitted secret gets a safe process-local value. Production should set
+    // a stable secret so donor sessions survive a restart.
+    sessionSecret: process.env.DONATION_SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    publicUrl: (process.env.PUBLIC_URL || 'http://localhost:3000').replace(/\/$/, ''),
+  },
 
   // PostgreSQL — education/pages persistence (AWS VM)
   db: {
@@ -88,5 +100,68 @@ export const env = {
   // Alert database (Education domain)
   alerts: {
     dbPath: process.env.ALERTS_DB_PATH || path.join(__dirname, '../../data/alerts.db'),
+  },
+
+  // Relief portal — provider adapters run in sandbox until real credentials
+  // and partner agreements exist. Never fabricate live availability: adapters
+  // report availability_source so the UI can label data honestly.
+  relief: {
+    providerMode: process.env.RELIEF_PROVIDER_MODE || 'sandbox', // 'sandbox' | 'live'
+    payhere: {
+      merchantId: process.env.PAYHERE_MERCHANT_ID || '',
+      merchantSecret: process.env.PAYHERE_SECRET || '',
+      mode: process.env.PAYHERE_MODE || 'sandbox', // 'sandbox' | 'live'
+      baseUrl: process.env.PAYHERE_BASE_URL || 'https://sandbox.payhere.lk',
+      notifyUrl: process.env.PAYHERE_NOTIFY_URL || '',
+      returnUrl: process.env.PAYHERE_RETURN_URL || '',
+      cancelUrl: process.env.PAYHERE_CANCEL_URL || '',
+    },
+    stripe: {
+      secretKey: process.env.STRIPE_SECRET_KEY || '',
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    },
+    uber: {
+      clientId: process.env.UBER_CLIENT_ID || '',
+      clientSecret: process.env.UBER_CLIENT_SECRET || '',
+      serverToken: process.env.UBER_SERVER_TOKEN || '',
+      baseUrl: process.env.UBER_BASE_URL || 'https://api.uber.com/v1',
+      sandbox: process.env.UBER_SANDBOX === 'true',
+    },
+    pickme: {
+      apiKey: process.env.PICKME_API_KEY || '',
+      merchantId: process.env.PICKME_MERCHANT_ID || '',
+      baseUrl: process.env.PICKME_BASE_URL || 'https://admin.pickme.lk/api',
+    },
+    // Partner supermarket APIs — populated only after a commercial agreement.
+    // Empty keys mean the adapter reports live:false and serves the sandbox
+    // catalogue with an explicit availability_source label.
+    keells: {
+      apiKey: process.env.KEELLS_API_KEY || '',
+      merchantId: process.env.KEELLS_MERCHANT_ID || '',
+      baseUrl: process.env.KEELLS_BASE_URL || '',
+    },
+    cargills: {
+      apiKey: process.env.CARGILLS_API_KEY || '',
+      merchantId: process.env.CARGILLS_MERCHANT_ID || '',
+      baseUrl: process.env.CARGILLS_BASE_URL || '',
+    },
+    arpico: {
+      apiKey: process.env.ARPICO_API_KEY || '',
+      merchantId: process.env.ARPICO_MERCHANT_ID || '',
+      baseUrl: process.env.ARPICO_BASE_URL || '',
+    },
+    spar: {
+      apiKey: process.env.SPAR_API_KEY || '',
+      merchantId: process.env.SPAR_MERCHANT_ID || '',
+      baseUrl: process.env.SPAR_BASE_URL || '',
+    },
+    // HMAC secret for sandbox payment callback verification (dev/demo only).
+    sandboxWebhookSecret: process.env.RELIEF_SANDBOX_WEBHOOK_SECRET || 'relief-sandbox-secret',
+    // Guest checkout lets the public portal work before Google OAuth is
+    // configured. Guests can create/track an order by its reference but cannot
+    // list order history; every payment still requires server-side verification.
+    // Force off in live mode regardless of the env value.
+    guestCheckout: process.env.RELIEF_GUEST_CHECKOUT !== 'false'
+      && (process.env.RELIEF_PROVIDER_MODE || 'sandbox') !== 'live',
   },
 };

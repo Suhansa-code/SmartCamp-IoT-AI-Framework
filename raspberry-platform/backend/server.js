@@ -112,8 +112,8 @@ onMessage('smartcamp/camps/', (payload) => {
 
 // Check Flask health at startup
 checkFlaskHealth().then(healthy => {
-  if (healthy) logger.info(`[FLASK] Connected to ${C.FLASK_URL}`);
-  else logger.warn(`[FLASK] ${C.FLASK_URL} is unreachable — fallback scoring will be used`);
+  if (healthy) logger.info(`[FLASK] Connected to ${C.CLOUD_ML_URL}`);
+  else logger.warn(`[FLASK] ${C.CLOUD_ML_URL} is unreachable — fallback scoring will be used`);
 }).catch(() => {});
 
 // Start connectivity watcher
