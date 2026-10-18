@@ -96,13 +96,17 @@ function LevelGauge({ waterLevel, alertLevel, minorFloodLevel, majorFloodLevel, 
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 128" className="w-full max-w-60">
-        <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke={COLORS.track} strokeWidth="15" strokeLinecap="round" />
+        <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke={COLORS.line} strokeWidth="15" strokeLinecap="round" />
         <path d={arcPath(cx, cy, r, 0, valueDeg)} fill="none" stroke={risk.color} strokeWidth="15" strokeLinecap="round" />
-        {[al, mf, Mf].map((lvl, i) => {
+        {[
+          { lvl: al, color: RISK.caution.color },
+          { lvl: mf, color: RISK.warning.color },
+          { lvl: Mf, color: RISK.critical.color },
+        ].map(({ lvl, color }, i) => {
           const deg = Math.min(180, (lvl / max) * 180);
           const p1 = polar(cx, cy, r - 10, deg);
           const p2 = polar(cx, cy, r + 10, deg);
-          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={COLORS.noise} strokeWidth="1.5" />;
+          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={color} strokeWidth="1.5" />;
         })}
       </svg>
       <div className="-mt-12 text-center">
@@ -143,7 +147,7 @@ function LevelHistoryChart({ history, alertLevel }) {
           <CartesianGrid vertical={false} stroke={COLORS.grid} />
           <XAxis dataKey="t" tick={{ fontSize: 11, fill: COLORS.muted, fontFamily: "Inter" }} axisLine={{ stroke: COLORS.line }} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: COLORS.muted, fontFamily: "Inter" }} axisLine={false} tickLine={false} width={34} />
-          <ReferenceLine y={alertLevel} stroke={COLORS.noise} strokeDasharray="4 4" />
+          <ReferenceLine y={alertLevel} stroke={COLORS.muted} strokeDasharray="4 4" />
           <Tooltip
             contentStyle={{ borderRadius: 10, border: `1px solid ${COLORS.line}`, fontSize: 12, boxShadow: SHADOW_CARD, fontFamily: "Inter" }}
             labelStyle={{ color: COLORS.ink, fontWeight: 600 }}
