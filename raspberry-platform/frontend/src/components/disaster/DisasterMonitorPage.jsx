@@ -252,11 +252,11 @@ function LocationName({ gps }) {
           </p>
         ) : geo.name ? (
           <>
-            <p className="text-[12.5px] font-medium mt-0.5 break-words" style={{ color: COLORS.ink }}>
+            <p className="text-[12.5px] font-medium mt-0.5 wrap-break-words" style={{ color: COLORS.ink }}>
               {geo.name}
             </p>
             {geo.district && (
-              <p className="text-[11px] mt-0.5 break-words" style={{ color: COLORS.muted }}>
+              <p className="text-[11px] mt-0.5 wrap-break-words" style={{ color: COLORS.muted }}>
                 {geo.district}
               </p>
             )}
@@ -634,7 +634,7 @@ export default function DisasterMonitorPage() {
                 <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
                   Weather Forecast
                 </p>
-                <p className="text-[13px] sm:text-[14px] font-medium mt-0.5 break-words">{weather?.condition || "Weather data unavailable"}</p>
+                <p className="text-[13px] sm:text-[14px] font-medium mt-0.5 wrap-break-words">{weather?.condition || "Weather data unavailable"}</p>
               </div>
             </div>
 
@@ -1136,7 +1136,7 @@ export default function DisasterMonitorPage() {
       {/* ================= ESCALATED ALERTS TABLE ================= */}
       <div className="mt-4 sm:mt-6">
         <div className="rounded-xl  overflow-hidden" style={{ background: "#fff", boxShadow: SHADOW_CARD }}>
-          <div className="px-4 sm:px-5 py-3.5 border-b border-black/[.06] flex items-center justify-between">
+          <div className="px-4 sm:px-5 py-3.5 border-b border-black/6 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4" style={{ color: COLORS.brand }} />
               <h2 className="text-[14px] font-semibold" style={{ fontFamily: "Poppins, sans-serif" }}>
@@ -1166,7 +1166,7 @@ export default function DisasterMonitorPage() {
                   },
                 },
                 { key: "alert_type", label: "Type" },
-                { key: "title", label: "Title", render: (v) => <span className="text-[12px] line-clamp-1 max-w-[200px]">{v}</span> },
+                { key: "title", label: "Title", render: (v) => <span className="text-[12px] line-clamp-1 max-w-50">{v}</span> },
                 {
                   key: "flood_probability_percent",
                   label: "Prob %",
