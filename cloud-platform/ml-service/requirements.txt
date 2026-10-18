@@ -2,6 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Core (required — install these always)
 flask==3.0.3
+gunicorn==23.0.0
 python-dotenv==1.0.1
 SQLAlchemy==2.0.32
 psycopg2-binary==2.9.9
