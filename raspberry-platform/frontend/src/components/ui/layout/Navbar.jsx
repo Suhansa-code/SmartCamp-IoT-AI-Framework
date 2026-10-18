@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { COLORS } from "../../../lib/tokens";
 import { API } from "../config";
+import useFingerprintDevice from "../../../lib/useFingerprintDevice";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -88,28 +89,26 @@ export default function Navbar() {
   const menuRef = useRef(null);
   const [disconnectedCount, setDisconnectedCount] = useState(0);
 
+  const { deviceConnected: fpConnected } = useFingerprintDevice();
+
   const fetchDeviceStatus = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/disaster/device-status`, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) return;
       const data = await res.json();
-      const device = data.device || {};
       const sensors = data.sensors || {};
-      const connected = [
-        device.status === 'connected',
-        true,
-        true,
-        true,
+      const flags = [
+        !!sensors.gps?.connected,
+        !!sensors.temperature?.connected,
+        !!sensors.humidity?.connected,
         !!sensors.rainfall?.connected,
-        !!sensors.fingerprint?.connected,
+        fpConnected,
       ];
-      const total = connected.length;
-      const allConnected = connected.filter(Boolean).length;
-      setDisconnectedCount(total - allConnected);
+      setDisconnectedCount(flags.filter(c => !c).length);
     } catch {
-      setDisconnectedCount(6);
+      setDisconnectedCount(5);
     }
-  }, [API]);
+  }, [API, fpConnected]);
 
   useEffect(() => {
     fetchDeviceStatus();
@@ -195,7 +194,7 @@ export default function Navbar() {
               >
                 <Cpu className="w-4 h-4" strokeWidth={1.5} />
                 {disconnectedCount > 0 ? (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-medium">
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-medium">
                     {disconnectedCount}
                   </span>
                 ) : (
@@ -213,7 +212,7 @@ export default function Navbar() {
               >
                 <Cpu className="w-4 h-4" strokeWidth={1.5} />
                 {disconnectedCount > 0 ? (
-                  <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[8px] flex items-center justify-center font-medium">
+                  <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[8px] flex items-center justify-center font-medium">
                     {disconnectedCount}
                   </span>
                 ) : (

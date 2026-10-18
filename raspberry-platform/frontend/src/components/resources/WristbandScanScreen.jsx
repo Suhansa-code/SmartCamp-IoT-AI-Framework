@@ -398,7 +398,7 @@ function DistributionPanel() {
         <>
           {/* Barcode lookup */}
           <form onSubmit={handleScan} className="rounded-xl border p-4 sm:p-6" style={{ borderColor: COLORS.line }}>
-            <p className="text-[11px] uppercase tracking-[0.1em] mb-3" style={{ color: COLORS.muted }}>
+            <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: COLORS.muted }}>
               Wristband barcode
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -545,7 +545,7 @@ function DistributionPanel() {
               <div className="rounded-xl border p-4 sm:p-5" style={{ borderColor: COLORS.line }}>
                 <div className="flex items-center gap-2 mb-2.5">
                   <HeartPulse className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
-                  <span className="text-[11px] uppercase tracking-[0.1em]" style={{ color: COLORS.muted }}>
+                  <span className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
                     Health status
                   </span>
                 </div>
@@ -564,7 +564,7 @@ function DistributionPanel() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <Droplets className="w-3.5 h-3.5" style={{ color: COLORS.brand }} />
-                  <span className="text-[11px] uppercase tracking-[0.1em]" style={{ color: COLORS.muted }}>
+                  <span className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
                     Daily availability left
                   </span>
                 </div>

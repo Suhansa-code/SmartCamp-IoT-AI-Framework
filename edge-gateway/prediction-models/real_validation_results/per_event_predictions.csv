@@ -1,0 +1,31 @@
+event_id,event_name,locations_name,latitude,longitude,year,displaced_figure,nearest_gauge,static_proxy_elevation_m,static_proxy_river_m,static_source_distance_km,prob_during_event,prob_pre_event
+37190,Sri Lanka: Flood - Jaffna - 23/11/2025,"Jaffna District, Northern Province, Sri Lanka",9.695,80.078972,2025,4.0,Thanthirimale,17.0,44.7,0.36,0.292327123383681,0.0027042765092725554
+29380,Sri Lanka: Flood - Anuradhapura (Rajanganaya) - 19/01/2025,"Rajanganaya, Anuradhapura District, North Central Province, Sri Lanka",8.16251,80.217346,2025,56.0,Galgamuwa,33.0,216.9,0.93,0.09040961414575577,0.0
+29387,Sri Lanka: Flood - Batticaloa (Eravur Pattu) - 13/01/2025,"Eravur, Batticaloa District, Eastern Province, Sri Lanka",7.78554,81.604599,2025,803.0,Manampitiya,11.0,797.8,0.39,0.05803251980493466,0.0
+29375,Sri Lanka: Flood - Ampara (Dehiaththakandiya) - 18/01/2025,"Dehiattakandiya, Ampara District, Eastern Province, Sri Lanka",7.6715,81.040894,2025,31.0,Manampitiya,6.0,864.6,1.25,0.05568495144446691,0.0
+29371,Sri Lanka: Flood - Ampara (Ampara) - 14/01/2025,"Ampara, Ampara District, Eastern Province, Sri Lanka",7.29112,81.672401,2025,135.0,Siyambalanduwa,3.0,1998.6,0.97,0.025286574847996235,0.0
+29377,Sri Lanka: Flood - Badulla (Mahiyanganaya) - 19/01/2025,"Mahiyanganaya, Badulla District, Uva, Sri Lanka",7.34007,80.992882,2025,70.0,Weraganthota,61.0,348.0,1.52,0.0027042765092725554,0.0
+29385,Sri Lanka: Flood - Batticaloa (Manmunai North) - 13/01/2025,"Manmunai North DS Division, Batticaloa District, Eastern Province, Sri Lanka",7.73106,81.68412,2025,32.0,Padiyathalawa,1233.0,86.0,1.0,0.0014464386040344834,0.0
+29378,Sri Lanka: Flood - Anuradhapura (Galnewa) - 19/01/2025,"Galnewa, Anuradhapura District, North Central Province, Sri Lanka",8.03548,80.480209,2025,4.0,Galgamuwa,24.0,1762.0,0.63,0.0009496676114698251,0.0
+37191,Sri Lanka: Flood - Kalutara - 23/11/2025,"Kalutara District, Western Province, Sri Lanka",6.57453,80.028633,2025,4.0,Putupaula,84.0,339.2,0.1,0.0004967709925646583,0.0
+29506,Sri Lanka: Flood - Anuradhapura (Nachchauwa) - 21/01/2025,"Anuradhapura, Anuradhapura District, North Central Province, Sri Lanka",8.33498,80.410606,2025,19.0,Thanthirimale,28.0,591.3,1.13,0.0,0.0
+36848,Sri Lanka: Flood - Kalutara (Dodangoda) - 21/10/2025,"Dodangoda DS Division, Kalutara District, Western Province, Sri Lanka",6.55823,80.051277,2025,4.0,Putupaula,94.0,4052.8,1.39,0.0,0.0
+36850,Sri Lanka: Flood - Colombo - 20/10/2025,"Colombo District, Western Province, Sri Lanka",6.84767,79.925758,2025,30.0,Nagalagam Street,51.0,7263.7,0.64,0.0,0.0
+29514,Sri Lanka: Flood - Anuradhapura (ENP) - 19/01/2025,"Anuradhapura District, North Central Province, Sri Lanka",8.36817,80.43998,2025,3.0,Thanthirimale,67.0,889.3,0.96,0.0,0.0
+29509,Sri Lanka: Flood - Killinochchi (Kandawalai) - 23/01/2025,"Kandawalai, Kilinochchi District, Northern Province, Sri Lanka",9.46744,80.485474,2025,199.0,Yaka Wewa,17.0,3590.9,1.61,0.0,0.0
+29505,Sri Lanka: Flood - Anuradhapura (CNP) - 19/01/2025,"Anuradhapura District, North Central Province, Sri Lanka",8.36817,80.43998,2025,300.0,Thanthirimale,67.0,889.3,0.96,0.0,0.0
+29384,Sri Lanka: Flood - Vavuniya (Vengalacheddikulam) - 20/01/2025,"Vavuniya District, Northern Province, Sri Lanka",8.83631,80.488937,2025,61.0,Yaka Wewa,96.0,3746.5,1.4,0.0,0.0
+29381,Sri Lanka: Flood - Polonnaruwa (Thamankaduwa) - 19/01/2025,"Polonnaruwa District, North Central Province, Sri Lanka",7.99623,81.049171,2025,73.0,Manampitiya,61.0,11134.2,1.35,0.0,0.0
+29382,Sri Lanka: Flood - Polonnaruwa (Lankapura) - 19/01/2025,"Polonnaruwa District, North Central Province, Sri Lanka",7.99623,81.049171,2025,8.0,Manampitiya,61.0,11134.2,1.35,0.0,0.0
+29513,Sri Lanka: Flood - Trincomalee (Verugal) - 21/01/2025,"Trincomalee District, Eastern Province, Sri Lanka",8.62861,81.200737,2025,119.0,Horowpothana,71.0,7206.0,0.66,0.0,0.0
+29503,Sri Lanka: Flood - Batticaloa (Koralaipattu South) - 13/01/2025,"Batticaloa District, Eastern Province, Sri Lanka",7.8381,81.556747,2025,55.0,Manampitiya,361.0,1802.9,2.14,0.0,0.0
+29502,Sri Lanka: Flood - Batticaloa (Koralaipattu West) - 13/01/2025,"Batticaloa District, Eastern Province, Sri Lanka",7.8381,81.556747,2025,38.0,Manampitiya,361.0,1802.9,2.14,0.0,0.0
+29383,Sri Lanka: Flood - Polonnaruwa (Dimbulagala) - 19/01/2025,"Dimbulagala, Polonnaruwa District, North Central Province, Sri Lanka",7.85893,81.106873,2025,23.0,Manampitiya,166.0,4917.8,0.62,0.0,0.0
+29374,Sri Lanka: Flood - Anuradhapura (Horowpothana) - 18/01/2025,"Horowpotana, Anuradhapura District, North Central Province, Sri Lanka",8.55,80.832359,2025,52.0,Horowpothana,113.0,8899.7,0.89,0.0,0.0
+29376,Sri Lanka: Flood - Ampara (Samanthurei) - 18/01/2025,"Ampara District, Eastern Province, Sri Lanka",7.06171,81.846642,2025,63.0,Siyambalanduwa,175.0,614.7,1.5,0.0,0.0
+29379,Sri Lanka: Flood - Anuradhapura (Medawachchiya) - 19/01/2025,"Medawachchiya, Anuradhapura District, North Central Province, Sri Lanka",8.53918,80.493332,2025,36.0,Thanthirimale,63.0,671.5,0.72,0.0,0.0
+29511,Sri Lanka: Flood - Badulla (Hali Ela) - 16/01/2025,"Hali Ela, Badulla District, Uva, Sri Lanka",6.95545,81.031403,2025,14.0,Thaldena,1102.0,2085.3,0.39,0.0,0.0
+29372,Sri Lanka: Flood - Killinochchi (Kandawalai) - 15/01/2025,"Kandawalai, Kilinochchi District, Northern Province, Sri Lanka",9.46744,80.485474,2025,195.0,Yaka Wewa,17.0,3590.9,1.61,0.0,0.0
+29515,Sri Lanka: Flood - Anuradhapura (Palagala) - 15/01/2025,"Anuradhapura District, North Central Province, Sri Lanka",8.36817,80.43998,2025,4.0,Thanthirimale,67.0,889.3,0.96,0.0,0.0
+29373,Sri Lanka: Flood - Anuradhapura (Na Nu Pa) - 15/01/2025,"Anuradhapura District, North Central Province, Sri Lanka",8.36817,80.43998,2025,164.0,Thanthirimale,67.0,889.3,0.96,0.0,0.0
+29386,Sri Lanka: Flood - Batticaloa (Manmunai South) - 13/01/2025,"Batticaloa District, Eastern Province, Sri Lanka",7.8381,81.556747,2025,6.0,Manampitiya,361.0,1802.9,2.14,0.0,0.0

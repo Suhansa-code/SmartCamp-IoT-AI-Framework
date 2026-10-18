@@ -96,13 +96,17 @@ function LevelGauge({ waterLevel, alertLevel, minorFloodLevel, majorFloodLevel, 
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 128" className="w-full max-w-60">
-        <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke={COLORS.track} strokeWidth="15" strokeLinecap="round" />
+        <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke={COLORS.line} strokeWidth="15" strokeLinecap="round" />
         <path d={arcPath(cx, cy, r, 0, valueDeg)} fill="none" stroke={risk.color} strokeWidth="15" strokeLinecap="round" />
-        {[al, mf, Mf].map((lvl, i) => {
+        {[
+          { lvl: al, color: RISK.caution.color },
+          { lvl: mf, color: RISK.warning.color },
+          { lvl: Mf, color: RISK.critical.color },
+        ].map(({ lvl, color }, i) => {
           const deg = Math.min(180, (lvl / max) * 180);
           const p1 = polar(cx, cy, r - 10, deg);
           const p2 = polar(cx, cy, r + 10, deg);
-          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={COLORS.noise} strokeWidth="1.5" />;
+          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={color} strokeWidth="1.5" />;
         })}
       </svg>
       <div className="-mt-12 text-center">
@@ -143,7 +147,7 @@ function LevelHistoryChart({ history, alertLevel }) {
           <CartesianGrid vertical={false} stroke={COLORS.grid} />
           <XAxis dataKey="t" tick={{ fontSize: 11, fill: COLORS.muted, fontFamily: "Inter" }} axisLine={{ stroke: COLORS.line }} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: COLORS.muted, fontFamily: "Inter" }} axisLine={false} tickLine={false} width={34} />
-          <ReferenceLine y={alertLevel} stroke={COLORS.noise} strokeDasharray="4 4" />
+          <ReferenceLine y={alertLevel} stroke={COLORS.muted} strokeDasharray="4 4" />
           <Tooltip
             contentStyle={{ borderRadius: 10, border: `1px solid ${COLORS.line}`, fontSize: 12, boxShadow: SHADOW_CARD, fontFamily: "Inter" }}
             labelStyle={{ color: COLORS.ink, fontWeight: 600 }}
@@ -194,6 +198,80 @@ function FieldBox({ label, value, icon: Icon }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  FETCHED LOCATION NAME (backend name, else Nominatim reverse geocode) */
+/* ------------------------------------------------------------------ */
+
+function LocationName({ gps }) {
+  const lat = gps?.latitude;
+  const lng = gps?.longitude;
+  const backendName = gps?.location_name || "";
+  const backendDistrict = gps?.location_district || "";
+  const looksLikeCoords = /^-?\d+\.?\d*\s*[,]\s*-?\d+\.?\d*$/.test(backendName);
+  const [geo, setGeo] = useState({ name: "", district: "", loading: false });
+
+  useEffect(() => {
+    if (lat == null || lng == null) return;
+    if (backendName && !looksLikeCoords) {
+      setGeo({ name: backendName, district: backendDistrict, loading: false });
+      return;
+    }
+    let cancelled = false;
+    setGeo((g) => ({ ...g, loading: true }));
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14`, {
+      signal: AbortSignal.timeout(8000),
+      headers: { "Accept-Language": "en" },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const a = data.address || {};
+        setGeo({
+          name: a.village || a.town || a.city || a.hamlet || a.suburb || a.county || "",
+          district: a.district || a.state_district || a.state || "",
+          loading: false,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setGeo((g) => ({ ...g, loading: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lat, lng, backendName, backendDistrict, looksLikeCoords]);
+
+  return (
+    <div className="mt-3 pt-3 border-t flex items-start gap-2" style={{ borderColor: COLORS.hairline }}>
+      <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: COLORS.brand }} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: COLORS.muted }}>
+          Location
+        </p>
+        {geo.loading ? (
+          <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.muted }}>
+            Fetching location…
+          </p>
+        ) : geo.name ? (
+          <>
+            <p className="text-[12.5px] font-medium mt-0.5 wrap-break-words" style={{ color: COLORS.ink }}>
+              {geo.name}
+            </p>
+            {geo.district && (
+              <p className="text-[11px] mt-0.5 wrap-break-words" style={{ color: COLORS.muted }}>
+                {geo.district}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-[12.5px] font-medium mt-0.5" style={{ color: COLORS.muted }}>
+            Location unavailable
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  PAGE                                                                */
 /* ------------------------------------------------------------------ */
 
@@ -204,6 +282,7 @@ export default function DisasterMonitorPage() {
   const [gpsLoading, setGpsLoading] = useState(true);
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
+  const [sensor, setSensor] = useState(null);
   const [waterLevel, setWaterLevel] = useState(null);
   const [waterLevelLoading, setWaterLevelLoading] = useState(true);
   const [waterHistory, setWaterHistory] = useState([]);
@@ -370,6 +449,21 @@ export default function DisasterMonitorPage() {
     return () => clearInterval(gpsInterval);
   }, [fetchAllDisasterData, fetchAlerts]);
 
+  // ── DHT11 sensor readings (temperature / humidity from ESP32) ────────
+  useEffect(() => {
+    const pollSensor = () => {
+      fetch(`${API}/api/disaster/dht11/latest`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.available) setSensor(data);
+        })
+        .catch(() => {});
+    };
+    pollSensor();
+    const id = setInterval(pollSensor, 10000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetch(`${API}/api/disaster/latest-gps`)
@@ -534,30 +628,25 @@ export default function DisasterMonitorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
 
           <div className="lg:col-span-7 rounded-xl p-4 sm:p-6" style={{ backgroundColor: COLORS.grid }}>
-            <div className="flex items-start justify-between mb-4 sm:mb-5">
-              <div className="flex items-center gap-3">
-                <IconTile icon={CloudRain} />
-                <div>
-                  <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
-                    Weather Forecast
-                  </p>
-                  <p className="text-[13px] sm:text-[14px] font-medium mt-0.5">{weather?.condition || "Weather data unavailable"}</p>
-                </div>
+            <div className="flex items-center gap-3 mb-4 sm:mb-5">
+              <IconTile icon={CloudRain} />
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
+                  Weather Forecast
+                </p>
+                <p className="text-[13px] sm:text-[14px] font-medium mt-0.5 wrap-break-words">{weather?.condition || "Weather data unavailable"}</p>
               </div>
-              <p className="font-medium text-[28px] sm:text-[30px] leading-none tracking-tight">
-                {weather?.temperature != null ? `${Math.round(weather.temperature)}°` : "—"}
-              </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
               <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
-                <p className="text-[14px] sm:text-[15px] font-semibold">{weather?.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : "—"}</p>
+                <p className="text-[13px] sm:text-[15px] font-semibold">{weather?.rainfall != null ? `${weather.rainfall.toFixed(1)} mm` : "—"}</p>
                 <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
                   Rainfall
                 </p>
               </div>
               <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
-                <p className="text-[14px] sm:text-[15px] font-semibold">
+                <p className="text-[13px] sm:text-[15px] font-semibold">
                   {weather?.wind_speed != null ? `${Math.round(weather.wind_speed)} km/h` : "—"}
                 </p>
                 <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
@@ -565,12 +654,42 @@ export default function DisasterMonitorPage() {
                 </p>
               </div>
               <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
-                <p className="text-[14px] sm:text-[15px] font-semibold">
+                <p className="text-[13px] sm:text-[15px] font-semibold">
                   {weather?.precipitation != null ? `${weather.precipitation.toFixed(1)} mm` : "—"}
                 </p>
                 <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
                   Precipitation
                 </p>
+              </div>
+            </div>
+
+            {/* Sensor readings — temperature & humidity reported by the DHT11 sensor */}
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: COLORS.hairline }}>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
+                <p className="text-[11px] uppercase tracking-widest" style={{ color: COLORS.muted }}>
+                  Sensor Readings
+                </p>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ color: COLORS.muted, backgroundColor: COLORS.surface }}>
+                  from DHT11 sensor
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
+                  <p className="text-[13px] sm:text-[15px] font-semibold">
+                    {sensor?.temperature != null ? `${Number(sensor.temperature).toFixed(1)}°C` : "—"}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
+                    Temperature · Sensor
+                  </p>
+                </div>
+                <div className="rounded-lg py-2.5 text-center" style={{ backgroundColor: COLORS.surface }}>
+                  <p className="text-[13px] sm:text-[15px] font-semibold">
+                    {sensor?.humidity != null ? `${Number(sensor.humidity).toFixed(1)}%` : "—"}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: COLORS.muted }}>
+                    Humidity · Sensor
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -592,6 +711,7 @@ export default function DisasterMonitorPage() {
               <FieldBox label="Altitude" value={latestGps?.altitude != null ? `${latestGps.altitude} m` : "—"} />
               <FieldBox label="Source" value={latestGps?.source ?? "—"} />
             </div>
+            <LocationName gps={latestGps} />
           </div>
         </div>
 
@@ -1016,7 +1136,7 @@ export default function DisasterMonitorPage() {
       {/* ================= ESCALATED ALERTS TABLE ================= */}
       <div className="mt-4 sm:mt-6">
         <div className="rounded-xl  overflow-hidden" style={{ background: "#fff", boxShadow: SHADOW_CARD }}>
-          <div className="px-4 sm:px-5 py-3.5 border-b border-black/[.06] flex items-center justify-between">
+          <div className="px-4 sm:px-5 py-3.5 border-b border-black/6 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4" style={{ color: COLORS.brand }} />
               <h2 className="text-[14px] font-semibold" style={{ fontFamily: "Poppins, sans-serif" }}>
@@ -1046,7 +1166,7 @@ export default function DisasterMonitorPage() {
                   },
                 },
                 { key: "alert_type", label: "Type" },
-                { key: "title", label: "Title", render: (v) => <span className="text-[12px] line-clamp-1 max-w-[200px]">{v}</span> },
+                { key: "title", label: "Title", render: (v) => <span className="text-[12px] line-clamp-1 max-w-50">{v}</span> },
                 {
                   key: "flood_probability_percent",
                   label: "Prob %",
