@@ -20,9 +20,9 @@ F1-optimal threshold also recorded for comparison). The final model is
 evaluated ONCE on the untouched test split at the frozen validation threshold.
 CalibratedClassifierCV(sigmoid, cv=3) is fit on the train split only.
 
-Artifact is saved to models/xgboost_model_improved.pkl (same dict keys as
-train_improved.py). The previous synthetic-data model is backed up first as
-models/xgboost_model_improved.synthetic25k.pkl.
+Artifact is saved to models/xgboost_model_improved.pkl (same dict keys as the
+previous trainer). The prior model is backed up locally first as
+models/xgboost_model_improved.synthetic25k.pkl (gitignored, not deployed).
 """
 from __future__ import annotations
 

@@ -19,7 +19,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 DATASET_PATH = (
     Path(__file__).resolve().parents[1]
     / "resources"
-    / "sri_lanka_flood_risk_dataset_25000.csv"
+    / "sri_lanka_flood_real_dataset.csv"
 )
 
 # ── Feature sets ─────────────────────────────────────────────────────────

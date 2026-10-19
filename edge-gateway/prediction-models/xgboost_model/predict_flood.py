@@ -1,26 +1,30 @@
-import io
 import json
 import sys
-from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 import joblib
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from xgboost_model import LocationAwareFloodXGBoostModel, MODEL_SAVE_PATH
+from xgboost_model import LocationAwareFloodXGBoostModel
+from base_model import IMPROVED_MODEL_PATH
 
 
 def load_model() -> LocationAwareFloodXGBoostModel:
+    """Load the production model artifact (models/xgboost_model_improved.pkl).
+
+    This is the only model in the serving path — trained on the real DMC gauge
+    dataset by train_real_flood.py. Raises if the artifact is missing; there is
+    no legacy retrain fallback anymore.
+    """
+    if not IMPROVED_MODEL_PATH.exists():
+        raise FileNotFoundError(
+            f"Production model artifact missing: {IMPROVED_MODEL_PATH}. "
+            "Run train_real_flood.py to (re)train it."
+        )
+    artifact = joblib.load(IMPROVED_MODEL_PATH)
     model = LocationAwareFloodXGBoostModel()
-
-    if MODEL_SAVE_PATH.exists():
-        model._estimator = joblib.load(MODEL_SAVE_PATH)
-        model._is_trained = True
-        return model
-
-    buffer = io.StringIO()
-    with redirect_stdout(buffer), redirect_stderr(buffer):
-        model.train()
+    model._estimator = artifact["estimator"]
+    model._is_trained = True
     return model
 
 

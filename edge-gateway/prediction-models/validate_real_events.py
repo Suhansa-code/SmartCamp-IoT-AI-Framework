@@ -345,17 +345,6 @@ def main() -> None:
         except Exception as e:  # noqa: BLE001
             results["internal_validation_from_reports"]["retrain_real_metrics.json"] = {"error": str(e)}
 
-    for rep_name, key in [("comprehensive_validation_report.json", ("training", "xgboost")),
-                          ("improved_validation_report.json", ("model_comparison", "xgboost"))]:
-        p = BASE / "comparison_results" / rep_name
-        if p.exists():
-            try:
-                node = json.loads(p.read_text()).get(key[0], {}).get(key[1], {})
-                results["internal_validation_from_reports"][rep_name] = {
-                    k: node.get(k) for k in ("accuracy", "precision", "recall", "f1", "roc_auc", "pr_auc", "brier", "confusion_matrix") if k in node}
-            except Exception as e:  # noqa: BLE001
-                results["internal_validation_from_reports"][rep_name] = {"error": str(e)}
-
     for tag in scenarios:
         y_true = np.r_[np.ones(len(ev_df)), np.zeros(len(controls))]
         probs = np.r_[ev_df[f"prob_{tag}"].values, np.array(control_probs[tag])]
