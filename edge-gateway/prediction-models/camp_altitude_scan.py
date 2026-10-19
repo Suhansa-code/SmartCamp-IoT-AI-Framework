@@ -52,6 +52,9 @@ def main():
             "water_level_m": float(wl),
             "elevation_ratio": alt / minor,
             "river_proximity_score": 1000.0 / max(RIVER_M, 1.0),
+            "elev_above_minor_m": alt - minor,
+            "water_to_elev_ratio": float(wl) / max(float(alt), 1.0),
+            "stage_above_camp_m": float(wl) - float(alt),
         }])
         return float(est.predict_proba(x[feats])[0, 1])
 

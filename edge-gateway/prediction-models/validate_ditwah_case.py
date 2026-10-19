@@ -136,6 +136,9 @@ def main() -> None:
         "water_level_m": water_level_m,
         "elevation_ratio": elevation_m / minor,
         "river_proximity_score": 1000.0 / max(river_m, 1.0),
+        "elev_above_minor_m": elevation_m - minor,
+        "water_to_elev_ratio": water_level_m / max(elevation_m, 1.0),
+        "stage_above_camp_m": water_level_m - elevation_m,
     }])
     prob = float(est.predict_proba(x[feats])[0, 1])
     band = "High" if prob >= 0.70 else "Medium" if prob >= 0.40 else "Low"

@@ -12,10 +12,10 @@
   "test_rows": 424,
   "threshold_selection": {
     "method": "F2-optimal on VALIDATION split only (disaster use-case: recall weighted higher than precision)",
-    "threshold_f2": 0.569730748452444,
-    "threshold_f1_optimal_on_validation": 0.569730748452444,
+    "threshold_f2": 0.6037932521913528,
+    "threshold_f1_optimal_on_validation": 0.6037932521913528,
     "validation_metrics_at_f2_threshold": {
-      "threshold": 0.569730748452444,
+      "threshold": 0.6037932521913528,
       "accuracy": 1.0,
       "precision": 1.0,
       "recall": 1.0,
@@ -33,36 +33,39 @@
     }
   },
   "test_metrics_at_frozen_validation_threshold": {
-    "threshold": 0.569730748452444,
-    "accuracy": 0.9976415094339622,
+    "threshold": 0.6037932521913528,
+    "accuracy": 0.9952830188679245,
     "precision": 1.0,
-    "recall": 0.8,
-    "f1": 0.8888888888888888,
+    "recall": 0.6,
+    "f1": 0.75,
     "confusion_matrix": [
       [
         419,
         0
       ],
       [
-        1,
-        4
+        2,
+        3
       ]
     ],
     "roc_auc": 1.0,
     "pr_auc": 1.0
   },
   "feature_importance": {
-    "rainfall_7d_mm": 0.1433,
-    "longitude": 0.0553,
-    "latitude": 0.0416,
-    "elevation_m": 0.0397,
+    "rainfall_7d_mm": 0.1392,
+    "longitude": 0.0119,
+    "latitude": 0.0178,
+    "elevation_m": 0.037,
     "distance_to_river_m": 0.0,
     "monthly_rainfall_mm": 0.0,
     "drainage_index": 0.0,
-    "water_level_m": 0.6295,
-    "elevation_ratio": 0.0906,
-    "river_proximity_score": 0.0
+    "water_level_m": 0.5155,
+    "elevation_ratio": 0.0599,
+    "river_proximity_score": 0.0,
+    "elev_above_minor_m": 0.0773,
+    "water_to_elev_ratio": 0.0689,
+    "stage_above_camp_m": 0.0725
   },
-  "backup_old_model": "xgboost_model_improved.synthetic25k.pkl",
-  "trained_at": "2026-10-19T08:21:13.934344+00:00"
+  "backup_old_model": null,
+  "trained_at": "2026-10-19T10:21:33.023189+00:00"
 }

@@ -118,6 +118,9 @@ class FeatureBuilder:
             "water_level_m": float(water_level),
             "elevation_ratio": float(elev_m) / minor if minor > 0 else 1.0,
             "river_proximity_score": 1000.0 / max(float(river_m), 1.0) if river_m > 0 else 0.0,
+            "elev_above_minor_m": float(elev_m) - minor,
+            "water_to_elev_ratio": float(water_level) / max(float(elev_m), 1.0),
+            "stage_above_camp_m": float(water_level) - float(elev_m),
         }])
 
 

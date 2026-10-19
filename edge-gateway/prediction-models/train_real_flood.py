@@ -52,12 +52,25 @@ MODEL_PATH = HERE / "models" / "xgboost_model_improved.pkl"
 BACKUP_PATH = HERE / "models" / "xgboost_model_improved.synthetic25k.pkl"
 REPORT_PATH = HERE / "real_validation_results" / "retrain_real_metrics.json"
 
-# Must match base_model.EXTENDED_FEATURES (order matters for the artifact)
+# Must match base_model.EXTENDED_FEATURES (order matters for the artifact).
+# The last 3 are altitude-aware (point-2 novelty) — derived exactly as
+# base_model.predict_one derives them at serving time.
 FEATURES = [
     "rainfall_7d_mm", "longitude", "latitude", "elevation_m",
     "distance_to_river_m", "monthly_rainfall_mm", "drainage_index",
     "water_level_m", "elevation_ratio", "river_proximity_score",
+    "elev_above_minor_m", "water_to_elev_ratio", "stage_above_camp_m",
 ]
+
+
+def derive_altitude_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add the altitude-aware features using the serving derivation formulas."""
+    df = df.copy()
+    minor = df["minor_flood_level_m"].clip(lower=0.1)
+    df["elev_above_minor_m"] = df["elevation_m"] - minor
+    df["water_to_elev_ratio"] = df["water_level_m"] / np.maximum(df["elevation_m"], 1.0)
+    df["stage_above_camp_m"] = df["water_level_m"] - df["elevation_m"]
+    return df
 
 
 def find_threshold_fbeta(y, p, beta=2.0):
@@ -100,6 +113,7 @@ def main():
     df = pd.read_csv(DATA)
     df = df[df["flood_label"] >= 0].reset_index(drop=True)
     df["monthly_rainfall_mm"] = 0.0  # match serving default (modal sends none)
+    df = derive_altitude_features(df)
 
     X = df[FEATURES]
     y = df["flood_label"].astype(int)

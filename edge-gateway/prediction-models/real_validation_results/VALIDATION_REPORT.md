@@ -47,8 +47,8 @@ train split only. Calibration (sigmoid, cv=3) is fit on the train split only.
 - **Method:** F2-optimal threshold computed on the **validation split only**.
   F2 is used because, in disaster warning, missing a flood costs more than a
   false alarm (recall weighted 4× precision).
-- **Result:** threshold = **0.570**. The F1-optimal threshold on the same
-  validation split is also 0.570 (both criteria agree).
+- **Result:** threshold = **0.604**. The F1-optimal threshold on the same
+  validation split is also 0.604 (both criteria agree).
 - The test split is evaluated **once** at this frozen threshold.
 - Previous protocol (threshold tuned on the test split itself) was removed
   after review; all numbers below use the corrected protocol.
@@ -73,28 +73,28 @@ Two complementary tests:
 
 ## 7. Key results
 
-### 7.1 Internal temporal test (untouched, threshold 0.570)
+### 7.1 Internal temporal test (untouched, threshold 0.604)
 
 | Metric | Value |
 |---|---|
 | ROC-AUC | 1.000 |
-| Precision / Recall / F1 | 1.000 / 0.800 / 0.889 |
-| Confusion matrix | 419 TN, 0 FP, 1 FN, 4 TP |
+| Precision / Recall / F1 | 1.000 / 0.600 / 0.750 |
+| Confusion matrix | 419 TN, 0 FP, 2 FN, 3 TP |
 
 Caveat: only 5 flood days fall in the test split — internal numbers are weak
 evidence on their own. The external test below is the main evidence.
 
-### 7.2 External test — 30 real flood events vs 500 controls (threshold 0.570)
+### 7.2 External test — 30 real flood events vs 500 controls (threshold 0.604)
 
 | Scenario | ROC-AUC | Events found | Precision | F1 |
 |---|---|---|---|---|
-| during_event (rain 400 mm, no gauge) | 0.333 | 0 / 30 | 0.00 | 0.00 |
-| pre_event (rain 106 mm, no gauge) | 0.324 | 0 / 30 | 0.00 | 0.00 |
-| during_event + real gauge stage | **0.930** | **26 / 30 (87%)** | 0.317 | 0.464 |
+| during_event (rain 400 mm, no gauge) | 0.274 | 0 / 30 | 0.00 | 0.00 |
+| pre_event (rain 106 mm, no gauge) | 0.270 | 0 / 30 | 0.00 | 0.00 |
+| during_event + real gauge stage | **0.947** | **26 / 30 (87%)** | 1.000 | 0.929 |
 
-Gauge scenario detail: confusion matrix 444 TN, 56 FP, 4 FN, 26 TP
-(56 of 500 controls = 11.2% false alarms); mean probability 0.74 on events
-vs 0.22 on controls.
+Gauge scenario detail: confusion matrix 500 TN, 0 FP, 4 FN, 26 TP
+(0 of 500 controls flagged); mean probability 0.797 on events
+vs 0.033 on controls.
 
 ### 7.3 Case study — Cyclone Ditwah, Polonnaruwa (27 Nov – 3 Dec 2025)
 
@@ -104,14 +104,27 @@ gauge (Mahaweli Ganga) at minor-flood stage 4.3 m; 13,365 displaced
 
 | Model | Probability | Verdict | Correct? |
 |---|---|---|---|
-| Old synthetic model (threshold 0.30) | 0.000 | No flood | ✗ missed |
-| **New real-data model (threshold 0.57)** | **0.853** | **Flood** | **✓** |
+| **Altitude-enhanced real-data model (threshold 0.604)** | **0.903** | **Flood** | **✓** |
+
+The earlier synthetic model scored 0.000 on this event (missed); its artifact
+is no longer kept in the repo — only the current model above is used.
 
 Reproduce: `python edge-gateway/prediction-models/validate_ditwah_case.py`
 
+### 7.4 Altitude-aware (point-2) retrain
+
+The serving model now uses 13 features: the 10 above plus
+`elev_above_minor_m`, `water_to_elev_ratio`, `stage_above_camp_m` (derived in
+`predict_one` from elevation/stage/gauge levels). Stage-vs-alert and
+stage-vs-minor were deliberately excluded — the DMC label is *defined* by the
+gauge crossing those levels (target leakage). After this retrain the
+elevation feature family carries 0.316 of total importance vs 0.13 before;
+numbers in 7.1–7.3 are from this retrain. Altitude sensitivity of the form
+is documented in `MANUAL_SIMULATION_TESTS.md` Part C.
+
 ## 8. Limitations
 
-1. **Forecast-only skill is still near chance** (AUC ≈ 0.33). The model is
+1. **Forecast-only skill is still near chance** (AUC ≈ 0.27). The model is
    decision support on top of a live/entered gauge reading, not a standalone
    rain-only forecaster.
 2. Gauge-scenario metrics partly reflect the asymmetric information design
@@ -119,8 +132,8 @@ Reproduce: `python edge-gateway/prediction-models/validate_ditwah_case.py`
    operator workflow, but it is not a blind forecast test.
 3. Internal test has only 5 flood days; validation only 9. The dataset starts
    2025-06 (older DMC PDFs are scanned images, no OCR).
-4. Controls are assumed non-flood, not verified. 11.2% of them are flagged
-   at threshold 0.57.
+4. Controls are assumed non-flood, not verified. At threshold 0.604 none of
+   them were flagged in the gauge scenario (0/500).
 5. `distance_to_river_m` was 0 for gauge rows during dataset build (OSM
    unreachable) — the model ignores this feature; re-run
    `build_real_flood_dataset.py` + `train_real_flood.py` when OSM is up.
@@ -136,4 +149,5 @@ python edge-gateway/prediction-models/validate_real_events.py       # 30-event e
 ```
 
 Outputs in `edge-gateway/prediction-models/real_validation_results/`.
-Old synthetic model kept at `models/xgboost_model_improved.synthetic25k.pkl`.
+The previous synthetic model artifact is not kept in the repo; the
+altitude-enhanced `models/xgboost_model_improved.pkl` is the only serving model.

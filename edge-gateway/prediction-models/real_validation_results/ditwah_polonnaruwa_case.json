@@ -7,26 +7,20 @@
     "rainfall_mm": 255.8,
     "water_level_m": 4.3,
     "elevation_m": 39.0,
-    "river_distance_km": 10.2,
+    "river_distance_km": 3.03,
     "latitude": 7.99623,
     "longitude": 81.049171,
     "gauge_alert_level": 3.0,
     "gauge_minor_level": 4.3,
     "gauge_major_level": 6.0
   },
-  "river_name_osm": "Mahaweli Ganga",
+  "river_name_osm": "(unnamed waterway)",
   "nearest_gauge": "Manampitiya",
   "nearest_gauge_km": 10.2,
-  "new_model_probability": 0.8529,
-  "threshold": 0.57,
+  "new_model_probability": 0.9033,
+  "threshold": 0.6,
   "risk_band": "High",
   "verdict": "FLOOD predicted",
   "ground_truth_flood": true,
-  "verdict_correct": true,
-  "old_synthetic_model": {
-    "probability": 0.0,
-    "threshold": 0.3,
-    "verdict": "No flood predicted",
-    "verdict_correct": false
-  }
+  "verdict_correct": true
 }

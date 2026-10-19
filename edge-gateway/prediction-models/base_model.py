@@ -40,6 +40,17 @@ EXTENDED_FEATURES = BASE_FEATURES + [
     "elevation_ratio",
     "river_proximity_score",
 ]
+# Altitude-aware extensions (point-2 novelty features): stage and elevation
+# expressed RELATIVE to the local camp ground / gauge thresholds so the same
+# water level means different things at a delta camp vs a hill camp.
+# Leakage notes: NO stage-vs-alert or stage-vs-minor feature — flood_label is
+# DMC-reported exactly when the gauge crosses those levels (perfect separator
+# in this dataset, would make the model a trivial threshold rule).
+EXTENDED_FEATURES += [
+    "elev_above_minor_m",    # camp elevation - minor flood level (floodplain margin)
+    "water_to_elev_ratio",   # water_level / max(elevation, 1) — stage load vs terrain
+    "stage_above_camp_m",    # water_level - camp elevation (>=0 = water above camp ground)
+]
 
 # Active feature set — change this to switch between base and extended
 MODEL_FEATURES = EXTENDED_FEATURES
@@ -89,6 +100,17 @@ class BaseFloodModel(ABC):
     def _extract_feature_importance(self, estimator) -> Optional[Dict[str, float]]:
         return None
 
+    @staticmethod
+    def _derive_altitude_features(data: pd.DataFrame) -> pd.DataFrame:
+        """Add altitude-aware features from raw CSV columns (serving formulas)."""
+        data = data.copy()
+        if "elev_above_minor_m" not in data.columns:
+            minor = data["minor_flood_level_m"].clip(lower=0.1)
+            data["elev_above_minor_m"] = data["elevation_m"] - minor
+            data["water_to_elev_ratio"] = data["water_level_m"] / np.maximum(data["elevation_m"], 1.0)
+            data["stage_above_camp_m"] = data["water_level_m"] - data["elevation_m"]
+        return data
+
     # ── Cross-validation ──────────────────────────────────────────────────
 
     def cross_validate(self, dataset_path: Optional[Path] = None, n_folds: int = 5) -> Dict[str, object]:
@@ -98,6 +120,7 @@ class BaseFloodModel(ABC):
         if target.isna().any():
             raise ValueError("Target column contains unexpected values.")
 
+        data = self._derive_altitude_features(data)
         features = data[MODEL_FEATURES].copy()
         features = features.fillna(features.median(numeric_only=True))
         y = target.astype(int)
@@ -152,7 +175,9 @@ class BaseFloodModel(ABC):
                            nearest_river_m: float, water_level_m: float = 0.0,
                            monthly_rainfall_mm: float = 0.0, drainage_index: float = 0.5,
                            elevation_ratio: float = 1.0,
-                           river_proximity_score: float = 0.0) -> Dict[str, float]:
+                           river_proximity_score: float = 0.0,
+                           gauge_alert_level: float = 2.0,
+                           gauge_minor_level: float = 3.0) -> Dict[str, float]:
         """Return SHAP values for a single prediction (feature importance)."""
         self._require_trained()
         try:
@@ -172,6 +197,9 @@ class BaseFloodModel(ABC):
             "water_level_m": water_level_m,
             "elevation_ratio": elevation_ratio,
             "river_proximity_score": river_proximity_score,
+            "elev_above_minor_m": effective_elevation - gauge_minor_level,
+            "water_to_elev_ratio": water_level_m / max(effective_elevation, 1.0),
+            "stage_above_camp_m": water_level_m - effective_elevation,
         }])
 
         # Load the actual estimator (not the raw artifact dict)
@@ -227,6 +255,7 @@ class BaseFloodModel(ABC):
         if target.isna().any():
             raise ValueError("Target column 'flood_occurrence_current_event' contains unexpected values.")
 
+        data = self._derive_altitude_features(data)
         features = data[MODEL_FEATURES].copy()
         features = features.fillna(features.median(numeric_only=True))
 
@@ -385,6 +414,9 @@ class BaseFloodModel(ABC):
             "water_level_m": water_level_m,
             "elevation_ratio": elevation_ratio,
             "river_proximity_score": river_proximity_score,
+            "elev_above_minor_m": effective_elevation - gauge_minor_level,
+            "water_to_elev_ratio": water_level_m / max(effective_elevation, 1.0),
+            "stage_above_camp_m": water_level_m - effective_elevation,
         }])
 
         # Try to load improved model artifact first
@@ -436,6 +468,8 @@ class BaseFloodModel(ABC):
                 drainage_index=drainage_index,
                 elevation_ratio=elevation_ratio,
                 river_proximity_score=river_proximity_score,
+                gauge_alert_level=gauge_alert_level,
+                gauge_minor_level=gauge_minor_level,
             )
 
         return FloodPrediction(
