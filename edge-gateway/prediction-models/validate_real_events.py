@@ -5,34 +5,41 @@ A. Historical disaster validation
    - Real flood events: cloud-platform/prediction-models/resource-model/lka_idmc_idu_events.csv
      (IDMC internal-displacement records, Sri Lanka 2025-2026, DMC-sourced).
    - Positive set  = documented flood-event locations (type == "Flood").
-   - Negative set  = control locations sampled from the training dataset,
+   - Negative set  = control locations sampled from the legacy training dataset,
                      near-event locations (within 10 km) excluded.
-   - Historical per-event rainfall is not in the repo, so each location is scored
-     under two training-consistent scenarios:
-       during_event : rainfall = 75th percentile of flood-positive training rows
-       pre_event    : rainfall = median of flood-negative training rows
-     All other derived features (water_level_m, elevation_ratio,
-     river_proximity_score) use EXACTLY the training formulas (train_improved.py:127-139)
-     so the validation asks "what would the model have said at this place".
+   - Each location is scored under three scenarios computed from the REAL
+     DMC dataset (sri_lanka_flood_real_dataset.csv):
+       during_event        : Q75 rainfall of real flood rows, water_level=0 (forecast-only)
+       pre_event           : median rainfall of real normal rows, water_level=0 (forecast-only)
+       during_event_gauge  : Q75 rainfall AND the event location's nearest gauge at
+                             minor-flood stage — the operator decision-support path
+                             (same construction as validate_ditwah_case.py; controls stay 0.0)
+   - Features use the PRODUCTION SERVING derivation (base_model.predict_one):
+     monthly_rainfall=0.0, drainage=0.5, elevation_ratio=elevation/nearest_gauge_minor,
+     real SRTM elevation (batch-fetched), and water_level_m = 0.0 for BOTH classes
+     (serving default when no live gauge reading is available — this test measures
+     spatial/terrain discrimination WITHOUT injecting gauge stage). Gauge-stage
+     behavior (operator enters a flood stage) is covered by validate_ditwah_case.py.
 
 B. Accuracy & reliability
    - ROC-AUC, average precision, precision/recall/F1, confusion matrix and
-     detection rate per scenario, plus internal hold-out / CV metrics from
-     comparison_results/*.json and the artifact's own stored metrics.
+     detection rate per scenario, plus retrain metrics from
+     real_validation_results/retrain_real_metrics.json (new model trained on the
+     real DMC dataset; legacy synthetic reports kept for reference).
 
 C. Practical applicability
    - Worked examples at real gauging stations (dry / wet / extreme rainfall).
 
-Known serving skew (documented, not fixed here): production inference
-(base_model.predict_one) uses elevation_ratio = elevation/gauge_minor_level and a
-live gauge water_level_m, while the artifact was trained with
-elevation_ratio = elevation/dataset_mean and a formula-derived water_level_m.
+Model note: xgboost_model_improved.pkl was retrained on the real DMC gauge
+dataset (train_real_flood.py); the previous synthetic-data model is backed up
+at models/xgboost_model_improved.synthetic25k.pkl.
 
 Outputs -> edge-gateway/prediction-models/real_validation_results/
 """
 from __future__ import annotations
 
 import json
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -58,7 +65,9 @@ MODEL_PATH = BASE / "models" / "xgboost_model_improved.pkl"
 DATASET_PATH = BASE.parent / "resources" / "sri_lanka_flood_risk_dataset_25000.csv"
 EVENTS_PATH = BASE.parents[1] / "cloud-platform" / "prediction-models" / "resource-model" / "lka_idmc_idu_events.csv"
 STATIONS_PATH = BASE.parent / "resources" / "gauging_stations.csv"
+REAL_DATA_PATH = BASE.parent / "resources" / "sri_lanka_flood_real_dataset.csv"
 RESULTS_DIR = BASE / "real_validation_results"
+ELEV_CACHE_PATH = RESULTS_DIR / "cache" / "elevation_scoring.json"
 
 N_CONTROLS = 500
 RANDOM_STATE = 42
@@ -72,20 +81,32 @@ def haversine_km(lat1, lon1, lat2, lon2):
 
 
 class FeatureBuilder:
-    """Replicates the training-time feature derivation (train_improved.py)."""
+    """Replicates production serving derivation (base_model.predict_one).
 
-    def __init__(self, dataset: pd.DataFrame):
-        self.mean_elev = float(dataset["elevation_m"].mean())
-        self.rain_max = max(float(dataset["rainfall_7d_mm"].max()), 1.0)
-        self.elev_max = max(float(dataset["elevation_m"].max()), 1.0)
-        self.river_max = max(float(dataset["distance_to_river_m"].max()), 1.0)
+    water_level_m is deliberately 0.0 for every scored location (predict_one
+    default when no live gauge reading is available) so both classes get the
+    same stage — this external test measures terrain/geography discrimination.
+    Gauge-stage behavior (operator enters a flood stage) is validate_ditwah_case.py.
+    elevation_ratio uses the nearest real gauge's minor_flood_level (serving formula).
+    """
 
-    def __call__(self, lat, lon, elev_m, river_m, rainfall_mm) -> pd.DataFrame:
-        water = (
-            (rainfall_mm / self.rain_max) * 0.4
-            + (1.0 - elev_m / self.elev_max) * 0.3
-            + (1.0 - river_m / self.river_max) * 0.3
-        ) * 8.0
+    def __init__(self, stations: pd.DataFrame, real_data: pd.DataFrame):
+        self.stations = stations
+        self.s_lat = stations["Latitude"].to_numpy(dtype=float)
+        self.s_lon = stations["Longitude"].to_numpy(dtype=float)
+        self.wet_rain = float(real_data.loc[real_data["flood_label"] == 1,
+                                            "rainfall_7d_mm"].quantile(0.75))
+        self.dry_rain = float(real_data.loc[real_data["flood_label"] == 0,
+                                            "rainfall_7d_mm"].median())
+
+    def nearest_gauge(self, lat: float, lon: float):
+        d = haversine_km(self.s_lat, self.s_lon, lat, lon)
+        return self.stations.iloc[int(np.argmin(d))]
+
+    def __call__(self, lat, lon, elev_m, river_m, rainfall_mm,
+                 water_level: float = 0.0) -> pd.DataFrame:
+        st = self.nearest_gauge(lat, lon)
+        minor = float(st["minor_flood_level"]) if pd.notna(st["minor_flood_level"]) else 0.0
         return pd.DataFrame([{
             "rainfall_7d_mm": float(rainfall_mm),
             "longitude": float(lon),
@@ -94,10 +115,42 @@ class FeatureBuilder:
             "distance_to_river_m": float(river_m),
             "monthly_rainfall_mm": 0.0,
             "drainage_index": 0.5,
-            "water_level_m": float(water),
-            "elevation_ratio": float(elev_m) / self.mean_elev,
-            "river_proximity_score": 1000.0 / max(float(river_m), 1.0),
+            "water_level_m": float(water_level),
+            "elevation_ratio": float(elev_m) / minor if minor > 0 else 1.0,
+            "river_proximity_score": 1000.0 / max(float(river_m), 1.0) if river_m > 0 else 0.0,
         }])
+
+
+def fetch_elevation(points) -> dict:
+    """Batch-fetch real SRTM elevation for all scoring points (cached)."""
+    ELEV_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    cache = json.loads(ELEV_CACHE_PATH.read_text()) if ELEV_CACHE_PATH.exists() else {}
+    missing = [p for p in points if f"{p[0]:.5f},{p[1]:.5f}" not in cache]
+    for i in range(0, len(missing), 80):
+        chunk = missing[i:i + 80]
+        lat = ",".join(f"{p[0]:.5f}" for p in chunk)
+        lon = ",".join(f"{p[1]:.5f}" for p in chunk)
+        url = f"https://api.open-meteo.com/v1/elevation?latitude={lat}&longitude={lon}"
+        last = None
+        for attempt in range(6):
+            try:
+                with urllib.request.urlopen(
+                        urllib.request.Request(url, headers={"User-Agent": "smartcamp-validation"}),
+                        timeout=40) as r:
+                    els = json.loads(r.read())["elevation"]
+                for p, e in zip(chunk, els):
+                    cache[f"{p[0]:.5f},{p[1]:.5f}"] = e
+                last = None
+                break
+            except Exception as e:  # noqa: BLE001
+                last = e
+                import time as _t
+                _t.sleep(3 * (attempt + 1))
+        if last is not None:
+            raise RuntimeError(f"elevation batch failed: {last}")
+        ELEV_CACHE_PATH.write_text(json.dumps(cache))  # save per chunk (resume-safe)
+    ELEV_CACHE_PATH.write_text(json.dumps(cache))
+    return {p: cache[f"{p[0]:.5f},{p[1]:.5f}"] for p in points}
 
 
 def score(estimator, features_cols, row: pd.DataFrame) -> float:
@@ -160,11 +213,20 @@ def main() -> None:
     dataset["label"] = (dataset["flood_occurrence_current_event"].astype(str).str.strip().str.lower() == "yes").astype(int)
     print(f"Dataset rows: {len(dataset)}  positives: {dataset['label'].sum()}")
 
-    fb = FeatureBuilder(dataset)
-    wet_rain = float(dataset.loc[dataset["label"] == 1, "rainfall_7d_mm"].quantile(0.75))
-    dry_rain = float(dataset.loc[dataset["label"] == 0, "rainfall_7d_mm"].median())
-    scenarios = {"during_event": wet_rain, "pre_event": dry_rain}
-    print(f"Scenarios: during_event rainfall={wet_rain:.1f}mm (Q75 of flood=Yes), pre_event rainfall={dry_rain:.1f}mm (median of flood=No)")
+    stations = pd.read_csv(STATIONS_PATH)
+    real_df = pd.read_csv(REAL_DATA_PATH)
+    fb = FeatureBuilder(stations, real_df)
+    wet_rain = fb.wet_rain
+    dry_rain = fb.dry_rain
+    # event_stage=True: operator provides the real gauge stage (event locations are
+    # at minor-flood stage — the decision-support path used by validate_ditwah_case).
+    scenarios = {
+        "during_event": {"rain": wet_rain, "event_stage": False},
+        "pre_event": {"rain": dry_rain, "event_stage": False},
+        "during_event_gauge": {"rain": wet_rain, "event_stage": True},
+    }
+    print(f"Scenarios (from REAL DMC dataset): during_event={wet_rain:.1f}mm / pre_event={dry_rain:.1f}mm "
+          f"without gauge stage; during_event_gauge = same rain WITH real gauge stage at event locations")
 
     def nearest_static(lat, lon):
         d = haversine_km(dataset["latitude"].values, dataset["longitude"].values, lat, lon)
@@ -174,35 +236,31 @@ def main() -> None:
     floods = events[events["type"].astype(str).str.strip().str.lower() == "flood"].copy()
     print(f"Real flood events (IDMC): {len(floods)}")
 
-    stations = pd.read_csv(STATIONS_PATH)
-
-    # ── Score every real flood-event location ──
-    event_rows = []
+    # ── Event metadata (scoring happens after elevation prefetch) ──
+    event_meta = []
     for _, ev in floods.iterrows():
         lat, lon = float(ev["latitude"]), float(ev["longitude"])
         base, dist_km = nearest_static(lat, lon)
         sd = haversine_km(stations["Latitude"].values, stations["Longitude"].values, lat, lon)
         st = stations.iloc[int(np.argmin(sd))]
-        entry = {
-            "event_id": ev["event_id"],
-            "event_name": ev["event_name"],
-            "locations_name": ev["locations_name"],
-            "latitude": lat,
-            "longitude": lon,
-            "year": int(ev["year"]) if pd.notna(ev["year"]) else None,
-            "displaced_figure": float(ev["figure"]) if pd.notna(ev["figure"]) else None,
-            "nearest_gauge": st["station_name"],
-            "static_proxy_elevation_m": float(base["elevation_m"]),
-            "static_proxy_river_m": float(base["distance_to_river_m"]),
-            "static_source_distance_km": round(dist_km, 2),
-        }
-        for tag, rain in scenarios.items():
-            entry[f"prob_{tag}"] = score(estimator, features_cols,
-                                         fb(lat, lon, base["elevation_m"], base["distance_to_river_m"], rain))
-        event_rows.append(entry)
-    ev_df = pd.DataFrame(event_rows)
+        event_meta.append({
+            "entry": {
+                "event_id": ev["event_id"],
+                "event_name": ev["event_name"],
+                "locations_name": ev["locations_name"],
+                "latitude": lat,
+                "longitude": lon,
+                "year": int(ev["year"]) if pd.notna(ev["year"]) else None,
+                "displaced_figure": float(ev["figure"]) if pd.notna(ev["figure"]) else None,
+                "nearest_gauge": st["station_name"],
+                "static_proxy_river_m": float(base["distance_to_river_m"]),
+                "static_source_distance_km": round(dist_km, 2),
+            },
+            "lat": lat, "lon": lon,
+            "river_m": float(base["distance_to_river_m"]),
+        })
 
-    # ── Score control locations ──
+    # ── Control locations ──
     neg_pool = dataset[dataset["label"] == 0]
     keep_mask = np.ones(len(neg_pool), dtype=bool)
     for _, ev in floods.iterrows():
@@ -213,12 +271,39 @@ def main() -> None:
     controls = neg_pool.sample(n=min(N_CONTROLS, len(neg_pool)), random_state=RANDOM_STATE)
     print(f"Controls: {len(controls)} (excluded within 10 km of any event)")
 
+    # ── Real SRTM elevation for every scored point (+ stations for Part C) ──
+    points = [(m["lat"], m["lon"]) for m in event_meta]
+    points += [(float(c["latitude"]), float(c["longitude"])) for _, c in controls.iterrows()]
+    points += [(float(s["Latitude"]), float(s["Longitude"])) for _, s in stations.iterrows()]
+    elev = fetch_elevation(points)
+    print(f"Real elevations fetched: {len(elev)} points")
+
+    # ── Score real flood-event locations ──
+    event_rows = []
+    for m in event_meta:
+        e = elev[(m["lat"], m["lon"])]
+        m["entry"]["static_proxy_elevation_m"] = e  # real SRTM (was synthetic proxy)
+        m["entry"]["elevation_source"] = "SRTM (Open-Meteo)"
+        st_gauge = fb.nearest_gauge(m["lat"], m["lon"])
+        gauge_minor = (float(st_gauge["minor_flood_level"])
+                       if pd.notna(st_gauge["minor_flood_level"]) else 0.0)
+        for tag, sc in scenarios.items():
+            wl = gauge_minor if sc["event_stage"] else 0.0  # operator reports flood stage
+            m["entry"][f"prob_{tag}"] = score(
+                estimator, features_cols,
+                fb(m["lat"], m["lon"], e, m["river_m"], sc["rain"], water_level=wl))
+        event_rows.append(m["entry"])
+    ev_df = pd.DataFrame(event_rows)
+
+    # ── Score control locations (real SRTM elevation; no flood stage reported) ──
     control_probs = {tag: [] for tag in scenarios}
     for _, c in controls.iterrows():
-        for tag, rain in scenarios.items():
-            control_probs[tag].append(score(estimator, features_cols,
-                                            fb(c["latitude"], c["longitude"], c["elevation_m"],
-                                               c["distance_to_river_m"], rain)))
+        e = elev[(float(c["latitude"]), float(c["longitude"]))]
+        for tag, sc in scenarios.items():
+            control_probs[tag].append(score(
+                estimator, features_cols,
+                fb(float(c["latitude"]), float(c["longitude"]), e,
+                   float(c["distance_to_river_m"]), sc["rain"], water_level=0.0)))
 
     # ── Metrics ──
     results = {
@@ -228,15 +313,37 @@ def main() -> None:
         "artifact_stored_metrics": artifact.get("metrics", {}),
         "n_real_flood_events": int(len(ev_df)),
         "n_controls": int(len(controls)),
+        "controls_definition": "500 locations sampled from the legacy synthetic "
+                               "dataset's no-flood rows, all >10 km from any "
+                               "documented IDMC event — assumed non-flood "
+                               "(no flood documented within 10 km); used as the "
+                               "negative comparison set, NOT independently "
+                               "verified non-flood ground truth",
         "scenario_definitions": {
-            "during_event": {"rainfall_7d_mm": wet_rain,
-                             "meaning": "Q75 rainfall of flood-positive training rows (proxy for conditions during a flood event)"},
-            "pre_event": {"rainfall_7d_mm": dry_rain,
-                          "meaning": "median rainfall of flood-negative training rows (proxy for baseline before rainfall)"},
+            "during_event": {"rainfall_7d_mm": wet_rain, "water_level_m": 0.0,
+                             "meaning": "Q75 rainfall of REAL flood rows; NO gauge stage (forecast-only test)"},
+            "pre_event": {"rainfall_7d_mm": dry_rain, "water_level_m": 0.0,
+                          "meaning": "median rainfall of REAL normal rows; NO gauge stage (forecast-only test)"},
+            "during_event_gauge": {"rainfall_7d_mm": wet_rain,
+                                   "water_level_m": "event locations at nearest-gauge minor-flood stage; controls 0.0",
+                                   "meaning": "operator reports the gauge in flood at the event location "
+                                              "(decision-support path; same construction as validate_ditwah_case.py)"},
         },
         "internal_validation_from_reports": {},
         "external_validation": {},
     }
+
+    p_real = RESULTS_DIR / "retrain_real_metrics.json"
+    if p_real.exists():
+        try:
+            rep = json.loads(p_real.read_text())
+            results["internal_validation_from_reports"]["retrain_real_metrics.json"] = {
+                "threshold_selection": rep.get("threshold_selection", {}),
+                "test_metrics_at_frozen_validation_threshold":
+                    rep.get("test_metrics_at_frozen_validation_threshold", {}),
+            }
+        except Exception as e:  # noqa: BLE001
+            results["internal_validation_from_reports"]["retrain_real_metrics.json"] = {"error": str(e)}
 
     for rep_name, key in [("comprehensive_validation_report.json", ("training", "xgboost")),
                           ("improved_validation_report.json", ("model_comparison", "xgboost"))]:
@@ -264,7 +371,7 @@ def main() -> None:
         save_charts(y_true, probs, art_threshold, tag)
 
     # ── Part C worked examples at real gauging stations ──
-    extreme_rain = float(dataset.loc[dataset["label"] == 1, "rainfall_7d_mm"].quantile(0.95))
+    extreme_rain = float(real_df.loc[real_df["flood_label"] == 1, "rainfall_7d_mm"].quantile(0.95))
     examples = []
     for st_name in ["Nagalagam Street", "Rathnapura", "Badalgama", "Baddegama"]:
         st_rows = stations[stations["station_name"].astype(str).str.contains(st_name, case=False, na=False)]
@@ -273,16 +380,18 @@ def main() -> None:
         st = st_rows.iloc[0]
         lat, lon = float(st["Latitude"]), float(st["Longitude"])
         base, _ = nearest_static(lat, lon)
+        st_elev = elev[(lat, lon)]
         ex = {
             "station": st["station_name"], "river": st["river_name"],
             "latitude": lat, "longitude": lon,
             "gauge_alert_level": float(st["alert_level"]) if pd.notna(st["alert_level"]) else None,
             "gauge_minor_level": float(st["minor_flood_level"]) if pd.notna(st["minor_flood_level"]) else None,
-            "static_proxy_elevation_m": float(base["elevation_m"]),
+            "static_proxy_elevation_m": st_elev,
+            "elevation_source": "SRTM (Open-Meteo)",
             "static_proxy_river_m": float(base["distance_to_river_m"]),
         }
         for tag, rain in [("dry_baseline", dry_rain), ("wet_conditions", wet_rain), ("extreme_rainfall", extreme_rain)]:
-            prob = score(estimator, features_cols, fb(lat, lon, base["elevation_m"], base["distance_to_river_m"], rain))
+            prob = score(estimator, features_cols, fb(lat, lon, st_elev, base["distance_to_river_m"], rain))
             ex[f"rainfall_{tag}_mm"] = round(rain, 1)
             ex[f"prob_{tag}"] = prob
             ex[f"risk_{tag}"] = "High" if prob >= 0.70 else "Medium" if prob >= 0.40 else "Low"
@@ -296,13 +405,16 @@ def main() -> None:
     print("\n=== EXTERNAL VALIDATION (real IDMC flood events vs controls) ===")
     for tag, block in results["external_validation"].items():
         a = block["at_artifact_threshold"]
-        print(f"\n[{tag}] rainfall={scenarios[tag]:.1f}mm")
+        print(f"\n[{tag}] rainfall={scenarios[tag]['rain']:.1f}mm"
+              f"{'  + gauge stage' if scenarios[tag]['event_stage'] else '  (no gauge stage)'}")
         print(f"  ROC-AUC={a['roc_auc']:.3f}  AP={a['average_precision']:.3f}  precision={a['precision']:.3f}  "
               f"recall={a['recall']:.3f}  F1={a['f1']:.3f} @ thr {art_threshold:.2f}")
         print(f"  confusion={a['confusion_matrix']}  detection_rate={block['event_detection_rate_artifact_thr']:.1%}  "
               f"meanP(event)={block['mean_prob_events']:.3f} vs meanP(control)={block['mean_prob_controls']:.3f}")
     print("\n=== TOP-DETECTED REAL EVENTS (during_event) ===")
-    print(ev_df.head(10)[["event_name", "locations_name", "prob_during_event", "prob_pre_event", "displaced_figure"]].to_string(index=False))
+    print(ev_df.head(10)[["event_name", "locations_name", "prob_during_event",
+                          "prob_during_event_gauge", "prob_pre_event",
+                          "displaced_figure"]].to_string(index=False))
     print("\n=== WORKED EXAMPLES (Part C) ===")
     for ex in examples:
         print(f"  {ex['station']} ({ex['river']}): dry={ex['prob_dry_baseline']:.3f}({ex['risk_dry_baseline']}) | "
