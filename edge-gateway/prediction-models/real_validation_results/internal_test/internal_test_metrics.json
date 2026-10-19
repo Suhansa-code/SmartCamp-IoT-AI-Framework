@@ -1,0 +1,50 @@
+{
+  "model_artifact": "xgboost_model_improved.pkl",
+  "model_trained_at": "2026-10-19T10:21:33.023189+00:00",
+  "split": {
+    "train_before": "2026-02-25",
+    "validation_range": "2026-02-25 .. 2026-06-30",
+    "test_from": "2026-06-30"
+  },
+  "threshold": 0.6037932521913528,
+  "threshold_source": "F2-optimal on validation split (retrain_real_metrics.json)",
+  "n_features": 13,
+  "test_rows": 424,
+  "test_positives": 5,
+  "with_gauge_stage": {
+    "meaning": "real water_level_m kept \u2014 as-deployed when operator reports the gauge; labels themselves derive from this gauge status, so metrics largely reflect that rule",
+    "roc_auc": 1.0,
+    "average_precision": 1.0,
+    "precision": 1.0,
+    "recall": 0.6,
+    "f1": 0.75,
+    "confusion_matrix": [
+      [
+        419,
+        0
+      ],
+      [
+        2,
+        3
+      ]
+    ]
+  },
+  "forecast_only_no_gauge": {
+    "meaning": "water_level_m = 0 for every test row (serving default without a live reading) \u2014 honest generalization",
+    "roc_auc": 0.4546539379474941,
+    "average_precision": 0.012379971868394898,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "confusion_matrix": [
+      [
+        419,
+        0
+      ],
+      [
+        5,
+        0
+      ]
+    ]
+  }
+}
