@@ -1,32 +1,67 @@
 {
-  "generated_at": "2026-10-18T01:22:53.447097+00:00",
+  "generated_at": "2026-10-18T14:45:06.309820+00:00",
   "model_artifact": "xgboost_model_improved.pkl",
-  "artifact_threshold": 0.2999999999999999,
+  "artifact_threshold": 0.5819978986166966,
   "artifact_stored_metrics": {
-    "accuracy": 0.9168,
-    "precision": 0.5629032258064516,
-    "recall": 0.7064777327935222,
-    "f1": 0.6265709156193896,
-    "f2": 0.6721879815100154,
-    "roc_auc": 0.9510050477006815,
-    "pr_auc": 0.5492364689705175,
-    "brier": 0.05841965228319168,
-    "fnr": 0.2935222672064777,
-    "fpr": 0.06014203284509543
+    "threshold": 0.5819978986166966,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "confusion_matrix": [
+      [
+        419,
+        0
+      ],
+      [
+        0,
+        5
+      ]
+    ],
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "recall_at_thr90": 1.0
   },
   "n_real_flood_events": 30,
   "n_controls": 500,
   "scenario_definitions": {
     "during_event": {
-      "rainfall_7d_mm": 169.225,
-      "meaning": "Q75 rainfall of flood-positive training rows (proxy for conditions during a flood event)"
+      "rainfall_7d_mm": 400.3,
+      "water_level_m": 0.0,
+      "meaning": "Q75 rainfall of REAL flood rows; NO gauge stage (forecast-only test)"
     },
     "pre_event": {
-      "rainfall_7d_mm": 63.9,
-      "meaning": "median rainfall of flood-negative training rows (proxy for baseline before rainfall)"
+      "rainfall_7d_mm": 105.5,
+      "water_level_m": 0.0,
+      "meaning": "median rainfall of REAL normal rows; NO gauge stage (forecast-only test)"
+    },
+    "during_event_gauge": {
+      "rainfall_7d_mm": 400.3,
+      "water_level_m": "event locations at nearest-gauge minor-flood stage; controls 0.0",
+      "meaning": "operator reports the gauge in flood at the event location (decision-support path; same construction as validate_ditwah_case.py)"
     }
   },
   "internal_validation_from_reports": {
+    "retrain_real_metrics.json": {
+      "threshold": 0.5819978986166966,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "confusion_matrix": [
+        [
+          419,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "recall_at_thr90": 1.0
+    },
     "comprehensive_validation_report.json": {
       "accuracy": 0.7804,
       "precision": 0.25123558484349257,
@@ -57,16 +92,16 @@
   "external_validation": {
     "during_event": {
       "at_artifact_threshold": {
-        "threshold": 0.2999999999999999,
-        "roc_auc": 0.4955666666666666,
-        "average_precision": 0.06337037289491097,
+        "threshold": 0.5819978986166966,
+        "roc_auc": 0.3479,
+        "average_precision": 0.04313840680033755,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
         "confusion_matrix": [
           [
-            492,
-            8
+            458,
+            42
           ],
           [
             30,
@@ -75,9 +110,9 @@
         ],
         "classification_report": {
           "0.0": {
-            "precision": 0.9425287356321839,
-            "recall": 0.984,
-            "f1-score": 0.9628180039138943,
+            "precision": 0.9385245901639344,
+            "recall": 0.916,
+            "f1-score": 0.9271255060728745,
             "support": 500.0
           },
           "1.0": {
@@ -86,32 +121,32 @@
             "f1-score": 0.0,
             "support": 30.0
           },
-          "accuracy": 0.9283018867924528,
+          "accuracy": 0.8641509433962264,
           "macro avg": {
-            "precision": 0.47126436781609193,
-            "recall": 0.492,
-            "f1-score": 0.48140900195694714,
+            "precision": 0.4692622950819672,
+            "recall": 0.458,
+            "f1-score": 0.46356275303643724,
             "support": 530.0
           },
           "weighted avg": {
-            "precision": 0.8891780524831923,
-            "recall": 0.9283018867924528,
-            "f1-score": 0.9083188716168814,
+            "precision": 0.8854005567584287,
+            "recall": 0.8641509433962264,
+            "f1-score": 0.8746467038423344,
             "support": 530.0
           }
         }
       },
       "at_threshold_0_5": {
         "threshold": 0.5,
-        "roc_auc": 0.4955666666666666,
-        "average_precision": 0.06337037289491097,
+        "roc_auc": 0.3479,
+        "average_precision": 0.04313840680033755,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
         "confusion_matrix": [
           [
-            499,
-            1
+            420,
+            80
           ],
           [
             30,
@@ -120,9 +155,9 @@
         ],
         "classification_report": {
           "0.0": {
-            "precision": 0.943289224952741,
-            "recall": 0.998,
-            "f1-score": 0.9698736637512148,
+            "precision": 0.9333333333333333,
+            "recall": 0.84,
+            "f1-score": 0.8842105263157894,
             "support": 500.0
           },
           "1.0": {
@@ -131,31 +166,31 @@
             "f1-score": 0.0,
             "support": 30.0
           },
-          "accuracy": 0.9415094339622642,
+          "accuracy": 0.7924528301886793,
           "macro avg": {
-            "precision": 0.4716446124763705,
-            "recall": 0.499,
-            "f1-score": 0.4849368318756074,
+            "precision": 0.4666666666666667,
+            "recall": 0.42,
+            "f1-score": 0.4421052631578947,
             "support": 530.0
           },
           "weighted avg": {
-            "precision": 0.8898954952384349,
-            "recall": 0.9415094339622642,
-            "f1-score": 0.9149751544822781,
+            "precision": 0.8805031446540881,
+            "recall": 0.7924528301886793,
+            "f1-score": 0.8341608738828202,
             "support": 530.0
           }
         }
       },
       "event_detection_rate_artifact_thr": 0.0,
       "event_detection_rate_0_5": 0.0,
-      "mean_prob_events": 0.01757793124480587,
-      "mean_prob_controls": 0.015563346164068207
+      "mean_prob_events": 0.12879450975121334,
+      "mean_prob_controls": 0.21538818978604535
     },
     "pre_event": {
       "at_artifact_threshold": {
-        "threshold": 0.2999999999999999,
-        "roc_auc": 0.49860000000000004,
-        "average_precision": 0.0577472841623785,
+        "threshold": 0.5819978986166966,
+        "roc_auc": 0.33143333333333336,
+        "average_precision": 0.04170346753222023,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
@@ -199,8 +234,8 @@
       },
       "at_threshold_0_5": {
         "threshold": 0.5,
-        "roc_auc": 0.49860000000000004,
-        "average_precision": 0.0577472841623785,
+        "roc_auc": 0.33143333333333336,
+        "average_precision": 0.04170346753222023,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
@@ -244,8 +279,104 @@
       },
       "event_detection_rate_artifact_thr": 0.0,
       "event_detection_rate_0_5": 0.0,
-      "mean_prob_events": 9.014255030908519e-05,
-      "mean_prob_controls": 0.0011738084574074797
+      "mean_prob_events": 0.007834486855202646,
+      "mean_prob_controls": 0.007938928285852296
+    },
+    "during_event_gauge": {
+      "at_artifact_threshold": {
+        "threshold": 0.5819978986166966,
+        "roc_auc": 0.9484666666666667,
+        "average_precision": 0.8996522796842193,
+        "precision": 0.391304347826087,
+        "recall": 0.9,
+        "f1": 0.5454545454545454,
+        "confusion_matrix": [
+          [
+            458,
+            42
+          ],
+          [
+            3,
+            27
+          ]
+        ],
+        "classification_report": {
+          "0.0": {
+            "precision": 0.9934924078091106,
+            "recall": 0.916,
+            "f1-score": 0.9531737773152965,
+            "support": 500.0
+          },
+          "1.0": {
+            "precision": 0.391304347826087,
+            "recall": 0.9,
+            "f1-score": 0.5454545454545454,
+            "support": 30.0
+          },
+          "accuracy": 0.9150943396226415,
+          "macro avg": {
+            "precision": 0.6923983778175988,
+            "recall": 0.908,
+            "f1-score": 0.749314161384921,
+            "support": 530.0
+          },
+          "weighted avg": {
+            "precision": 0.9594062912062981,
+            "recall": 0.9150943396226415,
+            "f1-score": 0.930095330228839,
+            "support": 530.0
+          }
+        }
+      },
+      "at_threshold_0_5": {
+        "threshold": 0.5,
+        "roc_auc": 0.9484666666666667,
+        "average_precision": 0.8996522796842193,
+        "precision": 0.2523364485981308,
+        "recall": 0.9,
+        "f1": 0.39416058394160586,
+        "confusion_matrix": [
+          [
+            420,
+            80
+          ],
+          [
+            3,
+            27
+          ]
+        ],
+        "classification_report": {
+          "0.0": {
+            "precision": 0.9929078014184397,
+            "recall": 0.84,
+            "f1-score": 0.9100758396533044,
+            "support": 500.0
+          },
+          "1.0": {
+            "precision": 0.2523364485981308,
+            "recall": 0.9,
+            "f1-score": 0.39416058394160586,
+            "support": 30.0
+          },
+          "accuracy": 0.8433962264150944,
+          "macro avg": {
+            "precision": 0.6226221250082853,
+            "recall": 0.87,
+            "f1-score": 0.6521182117974551,
+            "support": 530.0
+          },
+          "weighted avg": {
+            "precision": 0.9509886682399317,
+            "recall": 0.8433962264150944,
+            "f1-score": 0.8808730893300007,
+            "support": 530.0
+          }
+        }
+      },
+      "event_detection_rate_artifact_thr": 0.9,
+      "event_detection_rate_0_5": 0.9,
+      "mean_prob_events": 0.813769955056793,
+      "mean_prob_controls": 0.21538818978604535
     }
   },
   "worked_examples": [
@@ -256,17 +387,18 @@
       "longitude": 79.87858327,
       "gauge_alert_level": 1.2192,
       "gauge_minor_level": 1.524,
-      "static_proxy_elevation_m": 423.0,
+      "static_proxy_elevation_m": 1.0,
+      "elevation_source": "SRTM (Open-Meteo)",
       "static_proxy_river_m": 356.9,
-      "rainfall_dry_baseline_mm": 63.9,
-      "prob_dry_baseline": 0.0,
+      "rainfall_dry_baseline_mm": 105.5,
+      "prob_dry_baseline": 0.007911316033670844,
       "risk_dry_baseline": "Low",
-      "rainfall_wet_conditions_mm": 169.2,
-      "prob_wet_conditions": 0.01940639317035675,
-      "risk_wet_conditions": "Low",
-      "rainfall_extreme_rainfall_mm": 240.2,
-      "prob_extreme_rainfall": 0.20999330033858618,
-      "risk_extreme_rainfall": "Low"
+      "rainfall_wet_conditions_mm": 400.3,
+      "prob_wet_conditions": 0.5734830381289117,
+      "risk_wet_conditions": "Medium",
+      "rainfall_extreme_rainfall_mm": 561.2,
+      "prob_extreme_rainfall": 0.566570655441779,
+      "risk_extreme_rainfall": "Medium"
     },
     {
       "station": "Rathnapura",
@@ -275,16 +407,17 @@
       "longitude": 80.38027646,
       "gauge_alert_level": 5.2,
       "gauge_minor_level": 7.5,
-      "static_proxy_elevation_m": 591.0,
+      "static_proxy_elevation_m": 26.0,
+      "elevation_source": "SRTM (Open-Meteo)",
       "static_proxy_river_m": 537.2,
-      "rainfall_dry_baseline_mm": 63.9,
-      "prob_dry_baseline": 0.0,
+      "rainfall_dry_baseline_mm": 105.5,
+      "prob_dry_baseline": 0.007739785239784174,
       "risk_dry_baseline": "Low",
-      "rainfall_wet_conditions_mm": 169.2,
-      "prob_wet_conditions": 0.0,
+      "rainfall_wet_conditions_mm": 400.3,
+      "prob_wet_conditions": 0.007979596059673895,
       "risk_wet_conditions": "Low",
-      "rainfall_extreme_rainfall_mm": 240.2,
-      "prob_extreme_rainfall": 0.0004967709925646583,
+      "rainfall_extreme_rainfall_mm": 561.2,
+      "prob_extreme_rainfall": 0.008164545080858064,
       "risk_extreme_rainfall": "Low"
     },
     {
@@ -294,16 +427,17 @@
       "longitude": 79.97767925,
       "gauge_alert_level": 5.0,
       "gauge_minor_level": 6.2,
-      "static_proxy_elevation_m": 174.0,
+      "static_proxy_elevation_m": 18.0,
+      "elevation_source": "SRTM (Open-Meteo)",
       "static_proxy_river_m": 514.3,
-      "rainfall_dry_baseline_mm": 63.9,
-      "prob_dry_baseline": 0.0,
+      "rainfall_dry_baseline_mm": 105.5,
+      "prob_dry_baseline": 0.0078027193436764454,
       "risk_dry_baseline": "Low",
-      "rainfall_wet_conditions_mm": 169.2,
-      "prob_wet_conditions": 0.0,
+      "rainfall_wet_conditions_mm": 400.3,
+      "prob_wet_conditions": 0.020803081448534967,
       "risk_wet_conditions": "Low",
-      "rainfall_extreme_rainfall_mm": 240.2,
-      "prob_extreme_rainfall": 0.028131589603920776,
+      "rainfall_extreme_rainfall_mm": 561.2,
+      "prob_extreme_rainfall": 0.0457041600545032,
       "risk_extreme_rainfall": "Low"
     },
     {
@@ -314,15 +448,16 @@
       "gauge_alert_level": 3.5,
       "gauge_minor_level": 4.0,
       "static_proxy_elevation_m": 9.0,
+      "elevation_source": "SRTM (Open-Meteo)",
       "static_proxy_river_m": 1919.5,
-      "rainfall_dry_baseline_mm": 63.9,
-      "prob_dry_baseline": 0.0,
+      "rainfall_dry_baseline_mm": 105.5,
+      "prob_dry_baseline": 0.008087075130684752,
       "risk_dry_baseline": "Low",
-      "rainfall_wet_conditions_mm": 169.2,
-      "prob_wet_conditions": 0.046970764795939125,
+      "rainfall_wet_conditions_mm": 400.3,
+      "prob_wet_conditions": 0.06521318527666516,
       "risk_wet_conditions": "Low",
-      "rainfall_extreme_rainfall_mm": 240.2,
-      "prob_extreme_rainfall": 0.21034198005994162,
+      "rainfall_extreme_rainfall_mm": 561.2,
+      "prob_extreme_rainfall": 0.1404371692103561,
       "risk_extreme_rainfall": "Low"
     }
   ]

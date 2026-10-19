@@ -1,78 +1,108 @@
 # Flood Model Validation — Real Disaster Data
 
-Model: `xgboost_model_improved.pkl` (threshold 0.30)
-Script: `edge-gateway/prediction-models/validate_real_events.py`
-Run: `python edge-gateway/prediction-models/validate_real_events.py`
+Model: `xgboost_model_improved.pkl` — **retrained on real DMC gauge data** (`train_real_flood.py`),
+threshold 0.58. Previous synthetic-data model backed up at
+`models/xgboost_model_improved.synthetic25k.pkl`.
 
 ## Data sources
 
 | Data | Source | Link |
 |---|---|---|
-| Real flood events (30, Sri Lanka 2025) | IDMC, reported by DMC Sri Lanka | https://data.internal-displacement.org/ (dataset: Internal Displacement Events, iso3 = LKA) |
-| Country profile | IDMC Sri Lanka | https://www.internal-displacement.org/countries/sri-lanka/ |
-| National disaster authority | Disaster Management Centre (DMC) | https://www.dmc.gov.lk/ |
-| Gauging stations (43) | `edge-gateway/resources/gauging_stations.csv` | real station names + alert/minor/major levels |
-| Training data (25,000 rows) | `edge-gateway/resources/sri_lanka_flood_risk_dataset_25000.csv` | synthetic (marked `is_synthetic=True`) |
+| River water levels + flood status (labels) | DMC daily water-level PDF reports | https://www.dmc.gov.lk (River Water Level and Flood Warning) |
+| Flood events (Sri Lanka 2025-26) | IDMC, reported by DMC | https://data.internal-displacement.org/ |
+| Cyclone Ditwah (event_id 37189, 13,365 displaced) | IDMC/DMC | https://www.internal-displacement.org/countries/sri-lanka/ |
+| Rainfall (ERA5) | Open-Meteo archive API | https://open-meteo.com/en/docs/historical-weather-api |
+| Elevation (SRTM) | Open-Meteo elevation API | https://open-meteo.com/en/docs/elevation-api |
+| Gauges + alert/minor/major levels | DMC gauge network | `edge-gateway/resources/gauging_stations.csv` |
 
-Local files: events CSV = `cloud-platform/prediction-models/resource-model/lka_idmc_idu_events.csv`.
+## Training data (real)
+
+`edge-gateway/resources/sri_lanka_flood_real_dataset.csv` — built by
+`build_real_flood_dataset.py` from the sources above:
+3,335 labeled station-days (125 floods, 3.7%), 39 stations, 2025-06 → 2026-10.
+Labels = DMC's own status (Minor/Major Flood / inaccessible-gauge = flood).
+Temporal test (last 20% of dates): ROC-AUC 1.000, P/R/F1 = 1.000 @ threshold 0.58
+(mostly the real gauge rule: stage ≥ minor ⇒ flood — water_level importance 0.63).
 
 ## Method
 
 ![pipeline](./validation_pipeline.png)
 
-Every event location is scored twice:
-**during_event** = rainfall 169 mm/7d (Q75 of flood rows). **pre_event** = rainfall 64 mm (median of non-flood rows).
+1. Real inputs (elevation, rainfall, river, gauge + thresholds, water level).
+2. Same feature vector as production (`base_model.predict_one`).
+3. Compare model output with what really happened.
 
-## A. Historical validation result
+## Case study: Cyclone Ditwah — Polonnaruwa (27 Nov – 3 Dec 2025)
 
-| Scenario | ROC-AUC | Precision | Recall | Events found (of 30) |
-|---|---|---|---|---|
-| during_event | 0.496 | 0.00 | 0.00 | 0 |
-| pre_event | 0.499 | 0.00 | 0.00 | 0 |
+![case](./ditwah_polonnaruwa_case.png)
 
-Chance level = 0.50. **The model cannot separate real flood places from normal places.**
+Inputs (all real): rain 255.8 mm/7d (ERA5), elevation 39 m (SRTM),
+Manampitiya gauge on Mahaweli Ganga (alert/minor/major 3.0/4.3/6.0 m),
+water level 4.3 m (gauge at minor flood), 13,365 displaced (IDMC/DMC).
 
-![roc](./roc_curve_during_event.png)
-![cm](./confusion_matrix_during_event.png)
+| Model | Output | Verdict |
+|---|---|---|
+| old synthetic model | 0.000 "No flood" | **INCORRECT (missed)** |
+| **new real-data model** | **0.763 (High) "Flood"** | **CORRECT** |
 
-## B. Proof: one historical event you can check manually
+Reproduce: `python edge-gateway/prediction-models/validate_ditwah_case.py`
 
-**Event:** Flood — Batticaloa (Eravur Pattu), Sri Lanka
-**Dates:** 13–24 January 2025 (part of the Jan 2025 Sri Lanka floods)
-**Coordinates:** 7.7855 N, 81.6046 E
-**People displaced:** 803 (DMC, via IDMC — check on https://data.internal-displacement.org/ )
-**Model output (during_event):** probability = **0.058** → below 0.30 → model predicted **"No flood"**
-**Real outcome:** flood happened, 803 displaced.
-**Verdict: incorrect prediction (missed).** Full per-event list with probabilities: `real_validation_results/per_event_predictions.csv`.
+## 30-event study (real IDMC floods vs 500 controls)
 
-Internal metrics on synthetic test data look strong (AUC 0.95, recall 0.71) — but that is the same synthetic data family. On the real event above, the model fails. This gap is the main finding.
+| Scenario | ROC-AUC | Events found (of 30) |
+|---|---|---|
+| during_event, rain 400 mm, **no gauge stage** | 0.348 | 0 |
+| pre_event, rain 105 mm, **no gauge stage** | 0.331 | 0 |
+| during_event + **real gauge stage at event** | **0.948** | **27 (90%)** |
 
-## C. "Is this altitude of the camp affected by flood?"
+![roc gauge](./roc_curve_during_event_gauge.png)
 
-Worked case: camp **500 m from Kelani Ganga** (near Nagalagam gauge, 6.9155 N 79.9732 E), extreme rain 240 mm/7d.
+**Reading:** without a live gauge reading the model is still weak at pure
+forecasting (AUC 0.35). When the operator reports the gauge in flood — the real
+Disaster-page workflow — the model correctly flags 27/30 events
+(mean prob 0.81 events vs 0.22 controls). Eravur Pattu (803 displaced):
+0.058 old → **0.905** new.
+
+Reproduce: `python edge-gateway/prediction-models/validate_real_events.py`
+
+## "Is this altitude of the camp affected by flood?"
+
+Camp 500 m from Kelani Ganga (Hanwella gauge), real wet-week rain 400 mm:
 
 ![altitude](./camp_altitude_risk.png)
 
-| Camp altitude | Model probability | Answer |
+| Camp altitude | No gauge data | River rising (4 m) |
 |---|---|---|
-| 3–5 m | 0.30–0.35 | **Yes — above decision threshold, flood possible** |
-| 10 m | 0.30 | borderline |
-| 15–20 m | 0.18–0.21 | No |
-| 30 m | 0.11 | No |
-| 50 m+ | < 0.05 | No |
+| 3–5 m | 0.33–0.34 | **0.66 → flood** |
+| 10 m | 0.07 | 0.57 (borderline) |
+| 15 m | 0.02 | 0.38 |
+| 20 m+ | ≤ 0.01 | ≤ 0.07 → not affected |
 
-**Direct answer: below ~10 m altitude the model says the camp can be affected; from ~15 m upward it says not affected.** Lower altitude + closer to river + more rain = higher probability.
+Once the stage approaches minor-flood (≥6 m at Hanwella) the model
+conservatively flags flood at **any** altitude (0.91) — it does not model how
+flood extent shrinks with height (needs flood-extent satellite labels).
+
+Reproduce: `python edge-gateway/prediction-models/camp_altitude_scan.py`
 
 ## Limitations
 
-1. Training data is synthetic — real-event accuracy is unproven (AUC 0.50 here).
-2. Elevation/river-distance values come from the synthetic set, not a real DEM.
-3. Event data is district-level displacement, not flood maps.
-4. Treat output as a relative risk score, not a real flood probability.
+1. Forecast-only skill (no gauge stage) is still near chance — use the model
+   as decision support on top of live/entered gauge readings.
+2. DMC PDFs only exist from 2025-06; older reports are scanned images (no OCR).
+3. OSM Overpass was unreachable during the build → `distance_to_river_m` = 0
+   for gauge rows (constant → model ignores river distance). Re-run
+   `build_real_flood_dataset.py` + `train_real_flood.py` when OSM is up.
+4. Altitude saturation: no altitude attenuation once stage ≈ minor flood.
+5. Dataset is gauge-station based (39 stations) — more history (OCR of old
+   PDFs, or Irrigation Dept live API) would strengthen it.
 
-## Reproduce everything
+## Reproduce
 
 ```
-python edge-gateway/prediction-models/validate_real_events.py
+python edge-gateway/prediction-models/build_real_flood_dataset.py   # scrape + build real dataset
+python edge-gateway/prediction-models/train_real_flood.py           # retrain on real data
+python edge-gateway/prediction-models/validate_ditwah_case.py       # Ditwah case study
+python edge-gateway/prediction-models/validate_real_events.py       # 30-event study
+python edge-gateway/prediction-models/camp_altitude_scan.py         # camp altitude answer
 ```
-Outputs: `real_validation_results/` (metrics JSON, per-event CSV, all PNGs in this report).
+Outputs in `real_validation_results/` (this folder).

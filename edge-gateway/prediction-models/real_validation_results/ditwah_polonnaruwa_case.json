@@ -1,0 +1,26 @@
+{
+  "event": "Cyclone Ditwah - Polonnaruwa District (IDMC/DMC, event_id 37189)",
+  "event_start": "2025-11-27",
+  "event_end": "2025-12-03",
+  "displaced": 13365,
+  "inputs": {
+    "rainfall_mm": 255.8,
+    "water_level_m": 4.3,
+    "elevation_m": 39.0,
+    "river_distance_km": 10.2,
+    "latitude": 7.99623,
+    "longitude": 81.049171,
+    "gauge_alert_level": 3.0,
+    "gauge_minor_level": 4.3,
+    "gauge_major_level": 6.0
+  },
+  "river_name_osm": "Mahaweli Ganga",
+  "nearest_gauge": "Manampitiya",
+  "nearest_gauge_km": 10.2,
+  "model_probability": 0.7632,
+  "threshold": 0.58,
+  "risk_band": "High",
+  "verdict": "FLOOD predicted",
+  "ground_truth_flood": true,
+  "verdict_correct": true
+}

@@ -1,0 +1,44 @@
+{
+  "dataset": "sri_lanka_flood_real_dataset.csv",
+  "rows": 3335,
+  "positives": 125,
+  "temporal_split_at": "2026-06-30",
+  "train_rows": 2911,
+  "test_rows": 424,
+  "test_metrics_at_f2_threshold": {
+    "threshold": 0.5819978986166966,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "confusion_matrix": [
+      [
+        419,
+        0
+      ],
+      [
+        0,
+        5
+      ]
+    ],
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "recall_at_thr90": 1.0
+  },
+  "threshold_f2": 0.5819978986166966,
+  "threshold_90_recall": 0.5819978986166966,
+  "feature_importance": {
+    "rainfall_7d_mm": 0.1438,
+    "longitude": 0.0516,
+    "latitude": 0.0416,
+    "elevation_m": 0.0407,
+    "distance_to_river_m": 0.0,
+    "monthly_rainfall_mm": 0.0,
+    "drainage_index": 0.0,
+    "water_level_m": 0.6328,
+    "elevation_ratio": 0.0896,
+    "river_proximity_score": 0.0
+  },
+  "backup_old_model": "xgboost_model_improved.synthetic25k.pkl",
+  "trained_at": "2026-10-18T14:23:14.376881+00:00"
+}

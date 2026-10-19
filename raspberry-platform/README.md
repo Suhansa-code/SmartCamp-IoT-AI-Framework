@@ -121,12 +121,13 @@ npm run stack:start
 npm run stack:logs
 ```
 
-The default stack uses fingerprint simulation and does not require a serial
-device. On a Raspberry Pi with the ESP32/R503 attached, enable the hardware
-override:
+The stack passes the fingerprint reader through automatically: set
+`FINGERPRINT_SERIAL_PORT` in `.env` (defaults to `/dev/ttyACM0`). Compose
+refuses to start if that device path is missing, so on machines without the
+reader point it at an existing device or stop the `backend` service.
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.hardware.yml up -d --build
+docker compose up -d --build
 ```
 
 ### Native development
