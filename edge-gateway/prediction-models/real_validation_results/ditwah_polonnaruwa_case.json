@@ -17,10 +17,16 @@
   "river_name_osm": "Mahaweli Ganga",
   "nearest_gauge": "Manampitiya",
   "nearest_gauge_km": 10.2,
-  "model_probability": 0.7632,
-  "threshold": 0.58,
+  "new_model_probability": 0.8529,
+  "threshold": 0.57,
   "risk_band": "High",
   "verdict": "FLOOD predicted",
   "ground_truth_flood": true,
-  "verdict_correct": true
+  "verdict_correct": true,
+  "old_synthetic_model": {
+    "probability": 0.0,
+    "threshold": 0.3,
+    "verdict": "No flood predicted",
+    "verdict_correct": false
+  }
 }

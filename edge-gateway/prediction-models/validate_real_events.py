@@ -313,6 +313,12 @@ def main() -> None:
         "artifact_stored_metrics": artifact.get("metrics", {}),
         "n_real_flood_events": int(len(ev_df)),
         "n_controls": int(len(controls)),
+        "controls_definition": "500 locations sampled from the legacy synthetic "
+                               "dataset's no-flood rows, all >10 km from any "
+                               "documented IDMC event — assumed non-flood "
+                               "(no flood documented within 10 km); used as the "
+                               "negative comparison set, NOT independently "
+                               "verified non-flood ground truth",
         "scenario_definitions": {
             "during_event": {"rainfall_7d_mm": wet_rain, "water_level_m": 0.0,
                              "meaning": "Q75 rainfall of REAL flood rows; NO gauge stage (forecast-only test)"},
@@ -330,8 +336,12 @@ def main() -> None:
     p_real = RESULTS_DIR / "retrain_real_metrics.json"
     if p_real.exists():
         try:
-            results["internal_validation_from_reports"]["retrain_real_metrics.json"] = \
-                json.loads(p_real.read_text())["test_metrics_at_f2_threshold"]
+            rep = json.loads(p_real.read_text())
+            results["internal_validation_from_reports"]["retrain_real_metrics.json"] = {
+                "threshold_selection": rep.get("threshold_selection", {}),
+                "test_metrics_at_frozen_validation_threshold":
+                    rep.get("test_metrics_at_frozen_validation_threshold", {}),
+            }
         except Exception as e:  # noqa: BLE001
             results["internal_validation_from_reports"]["retrain_real_metrics.json"] = {"error": str(e)}
 

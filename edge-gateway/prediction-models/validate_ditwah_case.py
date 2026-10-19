@@ -142,6 +142,17 @@ def main() -> None:
     verdict = "FLOOD predicted" if prob >= thr else "No flood predicted"
     correct = prob >= thr
 
+    # 8b. Same inputs scored with the OLD synthetic-data model (for comparison)
+    old_prob, old_thr = None, None
+    old_model_path = MODEL.parent / "xgboost_model_improved.synthetic25k.pkl"
+    if old_model_path.exists():
+        old_art = joblib.load(old_model_path)
+        old_thr = float(old_art.get("threshold", 0.50))
+        old_prob = float(old_art["estimator"].predict_proba(x[old_art["features"]])[0, 1])
+        old_verdict = "FLOOD predicted" if old_prob >= old_thr else "No flood predicted"
+        print(f"\nOLD synthetic model: prob={old_prob:.4f} (threshold {old_thr:.2f}) -> "
+              f"{old_verdict} -> {'CORRECT' if old_prob >= old_thr else 'INCORRECT (missed)'}")
+
     # 9. Proof image
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2), gridspec_kw={"width_ratios": [1.25, 1]})
     ax1.axis("off")
@@ -176,8 +187,14 @@ def main() -> None:
         "event_start": EVENT_START, "event_end": EVENT_END, "displaced": displaced,
         "inputs": sim, "river_name_osm": river_name_osm,
         "nearest_gauge": st["station_name"], "nearest_gauge_km": round(gauge_km, 1),
-        "model_probability": round(prob, 4), "threshold": round(thr, 2), "risk_band": band,
-        "verdict": verdict, "ground_truth_flood": True, "verdict_correct": correct,
+        "new_model_probability": round(prob, 4), "threshold": round(thr, 2),
+        "risk_band": band, "verdict": verdict, "ground_truth_flood": True,
+        "verdict_correct": correct,
+        "old_synthetic_model": ({
+            "probability": round(old_prob, 4), "threshold": round(old_thr, 2),
+            "verdict": "FLOOD predicted" if old_prob >= old_thr else "No flood predicted",
+            "verdict_correct": bool(old_prob >= old_thr),
+        } if old_prob is not None else None),
     }, indent=2))
 
     print("SIMULATION WINDOW VALUES (enter these in Disaster page -> Simulate):")
