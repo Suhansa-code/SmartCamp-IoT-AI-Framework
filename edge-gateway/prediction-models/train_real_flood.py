@@ -13,9 +13,12 @@ Serving consistency (matches base_model.predict_one / SimulationModal):
   - distance_to_river_m = 0 for gauge rows (station sits on the river; feature
     is constant in training so the model ignores it at inference too)
 
-Validation: temporal split (first 80% of report dates train, last 20% test),
-threshold = F2-optimal on the test set (same policy as train_improved.py),
-CalibratedClassifierCV(sigmoid, cv=3) fit on the train split only.
+Validation: temporal 3-way split by report date (first 60% train, next 20%
+validation, last 20% untouched test). The F2 decision threshold is selected on
+the VALIDATION split only (disaster use-case: miss cost > false-alarm cost;
+F1-optimal threshold also recorded for comparison). The final model is
+evaluated ONCE on the untouched test split at the frozen validation threshold.
+CalibratedClassifierCV(sigmoid, cv=3) is fit on the train split only.
 
 Artifact is saved to models/xgboost_model_improved.pkl (same dict keys as
 train_improved.py). The previous synthetic-data model is backed up first as
@@ -102,13 +105,19 @@ def main():
     y = df["flood_label"].astype(int)
 
     dates = sorted(df["report_date"].unique())
-    cut = dates[int(len(dates) * 0.8)]
-    tr_mask = df["report_date"] < cut
+    n = len(dates)
+    cut_train = dates[int(n * 0.6)]
+    cut_val = dates[int(n * 0.8)]
+    tr_mask = df["report_date"] < cut_train
+    va_mask = (df["report_date"] >= cut_train) & (df["report_date"] < cut_val)
+    te_mask = df["report_date"] >= cut_val
     X_tr, y_tr = X[tr_mask], y[tr_mask]
-    X_te, y_te = X[~tr_mask], y[~tr_mask]
+    X_va, y_va = X[va_mask], y[va_mask]
+    X_te, y_te = X[te_mask], y[te_mask]
     print(f"rows={len(df)}  pos={int(y.sum())} ({y.mean():.1%})")
-    print(f"temporal split at {cut}: train {len(X_tr)} ({int(y_tr.sum())} pos)  "
-          f"test {len(X_te)} ({int(y_te.sum())} pos)")
+    print(f"temporal split: train<{cut_train} {len(X_tr)} ({int(y_tr.sum())} pos)  "
+          f"val {cut_train}..{cut_val} {len(X_va)} ({int(y_va.sum())} pos)  "
+          f"test>={cut_val} {len(X_te)} ({int(y_te.sum())} pos)")
 
     spw = float((y_tr == 0).sum() / max((y_tr == 1).sum(), 1))
     base = build_estimator(spw)
@@ -117,16 +126,22 @@ def main():
     calibrated = CalibratedClassifierCV(base, method="sigmoid", cv=3)
     calibrated.fit(X_tr, y_tr)
 
+    # --- threshold selection on VALIDATION split only ---
+    p_va = calibrated.predict_proba(X_va)[:, 1]
+    thr_f2 = find_threshold_fbeta(y_va, p_va, beta=2.0)
+    thr_f1 = find_threshold_fbeta(y_va, p_va, beta=1.0)
+    m_va = metrics_at(y_va.values, p_va, thr_f2)
+    print(f"\nvalidation: F2-threshold={thr_f2:.3f} -> P={m_va['precision']:.3f} "
+          f"R={m_va['recall']:.3f} F1={m_va['f1']:.3f}  CM={m_va['confusion_matrix']}")
+    print(f"validation: F1-optimal threshold would be {thr_f1:.3f}")
+
+    # --- final evaluation on UNTOUCHED test at frozen validation threshold ---
     p_te = calibrated.predict_proba(X_te)[:, 1]
     auc = roc_auc_score(y_te, p_te)
     ap = average_precision_score(y_te, p_te)
-    thr = find_threshold_fbeta(y_te, p_te, beta=2.0)
-    thr90 = find_threshold_recall(y_te, p_te, 0.90)
-    m = metrics_at(y_te.values, p_te, thr)
-    print(f"\ntemporal test: ROC-AUC={auc:.3f}  PR-AUC={ap:.3f}")
-    print(f"F2 threshold={thr:.3f} -> P={m['precision']:.3f} R={m['recall']:.3f} "
-          f"F1={m['f1']:.3f}  CM={m['confusion_matrix']}")
-    print(f"threshold@90%recall = {thr90:.3f}")
+    m = metrics_at(y_te.values, p_te, thr_f2)
+    print(f"untouched test @ validation threshold {thr_f2:.3f}: ROC-AUC={auc:.3f}  PR-AUC={ap:.3f}")
+    print(f"  P={m['precision']:.3f} R={m['recall']:.3f} F1={m['f1']:.3f}  CM={m['confusion_matrix']}")
 
     # feature importance (informational fit on all rows; not deployed)
     probe = build_estimator(spw)
@@ -136,18 +151,20 @@ def main():
     for k, v in sorted(imp.items(), key=lambda kv: -kv[1]):
         print(f"  {k:26s} {v:.4f} {'#' * int(v * 40)}")
 
-    metrics = {**m, "roc_auc": float(auc), "pr_auc": float(ap),
-               "recall_at_thr90": float((p_te[y_te.values == 1] >= thr90).mean())}
+    metrics = {**m, "roc_auc": float(auc), "pr_auc": float(ap)}
 
     if MODEL_PATH.exists() and not BACKUP_PATH.exists():
-        shutil.copy2(MODEL_PATH, BACKUP_PATH)
-        print(f"\nbacked up old model -> {BACKUP_PATH.name}")
+        prev = joblib.load(MODEL_PATH)
+        if "real" not in str(prev.get("model_name", "")):
+            shutil.copy2(MODEL_PATH, BACKUP_PATH)
+            print(f"\nbacked up old (synthetic) model -> {BACKUP_PATH.name}")
+        else:
+            print("\nskipped backup: current model is already a real-data model")
 
     artifact = {
         "estimator": calibrated,
         "features": list(FEATURES),
-        "threshold": thr,
-        "recall_threshold": thr90,
+        "threshold": thr_f2,
         "metrics": metrics,
         "model_name": "xgboost_real_dmc_v1",
         "training_samples": int(len(X_tr)),
@@ -155,7 +172,8 @@ def main():
                                "flood": int((y_tr == 1).sum())},
         "dataset": DATA.name,
         "trained_at": datetime.now(timezone.utc).isoformat(),
-        "notes": "trained on real DMC gauge reports; temporal-test metrics; "
+        "notes": "trained on real DMC gauge reports; F2 threshold selected on "
+                 "validation split, test evaluated once at frozen threshold; "
                  "features match base_model.predict_one serving derivation",
     }
     joblib.dump(artifact, MODEL_PATH)
@@ -163,10 +181,19 @@ def main():
 
     REPORT_PATH.write_text(json.dumps({
         "dataset": DATA.name, "rows": int(len(df)), "positives": int(y.sum()),
-        "temporal_split_at": cut,
-        "train_rows": int(len(X_tr)), "test_rows": int(len(X_te)),
-        "test_metrics_at_f2_threshold": metrics,
-        "threshold_f2": thr, "threshold_90_recall": thr90,
+        "temporal_split": {"train_before": str(cut_train),
+                           "validation_range": f"{cut_train} .. {cut_val}",
+                           "test_from": str(cut_val)},
+        "train_rows": int(len(X_tr)), "validation_rows": int(len(X_va)),
+        "test_rows": int(len(X_te)),
+        "threshold_selection": {
+            "method": "F2-optimal on VALIDATION split only (disaster use-case: "
+                      "recall weighted higher than precision)",
+            "threshold_f2": thr_f2,
+            "threshold_f1_optimal_on_validation": thr_f1,
+            "validation_metrics_at_f2_threshold": m_va,
+        },
+        "test_metrics_at_frozen_validation_threshold": metrics,
         "feature_importance": {k: round(float(v), 4) for k, v in imp.items()},
         "backup_old_model": BACKUP_PATH.name if BACKUP_PATH.exists() else None,
         "trained_at": artifact["trained_at"],
