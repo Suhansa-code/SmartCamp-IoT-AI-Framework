@@ -27,6 +27,8 @@ AGENTS.md
 # ==========================================
 __pycache__/
 *.py[cod]
+# local-only backup created by train_real_flood.py (not deployed)
+*.synthetic25k.pkl
 *$py.class
 *.egg-info/
 *.egg/

@@ -64,5 +64,5 @@
     "river_proximity_score": 0.0
   },
   "backup_old_model": "xgboost_model_improved.synthetic25k.pkl",
-  "trained_at": "2026-10-19T03:44:20.518334+00:00"
+  "trained_at": "2026-10-19T08:21:13.934344+00:00"
 }
