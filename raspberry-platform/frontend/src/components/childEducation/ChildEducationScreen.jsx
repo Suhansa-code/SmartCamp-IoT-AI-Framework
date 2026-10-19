@@ -281,7 +281,7 @@ function ChildEducationScreen() {
                     type="text"
                     value={dirSearch}
                     onChange={(e) => setDirSearch(e.target.value)}
-                    placeholder="Search by child ID or res ID..."
+                    placeholder="Search by child ID or wristband ID..."
                     className="w-full sm:w-72 pl-9 pr-3 py-2 rounded-lg border text-[13px] focus:outline-none transition-colors"
                     style={{ backgroundColor: "#FAFAF9", borderColor: COLORS.line, color: COLORS.ink }}
                   />
@@ -345,17 +345,13 @@ function ChildEducationScreen() {
                 <SectionHeader icon={ShieldCheck} title="Child Record" subtitle={child.child_id} />
                 <div className="grid gap-2 sm:grid-cols-2">
                   {[
-                    ["Res ID", child.res_id],
+                    ["Wristband ID", child.wristband_id],
                     ["Camp ID", child.camp_id],
                     ["Grade", child.grade],
                     ["Language", child.language],
-                    ["Zone", child.zone_id || "-"],
                     ["Enrolled", formatDate(child.enrolled_at)],
                     ["Baseline", child.baseline_score],
                     ["Alert Status", child.alert_status],
-                    ["Consecutive Low", child.consecutive_low],
-                    ["SDQ Band", child.sdq_band],
-                    ["QR Available", child.qr_code_data ? "Yes" : "No"],
                     ["Sessions Done", child.total_sessions],
                     ["Latest Z-Score", latestZScore != null ? Number(latestZScore).toFixed(2) : "-"],
                   ].map(([label, value]) => (
@@ -502,7 +498,7 @@ function ChildEducationScreen() {
                     </div>
                   ),
                 },
-                { key: "res_id", label: "Res ID" },
+                { key: "wristband_id", label: "Wristband ID" },
                 { key: "grade", label: "Grade" },
                 { key: "camp_id", label: "Camp" },
                 { key: "total_sessions", label: "Sessions" },
@@ -518,7 +514,8 @@ function ChildEducationScreen() {
                   const q = dirSearch.toLowerCase();
                   const matchId = row.child_id?.toLowerCase().includes(q);
                   const matchRes = row.res_id?.toLowerCase().includes(q);
-                  if (!matchId && !matchRes) return false;
+                  const matchWristband = row.wristband_id?.toLowerCase().includes(q);
+                  if (!matchId && !matchRes && !matchWristband) return false;
                 }
                 return true;
               })}

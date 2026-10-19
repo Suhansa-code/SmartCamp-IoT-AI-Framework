@@ -1,4 +1,4 @@
-import { pagesDb, sqliteInsert, sqliteUpdate, sqliteGetLastChildId } from '../../config/database.js';
+import { pagesDb, campDb, sqliteInsert, sqliteUpdate, sqliteGetLastChildId } from '../../config/database.js';
 import C from '../../config/constants.js';
 import { getCampId } from '../../config/camp-id.js';
 import logger from '../../utils/logger.js';
@@ -92,6 +92,32 @@ function parseTriggerDetail(value) {
   try { return JSON.parse(value); } catch { return value; }
 }
 
+function normalizeResId(value) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? String(num) : String(value);
+}
+
+function lookupWristbands(resIds) {
+  const ids = [...new Set(resIds.map(normalizeResId).filter(Boolean))]
+    .map((id) => (Number.isFinite(Number(id)) ? Number(id) : id));
+  if (!ids.length) return new Map();
+
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = campDb.prepare(`
+    SELECT person_id, barcode FROM wristbands
+    WHERE person_id IN (${placeholders})
+    ORDER BY id ASC
+  `).all(...ids);
+
+  const map = new Map();
+  for (const row of rows) {
+    const key = String(row.person_id);
+    if (!map.has(key)) map.set(key, row.barcode);
+  }
+  return map;
+}
+
 export async function getChildDirectory(req, res, next) {
   try {
     const rawLimit = Number.parseInt(req.query.limit, 10);
@@ -113,9 +139,15 @@ export async function getChildDirectory(req, res, next) {
     const total = Number(totalRow?.total || 0);
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
+    const wristbands = lookupWristbands(rows.map((row) => row.res_id));
+
     return res.json({
       success: true,
-      children: rows.map((row) => ({ ...row, synced: Number(row.synced) || 0 })),
+      children: rows.map((row) => ({
+        ...row,
+        synced: Number(row.synced) || 0,
+        wristband_id: wristbands.get(normalizeResId(row.res_id)) || null,
+      })),
       pagination: { page, limit, total, totalPages, hasPrev: page > 1, hasNext: page < totalPages },
     });
   } catch (err) { next(err); }
@@ -160,9 +192,15 @@ export async function getChildEducation(req, res, next) {
     const pendingAlerts = alertRows.filter((r) => r.status === 'pending').length;
     const resolvedAlerts = alertRows.filter((r) => r.status === 'resolved').length;
 
+    const wristband = lookupWristbands([childRow.res_id]).get(normalizeResId(childRow.res_id)) || null;
+
     return res.json({
       success: true,
-      child: { ...childRow, synced: Number(childRow.synced) || 0 },
+      child: {
+        ...childRow,
+        wristband_id: wristband,
+        synced: Number(childRow.synced) || 0,
+      },
       sessions: sessionRows,
       alerts,
       stats: {
