@@ -672,7 +672,7 @@ function PaymentPanel({ placed, onClose, onPay, submitting }) {
 
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div style={{ ...styles.drawer, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ ...styles.drawer, width: 'min(100%, 520px)' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ ...styles.payHead, background: brand.soft, border: `1px solid ${brand.accent}33` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <span style={{ ...styles.brandChip, color: '#fff', background: brand.accent }}>{brandGlyph(brand.icon)}</span>
@@ -759,8 +759,8 @@ const styles = {
   notice: { margin: '1rem clamp(1rem,4vw,3rem) 0', padding: '0.75rem 1rem', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: '0.85rem' },
   error: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA' },
   success: { background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0' },
-  hero: { display: 'grid', gridTemplateColumns: 'minmax(0,1.05fr) minmax(0,0.95fr)', gap: '2rem', padding: 'clamp(1.5rem,4vw,3.5rem) clamp(1rem,4vw,3rem)', alignItems: 'center', maxWidth: 1280, margin: '0 auto' },
-  heroCopy: { maxWidth: 620 },
+  hero: { display: 'grid', gridTemplateColumns: 'minmax(0,1.05fr) minmax(0,0.95fr)', gap: '2rem', padding: 'clamp(1.5rem,4vw,3.5rem) clamp(1rem,4vw,3rem)', alignItems: 'center', margin: '0 auto' },
+  heroCopy: { width: 'min(100%, 620px)' },
   eyebrow: { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0D9488' },
   h1: { fontSize: 'clamp(1.8rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '0.8rem 0' },
   em: { color: '#16A34A', fontStyle: 'normal' },
@@ -780,7 +780,7 @@ const styles = {
   stat: { background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '0.7rem 0.8rem' },
   statValue: { display: 'block', fontSize: '1.02rem', fontWeight: 800 },
   statLabel: { fontSize: '0.68rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  shop: { padding: 'clamp(1rem,4vw,2.5rem) clamp(1rem,4vw,3rem)', maxWidth: 1280, margin: '0 auto' },
+  shop: { padding: 'clamp(1rem,4vw,2.5rem) clamp(1rem,4vw,3rem)', margin: '0 auto' },
   sectionHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap' },
   kicker: { fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0D9488' },
   h2: { fontSize: 'clamp(1.4rem,2.6vw,1.9rem)', margin: '0.4rem 0' },
@@ -807,7 +807,7 @@ const styles = {
   stepper: { display: 'inline-flex', alignItems: 'center', gap: 10, border: '1px solid #E2E8F0', borderRadius: 10, padding: '0.25rem 0.45rem' },
   stepBtn: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', background: '#F1F5F9', borderRadius: 7, cursor: 'pointer' },
   stepValue: { fontWeight: 800, minWidth: 18, textAlign: 'center' },
-  donateSection: { display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: '2rem', padding: 'clamp(1.5rem,4vw,3rem) clamp(1rem,4vw,3rem)', background: '#fff', color: '#0F172A', maxWidth: '100%' },
+  donateSection: { display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: '2rem', width: 'calc(100% - 2rem)', margin: '0 auto', padding: 'clamp(1.5rem,4vw,3rem) clamp(1rem,4vw,2rem)', boxSizing: 'border-box', background: '#fff', color: '#0F172A' },
   methodList: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: '1rem' },
   methodRow: { display: 'flex', gap: 10, alignItems: 'flex-start', border: '1px solid #334155', borderRadius: 12, padding: '0.7rem 0.9rem', cursor: 'pointer', background: '#1E293B' },
   methodRowActive: { border: '1px solid #16A34A', background: '#14532D' },
@@ -818,12 +818,12 @@ const styles = {
   quickAmounts: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   quickAmount: { border: '1px solid #CBD5E1', background: '#fff', borderRadius: 10, padding: '0.45rem 0.8rem', fontWeight: 700, cursor: 'pointer' },
   quickAmountActive: { background: '#16A34A', color: '#fff', border: '1px solid #16A34A' },
-  trust: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, padding: 'clamp(1.5rem,4vw,3rem) clamp(1rem,4vw,3rem)', maxWidth: 1280, margin: '0 auto' },
+  trust: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, padding: 'clamp(1.5rem,4vw,3rem) clamp(1rem,4vw,3rem)', margin: '0 auto' },
   trustCard: { background: '#fff', border: '1px solid #E2E8F0', borderRadius: 16, padding: '1.1rem' },
   trustIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: '#ECFDF5', color: '#15803D' },
   trustTitle: { margin: '0.7rem 0 0.3rem', fontSize: '0.95rem' },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', justifyContent: 'flex-end', zIndex: 100, padding: 0 },
-  drawer: { width: '100%', maxWidth: 440, background: '#fff', height: '100%', overflowY: 'auto', padding: '1.25rem' },
+  drawer: { width: 'min(100%, 440px)', background: '#fff', height: '100%', overflowY: 'auto', padding: '1.25rem' },
   drawerHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' },
   drawerTitle: { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '1.05rem', margin: 0 },
   drawerBody: { display: 'flex', flexDirection: 'column' },

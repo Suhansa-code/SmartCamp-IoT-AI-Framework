@@ -24,12 +24,10 @@ const API = API_BASE
 
 // ── palette ─────────────────────────────────────────────────────────────────
 // Validated against a white surface: lightness band, chroma floor, CVD
-// separation and contrast all pass. The cohort hues carry direct labels
-// because aqua sits just below 3:1 on white (the relief rule).
+// separation and contrast all pass.
 const T = {
   surface:  '#FFFFFF',
   page:     '#F7F8FA',
-  sunk:     '#F1F3F6',
   line:     '#E3E7EC',
   lineSoft: '#EDF0F4',
 
@@ -42,10 +40,6 @@ const T = {
   water:    '#1baf7a',
   flat:     '#9AA4B2',   // reference line: neutral, never a categorical hue
 
-  children: '#2a78d6',
-  adults:   '#eb6834',
-  elderly:  '#1baf7a',
-
   good:     '#15803D',
   warn:     '#B45309',
   warnBg:   '#FEF6E7',
@@ -53,18 +47,6 @@ const T = {
 }
 
 const confidenceColor = (c) => ({ HIGH: T.good, MEDIUM: T.warn, LOW: T.inkFaint }[c] || T.inkFaint)
-
-const evidenceColor = (r) =>
-  r.is_assumption ? T.warn
-    : r.evidence.startsWith('measured') ? T.good
-    : r.evidence.startsWith('production') ? T.food
-    : T.pop
-
-const evidenceLabel = (r) =>
-  r.is_assumption ? 'ASSUMPTION'
-    : r.evidence.startsWith('measured') ? 'MEASURED'
-    : r.evidence.startsWith('production') ? 'PRODUCTION CONFIG'
-    : 'STANDARD'
 
 const num = (v, d = 1) =>
   v === null || v === undefined ? '—'
@@ -211,43 +193,6 @@ function ForecastChart({ data, color, unit, height = 190, reference, referenceLa
   )
 }
 
-function CohortBar({ breakdown, total }) {
-  const parts = [
-    { key: 'children', label: 'Children', color: T.children },
-    { key: 'adults',   label: 'Adults',   color: T.adults },
-    { key: 'elderly',  label: 'Elderly',  color: T.elderly },
-  ]
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', background: T.sunk, gap: 2 }}>
-        {parts.map((p) => {
-          const pct = total > 0 ? (breakdown[p.key].count / total) * 100 : 0
-          return pct > 0
-            ? <div key={p.key} title={`${p.label}: ${breakdown[p.key].count}`}
-                style={{ width: `${pct}%`, background: p.color, transition: 'width .5s ease' }} />
-            : null
-        })}
-      </div>
-      {/* Direct labels are required here: the aqua slot sits just below 3:1 on
-          a white surface, so identity must not rest on colour alone. */}
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        {parts.map((p) => (
-          <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12 }}>
-            <span style={{ width: 9, height: 9, borderRadius: 2, background: p.color, flexShrink: 0 }} />
-            <span style={{ color: T.ink, fontWeight: 700 }}>{p.label}</span>
-            <span style={{ color: T.ink, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
-              {int(breakdown[p.key].count)}
-            </span>
-            <span style={{ color: T.inkFaint }}>
-              × {breakdown[p.key].rate} kg = {num(breakdown[p.key].food_kg)} kg
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function PlanTable({ daily, hasBand }) {
   return (
     <div style={{ overflowX: 'auto', marginTop: 4 }}>
@@ -287,65 +232,19 @@ function PlanTable({ daily, hasBand }) {
   )
 }
 
-function RateTable({ provenance }) {
-  if (!provenance) return null
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {provenance.rates.map((rate) => (
-        <div key={rate.key} style={{
-          display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 13px',
-          background: rate.is_assumption ? T.warnBg : T.sunk, borderRadius: 8,
-          border: `1px solid ${rate.is_assumption ? T.warn : T.lineSoft}`,
-        }}>
-          <div style={{ minWidth: 155 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: T.ink }}>{rate.key.replace(/_/g, ' ')}</div>
-            <div style={{ fontSize: 11, color: T.inkFaint }}>{rate.unit}</div>
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, minWidth: 56, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-            {rate.value}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <span style={{
-              fontSize: 9.5, fontWeight: 800, letterSpacing: 0.7, padding: '2px 7px',
-              borderRadius: 99, color: evidenceColor(rate), border: `1px solid ${evidenceColor(rate)}`,
-            }}>{evidenceLabel(rate)}</span>
-            <div style={{ fontSize: 11.5, color: T.inkSoft, marginTop: 5, lineHeight: 1.45 }}>{rate.source}</div>
-            {rate.caveat && (
-              <div style={{ fontSize: 11.5, color: T.warn, marginTop: 4, lineHeight: 1.45 }}>⚠ {rate.caveat}</div>
-            )}
-          </div>
-        </div>
-      ))}
-      <div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.55 }}>
-        Rate table v{provenance.schema_version}, built {provenance.generated_at?.slice(0, 10)} by{' '}
-        <code>{provenance.generated_by}</code>. Cohort bands: child ≤ {provenance.cohorts.child_max_age},
-        elderly ≥ {provenance.cohorts.elderly_min_age}
-        {provenance.cohorts.elderly_old_age && `, split again at ${provenance.cohorts.elderly_old_age}`}.
-      </div>
-    </div>
-  )
-}
-
 // ── main component ───────────────────────────────────────────────────────────
 
 export default function DistributionPanel() {
   const [plan, setPlan] = useState(null)
-  const [provenance, setProvenance] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
-  const [showRates, setShowRates] = useState(false)
 
   const fetchAll = useCallback(async () => {
     try {
-      const [planRes, rateRes] = await Promise.all([
-        fetch(`${API}/api/resources/distribution/plan?days=7`),
-        fetch(`${API}/api/resources/distribution/rates`),
-      ])
+      const planRes = await fetch(`${API}/api/resources/distribution/plan?days=7`)
       if (!planRes.ok) throw new Error(`HTTP ${planRes.status}`)
-      if (!rateRes.ok) throw new Error(`HTTP ${rateRes.status}`)
       setPlan(await planRes.json())
-      setProvenance(await rateRes.json())
       setLastUpdate(Date.now())
       setError(null)
     } catch {
@@ -364,7 +263,7 @@ export default function DistributionPanel() {
   if (loading) {
     return (
       <div style={{ padding: 48, textAlign: 'center', color: T.inkFaint }}>
-        Loading rate table and camp roster…
+        Loading distribution plan…
       </div>
     )
   }
@@ -380,12 +279,8 @@ export default function DistributionPanel() {
 
   const daily = plan?.plan?.daily ?? []
   const today = daily[0]
-  const totals = plan?.plan?.totals
-  const flat = plan?.plan?.flat_baseline
   const pop = plan?.plan?.population
   const cohorts = plan?.cohorts
-  const requirement = plan?.requirement
-  const assumptions = provenance?.rates.filter((r) => r.is_assumption) ?? []
   const hasBand = pop?.method === 'theil_sen_with_band'
 
   const foodSeries = daily.map((d) => ({
@@ -400,10 +295,6 @@ export default function DistributionPanel() {
     date: d.date, offset: d.day_offset, value: d.water_liters_day,
     low: d.water_liters_day, high: d.water_liters_day, band: [d.water_liters_day, d.water_liters_day],
   }))
-
-  const trendDelta = totals && flat?.food_kg
-    ? ((totals.food_kg - flat.food_kg) / flat.food_kg) * 100
-    : null
 
   return (
     <div style={{ background: T.page, minHeight: '100%', padding: '1.25rem 1.5rem 3rem',
@@ -481,70 +372,6 @@ export default function DistributionPanel() {
         </Card>
       </div>
 
-      {/* ── order totals ───────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Card style={{ flex: '1 1 200px', borderLeft: `3px solid ${T.food}` }}>
-          <div style={{ fontSize: 10.5, color: T.inkFaint, fontWeight: 700, letterSpacing: 0.7 }}>TREND-AWARE TOTAL</div>
-          <div style={{ fontSize: 21, fontWeight: 800, color: T.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-            {num(totals?.food_kg)} kg · {num(totals?.water_liters)} L
-          </div>
-        </Card>
-        <Card style={{ flex: '1 1 200px' }}>
-          <div style={{ fontSize: 10.5, color: T.inkFaint, fontWeight: 700, letterSpacing: 0.7 }}>FLAT HEADCOUNT × DAYS</div>
-          <div style={{ fontSize: 21, fontWeight: 800, color: T.inkFaint, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-            {num(flat?.food_kg)} kg · {num(flat?.water_liters)} L
-          </div>
-        </Card>
-        {trendDelta !== null && Math.abs(trendDelta) >= 0.05 && (
-          <Card style={{ flex: '1 1 200px', borderLeft: `3px solid ${trendDelta > 0 ? T.warn : T.pop}` }}>
-            <div style={{ fontSize: 10.5, color: T.inkFaint, fontWeight: 700, letterSpacing: 0.7 }}>
-              {trendDelta > 0 ? 'FLAT PLANNING WOULD UNDER-ORDER' : 'FLAT PLANNING WOULD OVER-ORDER'}
-            </div>
-            <div style={{ fontSize: 21, fontWeight: 800, color: trendDelta > 0 ? T.warn : T.pop,
-                          marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-              {trendDelta > 0 ? '+' : ''}{trendDelta.toFixed(1)}%
-            </div>
-          </Card>
-        )}
-      </div>
-
-      {/* ── who the food is for ────────────────────────────────── */}
-      {requirement?.breakdown && (
-        <Card>
-          <SectionTitle hint="each cohort priced at its own measured rate">Who the food is for</SectionTitle>
-          <CohortBar breakdown={requirement.breakdown} total={requirement.population} />
-          {requirement.breakdown.children.model && (
-            <div style={{ marginTop: 14, padding: '10px 13px', borderRadius: 8,
-                          background: T.sunk, border: `1px solid ${T.lineSoft}`,
-                          display: 'flex', flexWrap: 'wrap', gap: 9, alignItems: 'baseline' }}>
-              <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.7, padding: '2px 7px',
-                             borderRadius: 99, color: T.pop, border: `1px solid ${T.pop}` }}>ML MODEL</span>
-              <span style={{ fontSize: 12.5, color: T.ink, fontWeight: 700 }}>
-                Children priced at {requirement.breakdown.children.rate} kg/day
-              </span>
-              <span style={{ fontSize: 11.5, color: T.inkFaint }}>
-                Ridge regression trained on 653 Sri Lankan children · CV R² {requirement.breakdown.children.model.cv_r2}
-                {requirement.breakdown.children.model.age_extrapolated_count > 0 &&
-                  ` · ${requirement.breakdown.children.model.age_extrapolated_count} outside the 6–14 training range`}
-              </span>
-            </div>
-          )}
-          {requirement.breakdown.pregnant_topup.count > 0 && (
-            <div style={{ fontSize: 11.5, color: T.inkSoft, marginTop: 10 }}>
-              + {requirement.breakdown.pregnant_topup.count} pregnant ·{' '}
-              {requirement.breakdown.pregnant_topup.rate} kg top-up each ={' '}
-              {num(requirement.breakdown.pregnant_topup.food_kg)} kg
-            </div>
-          )}
-          {cohorts?.unknown_age > 0 && (
-            <div style={{ fontSize: 11.5, color: T.warn, marginTop: 10 }}>
-              ⚠ {cohorts.unknown_age} registered {cohorts.unknown_age === 1 ? 'person has' : 'people have'} no
-              recorded age and {cohorts.unknown_age === 1 ? 'is' : 'are'} counted at the adult rate.
-            </div>
-          )}
-        </Card>
-      )}
-
       {/* ── the numbers behind the charts ──────────────────────── */}
       <Card>
         <SectionTitle hint="the same figures the charts are drawn from">Day by day</SectionTitle>
@@ -554,30 +381,6 @@ export default function DistributionPanel() {
         </div>
       </Card>
 
-      {/* ── provenance ─────────────────────────────────────────── */}
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <SectionTitle hint={assumptions.length === 0
-            ? 'every rate is sourced'
-            : `${assumptions.length} of ${provenance.rates.length} still an assumption`}>
-            Where these numbers come from
-          </SectionTitle>
-          <Button variant="outline" circleIcon={false} onClick={() => setShowRates((s) => !s)} style={{ fontSize: 11.5, padding: '6px 13px' }}>
-            {showRates ? 'Hide' : 'Show'} rate table
-          </Button>
-        </div>
-        {showRates ? <RateTable provenance={provenance} /> : (
-          <div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.65 }}>
-            Rates are read from a single versioned artifact shared with the Python pipeline. Water is the
-            Sphere <strong>survival drinking</strong> figure
-            ({provenance?.rates.find((r) => r.key === 'water_drinking')?.value} L/person/day), narrower than
-            the 15 L domestic supply the camp distributes.
-            {assumptions.length === 0
-              ? ' Every rate traces to a Sri Lankan measurement, the production configuration, or a named standard.'
-              : ` Still an assumption: ${assumptions.map((r) => r.key.replace(/_/g, ' ')).join(', ')}.`}
-          </div>
-        )}
-      </Card>
     </div>
   )
 }
