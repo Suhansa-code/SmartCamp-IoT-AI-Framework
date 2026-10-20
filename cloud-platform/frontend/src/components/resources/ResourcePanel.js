@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { Package, AlertTriangle, Activity, RefreshCw, Filter, MapPin, Plus } from 'lucide-react'
+import {
+  Package, AlertTriangle, Activity, RefreshCw, Filter, MapPin, Plus,
+  Droplets, Utensils, HeartPulse, Sparkles, CheckCircle2, ArrowRight,
+} from 'lucide-react'
 import * as MapLibreGL from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import DashboardCard from '@/components/dashboard/DashboardCard'
@@ -42,7 +45,13 @@ const RESOURCE_STATUS_COLOR = {
 }
 
 const COLOMBO_HUB = { name: 'Disaster Management Center', lat: 6.905756541552449, lng: 79.87149345240267 }
-const DONATION_CATEGORIES = ['water', 'food', 'medical', 'hygiene', 'shelter', 'other']
+const DONATION_CATEGORIES = [
+  { id: 'water', label: 'Water', description: 'Drinking and storage', icon: Droplets },
+  { id: 'food', label: 'Food', description: 'Dry and prepared food', icon: Utensils },
+  { id: 'medical', label: 'Medical', description: 'Care and first aid', icon: HeartPulse },
+  { id: 'hygiene', label: 'Hygiene', description: 'Cleaning and sanitation', icon: Sparkles },
+  { id: 'other', label: 'Other', description: 'Other essential items', icon: Package },
+]
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
 
@@ -496,6 +505,17 @@ export default function ResourcePanel() {
     }
   }
 
+  const donationInputStyle = {
+    width: '100%', minHeight: 44, padding: '0.72rem 0.8rem', borderRadius: 10,
+    border: `1px solid ${T.border}`, background: T.panelSoft || T.card,
+    color: T.ink, font: 'inherit', fontSize: '0.82rem', outline: 'none',
+  }
+
+  const donationLabelStyle = {
+    display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0,
+    color: T.ink, fontSize: '0.72rem', fontWeight: 750,
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* ── Filter Bar + Toggle ──────────────────────────────────── */}
@@ -597,57 +617,179 @@ export default function ResourcePanel() {
 
       {/* ── Donation collection hub ─────────────────────────────── */}
       <form onSubmit={submitDonation} style={{
-        padding: '1.25rem', borderRadius: '1.25rem', background: `linear-gradient(135deg, ${T.green}0d, ${T.card})`,
-        border: `1px solid ${T.green}44`, display: 'flex', flexDirection: 'column', gap: '1rem',
+        borderRadius: '1.25rem', background: T.card, overflow: 'hidden',
+        border: `1px solid ${T.green}55`, boxShadow: `0 16px 40px ${T.green}0d`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: T.green, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              <Plus size={15} /> Donation Collection Hub
+        <div style={{
+          padding: '1.3rem 1.4rem', background: `linear-gradient(125deg, ${T.green}18, ${T.green}05 55%, transparent)`,
+          borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 12, display: 'grid', placeItems: 'center',
+              color: '#fff', background: T.green, boxShadow: `0 8px 18px ${T.green}33`, flexShrink: 0,
+            }}>
+              <Plus size={21} strokeWidth={2.4} />
             </div>
-            <div style={{ color: T.ink, fontSize: '1rem', fontWeight: 800, marginTop: 5 }}>Record incoming supplies in one place</div>
-            <div style={{ color: T.muted, fontSize: '0.74rem', marginTop: 3 }}>Water, food, medical, hygiene, shelter, and other essential donations are all supported.</div>
+            <div>
+              <div style={{ color: T.green, fontSize: '0.66rem', fontWeight: 850, letterSpacing: '0.11em', textTransform: 'uppercase' }}>
+                Donation Collection Hub
+              </div>
+              <div style={{ color: T.ink, fontSize: '1.08rem', fontWeight: 800, marginTop: 3 }}>
+                Record incoming supplies
+              </div>
+              <div style={{ color: T.muted, fontSize: '0.74rem', marginTop: 3 }}>
+                Add water, food, medical, hygiene, or other essential donations to inventory.
+              </div>
+            </div>
           </div>
-          {donationSuccess && <span role="status" style={{ color: T.green, fontSize: '0.74rem', fontWeight: 700 }}>{donationSuccess}</span>}
+          <div style={{
+            padding: '0.42rem 0.7rem', borderRadius: 999, color: T.green,
+            background: `${T.green}12`, border: `1px solid ${T.green}33`,
+            fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase',
+          }}>
+            Quick inventory intake
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-          {DONATION_CATEGORIES.map((category) => {
-            const active = donation.category === category
-            const color = CATEGORY_COLORS[category]
-            return <button key={category} type="button" onClick={() => updateDonation('category', category)} style={{
-              padding: '0.38rem 0.7rem', borderRadius: 999, cursor: 'pointer', font: 'inherit', fontSize: '0.7rem', fontWeight: 800,
-              textTransform: 'capitalize', color: active ? '#fff' : color, background: active ? color : `${color}12`, border: `1px solid ${color}${active ? '' : '44'}`,
-            }}>{category}</button>
-          })}
-        </div>
+        <div style={{ padding: '1.3rem 1.4rem 1.4rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+            <legend style={{ color: T.ink, fontSize: '0.75rem', fontWeight: 800, marginBottom: 9 }}>
+              1. Choose a supply category
+            </legend>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '0.6rem' }}>
+              {DONATION_CATEGORIES.map(({ id, label, description, icon: Icon }) => {
+                const active = donation.category === id
+                const color = CATEGORY_COLORS[id]
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => updateDonation('category', id)}
+                    style={{
+                      minHeight: 64, padding: '0.7rem 0.75rem', borderRadius: 11, cursor: 'pointer',
+                      font: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+                      color: active ? color : T.ink, background: active ? `${color}14` : T.panelSoft || T.card,
+                      border: `1px solid ${active ? color : T.border}`,
+                      boxShadow: active ? `0 0 0 2px ${color}18` : 'none', transition: 'all 0.16s ease',
+                    }}
+                  >
+                    <span style={{
+                      width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center',
+                      color: active ? '#fff' : color, background: active ? color : `${color}14`, flexShrink: 0,
+                    }}>
+                      <Icon size={17} />
+                    </span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800 }}>{label}</span>
+                      <span style={{ display: 'block', color: T.muted, fontSize: '0.62rem', marginTop: 2, lineHeight: 1.25 }}>
+                        {description}
+                      </span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.65rem', alignItems: 'end' }}>
-          {[
-            ['resource_name', 'Resource name', 'e.g. Bottled water'],
-            ['unit', 'Unit', 'e.g. litres, packs, pieces'],
-            ['quantity', 'Quantity received', '0'],
-            ['minimum_threshold', 'Minimum level', '0 (optional)'],
-          ].map(([field, label, placeholder]) => (
-            <label key={field} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-              <span style={{ fontSize: '0.66rem', color: T.muted, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
-              <input
-                type={field === 'quantity' || field === 'minimum_threshold' ? 'number' : 'text'}
-                min={field === 'quantity' ? '0.01' : field === 'minimum_threshold' ? '0' : undefined}
-                step={field === 'quantity' || field === 'minimum_threshold' ? 'any' : undefined}
-                value={donation[field]}
-                onChange={(event) => updateDonation(field, event.target.value)}
-                placeholder={placeholder}
-                required={field === 'resource_name' || field === 'unit' || field === 'quantity'}
-                style={{ width: '100%', padding: '0.62rem 0.7rem', borderRadius: 8, border: `1px solid ${T.border}`, background: T.panelSoft || T.card, color: T.ink, font: 'inherit', fontSize: '0.78rem' }}
-              />
-            </label>
-          ))}
-          <Button type="submit" variant="green" circleIcon={false} disabled={submittingDonation} icon={<Plus size={14} />} style={{ whiteSpace: 'nowrap', minHeight: 38 }}>
-            {submittingDonation ? 'Adding...' : 'Add donation'}
-          </Button>
+          <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+            <legend style={{ color: T.ink, fontSize: '0.75rem', fontWeight: 800, marginBottom: 9 }}>
+              2. Enter donation details
+            </legend>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: '0.7rem', padding: '1rem', borderRadius: 12,
+              background: T.panelSoft || `${T.green}06`, border: `1px solid ${T.border}`,
+            }}>
+              <label style={donationLabelStyle}>
+                <span>Resource name <span style={{ color: T.red }}>*</span></span>
+                <input
+                  type="text"
+                  value={donation.resource_name}
+                  onChange={(event) => updateDonation('resource_name', event.target.value)}
+                  placeholder="e.g. Bottled water"
+                  autoComplete="off"
+                  required
+                  style={donationInputStyle}
+                />
+              </label>
+              <label style={donationLabelStyle}>
+                <span>Unit <span style={{ color: T.red }}>*</span></span>
+                <input
+                  type="text"
+                  value={donation.unit}
+                  onChange={(event) => updateDonation('unit', event.target.value)}
+                  placeholder="litres, packs, pieces"
+                  autoComplete="off"
+                  required
+                  style={donationInputStyle}
+                />
+              </label>
+              <label style={donationLabelStyle}>
+                <span>Quantity received <span style={{ color: T.red }}>*</span></span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  inputMode="decimal"
+                  value={donation.quantity}
+                  onChange={(event) => updateDonation('quantity', event.target.value)}
+                  placeholder="0"
+                  required
+                  style={donationInputStyle}
+                />
+              </label>
+              <label style={donationLabelStyle}>
+                <span>Minimum stock level <span style={{ color: T.muted, fontWeight: 500 }}>(optional)</span></span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  value={donation.minimum_threshold}
+                  onChange={(event) => updateDonation('minimum_threshold', event.target.value)}
+                  placeholder="0"
+                  style={donationInputStyle}
+                />
+              </label>
+            </div>
+          </fieldset>
+
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: '0.9rem', flexWrap: 'wrap', paddingTop: '0.1rem',
+          }}>
+            <div style={{ minHeight: 20, flex: '1 1 280px' }}>
+              {donationSuccess && (
+                <div role="status" style={{ color: T.green, fontSize: '0.74rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <CheckCircle2 size={15} /> {donationSuccess}
+                </div>
+              )}
+              {donationError && (
+                <div role="alert" style={{ color: T.red, fontSize: '0.74rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <AlertTriangle size={15} /> {donationError}
+                </div>
+              )}
+              {!donationSuccess && !donationError && (
+                <div style={{ color: T.muted, fontSize: '0.68rem' }}>
+                  Required fields are marked with an asterisk. Stock totals update after submission.
+                </div>
+              )}
+            </div>
+            <Button
+              type="submit"
+              variant="green"
+              circleIcon={false}
+              disabled={submittingDonation}
+              icon={submittingDonation ? <RefreshCw size={15} className="animate-spin" /> : <ArrowRight size={15} />}
+              style={{ whiteSpace: 'nowrap', minHeight: 44, padding: '0.7rem 1.15rem', fontWeight: 800 }}
+            >
+              {submittingDonation ? 'Adding donation...' : 'Add to inventory'}
+            </Button>
+          </div>
         </div>
-        {donationError && <div role="alert" style={{ color: T.red, fontSize: '0.74rem', fontWeight: 700 }}>{donationError}</div>}
       </form>
 
       {/* ── Empty state ─────────────────────────────────────────── */}
